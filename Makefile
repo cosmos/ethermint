@@ -19,8 +19,9 @@ DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = emintd
 ETHERMINT_CLI_BINARY = emintcli
+GO_MOD=GO111MODULE=on
 
-all: tools install
+all: tools verify install
 
 #######################
 ### Build / Install ###
@@ -28,23 +29,27 @@ all: tools install
 
 build:
 ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/emintd
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/emintcli
+	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/emintd
+	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/emintcli
 else
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/emintd/
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/emintcli/
+	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/emintd/
+	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/emintcli/
 endif
 
 install:
-	go install $(BUILD_FLAGS) ./cmd/emintd
-	go install $(BUILD_FLAGS) ./cmd/emintcli
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/emintd
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/emintcli
 
 clean:
 	@rm -rf ./build ./vendor
 
 update-tools:
 	@echo "--> Updating vendor dependencies"
-	go get -u -v $(GOLINT) $(GOMETALINTER) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
+	${GO_MOD} go get -u -v $(GOLINT) $(GOMETALINTER) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
+
+verify:
+	@echo "--> Verifying dependencies have not been modified"
+	${GO_MOD} go mod verify
 
 
 ############################
@@ -76,43 +81,43 @@ ifdef GOLINT_CHECK
 	@echo "Golint is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing golint"
-	go get -v $(GOLINT)
+	${GO_MOD} go get -v $(GOLINT)
 endif
 ifdef GOMETALINTER_CHECK
 	@echo "Gometalinter.v2 is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing gometalinter.v2"
-	go get -v $(GOMETALINTER)
+	${GO_MOD} go get -v $(GOMETALINTER)
 endif
 ifdef UNCONVERT_CHECK
 	@echo "Unconvert is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing unconvert"
-	go get -v $(UNCONVERT)
+	${GO_MOD} go get -v $(UNCONVERT)
 endif
 ifdef INEFFASSIGN_CHECK
 	@echo "Ineffassign is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing ineffassign"
-	go get -v $(INEFFASSIGN)
+	${GO_MOD} go get -v $(INEFFASSIGN)
 endif
 ifdef MISSPELL_CHECK
 	@echo "misspell is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing misspell"
-	go get -v $(MISSPELL)
+	${GO_MOD} go get -v $(MISSPELL)
 endif
 ifdef ERRCHECK_CHECK
 	@echo "errcheck is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing errcheck"
-	go get -v $(ERRCHECK)
+	${GO_MOD} go get -v $(ERRCHECK)
 endif
 ifdef UNPARAM_CHECK
 	@echo "unparam is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing unparam"
-	go get -v $(UNPARAM)
+	${GO_MOD} go get -v $(UNPARAM)
 endif
 
 
@@ -123,10 +128,10 @@ endif
 test: test-unit
 
 test-unit:
-	@go test -v --vet=off $(PACKAGES)
+	@${GO_MOD} go test -v --vet=off $(PACKAGES)
 
 test-race:
-	@go test -v --vet=off -race $(PACKAGES)
+	@${GO_MOD} go test -v --vet=off -race $(PACKAGES)
 
 test-cli:
 	@echo "NO CLI TESTS"
@@ -136,7 +141,7 @@ test-lint:
 	@gometalinter.v2 --config=gometalinter.json --exclude=vendor ./...
 
 test-import:
-	@go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
+	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
 	--blockchain blockchain --timeout=5m
 	# TODO: remove tmp directory after test run to avoid subsequent errors
 
