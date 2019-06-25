@@ -3,9 +3,11 @@ package app
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
@@ -58,13 +60,14 @@ func sdkAnteHandler(
 	// if this is a CheckTx. This is only for local mempool purposes, and thus
 	// is only ran on check tx.
 	if ctx.IsCheckTx() && !sim {
-		res := auth.EnsureSufficientMempoolFees(ctx, stdTx)
+		res := auth.EnsureSufficientMempoolFees(ctx, stdTx.Fee)
 		if !res.IsOK() {
 			return newCtx, res, true
 		}
 	}
 
-	newCtx = auth.SetGasMeter(sim, ctx, stdTx)
+	// TODO: Check if stdTx.Fee.Gas is correct
+	newCtx = auth.SetGasMeter(sim, ctx, stdTx.Fee.Gas)
 
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
 	// to know how much gas was used! This is because the GasMeter is created in
@@ -91,14 +94,19 @@ func sdkAnteHandler(
 
 	newCtx.GasMeter().ConsumeGas(memoCostPerByte*sdk.Gas(len(stdTx.GetMemo())), "memo")
 
-	signerAccs, res := auth.GetSignerAccs(newCtx, ak, stdTx.GetSigners())
-	if !res.IsOK() {
-		return newCtx, res, true
+	signers := stdTx.GetSigners()
+	signerAccs := make([]exported.Account, len(signers))
+	for i, v := range signers {
+		signer, res := auth.GetSignerAcc(newCtx, ak, v)
+		if !res.IsOK() {
+			return newCtx, res, true
+		}
+		signerAccs[i] = signer
 	}
 
 	// the first signer pays the transaction fees
 	if !stdTx.Fee.Amount.IsZero() {
-		signerAccs[0], res = auth.DeductFees(signerAccs[0], stdTx.Fee)
+		signerAccs[0], res = auth.DeductFees(time.Time{}, signerAccs[0], stdTx.Fee)
 		if !res.IsOK() {
 			return newCtx, res, true
 		}
@@ -107,7 +115,11 @@ func sdkAnteHandler(
 	}
 
 	isGenesis := ctx.BlockHeight() == 0
-	signBytesList := auth.GetSignBytesList(newCtx.ChainID(), stdTx, signerAccs, isGenesis)
+	signBytesList := make([][]byte, len(signerAccs))
+	for i, v := range signerAccs {
+		signBytes := auth.GetSignBytes(newCtx.ChainID(), stdTx, v, isGenesis)
+		signBytesList[i] = signBytes
+	}
 	stdSigs := stdTx.GetSignatures()
 
 	for i := 0; i < len(stdSigs); i++ {
@@ -283,13 +295,21 @@ func validateAccount(
 // NOTE: This should only be ran during a CheckTx mode.
 func ensureSufficientMempoolFees(ctx sdk.Context, ethTxMsg *evmtypes.EthereumTxMsg) sdk.Result {
 	// fee = GP * GL
-	fee := sdk.Coins{sdk.NewInt64Coin(types.DenomDefault, ethTxMsg.Fee().Int64())}
+	fee := sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(types.DenomDefault, ethTxMsg.Fee().Int64()))
+
+	minGasPrices := ctx.MinGasPrices()
+	allGTE := true
+	for _, v := range minGasPrices {
+		if !fee.IsGTE(v) {
+			allGTE = false
+		}
+	}
 
 	// it is assumed that the minimum fees will only include the single valid denom
-	if !ctx.MinimumFees().IsZero() && !fee.IsAllGTE(ctx.MinimumFees()) {
+	if !ctx.MinGasPrices().IsZero() && allGTE {
 		// reject the transaction that does not meet the minimum fee
 		return sdk.ErrInsufficientFee(
-			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinimumFees()),
+			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices()),
 		).Result()
 	}
 

@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/stake"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	"github.com/cosmos/ethermint/crypto"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -59,7 +59,7 @@ type (
 		accountKeeper  auth.AccountKeeper
 		feeCollKeeper  auth.FeeCollectionKeeper
 		coinKeeper     bank.Keeper
-		stakeKeeper    stake.Keeper
+		stakeKeeper    staking.Keeper
 		slashingKeeper slashing.Keeper
 		govKeeper      gov.Keeper
 		paramsKeeper   params.Keeper
@@ -90,14 +90,16 @@ func NewEthermintApp(logger tmlog.Logger, db dbm.DB, baseAppOpts ...func(*bam.Ba
 		tParamsKey:  storeKeyTransParams,
 	}
 
-	app.paramsKeeper = params.NewKeeper(app.cdc, app.paramsKey, app.tParamsKey)
-	app.accountKeeper = auth.NewAccountKeeper(app.cdc, app.accountKey, auth.ProtoBaseAccount)
+	authSubspace := app.paramsKeeper.Subspace(auth.DefaultParamspace)
+
+	app.paramsKeeper = params.NewKeeper(app.cdc, app.paramsKey, app.tParamsKey, params.DefaultCodespace)
+	app.accountKeeper = auth.NewAccountKeeper(app.cdc, app.accountKey, authSubspace, auth.ProtoBaseAccount)
 	app.feeCollKeeper = auth.NewFeeCollectionKeeper(app.cdc, app.feeCollKey)
 
 	// register message handlers
 	app.Router().
 		// TODO: add remaining routes
-		AddRoute("stake", stake.NewHandler(app.stakeKeeper)).
+		AddRoute("stake", staking.NewHandler(app.stakeKeeper)).
 		AddRoute("slashing", slashing.NewHandler(app.slashingKeeper)).
 		AddRoute("gov", gov.NewHandler(app.govKeeper))
 
