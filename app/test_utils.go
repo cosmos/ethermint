@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
@@ -48,7 +49,10 @@ func newTestSetup() testSetup {
 	cdc := CreateCodec()
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, auth.ProtoBaseAccount)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	// Set specific supspaces
+	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
 	feeKeeper := auth.NewFeeCollectionKeeper(cdc, feeCapKey)
 	anteHandler := NewAnteHandler(accKeeper, feeKeeper)
 
@@ -77,7 +81,7 @@ func newTestCoins() sdk.Coins {
 }
 
 func newTestStdFee() auth.StdFee {
-	return auth.NewStdFee(220000, sdk.NewInt64Coin(types.DenomDefault, 150))
+	return auth.NewStdFee(220000, sdk.NewCoins(sdk.NewInt64Coin(types.DenomDefault, 150)))
 }
 
 // GenerateAddress generates an Ethereum address.
