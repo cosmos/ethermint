@@ -280,8 +280,7 @@ func TestEthInvalidIntrinsicGas(t *testing.T) {
 func TestEthInvalidMempoolFees(t *testing.T) {
 	input := newTestSetup()
 	input.ctx = input.ctx.WithBlockHeight(1)
-	// TODO: Clean following line to be more succinct
-	input.ctx = input.ctx.WithMinGasPrices(sdk.DecCoins{sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(types.DenomDefault, 500000))})
+	input.ctx = input.ctx.WithMinGasPrices(sdk.DecCoins{sdk.NewDecCoin(types.DenomDefault, sdk.NewInt(500000))})
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
