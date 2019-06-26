@@ -133,7 +133,7 @@ func TestSDKInvalidSigs(t *testing.T) {
 	accSeqs := []uint64{acc1.GetSequence(), acc2.GetSequence()}
 
 	tx := newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false, sdk.CodeUnauthorized)
+	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false, sdk.CodeNoSignatures)
 
 	// require validation failure with invalid number of signers
 	msgs = []sdk.Msg{msg1}
