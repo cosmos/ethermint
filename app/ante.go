@@ -66,7 +66,6 @@ func sdkAnteHandler(
 		}
 	}
 
-	// TODO: Check if stdTx.Fee.Gas is correct
 	newCtx = auth.SetGasMeter(sim, ctx, stdTx.Fee.Gas)
 
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
