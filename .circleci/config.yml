@@ -11,7 +11,7 @@ jobs:
 
       - run:
           name: "Install tools and dependancies"
-          command: make tools deps
+          command: make tools verify
 
       - run:
           name: "Run tests"

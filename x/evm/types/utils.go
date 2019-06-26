@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GenerateAddress generates an Ethereum address.
+// GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := crypto.GenerateKey()
 	if err != nil {
