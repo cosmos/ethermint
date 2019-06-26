@@ -2,17 +2,42 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     working_directory: /go/src/github.com/cosmos/ethermint
 
     steps:
       - checkout
-
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
       - run:
-          name: "Install tools and dependancies"
+          name: Get tools and verify dependencies
           command: make tools verify
-
       - run:
-          name: "Run tests"
+          name: Compile binaries for daemon and cli
+          command: make build
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+
+  test:
+    docker:
+      - image: circleci/golang:1.12
+
+    working_directory: /go/src/github.com/cosmos/ethermint
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Run all tests
           command: make test-lint test-unit test-import
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+
