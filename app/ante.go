@@ -306,7 +306,7 @@ func ensureSufficientMempoolFees(ctx sdk.Context, ethTxMsg *evmtypes.EthereumTxM
 	}
 
 	// it is assumed that the minimum fees will only include the single valid denom
-	if !ctx.MinGasPrices().IsZero() && allGTE {
+	if !ctx.MinGasPrices().IsZero() && !allGTE {
 		// reject the transaction that does not meet the minimum fee
 		return sdk.ErrInsufficientFee(
 			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices()),
