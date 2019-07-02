@@ -15,6 +15,9 @@ jobs:
           name: Get tools and verify dependencies
           command: make tools verify
       - run:
+          name: Run linter
+          command: make test-lint
+      - run:
           name: Compile binaries for daemon and cli
           command: make build
       - save_cache:
@@ -35,7 +38,7 @@ jobs:
             - go-mod-v0-{{ checksum "go.sum" }}
       - run:
           name: Run all tests
-          command: make test-lint test-unit test-import
+          command: make test-unit test-import
       - save_cache:
           key: go-mod-v0-{{ checksum "go.sum" }}
           paths:
@@ -47,4 +50,3 @@ workflows:
     jobs:
       - build
       - test
-      
