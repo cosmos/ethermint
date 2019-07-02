@@ -164,7 +164,7 @@ func TestImportBlocks(t *testing.T) {
 		require.NoError(t, err, "failed to start CPU profile")
 	}
 
-	db := dbm.NewDB("state", dbm.LevelDBBackend, flagDataDir)
+	db := dbm.NewDB("state", dbm.GoLevelDBBackend, flagDataDir)
 	defer cleanup()
 	trapSignals()
 

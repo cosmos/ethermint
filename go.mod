@@ -12,7 +12,6 @@ require (
 	github.com/ethereum/go-ethereum v1.8.27
 	github.com/fjl/memsize v0.0.0-20180929194037-2a09253e352a // indirect
 	github.com/golangci/golangci-lint v1.17.1 // indirect
-	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20190601041439-ed7b1b5ee0f8 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
@@ -34,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v0.0.0-20181105012736-f9080354173f // indirect
 	github.com/tendermint/lint v0.0.1 // indirect
-	github.com/tendermint/tendermint v0.31.5
+	github.com/tendermint/tendermint v0.32.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect

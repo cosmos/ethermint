@@ -5,10 +5,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/cosmos/ethermint/crypto"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -31,7 +35,7 @@ var (
 	storeKeyStake       = sdk.NewKVStoreKey("stake")
 	storeKeySlashing    = sdk.NewKVStoreKey("slashing")
 	storeKeyGov         = sdk.NewKVStoreKey("gov")
-	storeKeyFeeColl     = sdk.NewKVStoreKey("fee")
+	storeKeySupply      = sdk.NewKVStoreKey("supply")
 	storeKeyParams      = sdk.NewKVStoreKey("params")
 	storeKeyTransParams = sdk.NewTransientStoreKey("transient_params")
 )
@@ -51,14 +55,14 @@ type (
 		stakeKey    *sdk.KVStoreKey
 		slashingKey *sdk.KVStoreKey
 		govKey      *sdk.KVStoreKey
-		feeCollKey  *sdk.KVStoreKey
+		supplyKey   *sdk.KVStoreKey
 		paramsKey   *sdk.KVStoreKey
 		tParamsKey  *sdk.TransientStoreKey
 
-		accountKeeper auth.AccountKeeper
-		feeCollKeeper auth.FeeCollectionKeeper
-		// coinKeeper     bank.Keeper
-		stakeKeeper    stake.Keeper
+		accountKeeper  auth.AccountKeeper
+		supplyKeeper   supply.Keeper
+		bankKeeper     bank.Keeper
+		stakeKeeper    staking.Keeper
 		slashingKeeper slashing.Keeper
 		govKeeper      gov.Keeper
 		paramsKeeper   params.Keeper
@@ -84,16 +88,25 @@ func NewEthermintApp(logger tmlog.Logger, db dbm.DB, baseAppOpts ...func(*bam.Ba
 		stakeKey:    storeKeyStake,
 		slashingKey: storeKeySlashing,
 		govKey:      storeKeyGov,
-		feeCollKey:  storeKeyFeeColl,
+		supplyKey:   storeKeySupply,
 		paramsKey:   storeKeyParams,
 		tParamsKey:  storeKeyTransParams,
 	}
 
-	authSubspace := app.paramsKeeper.Subspace(auth.DefaultParamspace)
-
+	// Set params keeper and subspaces
 	app.paramsKeeper = params.NewKeeper(app.cdc, app.paramsKey, app.tParamsKey, params.DefaultCodespace)
+	authSubspace := app.paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := app.paramsKeeper.Subspace(bank.DefaultParamspace)
+
+	// account permissions
+	basicModuleAccs := []string{auth.FeeCollectorName, distr.ModuleName}
+	minterModuleAccs := []string{mint.ModuleName}
+	burnerModuleAccs := []string{staking.BondedPoolName, staking.NotBondedPoolName, gov.ModuleName}
+
+	// Add keepers
 	app.accountKeeper = auth.NewAccountKeeper(app.cdc, app.accountKey, authSubspace, auth.ProtoBaseAccount)
-	app.feeCollKeeper = auth.NewFeeCollectionKeeper(app.cdc, app.feeCollKey)
+	app.bankKeeper = bank.NewBaseKeeper(app.accountKeeper, bankSubspace, bank.DefaultCodespace)
+	app.supplyKeeper = supply.NewKeeper(cdc, app.supplyKey, app.accountKeeper, app.bankKeeper, supply.DefaultCodespace, basicModuleAccs, minterModuleAccs, burnerModuleAccs)
 
 	// register message handlers
 	app.Router().
@@ -106,11 +119,11 @@ func NewEthermintApp(logger tmlog.Logger, db dbm.DB, baseAppOpts ...func(*bam.Ba
 	app.SetInitChainer(app.initChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetEndBlocker(app.EndBlocker)
-	app.SetAnteHandler(NewAnteHandler(app.accountKeeper, app.feeCollKeeper))
+	app.SetAnteHandler(NewAnteHandler(app.accountKeeper, app.supplyKeeper))
 
 	app.MountStores(
 		app.mainKey, app.accountKey, app.stakeKey, app.slashingKey,
-		app.govKey, app.feeCollKey, app.paramsKey, app.storageKey,
+		app.govKey, app.supplyKey, app.paramsKey, app.storageKey,
 	)
 	app.MountStore(app.tParamsKey, sdk.StoreTypeTransient)
 

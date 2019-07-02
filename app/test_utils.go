@@ -9,10 +9,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 
 	"github.com/cosmos/ethermint/crypto"
-	"github.com/cosmos/ethermint/types"
+	emint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -24,23 +31,23 @@ import (
 )
 
 type testSetup struct {
-	ctx         sdk.Context
-	cdc         *codec.Codec
-	accKeeper   auth.AccountKeeper
-	feeKeeper   auth.FeeCollectionKeeper
-	anteHandler sdk.AnteHandler
+	ctx          sdk.Context
+	cdc          *codec.Codec
+	accKeeper    auth.AccountKeeper
+	supplyKeeper types.SupplyKeeper
+	anteHandler  sdk.AnteHandler
 }
 
 func newTestSetup() testSetup {
 	db := dbm.NewMemDB()
 	authCapKey := sdk.NewKVStoreKey("authCapKey")
-	feeCapKey := sdk.NewKVStoreKey("feeCapKey")
+	keySupply := sdk.NewKVStoreKey("keySupply")
 	keyParams := sdk.NewKVStoreKey("params")
 	tkeyParams := sdk.NewTransientStoreKey("transient_params")
 
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(authCapKey, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(feeCapKey, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeIAVL, db)
 	// nolint:errcheck
@@ -49,12 +56,21 @@ func newTestSetup() testSetup {
 	cdc := CreateCodec()
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
+	// Set params keeper and subspaces
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
-	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
+
+	// account permissions
+	basicModuleAccs := []string{auth.FeeCollectorName, distr.ModuleName}
+	minterModuleAccs := []string{mint.ModuleName}
+	burnerModuleAccs := []string{staking.BondedPoolName, staking.NotBondedPoolName, gov.ModuleName}
+
+	// Add keepers
 	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
-	feeKeeper := auth.NewFeeCollectionKeeper(cdc, feeCapKey)
-	anteHandler := NewAnteHandler(accKeeper, feeKeeper)
+	bankKeeper := bank.NewBaseKeeper(accKeeper, bankSubspace, bank.DefaultCodespace)
+	supplyKeeper := supply.NewKeeper(cdc, keySupply, accKeeper, bankKeeper, supply.DefaultCodespace, basicModuleAccs, minterModuleAccs, burnerModuleAccs)
+	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
 
 	ctx := sdk.NewContext(
 		ms,
@@ -64,11 +80,11 @@ func newTestSetup() testSetup {
 	)
 
 	return testSetup{
-		ctx:         ctx,
-		cdc:         cdc,
-		accKeeper:   accKeeper,
-		feeKeeper:   feeKeeper,
-		anteHandler: anteHandler,
+		ctx:          ctx,
+		cdc:          cdc,
+		accKeeper:    accKeeper,
+		supplyKeeper: supplyKeeper,
+		anteHandler:  anteHandler,
 	}
 }
 
@@ -77,11 +93,11 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 }
 
 func newTestCoins() sdk.Coins {
-	return sdk.Coins{sdk.NewInt64Coin(types.DenomDefault, 500000000)}
+	return sdk.Coins{sdk.NewInt64Coin(emint.DenomDefault, 500000000)}
 }
 
 func newTestStdFee() auth.StdFee {
-	return auth.NewStdFee(220000, sdk.NewCoins(sdk.NewInt64Coin(types.DenomDefault, 150)))
+	return auth.NewStdFee(220000, sdk.NewCoins(sdk.NewInt64Coin(emint.DenomDefault, 150)))
 }
 
 // GenerateAddress generates an Ethereum address.
