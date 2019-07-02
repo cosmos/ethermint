@@ -41,3 +41,10 @@ jobs:
           paths:
             - "/go/pkg/mod"
 
+workflows:
+  version: 2
+  build-workflow:
+    jobs:
+      - build
+      - test
+      
