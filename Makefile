@@ -139,6 +139,7 @@ test-cli:
 
 test-lint:
 	@echo "--> Running golangci-lint..."
+	@${GO_MOD} go get ./...
 	@golangci-lint run ./...
 
 test-import:
