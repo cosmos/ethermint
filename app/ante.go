@@ -97,7 +97,7 @@ func sdkAnteHandler(
 	signerAddrs := stdTx.GetSigners()
 	signerAccs := make([]exported.Account, len(signerAddrs))
 	isGenesis := ctx.BlockHeight() == 0
-	
+
 	// fetch first signer, who's going to pay the fees
 	signerAccs[0], res = auth.GetSignerAcc(newCtx, ak, signerAddrs[0])
 	if !res.IsOK() {
@@ -115,9 +115,9 @@ func sdkAnteHandler(
 		// Reload account after fees deducted
 		signerAccs[0] = ak.GetAccount(newCtx, signerAccs[0].GetAddress())
 	}
-	
+
 	stdSigs := stdTx.GetSignatures()
-	
+
 	for i := 0; i < len(stdSigs); i++ {
 		// skip the fee payer, account is cached and fees were deducted already
 		if i != 0 {
@@ -126,17 +126,17 @@ func sdkAnteHandler(
 				return newCtx, res, true
 			}
 		}
-		
+
 		// check signature, return account with incremented nonce
 		signBytes := auth.GetSignBytes(newCtx.ChainID(), stdTx, signerAccs[i], isGenesis)
 		signerAccs[i], res = processSig(newCtx, signerAccs[i], stdSigs[i], signBytes, sim)
 		if !res.IsOK() {
 			return newCtx, res, true
 		}
-		
+
 		ak.SetAccount(newCtx, signerAccs[i])
 	}
-	
+
 	return newCtx, sdk.Result{GasWanted: stdTx.Fee.Gas}, false
 }
 
@@ -144,11 +144,11 @@ func sdkAnteHandler(
 // doesn't have a pubkey, set it.
 func processSig(
 	ctx sdk.Context, acc auth.Account, sig auth.StdSignature, signBytes []byte, sim bool,
-	) (updatedAcc auth.Account, res sdk.Result) {
-		
-		pubKey, res := auth.ProcessPubKey(acc, sig, sim)
-		if !res.IsOK() {
-			return nil, res
+) (updatedAcc auth.Account, res sdk.Result) {
+
+	pubKey, res := auth.ProcessPubKey(acc, sig, sim)
+	if !res.IsOK() {
+		return nil, res
 	}
 
 	err := acc.SetPubKey(pubKey)
