@@ -185,11 +185,11 @@ func TestSDKInvalidAcc(t *testing.T) {
 
 	tx := newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false, sdk.CodeUnauthorized)
-
+	
 	// require validation failure with invalid sequence (nonce)
 	accNums = []uint64{acc1.GetAccountNumber()}
 	accSeqs = []uint64{1}
-
+	
 	tx = newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false, sdk.CodeUnauthorized)
 }

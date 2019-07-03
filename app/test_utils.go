@@ -9,14 +9,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/gov"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	distr "github.com/cosmos/cosmos-sdk/x/distribution"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
@@ -59,17 +53,10 @@ func newTestSetup() testSetup {
 	// Set params keeper and subspaces
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
-
-	// account permissions
-	basicModuleAccs := []string{auth.FeeCollectorName, distr.ModuleName}
-	minterModuleAccs := []string{mint.ModuleName}
-	burnerModuleAccs := []string{staking.BondedPoolName, staking.NotBondedPoolName, gov.ModuleName}
 
 	// Add keepers
 	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
-	bankKeeper := bank.NewBaseKeeper(accKeeper, bankSubspace, bank.DefaultCodespace)
-	supplyKeeper := supply.NewKeeper(cdc, keySupply, accKeeper, bankKeeper, supply.DefaultCodespace, basicModuleAccs, minterModuleAccs, burnerModuleAccs)
+	supplyKeeper := auth.NewDummySupplyKeeper(accKeeper)
 	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
 
 	ctx := sdk.NewContext(
