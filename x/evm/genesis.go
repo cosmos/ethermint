@@ -1,6 +1,7 @@
-package app
+package evm
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/types"
 )
@@ -20,3 +21,20 @@ type (
 		Storage types.Storage  `json:"storage,omitempty"`
 	}
 )
+
+func ValidateGenesis(data GenesisState) error {
+	for _, acct := range data.Accounts {
+		if acct.Address == nil {
+			return fmt.Errorf("Invalid GenesisAccount Error: Missing Address")
+		}
+		if acct.Coins == nil {
+			return fmt.Errorf("Invalid GenesisAccount Error: Missing Coins")
+		}
+	}
+}
+
+func DefaultGenesisState() GenesisState {
+	return GenesisState{
+		Accounts: []GenesisAccount{},
+	}
+}

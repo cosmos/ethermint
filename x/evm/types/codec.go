@@ -2,7 +2,8 @@ package types
 
 import "github.com/cosmos/cosmos-sdk/codec"
 
-var msgCodec = codec.New()
+// TODO: Is this the MAIN codec? or should it only be applied to eth specific messages (originally `MsgCodec`)
+var ModuleCdc = codec.New()
 
 func init() {
 	cdc := codec.New()
@@ -10,7 +11,7 @@ func init() {
 	RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 
-	msgCodec = cdc.Seal()
+	ModuleCdc = cdc.Seal()
 }
 
 // RegisterCodec registers concrete types and interfaces on the given codec.
