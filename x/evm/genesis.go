@@ -31,6 +31,7 @@ func ValidateGenesis(data GenesisState) error {
 			return fmt.Errorf("Invalid GenesisAccount Error: Missing Coins")
 		}
 	}
+	return nil
 }
 
 func DefaultGenesisState() GenesisState {
