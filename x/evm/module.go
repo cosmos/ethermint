@@ -2,8 +2,11 @@ package evm
 
 import (
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/ethermint/x/evm/types"
+	"github.com/gorilla/mux"
+	"github.com/spf13/cobra"
 )
 
 // app module Basics object
@@ -33,16 +36,16 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 }
 
 // Register rest routes
-//func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-//	rpc.RegisterRoutes(ctx, rtr, StoreKey)
-//}
+func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
+	//rpc.RegisterRoutes(ctx, rtr, StoreKey)
+}
 
-//// Get the root query command of this module
-//func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-//	return cli.GetQueryCmd(StoreKey, cdc)
-//}
-//
-//// Get the root tx command of this module
-//func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-//	return cli.GetTxCmd(StoreKey, cdc)
-//}
+// Get the root query command of this module
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return nil // cli.GetQueryCmd(StoreKey, cdc)
+}
+
+// Get the root tx command of this module
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	return nil // cli.GetTxCmd(StoreKey, cdc)
+}
