@@ -39,3 +39,15 @@ func DefaultGenesisState() GenesisState {
 		Accounts: []GenesisAccount{},
 	}
 }
+
+// TODO: Implement these once keeper is established
+//func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
+//	for _, record := range data.Accounts {
+//		// TODO: Add to keeper
+//	}
+//	return []abci.ValidatorUpdate{}
+//}
+//
+//func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
+//	return GenesisState{Accounts: nil}
+//}
