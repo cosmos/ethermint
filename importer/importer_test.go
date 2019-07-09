@@ -238,7 +238,7 @@ func TestImportBlocks(t *testing.T) {
 		stateDB := createStateDB(t, ctx, ak)
 
 		if chainConfig.DAOForkSupport && chainConfig.DAOForkBlock != nil && chainConfig.DAOForkBlock.Cmp(block.Number()) == 0 {
-			applyDAOHardFork(*stateDB)
+			applyDAOHardFork(stateDB)
 		}
 
 		for i, tx := range block.Transactions() {
@@ -309,7 +309,7 @@ func accumulateRewards(
 // ApplyDAOHardFork modifies the state database according to the DAO hard-fork
 // rules, transferring all balances of a set of DAO accounts to a single refund
 // contract.
-func applyDAOHardFork(statedb evmtypes.CommitStateDB) {
+func applyDAOHardFork(statedb *evmtypes.CommitStateDB) {
 	// Retrieve the contract to refund balances into
 	if !statedb.Exist(ethparams.DAORefundContract) {
 		statedb.CreateAccount(ethparams.DAORefundContract)

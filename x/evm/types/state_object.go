@@ -381,18 +381,6 @@ func (so *stateObject) touch() {
 	}
 }
 
-func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
-	return nil
-}
-
-func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
-	return nil
-}
-
-// UpdateRoot sets the trie root to the current root hash of
-func (so *stateObject) updateRoot(db ethstate.Database) {
-}
-
 func (so *stateObject) CommitTrie(db ethstate.Database) error {
 	return nil
 }

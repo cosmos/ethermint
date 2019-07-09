@@ -268,8 +268,6 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	return ethcmn.Hash{}
 }
 
-type proofList [][]byte
-
 // GetProof returns the MerkleProof for a given Account
 func (csdb *CommitStateDB) GetProof(a ethcmn.Address) ([][]byte, error) {
 	// var proof proofList
