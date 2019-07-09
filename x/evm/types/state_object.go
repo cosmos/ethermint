@@ -381,10 +381,6 @@ func (so *stateObject) touch() {
 	}
 }
 
-func (so *stateObject) CommitTrie(db ethstate.Database) error {
-	return nil
-}
-
 // GetStorageByAddressKey returns a hash of the composite key for a state
 // object's storage prefixed with it's address.
 func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
