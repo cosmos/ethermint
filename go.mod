@@ -39,7 +39,4 @@ require (
 	mvdan.cc/unparam v0.0.0-20190310220240-1b9ccfa71afe // indirect
 )
 
-replace (
-	github.com/cosmos/cosmos-sdk v0.28.2-0.20190704145406-01d442565807 => ../../chainsafe/cosmos-sdk
-	github.com/ethereum/go-ethereum v1.8.27 => ../../austinabell/go-ethereum
-)
+replace github.com/cosmos/cosmos-sdk v0.28.2-0.20190704145406-01d442565807 => ../../chainsafe/cosmos-sdk
