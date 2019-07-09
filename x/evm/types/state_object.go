@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,15 +13,37 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
-	_ ethstate.StateObject = (*stateObject)(nil)
+	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 )
 
 type (
+	// StateObject interface for interacting with state object
+	StateObject interface {
+		GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
+		GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
+		SetState(db ethstate.Database, key, value ethcmn.Hash)
+
+		Code(db ethstate.Database) []byte
+		SetCode(codeHash ethcmn.Hash, code []byte)
+		CodeHash() []byte
+
+		AddBalance(amount *big.Int)
+		SubBalance(amount *big.Int)
+		SetBalance(amount *big.Int)
+
+		Balance() *big.Int
+		ReturnGas(gas *big.Int)
+		Address() ethcmn.Address
+
+		SetNonce(nonce uint64)
+		Nonce() uint64
+	}
 	// stateObject represents an Ethereum account which is being modified.
 	//
 	// The usage pattern is as follows:
@@ -341,6 +364,11 @@ func (so *stateObject) empty() bool {
 		bytes.Equal(so.account.CodeHash, emptyCodeHash)
 }
 
+// EncodeRLP implements rlp.Encoder.
+func (so *stateObject) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, so.account)
+}
+
 func (so *stateObject) touch() {
 	so.stateDB.journal.append(touchChange{
 		account: &so.address,
@@ -351,6 +379,22 @@ func (so *stateObject) touch() {
 		// flattened journals.
 		so.stateDB.journal.dirty(so.address)
 	}
+}
+
+func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
+	return nil
+}
+
+func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
+	return nil
+}
+
+// UpdateRoot sets the trie root to the current root hash of
+func (so *stateObject) updateRoot(db ethstate.Database) {
+}
+
+func (so *stateObject) CommitTrie(db ethstate.Database) error {
+	return nil
 }
 
 // GetStorageByAddressKey returns a hash of the composite key for a state
