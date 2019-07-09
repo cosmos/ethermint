@@ -648,10 +648,10 @@ func (csdb *CommitStateDB) Copy() ethvm.StateDB {
 
 // ForEachStorage iterates over each storage items, all invokes the provided
 // callback on each key, value pair .
-func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
+func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) {
 	so := csdb.getStateObject(addr)
 	if so == nil {
-		return nil
+		return
 	}
 
 	store := csdb.ctx.KVStore(csdb.storageKey)
@@ -670,7 +670,6 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	}
 
 	iter.Close()
-	return nil
 }
 
 // GetOrNewStateObject retrieves a state object or create a new state object if
