@@ -213,16 +213,6 @@ func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 	return 0
 }
 
-// TxIndex returns the current transaction index set by Prepare.
-func (csdb *CommitStateDB) TxIndex() int {
-	return csdb.txIndex
-}
-
-// BlockHash returns the current block hash set by Prepare.
-func (csdb *CommitStateDB) BlockHash() ethcmn.Hash {
-	return csdb.bhash
-}
-
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	so := csdb.getStateObject(addr)
@@ -266,25 +256,6 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	}
 
 	return ethcmn.Hash{}
-}
-
-// GetProof returns the MerkleProof for a given Account
-func (csdb *CommitStateDB) GetProof(a ethcmn.Address) ([][]byte, error) {
-	// var proof proofList
-	// err := csdb.trie.Prove(ethcrypto.Keccak256(a.Bytes()), 0, &proof)
-	return nil, nil
-}
-
-// GetProof returns the StorageProof for given key
-func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
-	// var proof proofList
-	// trie := csdb.StorageTrie(a)
-	// if trie == nil {
-	// 	return proof, errors.New("storage trie for requested address does not exist")
-	// }
-	// err := trie.Prove(ethcrypto.Keccak256(key.Bytes()), 0, &proof)
-	// return [][]byte(proof), err
-	return nil, nil
 }
 
 // GetCommittedState retrieves a value from the given account's committed
