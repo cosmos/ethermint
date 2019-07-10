@@ -213,6 +213,16 @@ func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 	return 0
 }
 
+// TxIndex returns the current transaction index set by Prepare.
+func (csdb *CommitStateDB) TxIndex() int {
+	return csdb.txIndex
+}
+
+// BlockHash returns the current block hash set by Prepare.
+func (csdb *CommitStateDB) BlockHash() ethcmn.Hash {
+	return csdb.bhash
+}
+
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	so := csdb.getStateObject(addr)
@@ -617,10 +627,10 @@ func (csdb *CommitStateDB) Copy() ethvm.StateDB {
 
 // ForEachStorage iterates over each storage items, all invokes the provided
 // callback on each key, value pair .
-func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) {
+func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
 	so := csdb.getStateObject(addr)
 	if so == nil {
-		return
+		return nil
 	}
 
 	store := csdb.ctx.KVStore(csdb.storageKey)
@@ -639,6 +649,7 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	}
 
 	iter.Close()
+	return nil
 }
 
 // GetOrNewStateObject retrieves a state object or create a new state object if
