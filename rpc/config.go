@@ -41,10 +41,10 @@ func registerRoutes(rs *lcd.RestServer) {
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
 		//if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
-			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
-				log.Println(err)
-				return
-			}
+		if err := s.RegisterName(api.Namespace, api.Service); err != nil {
+			log.Println(err)
+			return
+		}
 		//}
 	}
 

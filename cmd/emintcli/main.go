@@ -9,8 +9,8 @@ import (
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/cosmos/ethermint/server/rpc"
 	emintapp "github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
