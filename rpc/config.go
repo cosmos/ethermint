@@ -8,6 +8,10 @@ import (
 	"log"
 )
 
+func DefaultModules() []string {
+	return []string{"web3", "eth"}
+}
+
 // Config contains configuration fields that determine the
 // behavior of the RPC HTTP server.
 type Config struct {
@@ -31,21 +35,21 @@ func registerRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
 	apis := GetRPCAPIs()
 
-	// TODO: Read modules from config and whitelist
-	//modules := cliCtx.Modules
-	//whitelist := make(map[string]bool)
-	//for _, module := range modules {
-	//	whitelist[module] = true
-	//}
+	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
+	modules := DefaultModules()
+	whitelist := make(map[string]bool)
+	for _, module := range modules {
+		whitelist[module] = true
+	}
 
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
-		//if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
-		if err := s.RegisterName(api.Namespace, api.Service); err != nil {
-			log.Println(err)
-			return
+		if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
+			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
+				log.Println(err)
+				return
+			}
 		}
-		//}
 	}
 
 	rs.Mux.HandleFunc("/rpc", s.ServeHTTP).Methods("POST")
