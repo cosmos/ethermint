@@ -14,6 +14,7 @@ func defaultModules() []string {
 }
 
 // Config contains configuration fields that determine the behavior of the RPC HTTP server.
+// TODO: These may become irrelevant if HTTP config is handled by the SDK
 type Config struct {
 	// EnableRPC defines whether or not to enable the RPC server
 	EnableRPC bool
@@ -36,9 +37,9 @@ func Web3RpcCmd(cdc *codec.Codec) *cobra.Command {
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func registerRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
-	apis := GetRPCAPIs()
+	apis := GetRPCAPIs(rs.CliCtx)
 
-	// TODO: Allow cli to configure modules and port https://github.com/ChainSafe/ethermint/issues/74
+	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	modules := defaultModules()
 	whitelist := make(map[string]bool)
 	for _, module := range modules {

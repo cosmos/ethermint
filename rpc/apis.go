@@ -3,11 +3,12 @@
 package rpc
 
 import (
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs() []rpc.API {
+func GetRPCAPIs(clitCtx context.CLIContext) []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "web3",
@@ -17,7 +18,7 @@ func GetRPCAPIs() []rpc.API {
 		{
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   NewPublicEthAPI(),
+			Service:   NewPublicEthAPI(clitCtx),
 		},
 	}
 }
