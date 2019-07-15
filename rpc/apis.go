@@ -8,7 +8,7 @@ import (
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(clitCtx context.CLIContext) []rpc.API {
+func GetRPCAPIs(cliCtx context.CLIContext) []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "web3",
@@ -18,7 +18,7 @@ func GetRPCAPIs(clitCtx context.CLIContext) []rpc.API {
 		{
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   NewPublicEthAPI(clitCtx),
+			Service:   NewPublicEthAPI(cliCtx),
 		},
 	}
 }
