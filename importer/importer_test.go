@@ -103,8 +103,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 
-	stateDB, err := evmtypes.NewCommitStateDB(ctx, ak, storageKey, codeKey)
-	require.NoError(t, err, "failed to create a StateDB instance")
+	stateDB := evmtypes.NewCommitStateDB(ctx, ak, storageKey, codeKey)
 
 	// sort the addresses and insertion of key/value pairs matters
 	genAddrs := make([]string, len(genBlock.Alloc))
@@ -136,7 +135,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	// commit the stateDB with 'false' to delete empty objects
 	//
 	// NOTE: Commit does not yet return the intra merkle root (version)
-	_, err = stateDB.Commit(false)
+	_, err := stateDB.Commit(false)
 	require.NoError(t, err)
 
 	// persist multi-store cache state
@@ -269,9 +268,7 @@ func TestImportBlocks(t *testing.T) {
 }
 
 func createStateDB(t *testing.T, ctx sdk.Context, ak auth.AccountKeeper) *evmtypes.CommitStateDB {
-	stateDB, err := evmtypes.NewCommitStateDB(ctx, ak, storageKey, codeKey)
-	require.NoError(t, err, "failed to create a StateDB instance")
-
+	stateDB := evmtypes.NewCommitStateDB(ctx, ak, storageKey, codeKey)
 	return stateDB
 }
 

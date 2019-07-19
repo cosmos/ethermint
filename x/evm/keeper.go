@@ -13,7 +13,7 @@ import (
 	"math/big"
 )
 
-// Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adehreing
+// Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
 // to the StateDB interface
 type Keeper struct {
 	csdb *types.CommitStateDB
