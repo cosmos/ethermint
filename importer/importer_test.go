@@ -50,8 +50,8 @@ var (
 	// paramsKey  = sdk.NewKVStoreKey("params")
 	// tParamsKey = sdk.NewTransientStoreKey("transient_params")
 	accKey     = sdk.NewKVStoreKey("acc")
-	storageKey = sdk.NewKVStoreKey("storage")
-	codeKey    = sdk.NewKVStoreKey("code")
+	storageKey = sdk.NewKVStoreKey(evmtypes.EvmStoreKey)
+	codeKey    = sdk.NewKVStoreKey(evmtypes.EvmCodeKey)
 
 	logger = tmlog.NewNopLogger()
 
@@ -306,7 +306,7 @@ func accumulateRewards(
 // ApplyDAOHardFork modifies the state database according to the DAO hard-fork
 // rules, transferring all balances of a set of DAO accounts to a single refund
 // contract.
-// Code is pulled from go-ethereum 1.9 because the StateDB interface does not include the 
+// Code is pulled from go-ethereum 1.9 because the StateDB interface does not include the
 // SetBalance function implementation
 // Ref: https://github.com/ethereum/go-ethereum/blob/52f2461774bcb8cdd310f86b4bc501df5b783852/consensus/misc/dao.go#L74
 func applyDAOHardFork(statedb *evmtypes.CommitStateDB) {
