@@ -100,7 +100,7 @@ type EthermintApp struct {
 	keyParams   *sdk.KVStoreKey
 	tkeyParams  *sdk.TransientStoreKey
 	evmStoreKey *sdk.KVStoreKey
-	evmCodeKey *sdk.KVStoreKey
+	evmCodeKey  *sdk.KVStoreKey
 
 	// keepers
 	accountKeeper  auth.AccountKeeper
@@ -113,7 +113,7 @@ type EthermintApp struct {
 	govKeeper      gov.Keeper
 	crisisKeeper   crisis.Keeper
 	paramsKeeper   params.Keeper
-	evmKeeper		evm.Keeper
+	evmKeeper      evm.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -148,8 +148,8 @@ func NewEthermintApp(logger tmlog.Logger, db dbm.DB, loadLatest bool,
 		keyGov:         sdk.NewKVStoreKey(gov.StoreKey),
 		keyParams:      sdk.NewKVStoreKey(params.StoreKey),
 		tkeyParams:     sdk.NewTransientStoreKey(params.TStoreKey),
-		evmStoreKey: sdk.NewKVStoreKey(evmtypes.EvmStoreKey),
-		evmCodeKey: sdk.NewKVStoreKey(evmtypes.EvmCodeKey),
+		evmStoreKey:    sdk.NewKVStoreKey(evmtypes.EvmStoreKey),
+		evmCodeKey:     sdk.NewKVStoreKey(evmtypes.EvmCodeKey),
 	}
 
 	// init params keeper and subspaces

@@ -5,5 +5,5 @@ const (
 	ModuleName = "ethermint"
 
 	EvmStoreKey = "evmstore"
-	EvmCodeKey = "evmcode"
+	EvmCodeKey  = "evmcode"
 )
