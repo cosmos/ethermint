@@ -29,6 +29,21 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey, cdc *cod
 }
 
 // ----------------------------------------------------------------------------
+// Genesis
+// ----------------------------------------------------------------------------
+
+// CreateGenesisAccount initializes an account and its balance, code, and storage
+func (k *Keeper) CreateGenesisAccount(ctx sdk.Context, account GenesisAccount) {
+	csdb := k.csdb.WithContext(ctx)
+	csdb.SetBalance(account.Address, account.Balance)
+	csdb.SetCode(account.Address, account.Code)
+	for _, key := range account.Storage {
+		csdb.SetState(account.Address, key, account.Storage[key])
+	}
+
+}
+
+// ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
 
