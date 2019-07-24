@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"github.com/cosmos/cosmos-sdk/codec"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 
@@ -17,11 +18,13 @@ import (
 // to the StateDB interface
 type Keeper struct {
 	csdb *types.CommitStateDB
+	cdc  *codec.Codec
 }
 
-func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey) Keeper {
+func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey, cdc *codec.Codec) Keeper {
 	return Keeper{
 		csdb: types.NewCommitStateDB(sdk.Context{}, ak, storageKey, codeKey),
+		cdc:  cdc,
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	evmQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the evm module",
@@ -18,7 +18,7 @@ func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	evmQueryCmd.AddCommand(client.GetCommands(
-		GetCmdGetBlockNumber(storeKey, cdc),
+		GetCmdGetBlockNumber(moduleName, cdc),
 	)...)
 	return evmQueryCmd
 }

@@ -3,6 +3,8 @@ package evm
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	version "github.com/cosmos/ethermint/version"
+	"github.com/cosmos/ethermint/x/evm/types"
+	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -13,8 +15,6 @@ const (
 	QueryBlockNumber = "blockNumber"
 )
 
-
-
 // TODO: Implement querier to route RPC methods. Unable to access RPC otherwise
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
@@ -23,7 +23,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case QueryBlockNumber:
 			return queryBlockNumber(ctx, req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown nameservice query endpoint")
+			return nil, sdk.ErrUnknownRequest("unknown query endpoint")
 		}
 	}
 }
@@ -64,9 +64,9 @@ func queryProtocolVersion(ctx sdk.Context, path []string, req abci.RequestQuery,
 //}
 
 func queryBlockNumber(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	block := ctx.BlockHeight()
-
-	res, err := codec.MarshalJSONIndent(keeper.cdc, block)
+	num := ctx.BlockHeight()
+	bnRes := types.QueryResBlockNumber{ Number: big.NewInt(num)}
+	res, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
 	}
