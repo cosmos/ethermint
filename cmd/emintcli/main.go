@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/cosmos/ethermint/rpc"
+	"github.com/tendermint/go-amino"
 	"os"
 	"path"
 
-	"github.com/tendermint/go-amino"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -47,6 +48,7 @@ func main() {
 		queryCmd(cdc),
 		// TODO: Set up tx command
 		// TODO: Set up rest routes (if included, different from web3 api)
+		rpc.Web3RpcCmd(cdc),
 		client.LineBreak,
 		keys.Commands(),
 		client.LineBreak,
