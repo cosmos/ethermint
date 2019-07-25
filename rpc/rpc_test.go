@@ -1,94 +1,123 @@
+// This is a test utility for Ethermint's Web3 JSON-RPC services.
+//
+// To run these tests please first ensure you have the emintd running
+// and have started the RPC service with `emintcl rest-server`.
+//
+// You can configure the desired port (or host) below.
+
 package rpc
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/ethermint/version"
+	"github.com/cosmos/ethermint/x/evm/types"
 	"io/ioutil"
-	"math/rand"
+	"math/big"
 	"net/http"
-	"strings"
 	"testing"
-	"time"
-
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/stretchr/testify/require"
 )
 
-type TestService struct{}
+const (
+	host          = "127.0.0.1"
+	port          = 1317
+	addrA         = "0xc94770007dda54cF92009BFF0dE90c06F603a09f"
+	addrAStoreKey = 0
+)
 
-func (s *TestService) Foo(arg string) string {
-	return arg
+var addr = fmt.Sprintf("http://%s:%d/rpc", host, port)
+
+type Request struct {
+	Version string   `json:"jsonrpc"`
+	Method  string   `json:"method"`
+	Params  []string `json:"params"`
+	Id      int      `json:"id"`
 }
 
-func TestStartHTTPEndpointStartStop(t *testing.T) {
-	config := &Config{
-		RPCAddr: "127.0.0.1",
-		RPCPort: randomPort(),
+func createRequest(method string, params []string) Request {
+	return Request{
+		Version: "2.0",
+		Method:  method,
+		Params:  params,
+		Id:      1,
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	_, err := StartHTTPEndpoint(
-		ctx, config, []rpc.API{
-			{
-				Namespace: "test",
-				Version:   "1.0",
-				Service:   &TestService{},
-				Public:    true,
-			},
-		},
-		rpc.HTTPTimeouts{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			IdleTimeout:  5 * time.Second,
-		},
-	)
-	require.Nil(t, err, "unexpected error")
-
-	res, err := rpcCall(config.RPCPort, "test_foo", []string{"baz"})
-	require.Nil(t, err, "unexpected error")
-
-	resStr := res.(string)
-	require.Equal(t, "baz", resStr)
-
-	cancel()
-
-	_, err = rpcCall(config.RPCPort, "test_foo", []string{"baz"})
-	require.NotNil(t, err)
 }
 
-func rpcCall(port int, method string, params []string) (interface{}, error) {
-	parsedParams, err := json.Marshal(params)
+func call(t *testing.T, method string, params []string, resp interface{}) {
+	req, err := json.Marshal(createRequest(method, params))
+
+	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		t.Error(err)
 	}
 
-	fullBody := fmt.Sprintf(
-		`{ "id": 1, "jsonrpc": "2.0", "method": "%s", "params": %s }`,
-		method, string(parsedParams),
-	)
-
-	res, err := http.Post(fmt.Sprintf("http://127.0.0.1:%d", port), "application/json", strings.NewReader(fullBody))
+	err = json.Unmarshal(body, resp)
 	if err != nil {
-		return nil, err
+		t.Error(err)
 	}
-
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var out map[string]interface{}
-	err = json.Unmarshal(data, &out)
-	if err != nil {
-		return nil, err
-	}
-
-	result := out["result"].(interface{})
-	return result, nil
 }
 
-func randomPort() int {
-	return rand.Intn(65535-1025) + 1025
+func TestEth_protocolVersion(t *testing.T) {
+	expectedRes := version.ProtocolVersion
+
+	res := &types.QueryResProtocolVersion{}
+	call(t, "eth_protocolVersion", []string{}, res)
+
+	t.Logf("Got protocol version: %s\n", res.Version)
+
+	if res.Version != expectedRes {
+		t.Errorf("expected: %s got: %s\n", expectedRes, res)
+	}
+}
+
+func TestEth_blockNumber(t *testing.T) {
+	res := &types.QueryResBlockNumber{}
+	call(t, "eth_blockNumber", []string{}, res)
+
+	t.Logf("Got block number: %s\n", res.Number.String())
+
+	// -1 if x <  y, 0 if x == y; where x is res, y is 0
+	if res.Number.Cmp(big.NewInt(0)) < 1 {
+		t.Errorf("Invalid block number got: %v", res)
+	}
+}
+
+func TestEth_GetBalance(t *testing.T) {
+	//expectedRes := types.QueryResBalance{Balance:}
+	res := &types.QueryResBalance{}
+	call(t, "eth_getBalance", []string{addrA, "latest"}, res)
+
+	t.Logf("Got balance %s for %s\n", res.Balance.String(), addrA)
+
+	// 0 if x == y; where x is res, y is 0
+	if res.Balance.ToInt().Cmp(big.NewInt(0)) != 0 {
+		t.Errorf("expected balance: %d, got: %s", 0, res.Balance.String())
+	}
+}
+
+func TestEth_GetStorageAt(t *testing.T) {
+	expectedRes := types.QueryResStorage{Value: []byte{}}
+	res := &types.QueryResStorage{}
+	call(t, "eth_getStorageAt", []string{addrA, string(addrAStoreKey), "latest"}, res)
+
+	t.Logf("Got value [%X] for %s with key %X\n", res.Value, addrA, addrAStoreKey)
+
+	if !bytes.Equal(res.Value, expectedRes.Value) {
+		t.Errorf("expected: %X got: %X", expectedRes.Value, res.Value)
+	}
+}
+
+func TestEth_GetCode(t *testing.T) {
+	expectedRes := types.QueryResCode{Code: []byte{}}
+	res := &types.QueryResCode{}
+	call(t, "eth_getCode", []string{addrA, "latest"}, res)
+
+	t.Logf("Got code [%X] for %s\n", res.Code, addrA)
+	if !bytes.Equal(expectedRes.Code, res.Code) {
+		t.Errorf("expected: %X got: %X", expectedRes.Code, res.Code)
+	}
 }

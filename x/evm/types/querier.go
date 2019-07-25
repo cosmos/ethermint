@@ -1,11 +1,20 @@
 package types
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 )
 
+type QueryResProtocolVersion struct {
+	Version string `json:"result"`
+}
+
+func (q QueryResProtocolVersion) String() string {
+	return q.Version
+}
+
 type QueryResBalance struct {
-	Balance *big.Int
+	Balance *hexutil.Big `json:"result"`
 }
 
 func (q QueryResBalance) String() string {
@@ -13,7 +22,7 @@ func (q QueryResBalance) String() string {
 }
 
 type QueryResBlockNumber struct {
-	Number *big.Int
+	Number *big.Int `json:"result"`
 }
 
 func (q QueryResBlockNumber) String() string {
