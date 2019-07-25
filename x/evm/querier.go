@@ -2,12 +2,12 @@ package evm
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	version "github.com/cosmos/ethermint/version"
-	"github.com/cosmos/ethermint/x/evm/types"
-	"math/big"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/ethermint/version"
+	"github.com/cosmos/ethermint/x/evm/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"math/big"
 )
 
 // Supported endpoints
@@ -99,7 +99,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	key := ethcmn.BytesToHash([]byte(path[2]))
 	val := keeper.GetState(ctx, addr, key)
-	bRes := types.QueryResStorage{ Storage: val}
+	bRes := types.QueryResStorage{ Value: val}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON")

@@ -98,7 +98,7 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 
 	var out types.QueryResStorage
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Storage[:]
+	return out.Value[:]
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
