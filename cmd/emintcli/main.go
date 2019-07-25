@@ -5,9 +5,9 @@ import (
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	emintkeys "github.com/cosmos/ethermint/keys"
 
 	emintapp "github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/rpc"
@@ -48,7 +48,7 @@ func main() {
 		// TODO: Set up rest routes (if included, different from web3 api)
 		rpc.Web3RpcCmd(cdc),
 		client.LineBreak,
-		keys.Commands(),
+		emintkeys.Commands(),
 		client.LineBreak,
 	)
 
