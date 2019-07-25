@@ -19,7 +19,7 @@ type (
 	// GenesisAccount defines an account to be initialized in the genesis state.
 	GenesisAccount struct {
 		Address ethcmn.Address `json:"address"`
-		Balance *big.Int        `json:"balance"`
+		Balance *big.Int       `json:"balance"`
 		Code    []byte         `json:"code,omitempty"`
 		Storage types.Storage  `json:"storage,omitempty"`
 	}

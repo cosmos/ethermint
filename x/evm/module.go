@@ -66,7 +66,7 @@ type AppModule struct {
 func NewAppModule(keeper Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
-		keeper: keeper,
+		keeper:         keeper,
 	}
 }
 
@@ -91,7 +91,7 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 	return NewQuerier(am.keeper)
 }
 
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock){
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
 	return
 }
 

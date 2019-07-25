@@ -13,10 +13,10 @@ import (
 
 // Supported endpoints
 const (
-	QueryBalance = "balance"
+	QueryBalance     = "balance"
 	QueryBlockNumber = "blockNumber"
-	QueryStorage = "storage"
-	QueryCode = "code"
+	QueryStorage     = "storage"
+	QueryCode        = "code"
 )
 
 // TODO: Implement querier to route RPC methods. Unable to access RPC otherwise
@@ -82,7 +82,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 		panic("could not marshal big.Int to hexutil.Big")
 	}
 
-	bRes := types.QueryResBalance{ Balance: hBalance}
+	bRes := types.QueryResBalance{Balance: hBalance}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
@@ -93,7 +93,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 
 func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	num := ctx.BlockHeight()
-	bnRes := types.QueryResBlockNumber{ Number: big.NewInt(num)}
+	bnRes := types.QueryResBlockNumber{Number: big.NewInt(num)}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
@@ -106,7 +106,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	key := ethcmn.BytesToHash([]byte(path[2]))
 	val := keeper.GetState(ctx, addr, key)
-	bRes := types.QueryResStorage{ Value: val.Bytes()}
+	bRes := types.QueryResStorage{Value: val.Bytes()}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
@@ -117,7 +117,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	code := keeper.GetCode(ctx, addr)
-	cRes := types.QueryResCode{ Code: code}
+	cRes := types.QueryResCode{Code: code}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, cRes)
 	if err != nil {
 		panic("could not marshal result to JSON")

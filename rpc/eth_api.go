@@ -13,7 +13,7 @@ import (
 )
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
-type PublicEthAPI struct{
+type PublicEthAPI struct {
 	cliCtx context.CLIContext
 }
 
@@ -75,7 +75,6 @@ func (e *PublicEthAPI) BlockNumber() *big.Int {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-// TODO: Support block number queries
 func (e *PublicEthAPI) GetBalance(address common.Address, blockNum rpc.BlockNumber) *hexutil.Big {
 	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", types.ModuleName, address), nil)
 	if err != nil {

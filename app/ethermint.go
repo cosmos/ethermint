@@ -59,7 +59,6 @@ var (
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
 		supply.AppModuleBasic{},
-		// TODO: Enable EVM AppModuleBasic
 		evm.AppModuleBasic{},
 	)
 )

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
@@ -70,12 +69,7 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 
 	// TODO: Possibly add these query commands from other modules
 	//queryCmd.AddCommand(
-	//	authcmd.GetAccountCmd(cdc),
-	//	client.LineBreak,
-	//	rpc.ValidatorCommand(cdc),
-	//	rpc.BlockCommand(),
-	//	authcmd.QueryTxCmd(cdc),
-	//	client.LineBreak,
+	// ...
 	//)
 
 	// add modules' query commands
