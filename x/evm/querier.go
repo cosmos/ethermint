@@ -13,17 +13,19 @@ import (
 
 // Supported endpoints
 const (
-	QueryBalance     = "balance"
-	QueryBlockNumber = "blockNumber"
-	QueryStorage     = "storage"
-	QueryCode        = "code"
+	QueryProtocolVersion = "protocolVersion"
+	QueryBalance         = "balance"
+	QueryBlockNumber     = "blockNumber"
+	QueryStorage         = "storage"
+	QueryCode            = "code"
 )
 
-// TODO: Implement querier to route RPC methods. Unable to access RPC otherwise
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
 		switch path[0] {
+		case QueryProtocolVersion:
+			return queryProtocolVersion(keeper)
 		case QueryBalance:
 			return queryBalance(ctx, path, keeper)
 		case QueryBlockNumber:
@@ -38,7 +40,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 	}
 }
 
-func queryProtocolVersion(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+func queryProtocolVersion(keeper Keeper) ([]byte, sdk.Error) {
 	vers := version.ProtocolVersion
 
 	res, err := codec.MarshalJSONIndent(keeper.cdc, vers)
@@ -48,30 +50,6 @@ func queryProtocolVersion(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 
 	return res, nil
 }
-
-//func querySyncing(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper ) ([]byte, error) {
-//	// TODO: Implement
-//	status := true
-//
-//	res, err := codec.MarshalJSONIndent(keeper.cdc, status)
-//	if err != nil {
-//		panic("could not marshal result to JSON")
-//	}
-//
-//	return res, nil
-//}
-//
-//func queryCoinbase(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper ) ([]byte, error) {
-//	// TODO: Implement
-//	status := true
-//
-//	res, err := codec.MarshalJSONIndent(keeper.cdc, status)
-//	if err != nil {
-//		panic("could not marshal result to JSON")
-//	}
-//
-//	return res, nil
-//}
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.BytesToAddress([]byte(path[1]))

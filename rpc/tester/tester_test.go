@@ -46,8 +46,14 @@ func createRequest(method string, params []string) Request {
 
 func call(t *testing.T, method string, params []string, resp interface{}) {
 	req, err := json.Marshal(createRequest(method, params))
+	if err != nil {
+		t.Error(err)
+	}
 
 	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
+	if err != nil {
+		t.Error(err)
+	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
