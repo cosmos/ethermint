@@ -5,7 +5,7 @@
 //
 // You can configure the desired port (or host) below.
 
-package rpc
+package tester
 
 import (
 	"bytes"

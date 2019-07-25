@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 )
@@ -75,7 +76,13 @@ func queryProtocolVersion(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	balance := keeper.GetBalance(ctx, addr)
-	bRes := types.QueryResBalance{ Balance: balance}
+	hBalance := &hexutil.Big{}
+	err := hBalance.UnmarshalText(balance.Bytes())
+	if err != nil {
+		panic("could not marshal big.Int to hexutil.Big")
+	}
+
+	bRes := types.QueryResBalance{ Balance: hBalance}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
