@@ -1,7 +1,6 @@
 package types
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"math/big"
 )
 
@@ -22,11 +21,11 @@ func (q QueryResBlockNumber) String() string {
 }
 
 type QueryResStorage struct {
-	Value ethcmn.Hash `json:"value"`
+	Value []byte `json:"value"`
 }
 
 func (q QueryResStorage) String() string {
-	return q.Value.String()
+	return string(q.Value)
 }
 
 type QueryResCode struct {

@@ -64,7 +64,6 @@ func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				fmt.Printf("could not resolve: %s\n", err)
 				return nil
 			}
-			fmt.Printf("%v\n", res)
 			var out types.QueryResStorage
 			cdc.MustUnmarshalJSON(res, &out)
 			return cliCtx.PrintOutput(out)
@@ -89,7 +88,6 @@ func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				fmt.Printf("could not resolve: %s\n", err)
 				return nil
 			}
-			fmt.Printf("%v\n", res)
 			var out types.QueryResCode
 			cdc.MustUnmarshalJSON(res, &out)
 			return cliCtx.PrintOutput(out)

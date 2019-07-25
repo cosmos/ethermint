@@ -99,12 +99,11 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	key := ethcmn.BytesToHash([]byte(path[2]))
 	val := keeper.GetState(ctx, addr, key)
-	bRes := types.QueryResStorage{ Value: val}
+	bRes := types.QueryResStorage{ Value: val.Bytes()}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON")
 	}
-
 	return res, nil
 }
 
