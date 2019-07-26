@@ -10,7 +10,7 @@ import (
 // local private key storage.
 func Commands() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "keys",
+		Use:   "emintkeys",
 		Short: "Add or view local private keys",
 		Long: `Keys allows you to manage your local keystore for tendermint.
 

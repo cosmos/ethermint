@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bufio"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -155,8 +156,7 @@ func printTextInfos(kos []keys.KeyOutput) {
 }
 
 func printKeyAddress(info keys.Info, bechKeyOut bechKeyOutFn) {
-
-	fmt.Println(info.GetAddress().Bytes())
+	fmt.Println(hex.EncodeToString(info.GetAddress().Bytes()))
 }
 
 func printPubKey(info keys.Info, bechKeyOut bechKeyOutFn) {

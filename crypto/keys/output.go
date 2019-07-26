@@ -1,7 +1,7 @@
 package keys
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"encoding/hex"
 )
 
 // KeyOutput defines a structure wrapping around an Info object used for output
@@ -9,18 +9,11 @@ import (
 type KeyOutput struct {
 	Name      string `json:"name"`
 	Type      string `json:"type"`
-	Address   []byte `json:"address"`
-	PubKey    []byte `json:"pubkey"`
+	Address   string `json:"address"`
+	PubKey    string `json:"pubkey"`
 	Mnemonic  string `json:"mnemonic,omitempty"`
 	Threshold uint   `json:"threshold,omitempty"`
-	// PubKeys   []multisigPubKeyOutput `json:"pubkeys,omitempty"`
 }
-
-// type multisigPubKeyOutput struct {
-// 	Address string `json:"address"`
-// 	PubKey  string `json:"pubkey"`
-// 	Weight  uint   `json:"weight"`
-// }
 
 // Bech32KeysOutput returns a slice of KeyOutput objects, each with the "acc"
 // Bech32 prefixes, given a slice of Info objects. It returns an error if any
@@ -40,7 +33,8 @@ func Bech32KeysOutput(infos []Info) ([]KeyOutput, error) {
 
 // Bech32ConsKeyOutput create a KeyOutput in with "cons" Bech32 prefixes.
 func Bech32ConsKeyOutput(keyInfo Info) (KeyOutput, error) {
-	consAddr := sdk.ConsAddress(keyInfo.GetPubKey().Address().Bytes())
+	// consAddr := sdk.ConsAddress(keyInfo.GetPubKey().Address().Bytes())
+	bytes := keyInfo.GetPubKey().Bytes()
 
 	// bechPubKey, err := sdk.Bech32ifyConsPub(keyInfo.GetPubKey())
 	// if err != nil {
@@ -50,14 +44,15 @@ func Bech32ConsKeyOutput(keyInfo Info) (KeyOutput, error) {
 	return KeyOutput{
 		Name:    keyInfo.GetName(),
 		Type:    keyInfo.GetType().String(),
-		Address: consAddr.Bytes(),
-		PubKey:  keyInfo.GetPubKey().Bytes(),
+		Address: keyInfo.GetPubKey().Address().String(),
+		PubKey:  hex.EncodeToString(bytes),
 	}, nil
 }
 
 // Bech32ValKeyOutput create a KeyOutput in with "val" Bech32 prefixes.
 func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
-	valAddr := sdk.ValAddress(keyInfo.GetPubKey().Address().Bytes())
+	// valAddr := sdk.ValAddress(keyInfo.GetPubKey().Address().Bytes())
+	bytes := keyInfo.GetPubKey().Bytes()
 
 	// bechPubKey, err := sdk.Bech32ifyValPub(keyInfo.GetPubKey())
 	// if err != nil {
@@ -67,8 +62,8 @@ func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
 	return KeyOutput{
 		Name:    keyInfo.GetName(),
 		Type:    keyInfo.GetType().String(),
-		Address: valAddr.Bytes(),
-		PubKey:  keyInfo.GetPubKey().Bytes(),
+		Address: keyInfo.GetPubKey().Address().String(),
+		PubKey:  hex.EncodeToString(bytes),
 	}, nil
 }
 
@@ -76,13 +71,14 @@ func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
 // public key is a multisig public key, then the threshold and constituent
 // public keys will be added.
 func Bech32KeyOutput(info Info) (KeyOutput, error) {
-	accAddr := sdk.AccAddress(info.GetPubKey().Address().Bytes())
+	// accAddr := sdk.AccAddress(info.GetPubKey().Address().Bytes())
+	bytes := info.GetPubKey().Bytes()
 
 	ko := KeyOutput{
 		Name:    info.GetName(),
 		Type:    info.GetType().String(),
-		Address: accAddr.Bytes(),
-		PubKey:  info.GetPubKey().Bytes(),
+		Address: info.GetPubKey().Address().String(),
+		PubKey:  hex.EncodeToString(bytes),
 	}
 
 	return ko, nil
