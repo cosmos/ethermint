@@ -24,10 +24,6 @@ const (
 	FlagBechPrefix = "bech"
 	// FlagDevice indicates that the information should be shown in the device
 	FlagDevice = "device"
-
-	// flagMultiSigThreshold = "multisig-threshold"
-
-	// defaultMultiSigKeyName = "multi"
 )
 
 func showKeysCmd() *cobra.Command {
@@ -45,7 +41,6 @@ consisting of all the keys provided by name and multisig threshold.`,
 	cmd.Flags().BoolP(FlagAddress, "a", false, "Output the address only (overrides --output)")
 	cmd.Flags().BoolP(FlagPublicKey, "p", false, "Output the public key only (overrides --output)")
 	cmd.Flags().BoolP(FlagDevice, "d", false, "Output the address in a ledger device")
-	// cmd.Flags().Uint(flagMultiSigThreshold, 1, "K out of N required signatures")
 	cmd.Flags().Bool(flags.FlagIndentResponse, false, "Add indent to JSON response")
 
 	return cmd
@@ -56,7 +51,6 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 
 	if len(args) == 1 {
 		info, err = GetKeyInfo(args[0])
-		fmt.Printf("%+v\n\n", info)
 		if err != nil {
 			return err
 		}

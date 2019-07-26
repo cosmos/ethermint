@@ -32,8 +32,7 @@ func GenerateKey() (PrivKeySecp256k1, error) {
 
 // PubKey returns the ECDSA private key's public key.
 func (privkey PrivKeySecp256k1) PubKey() tmcrypto.PubKey {
-	ethcrypto.FromECDSAPub(&privkey.PublicKey)
-	return PubKeySecp256k1{ethcrypto.FromECDSAPub(&privkey.PublicKey)}
+	return PubKeySecp256k1(ethcrypto.FromECDSAPub(&privkey.PublicKey))
 }
 
 // Bytes returns the raw ECDSA private key bytes.
@@ -69,19 +68,17 @@ var _ tmcrypto.PubKey = (*PubKeySecp256k1)(nil)
 
 // PubKeySecp256k1 defines a type alias for an ecdsa.PublicKey that implements
 // Tendermint's PubKey interface.
-type PubKeySecp256k1 struct {
-	pubkey []byte
-}
+type PubKeySecp256k1 []byte
 
 // Address returns the address of the ECDSA public key.
 func (key PubKeySecp256k1) Address() tmcrypto.Address {
-	pubk, _ := ethcrypto.UnmarshalPubkey(key.pubkey)
+	pubk, _ := ethcrypto.UnmarshalPubkey(key)
 	return tmcrypto.Address(ethcrypto.PubkeyToAddress(*pubk).Bytes())
 }
 
 // Bytes returns the raw bytes of the ECDSA public key.
 func (key PubKeySecp256k1) Bytes() []byte {
-	return key.pubkey
+	return key
 }
 
 // VerifyBytes verifies that the ECDSA public key created a given signature over
