@@ -27,11 +27,12 @@ const (
 	// flagDryRun      = "dry-run"
 	flagAccount = "account"
 	flagIndex   = "index"
-	// flagMultisig    = "multisig"
-	flagNoSort = "nosort"
+	flagNoSort  = "nosort"
 
 	// DefaultKeyPass contains the default key password for genesis transactions
 	DefaultKeyPass = "12345678"
+
+	mnemonicEntropySize = 256
 )
 
 func addKeyCommand() *cobra.Command {
