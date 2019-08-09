@@ -8,7 +8,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/tests"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func Test_showKeysCmd(t *testing.T) {
@@ -39,12 +38,12 @@ func Test_runShowCmd(t *testing.T) {
 	_, err = kb.CreateAccount(fakeKeyName2, tests.TestMnemonic, "", "", 0, 1)
 	assert.NoError(t, err)
 
-	// Now try single key
-	err = runShowCmd(cmd, []string{fakeKeyName1})
-	assert.EqualError(t, err, "invalid Bech32 prefix encoding provided: ")
+	// // Now try single key
+	// err = runShowCmd(cmd, []string{fakeKeyName1})
+	// assert.EqualError(t, err, "invalid Bech32 prefix encoding provided: ")
 
-	// Now try single key - set bech to acc
-	viper.Set(FlagBechPrefix, sdk.PrefixAccount)
+	// // Now try single key - set bech to acc
+	// viper.Set(FlagBechPrefix, sdk.PrefixAccount)
 	err = runShowCmd(cmd, []string{fakeKeyName1})
 	assert.NoError(t, err)
 	err = runShowCmd(cmd, []string{fakeKeyName2})

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/ethermint/rpc"
 	"github.com/tendermint/go-amino"
 
@@ -51,6 +52,8 @@ func main() {
 		// TODO: Set up rest routes (if included, different from web3 api)
 		rpc.Web3RpcCmd(cdc),
 		client.LineBreak,
+		// TODO: Remove these commands once ethermint keys and genesis set up
+		keys.Commands(),
 		emintkeys.Commands(),
 		client.LineBreak,
 	)
