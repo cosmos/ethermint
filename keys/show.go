@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto"
 	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/ethermint/crypto/keys"
 )
 
 const (
@@ -116,11 +117,11 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 func getBechKeyOut(bechPrefix string) (bechKeyOutFn, error) {
 	switch bechPrefix {
 	case sdk.PrefixAccount:
-		return cosmosKeys.Bech32KeyOutput, nil
+		return keys.Bech32KeyOutput, nil
 	case sdk.PrefixValidator:
-		return cosmosKeys.Bech32ValKeyOutput, nil
+		return keys.Bech32ValKeyOutput, nil
 	case sdk.PrefixConsensus:
-		return cosmosKeys.Bech32ConsKeyOutput, nil
+		return keys.Bech32ConsKeyOutput, nil
 	}
 
 	return nil, fmt.Errorf("invalid Bech32 prefix encoding provided: %s", bechPrefix)

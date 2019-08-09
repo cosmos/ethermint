@@ -171,26 +171,18 @@ func (kb dbKeybase) CreateMulti(name string, pub tmcrypto.PubKey) (cosmosKeys.In
 
 func (kb *dbKeybase) persistDerivedKey(seed []byte, passwd, name, fullHdPath string) (info cosmosKeys.Info, err error) {
 	// create master key and derive first key:
-	// masterPriv, ch := hd.ComputeMastersFromSeed(seed)
-	// derivedPriv, err := hd.DerivePrivateKeyForPath(masterPriv, ch, fullHdPath)
-	// if err != nil {
-	// 	return
-	// }
+	masterPriv, ch := hd.ComputeMastersFromSeed(seed)
+	derivedPriv, err := hd.DerivePrivateKeyForPath(masterPriv, ch, fullHdPath)
+	if err != nil {
+		return
+	}
 
 	// if we have a password, use it to encrypt the private key and store it
 	// else store the public key only
 	if passwd != "" {
-		key, err := emintCrypto.GenerateKey()
-		if err != nil {
-			return nil, err
-		}
-		info = kb.writeLocalKey(name, key, passwd)
+		info = kb.writeLocalKey(name, emintCrypto.PrivKeySecp256k1(derivedPriv[:]), passwd)
 	} else {
-		key, err := emintCrypto.GenerateKey()
-		if err != nil {
-			return nil, err
-		}
-		pubk := key.PubKey()
+		pubk := emintCrypto.PrivKeySecp256k1(derivedPriv[:]).PubKey()
 		info = kb.writeOfflineKey(name, pubk)
 	}
 	return info, nil

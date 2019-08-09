@@ -36,7 +36,7 @@ func Bech32KeysOutput(infos []cosmosKeys.Info) ([]cosmosKeys.KeyOutput, error) {
 
 // Bech32ConsKeyOutput create a KeyOutput in with "cons" Bech32 prefixes.
 func Bech32ConsKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
-	consAddr := sdk.ConsAddress(keyInfo.GetPubKey().Address().Bytes())
+	consAddr := keyInfo.GetPubKey().Address()
 	bytes := keyInfo.GetPubKey().Bytes()
 
 	// bechPubKey, err := sdk.Bech32ifyConsPub(keyInfo.GetPubKey())
@@ -74,13 +74,13 @@ func Bech32ValKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
 // public key is a multisig public key, then the threshold and constituent
 // public keys will be added.
 func Bech32KeyOutput(info cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
-	accAddr := info.GetPubKey().Address().String()
+	accAddr := info.GetPubKey().Address()
 	bytes := info.GetPubKey().Bytes()
 
 	ko := cosmosKeys.KeyOutput{
 		Name:    info.GetName(),
 		Type:    info.GetType().String(),
-		Address: accAddr,
+		Address: accAddr.String(),
 		PubKey:  hex.EncodeToString(bytes),
 	}
 
