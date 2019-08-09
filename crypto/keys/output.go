@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 
 	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // KeyOutput defines a structure wrapping around an Info object used for output
@@ -54,7 +53,7 @@ func Bech32ConsKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) 
 
 // Bech32ValKeyOutput create a KeyOutput in with "val" Bech32 prefixes.
 func Bech32ValKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
-	valAddr := sdk.ValAddress(keyInfo.GetPubKey().Address().Bytes())
+	valAddr := keyInfo.GetPubKey().Address()
 	bytes := keyInfo.GetPubKey().Bytes()
 
 	// bechPubKey, err := sdk.Bech32ifyValPub(keyInfo.GetPubKey())

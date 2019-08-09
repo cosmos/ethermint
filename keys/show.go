@@ -77,18 +77,15 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 		return errors.New("cannot use --output with --address or --pubkey")
 	}
 
-	bechKeyOut, err := getBechKeyOut(viper.GetString(FlagBechPrefix))
-	if err != nil {
-		return err
-	}
+	keyOutputFunction := keys.Bech32KeyOutput
 
 	switch {
 	case isShowAddr:
-		printKeyAddress(info, bechKeyOut)
+		printKeyAddress(info, keyOutputFunction)
 	case isShowPubKey:
-		printPubKey(info, bechKeyOut)
+		printPubKey(info, keyOutputFunction)
 	default:
-		printKeyInfo(info, bechKeyOut)
+		printKeyInfo(info, keyOutputFunction)
 	}
 
 	if isShowDevice {
@@ -114,15 +111,16 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
-func getBechKeyOut(bechPrefix string) (bechKeyOutFn, error) {
-	switch bechPrefix {
-	case sdk.PrefixAccount:
-		return keys.Bech32KeyOutput, nil
-	case sdk.PrefixValidator:
-		return keys.Bech32ValKeyOutput, nil
-	case sdk.PrefixConsensus:
-		return keys.Bech32ConsKeyOutput, nil
-	}
+// TODO: Determine if the different prefixes are necessary for ethermint
+// func getBechKeyOut(bechPrefix string) (bechKeyOutFn, error) {
+// 	switch bechPrefix {
+// 	case sdk.PrefixAccount:
+// 		return keys.Bech32KeyOutput, nil
+// 	case sdk.PrefixValidator:
+// 		return keys.Bech32ValKeyOutput, nil
+// 	case sdk.PrefixConsensus:
+// 		return keys.Bech32ConsKeyOutput, nil
+// 	}
 
-	return nil, fmt.Errorf("invalid Bech32 prefix encoding provided: %s", bechPrefix)
-}
+// 	return nil, fmt.Errorf("invalid Bech32 prefix encoding provided: %s", bechPrefix)
+// }
