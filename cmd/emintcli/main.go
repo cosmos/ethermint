@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/cosmos/ethermint/rpc"
-	"github.com/tendermint/go-amino"
 	"os"
 	"path"
+
+	"github.com/cosmos/ethermint/rpc"
+	"github.com/tendermint/go-amino"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
@@ -24,9 +25,10 @@ func main() {
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	// TODO: Remove or change prefix if usable to generate Ethereum address
+	config.SetBech32PrefixForAccount("", "")
+	config.SetBech32PrefixForValidator("", "")
+	config.SetBech32PrefixForConsensusNode("", "")
 	config.Seal()
 
 	rootCmd := &cobra.Command{
