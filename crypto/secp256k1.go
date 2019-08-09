@@ -17,7 +17,6 @@ var _ tmcrypto.PrivKey = PrivKeySecp256k1{}
 
 // PrivKeySecp256k1 defines a type alias for an ecdsa.PrivateKey that implements
 // Tendermint's PrivateKey interface.
-// TODO: Change to array of 32 bytes after GenerateKey is changed
 type PrivKeySecp256k1 []byte
 
 // GenerateKey generates a new random private key. It returns an error upon

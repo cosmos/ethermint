@@ -11,14 +11,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/tests"
 )
 
-func Test_showKeysCmd(t *testing.T) {
+func TestShowKeysCmd(t *testing.T) {
 	cmd := showKeysCmd()
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "false", cmd.Flag(FlagAddress).DefValue)
 	assert.Equal(t, "false", cmd.Flag(FlagPublicKey).DefValue)
 }
 
-func Test_runShowCmd(t *testing.T) {
+func TestRunShowCmd(t *testing.T) {
 	cmd := showKeysCmd()
 
 	err := runShowCmd(cmd, []string{"invalid"})
