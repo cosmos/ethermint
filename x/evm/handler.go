@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-// NewHandler returns a handler for ethermint type messages.
+// NewHandler returns a handler for Ethermint type messages.
 func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
@@ -20,7 +20,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 	}
 }
 
-// Handle an etherem specific tx
+// Handle an Ethereum specific tx
 func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk.Result {
 	// TODO: Implement transaction logic
 	if err := msg.ValidateBasic(); err != nil {
