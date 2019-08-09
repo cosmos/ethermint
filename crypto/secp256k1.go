@@ -17,7 +17,8 @@ var _ tmcrypto.PrivKey = PrivKeySecp256k1{}
 
 // PrivKeySecp256k1 defines a type alias for an ecdsa.PrivateKey that implements
 // Tendermint's PrivateKey interface.
-type PrivKeySecp256k1 ecdsa.PrivateKey
+// TODO: Change to array of 32 bytes after GenerateKey is changed
+type PrivKeySecp256k1 []byte
 
 // GenerateKey generates a new random private key. It returns an error upon
 // failure.
@@ -27,17 +28,18 @@ func GenerateKey() (PrivKeySecp256k1, error) {
 		return PrivKeySecp256k1{}, err
 	}
 
-	return PrivKeySecp256k1(*priv), nil
+	return PrivKeySecp256k1(ethcrypto.FromECDSA(priv)), nil
 }
 
 // PubKey returns the ECDSA private key's public key.
 func (privkey PrivKeySecp256k1) PubKey() tmcrypto.PubKey {
-	return PubKeySecp256k1(ethcrypto.FromECDSAPub(&privkey.PublicKey))
+	ecdsaPKey := privkey.ToECDSA()
+	return PubKeySecp256k1(ethcrypto.FromECDSAPub(&ecdsaPKey.PublicKey))
 }
 
 // Bytes returns the raw ECDSA private key bytes.
 func (privkey PrivKeySecp256k1) Bytes() []byte {
-	return ethcrypto.FromECDSA(privkey.ToECDSA())
+	return privkey
 }
 
 // Sign creates a recoverable ECDSA signature on the secp256k1 curve over the
@@ -58,7 +60,8 @@ func (privkey PrivKeySecp256k1) Equals(other tmcrypto.PrivKey) bool {
 
 // ToECDSA returns the ECDSA private key as a reference to ecdsa.PrivateKey type.
 func (privkey PrivKeySecp256k1) ToECDSA() *ecdsa.PrivateKey {
-	return (*ecdsa.PrivateKey)(&privkey)
+	key, _ := ethcrypto.ToECDSA(privkey.Bytes())
+	return key
 }
 
 // ----------------------------------------------------------------------------
