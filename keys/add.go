@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/crypto/keys"
@@ -84,7 +85,7 @@ output
 - armor encrypted private key (saved to file)
 */
 func runAddCmd(cmd *cobra.Command, args []string) error {
-	var kb keys.Keybase
+	var kb cosmosKeys.Keybase
 	var err error
 	var encryptPassword string
 
@@ -218,7 +219,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 	return printCreate(cmd, info, showMnemonic, mnemonic)
 }
 
-func printCreate(cmd *cobra.Command, info keys.Info, showMnemonic bool, mnemonic string) error {
+func printCreate(cmd *cobra.Command, info cosmosKeys.Info, showMnemonic bool, mnemonic string) error {
 	output := viper.Get(cli.OutputFlag)
 
 	switch output {

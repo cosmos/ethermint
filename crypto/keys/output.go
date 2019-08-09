@@ -3,6 +3,7 @@ package keys
 import (
 	"encoding/hex"
 
+	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -20,8 +21,8 @@ type KeyOutput struct {
 // Bech32KeysOutput returns a slice of KeyOutput objects, each with the "acc"
 // Bech32 prefixes, given a slice of Info objects. It returns an error if any
 // call to Bech32KeyOutput fails.
-func Bech32KeysOutput(infos []Info) ([]KeyOutput, error) {
-	kos := make([]KeyOutput, len(infos))
+func Bech32KeysOutput(infos []cosmosKeys.Info) ([]cosmosKeys.KeyOutput, error) {
+	kos := make([]cosmosKeys.KeyOutput, len(infos))
 	for i, info := range infos {
 		ko, err := Bech32KeyOutput(info)
 		if err != nil {
@@ -34,7 +35,7 @@ func Bech32KeysOutput(infos []Info) ([]KeyOutput, error) {
 }
 
 // Bech32ConsKeyOutput create a KeyOutput in with "cons" Bech32 prefixes.
-func Bech32ConsKeyOutput(keyInfo Info) (KeyOutput, error) {
+func Bech32ConsKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
 	consAddr := sdk.ConsAddress(keyInfo.GetPubKey().Address().Bytes())
 	bytes := keyInfo.GetPubKey().Bytes()
 
@@ -43,7 +44,7 @@ func Bech32ConsKeyOutput(keyInfo Info) (KeyOutput, error) {
 	// 	return KeyOutput{}, err
 	// }
 
-	return KeyOutput{
+	return cosmosKeys.KeyOutput{
 		Name:    keyInfo.GetName(),
 		Type:    keyInfo.GetType().String(),
 		Address: consAddr.String(),
@@ -52,7 +53,7 @@ func Bech32ConsKeyOutput(keyInfo Info) (KeyOutput, error) {
 }
 
 // Bech32ValKeyOutput create a KeyOutput in with "val" Bech32 prefixes.
-func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
+func Bech32ValKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
 	valAddr := sdk.ValAddress(keyInfo.GetPubKey().Address().Bytes())
 	bytes := keyInfo.GetPubKey().Bytes()
 
@@ -61,7 +62,7 @@ func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
 	// 	return KeyOutput{}, err
 	// }
 
-	return KeyOutput{
+	return cosmosKeys.KeyOutput{
 		Name:    keyInfo.GetName(),
 		Type:    keyInfo.GetType().String(),
 		Address: valAddr.String(),
@@ -72,14 +73,14 @@ func Bech32ValKeyOutput(keyInfo Info) (KeyOutput, error) {
 // Bech32KeyOutput create a KeyOutput in with "acc" Bech32 prefixes. If the
 // public key is a multisig public key, then the threshold and constituent
 // public keys will be added.
-func Bech32KeyOutput(info Info) (KeyOutput, error) {
-	accAddr := sdk.AccAddress(info.GetPubKey().Address().Bytes())
+func Bech32KeyOutput(info cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
+	accAddr := info.GetPubKey().Address().String()
 	bytes := info.GetPubKey().Bytes()
 
-	ko := KeyOutput{
+	ko := cosmosKeys.KeyOutput{
 		Name:    info.GetName(),
 		Type:    info.GetType().String(),
-		Address: accAddr.String(),
+		Address: accAddr,
 		PubKey:  hex.EncodeToString(bytes),
 	}
 

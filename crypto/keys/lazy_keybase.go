@@ -6,11 +6,12 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	cmn "github.com/tendermint/tendermint/libs/common"
 
+	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var _ Keybase = lazyKeybase{}
+var _ cosmosKeys.Keybase = lazyKeybase{}
 
 type lazyKeybase struct {
 	name string
@@ -18,7 +19,7 @@ type lazyKeybase struct {
 }
 
 // New creates a new instance of a lazy keybase.
-func New(name, dir string) Keybase {
+func New(name, dir string) cosmosKeys.Keybase {
 	if err := cmn.EnsureDir(dir, 0700); err != nil {
 		panic(fmt.Sprintf("failed to create Keybase directory: %s", err))
 	}
@@ -26,7 +27,7 @@ func New(name, dir string) Keybase {
 	return lazyKeybase{name: name, dir: dir}
 }
 
-func (lkb lazyKeybase) List() ([]Info, error) {
+func (lkb lazyKeybase) List() ([]cosmosKeys.Info, error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -36,7 +37,7 @@ func (lkb lazyKeybase) List() ([]Info, error) {
 	return newDbKeybase(db).List()
 }
 
-func (lkb lazyKeybase) Get(name string) (Info, error) {
+func (lkb lazyKeybase) Get(name string) (cosmosKeys.Info, error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -46,7 +47,7 @@ func (lkb lazyKeybase) Get(name string) (Info, error) {
 	return newDbKeybase(db).Get(name)
 }
 
-func (lkb lazyKeybase) GetByAddress(address sdk.AccAddress) (Info, error) {
+func (lkb lazyKeybase) GetByAddress(address sdk.AccAddress) (cosmosKeys.Info, error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (lkb lazyKeybase) Sign(name, passphrase string, msg []byte) ([]byte, crypto
 	return newDbKeybase(db).Sign(name, passphrase, msg)
 }
 
-func (lkb lazyKeybase) CreateMnemonic(name string, language Language, passwd string, algo SigningAlgo) (info Info, seed string, err error) {
+func (lkb lazyKeybase) CreateMnemonic(name string, language cosmosKeys.Language, passwd string, algo cosmosKeys.SigningAlgo) (info cosmosKeys.Info, seed string, err error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, "", err
@@ -86,7 +87,7 @@ func (lkb lazyKeybase) CreateMnemonic(name string, language Language, passwd str
 	return newDbKeybase(db).CreateMnemonic(name, language, passwd, algo)
 }
 
-func (lkb lazyKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd string, account uint32, index uint32) (Info, error) {
+func (lkb lazyKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd string, account uint32, index uint32) (cosmosKeys.Info, error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -96,7 +97,7 @@ func (lkb lazyKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd 
 	return newDbKeybase(db).CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd, account, index)
 }
 
-func (lkb lazyKeybase) Derive(name, mnemonic, bip39Passwd, encryptPasswd string, params hd.BIP44Params) (Info, error) {
+func (lkb lazyKeybase) Derive(name, mnemonic, bip39Passwd, encryptPasswd string, params hd.BIP44Params) (cosmosKeys.Info, error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -106,7 +107,7 @@ func (lkb lazyKeybase) Derive(name, mnemonic, bip39Passwd, encryptPasswd string,
 	return newDbKeybase(db).Derive(name, mnemonic, bip39Passwd, encryptPasswd, params)
 }
 
-func (lkb lazyKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, account, index uint32) (info Info, err error) {
+func (lkb lazyKeybase) CreateLedger(name string, algo cosmosKeys.SigningAlgo, hrp string, account, index uint32) (info cosmosKeys.Info, err error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -116,7 +117,7 @@ func (lkb lazyKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, a
 	return newDbKeybase(db).CreateLedger(name, algo, hrp, account, index)
 }
 
-func (lkb lazyKeybase) CreateOffline(name string, pubkey crypto.PubKey) (info Info, err error) {
+func (lkb lazyKeybase) CreateOffline(name string, pubkey crypto.PubKey) (info cosmosKeys.Info, err error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
@@ -126,7 +127,7 @@ func (lkb lazyKeybase) CreateOffline(name string, pubkey crypto.PubKey) (info In
 	return newDbKeybase(db).CreateOffline(name, pubkey)
 }
 
-func (lkb lazyKeybase) CreateMulti(name string, pubkey crypto.PubKey) (info Info, err error) {
+func (lkb lazyKeybase) CreateMulti(name string, pubkey crypto.PubKey) (info cosmosKeys.Info, err error) {
 	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err

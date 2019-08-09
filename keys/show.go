@@ -11,8 +11,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto"
+	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/ethermint/crypto/keys"
 )
 
 const (
@@ -47,7 +47,7 @@ consisting of all the keys provided by name and multisig threshold.`,
 }
 
 func runShowCmd(cmd *cobra.Command, args []string) (err error) {
-	var info keys.Info
+	var info cosmosKeys.Info
 
 	if len(args) == 1 {
 		info, err = GetKeyInfo(args[0])
@@ -98,7 +98,7 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 			return fmt.Errorf("the device flag (-d) can only be used for accounts")
 		}
 		// Override and show in the device
-		if info.GetType() != keys.TypeLedger {
+		if info.GetType() != cosmosKeys.TypeLedger {
 			return fmt.Errorf("the device flag (-d) can only be used for accounts stored in devices")
 		}
 
@@ -116,11 +116,11 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 func getBechKeyOut(bechPrefix string) (bechKeyOutFn, error) {
 	switch bechPrefix {
 	case sdk.PrefixAccount:
-		return keys.Bech32KeyOutput, nil
+		return cosmosKeys.Bech32KeyOutput, nil
 	case sdk.PrefixValidator:
-		return keys.Bech32ValKeyOutput, nil
+		return cosmosKeys.Bech32ValKeyOutput, nil
 	case sdk.PrefixConsensus:
-		return keys.Bech32ConsKeyOutput, nil
+		return cosmosKeys.Bech32ConsKeyOutput, nil
 	}
 
 	return nil, fmt.Errorf("invalid Bech32 prefix encoding provided: %s", bechPrefix)

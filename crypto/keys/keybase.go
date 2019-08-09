@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/crypto"
+	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
@@ -23,7 +24,7 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 )
 
-var _ Keybase = dbKeybase{}
+var _ cosmosKeys.Keybase = dbKeybase{}
 
 // Language is a language to create the BIP 39 mnemonic in.
 // Currently, only english is supported though.
@@ -78,7 +79,7 @@ type dbKeybase struct {
 }
 
 // newDbKeybase creates a new keybase instance using the passed DB for reading and writing keys.
-func newDbKeybase(db dbm.DB) Keybase {
+func newDbKeybase(db dbm.DB) cosmosKeys.Keybase {
 	return dbKeybase{
 		db: db,
 	}
@@ -86,7 +87,7 @@ func newDbKeybase(db dbm.DB) Keybase {
 
 // NewInMemory creates a transient keybase on top of in-memory storage
 // instance useful for testing purposes and on-the-fly key generation.
-func NewInMemory() Keybase { return dbKeybase{dbm.NewMemDB()} }
+func NewInMemory() cosmosKeys.Keybase { return dbKeybase{dbm.NewMemDB()} }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
 // using the provided password.
@@ -94,8 +95,8 @@ func NewInMemory() Keybase { return dbKeybase{dbm.NewMemDB()} }
 // It returns an error if it fails to
 // generate a key for the given algo type, or if another key is
 // already stored under the same name.
-func (kb dbKeybase) CreateMnemonic(name string, language Language, passwd string, algo SigningAlgo) (info Info, mnemonic string, err error) {
-	if language != English {
+func (kb dbKeybase) CreateMnemonic(name string, language cosmosKeys.Language, passwd string, algo cosmosKeys.SigningAlgo) (info cosmosKeys.Info, mnemonic string, err error) {
+	if language != cosmosKeys.English {
 		return nil, "", ErrUnsupportedLanguage
 	}
 	if algo != Secp256k1 {
@@ -121,13 +122,13 @@ func (kb dbKeybase) CreateMnemonic(name string, language Language, passwd string
 }
 
 // CreateAccount converts a mnemonic to a private key and persists it, encrypted with the given password.
-func (kb dbKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd string, account uint32, index uint32) (Info, error) {
+func (kb dbKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd string, account uint32, index uint32) (cosmosKeys.Info, error) {
 	coinType := types.GetConfig().GetCoinType()
 	hdPath := hd.NewFundraiserParams(account, coinType, index)
 	return kb.Derive(name, mnemonic, bip39Passwd, encryptPasswd, *hdPath)
 }
 
-func (kb dbKeybase) Derive(name, mnemonic, bip39Passphrase, encryptPasswd string, params hd.BIP44Params) (info Info, err error) {
+func (kb dbKeybase) Derive(name, mnemonic, bip39Passphrase, encryptPasswd string, params hd.BIP44Params) (info cosmosKeys.Info, err error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
 	if err != nil {
 		return
@@ -139,7 +140,7 @@ func (kb dbKeybase) Derive(name, mnemonic, bip39Passphrase, encryptPasswd string
 
 // CreateLedger creates a new locally-stored reference to a Ledger keypair
 // It returns the created key info and an error if the Ledger could not be queried
-func (kb dbKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, account, index uint32) (Info, error) {
+func (kb dbKeybase) CreateLedger(name string, algo cosmosKeys.SigningAlgo, hrp string, account, index uint32) (cosmosKeys.Info, error) {
 	if algo != Secp256k1 {
 		return nil, ErrUnsupportedSigningAlgo
 	}
@@ -158,17 +159,17 @@ func (kb dbKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, acco
 
 // CreateOffline creates a new reference to an offline keypair. It returns the
 // created key info.
-func (kb dbKeybase) CreateOffline(name string, pub tmcrypto.PubKey) (Info, error) {
+func (kb dbKeybase) CreateOffline(name string, pub tmcrypto.PubKey) (cosmosKeys.Info, error) {
 	return kb.writeOfflineKey(name, pub), nil
 }
 
 // CreateMulti creates a new reference to a multisig (offline) keypair. It
 // returns the created key info.
-func (kb dbKeybase) CreateMulti(name string, pub tmcrypto.PubKey) (Info, error) {
+func (kb dbKeybase) CreateMulti(name string, pub tmcrypto.PubKey) (cosmosKeys.Info, error) {
 	return nil, nil
 }
 
-func (kb *dbKeybase) persistDerivedKey(seed []byte, passwd, name, fullHdPath string) (info Info, err error) {
+func (kb *dbKeybase) persistDerivedKey(seed []byte, passwd, name, fullHdPath string) (info cosmosKeys.Info, err error) {
 	// create master key and derive first key:
 	// masterPriv, ch := hd.ComputeMastersFromSeed(seed)
 	// derivedPriv, err := hd.DerivePrivateKeyForPath(masterPriv, ch, fullHdPath)
@@ -196,8 +197,8 @@ func (kb *dbKeybase) persistDerivedKey(seed []byte, passwd, name, fullHdPath str
 }
 
 // List returns the keys from storage in alphabetical order.
-func (kb dbKeybase) List() ([]Info, error) {
-	var res []Info
+func (kb dbKeybase) List() ([]cosmosKeys.Info, error) {
+	var res []cosmosKeys.Info
 	iter := kb.db.Iterator(nil, nil)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -216,7 +217,7 @@ func (kb dbKeybase) List() ([]Info, error) {
 }
 
 // Get returns the public information about one key.
-func (kb dbKeybase) Get(name string) (Info, error) {
+func (kb dbKeybase) Get(name string) (cosmosKeys.Info, error) {
 	bs := kb.db.Get(infoKey(name))
 	if len(bs) == 0 {
 		return nil, keyerror.NewErrKeyNotFound(name)
@@ -224,7 +225,7 @@ func (kb dbKeybase) Get(name string) (Info, error) {
 	return readInfo(bs)
 }
 
-func (kb dbKeybase) GetByAddress(address types.AccAddress) (Info, error) {
+func (kb dbKeybase) GetByAddress(address types.AccAddress) (cosmosKeys.Info, error) {
 	ik := kb.db.Get(addrKey(address))
 	if len(ik) == 0 {
 		return nil, fmt.Errorf("key with address %s not found", address)
@@ -467,7 +468,7 @@ func (kb dbKeybase) CloseDB() {
 	kb.db.Close()
 }
 
-func (kb dbKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, passphrase string) Info {
+func (kb dbKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, passphrase string) cosmosKeys.Info {
 	privkey, ok := priv.(emintCrypto.PrivKeySecp256k1)
 	if !ok {
 		panic(fmt.Sprintf("invalid private key type: %T", priv))
@@ -485,7 +486,7 @@ func (kb dbKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, passphrase
 	return info
 }
 
-func (kb dbKeybase) writeLedgerKey(name string, pub tmcrypto.PubKey, path hd.BIP44Params) Info {
+func (kb dbKeybase) writeLedgerKey(name string, pub tmcrypto.PubKey, path hd.BIP44Params) cosmosKeys.Info {
 	pubkey, ok := pub.(emintCrypto.PubKeySecp256k1)
 	if !ok {
 		panic(fmt.Sprintf("invalid public key type: %T", pub))
@@ -495,7 +496,7 @@ func (kb dbKeybase) writeLedgerKey(name string, pub tmcrypto.PubKey, path hd.BIP
 	return info
 }
 
-func (kb dbKeybase) writeOfflineKey(name string, pub tmcrypto.PubKey) Info {
+func (kb dbKeybase) writeOfflineKey(name string, pub tmcrypto.PubKey) cosmosKeys.Info {
 	pubkey, ok := pub.(emintCrypto.PubKeySecp256k1)
 	if !ok {
 		panic(fmt.Sprintf("invalid public key type: %T", pub))
@@ -505,7 +506,7 @@ func (kb dbKeybase) writeOfflineKey(name string, pub tmcrypto.PubKey) Info {
 	return info
 }
 
-func (kb dbKeybase) writeInfo(name string, info Info) {
+func (kb dbKeybase) writeInfo(name string, info cosmosKeys.Info) {
 	// write the info by key
 	key := infoKey(name)
 	serializedInfo := writeInfo(info)
