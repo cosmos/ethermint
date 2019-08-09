@@ -69,9 +69,7 @@ func Bech32ValKeyOutput(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
 	}, nil
 }
 
-// Bech32KeyOutput create a KeyOutput in with "acc" Bech32 prefixes. If the
-// public key is a multisig public key, then the threshold and constituent
-// public keys will be added.
+// Bech32KeyOutput create a KeyOutput in with "acc" Bech32 prefixes.
 func Bech32KeyOutput(info cosmosKeys.Info) (cosmosKeys.KeyOutput, error) {
 	accAddr := info.GetPubKey().Address()
 	bytes := info.GetPubKey().Bytes()

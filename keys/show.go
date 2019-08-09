@@ -29,13 +29,11 @@ const (
 
 func showKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "show [name [name...]]",
+		Use:   "show <name>",
 		Short: "Show key info for the given name",
-		Long: `Return public details of a single local key. If multiple names are
-provided, then an ephemeral multisig key will be created under the name "multi"
-consisting of all the keys provided by name and multisig threshold.`,
-		Args: cobra.MinimumNArgs(1),
-		RunE: runShowCmd,
+		Long:  `Return public details of a single local key.`,
+		Args:  cobra.MinimumNArgs(1),
+		RunE:  runShowCmd,
 	}
 
 	cmd.Flags().String(FlagBechPrefix, sdk.PrefixAccount, "The Bech32 prefix encoding for a key (acc|val|cons)")

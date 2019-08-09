@@ -28,7 +28,7 @@ const (
 	// flagDryRun      = "dry-run"
 	flagAccount = "account"
 	flagIndex   = "index"
-	flagNoSort  = "nosort"
+	// flagNoSort  = "nosort"
 
 	// DefaultKeyPass contains the default key password for genesis transactions
 	DefaultKeyPass = "12345678"
@@ -51,18 +51,13 @@ If run with --dry-run, a key would be generated (or recovered) but not stored to
 local keystore.
 Use the --pubkey flag to add arbitrary public keys to the keystore for constructing
 multisig transactions.
-
-You can add a multisig key by passing the list of key names you want the public
-key to be composed of to the --multisig flag and the minimum number of signatures
-required through --multisig-threshold. The keys are sorted by address, unless
-the flag --nosort is set.
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: runAddCmd,
 	}
 	// cmd.Flags().StringSlice(flagMultisig, nil, "Construct and store a multisig public key (implies --pubkey)")
 	// cmd.Flags().Uint(flagMultiSigThreshold, 1, "K out of N required signatures. For use in conjunction with --multisig")
-	cmd.Flags().Bool(flagNoSort, false, "Keys passed to --multisig are taken in the order they're supplied")
+	// cmd.Flags().Bool(flagNoSort, false, "Keys passed to --multisig are taken in the order they're supplied")
 	cmd.Flags().String(FlagPublicKey, "", "Parse a public key in bech32 format and save it to disk")
 	cmd.Flags().BoolP(flagInteractive, "i", false, "Interactively prompt user for BIP39 passphrase and mnemonic")
 	// cmd.Flags().Bool(flags.FlagUseLedger, false, "Store a local reference to a private key on a Ledger device")
