@@ -23,5 +23,25 @@ func NewHandler(keeper Keeper) sdk.Handler {
 // Handle an etherem specific tx
 func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk.Result {
 	// TODO: Implement transaction logic
+	if err := msg.ValidateBasic(); err != nil {
+		return sdk.ErrUnknownRequest("Basic validation failed").Result()
+	}
+
+	// Check nonce and sufficient balances
+
+	// Get sender account reference
+
+	// Pay intrinsic gas
+
+	// If no to address, create contract with evm.Create(...)
+
+	// Else Call contract with evm.Call(...)
+
+	// handle errors
+
+	// Refund gas from tx
+
+	// add balance for the processor of the tx (determine who rewards are being processed to)
+
 	return sdk.Result{}
 }
