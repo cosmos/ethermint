@@ -27,19 +27,13 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		return sdk.ErrUnknownRequest("Basic validation failed").Result()
 	}
 
-	// Check nonce and sufficient balances
-
-	// Get sender account reference
-
-	// Pay intrinsic gas
-
 	// If no to address, create contract with evm.Create(...)
 
 	// Else Call contract with evm.Call(...)
 
 	// handle errors
 
-	// Refund gas from tx
+	// Refund remaining gas from tx (Will supply keeper need to be introduced to evm Keeper to do this)
 
 	// add balance for the processor of the tx (determine who rewards are being processed to)
 
