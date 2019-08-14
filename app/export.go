@@ -20,19 +20,21 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 	forZeroHeight bool, jailWhiteList []string,
 ) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
 
-	// as if they could withdraw from the start of the next block
+	// Creates context with current height and checks txs for ctx to be usable by start of next block
 	ctx := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
 
 	if forZeroHeight {
 		app.prepForZeroHeightGenesis(ctx, jailWhiteList)
 	}
 
+	// Export genesis to be used by SDK modules
 	genState := app.mm.ExportGenesis(ctx)
 	appState, err = codec.MarshalJSONIndent(app.cdc, genState)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Write validators to staking module to be used by TM node
 	validators = staking.WriteValidators(ctx, app.stakingKeeper)
 	return appState, validators, nil
 }
