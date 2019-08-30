@@ -115,7 +115,12 @@ func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) hexutil.
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
 func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpc.BlockNumber) hexutil.Uint {
-	return 0
+	node, _ := e.cliCtx.GetNode()
+
+	height := blockNum.Int64()
+	block, _ := node.Block(&height)
+
+	return hexutil.Uint(block.Block.NumTxs)
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
