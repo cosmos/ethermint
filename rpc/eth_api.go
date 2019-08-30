@@ -185,8 +185,38 @@ func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) map[string]
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) map[string]interface{} {
-	return nil
+func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+	node, err := e.cliCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	value := blockNum.Int64()
+	block, err := node.Block(&value)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"number":           block.Block.Height,
+		"hash":             block.Block.ConsensusHash, // Or to whatever is decided
+		"parentHash":       block.Block.LastBlockID.Hash,
+		"nonce":            nil, // hash of generated PoW (Maybe evidence hash?)
+		"sha3Uncles":       nil, // Assume no uncles
+		"logsBloom":        "",  // TODO
+		"transactionsRoot": block.Block.DataHash,
+		"stateRoot":        block.Block.AppHash, // State after transactions
+		"miner":            "",                  // Block proposer?
+		"difficulty":       nil,
+		"totalDifficulty":  nil,
+		"extraData":        "", // Is there extra data?
+		"size":             block.Block.Size(),
+		"gasLimit":         "", // Pull from node maybe
+		"gasUsed":          "", // Calculate based on txs or leave?
+		"timestamp":        block.Block.Time.Unix(),
+		"transactions":     block.Block.Txs,
+		"uncles":           nil,
+	}, err
 }
 
 // Transaction represents a transaction returned to RPC clients.
