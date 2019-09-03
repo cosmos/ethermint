@@ -96,31 +96,29 @@ func (e *PublicEthAPI) BlockNumber() *big.Int {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-func (e *PublicEthAPI) GetBalance(address common.Address, blockNum rpc.BlockNumber) *hexutil.Big {
+func (e *PublicEthAPI) GetBalance(address common.Address, blockNum rpc.BlockNumber) (*hexutil.Big, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", types.ModuleName, address), nil)
 	if err != nil {
-		fmt.Printf("could not resolve: %s\n", err)
-		return nil
+		return nil, err
 	}
 
 	var out types.QueryResBalance
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return (*hexutil.Big)(out.Balance)
+	return (*hexutil.Big)(out.Balance), nil
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
-func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum rpc.BlockNumber) hexutil.Bytes {
+func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum rpc.BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", types.ModuleName, address, key), nil)
 	if err != nil {
-		fmt.Printf("could not resolve: %s\n", err)
-		return nil
+		return nil, err
 	}
 
 	var out types.QueryResStorage
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Value[:]
+	return out.Value[:], nil
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -134,8 +132,19 @@ func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) hexutil.
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
-func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpc.BlockNumber) hexutil.Uint {
-	return 0
+func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpc.BlockNumber) (hexutil.Uint, error) {
+	node, err := e.cliCtx.GetNode()
+	if err != nil {
+		return 0, err
+	}
+
+	height := blockNum.Int64()
+	block, err := node.Block(&height)
+	if err != nil {
+		return 0, err
+	}
+
+	return hexutil.Uint(block.Block.NumTxs), nil
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
@@ -149,17 +158,16 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum rpc.BlockNumber) hexu
 }
 
 // GetCode returns the contract code at the given address and block number.
-func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumber) hexutil.Bytes {
+func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/code/%s", types.ModuleName, address), nil)
 	if err != nil {
-		fmt.Printf("could not resolve: %s\n", err)
-		return nil
+		return nil, err
 	}
 
 	var out types.QueryResCode
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Code
+	return out.Code, nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
