@@ -205,24 +205,36 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 		return nil, err
 	}
 
+	txs := block.Block.Txs
+	transactions := make([]interface{}, len(txs))
+	if fullTx {
+		return nil, fmt.Errorf("Full Transactions not implemented")
+	}
+
+	// Only including hash
+	for i, v := range txs {
+		transactions[i] = common.BytesToHash(v.Hash())
+	}
+
+	header := block.BlockMeta.Header
 	return map[string]interface{}{
-		"number":           block.Block.Height,
-		"hash":             block.Block.ConsensusHash, // Or to whatever is decided
-		"parentHash":       block.Block.LastBlockID.Hash,
-		"nonce":            nil, // hash of generated PoW (Maybe evidence hash?)
-		"sha3Uncles":       nil, // Assume no uncles
+		"number":           header.Height,
+		"hash":             header.ConsensusHash,
+		"parentHash":       header.LastBlockID.Hash,
+		"nonce":            nil, // PoW specific
+		"sha3Uncles":       nil, // No uncles in Tendermint
 		"logsBloom":        "",  // TODO
-		"transactionsRoot": block.Block.DataHash,
-		"stateRoot":        block.Block.AppHash, // State after transactions
-		"miner":            "",                  // Block proposer?
+		"transactionsRoot": header.DataHash,
+		"stateRoot":        header.AppHash,
+		"miner":            header.ValidatorsHash,
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
-		"extraData":        "", // Is there extra data?
+		"extraData":        nil,
 		"size":             block.Block.Size(),
-		"gasLimit":         "", // Pull from node maybe
+		"gasLimit":         "", // Pull from node maybe?
 		"gasUsed":          "", // Calculate based on txs or leave?
-		"timestamp":        block.Block.Time.Unix(),
-		"transactions":     block.Block.Txs,
+		"timestamp":        header.Time.Unix(),
+		"transactions":     transactions,
 		"uncles":           nil,
 	}, err
 }
