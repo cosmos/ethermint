@@ -205,6 +205,12 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 		return nil, err
 	}
 
+	genesis, err := node.Genesis()
+	if err != nil {
+		return nil, err
+	}
+	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
+
 	txs := block.Block.Txs
 	transactions := make([]interface{}, len(txs))
 	if fullTx {
@@ -220,20 +226,20 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 	return map[string]interface{}{
 		"number":           header.Height,
 		"hash":             header.ConsensusHash,
-		"parentHash":       header.LastBlockID.Hash,
-		"nonce":            nil, // PoW specific
-		"sha3Uncles":       nil, // No uncles in Tendermint
-		"logsBloom":        "",  // TODO
-		"transactionsRoot": header.DataHash,
-		"stateRoot":        header.AppHash,
+		"parentHash":       header.LastBlockID.Hash, // TODO: returns empty string
+		"nonce":            nil,                     // PoW specific
+		"sha3Uncles":       nil,                     // No uncles in Tendermint
+		"logsBloom":        "",                      // TODO
+		"transactionsRoot": header.DataHash,         // TODO: returns empty string
+		"stateRoot":        header.AppHash,          // TODO: returns empty string
 		"miner":            header.ValidatorsHash,
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
 		"extraData":        nil,
-		"size":             block.Block.Size(),
-		"gasLimit":         "", // Pull from node maybe?
-		"gasUsed":          "", // Calculate based on txs or leave?
-		"timestamp":        header.Time.Unix(),
+		"size":             hexutil.Uint64(block.Block.Size()),
+		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
+		"gasUsed":          "",                       // Calculate based on reconstructed txs?
+		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions,
 		"uncles":           nil,
 	}, err
