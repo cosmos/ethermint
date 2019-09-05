@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type QueryResProtocolVersion struct {
@@ -43,4 +44,12 @@ type QueryResCode struct {
 
 func (q QueryResCode) String() string {
 	return string(q.Code)
+}
+
+type QueryResNonce struct {
+	Nonce uint64 `json:"result"`
+}
+
+func (q QueryResNonce) String() string {
+	return q.String()
 }
