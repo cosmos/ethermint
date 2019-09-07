@@ -12,6 +12,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	emintkeys "github.com/cosmos/ethermint/crypto/keys"
+	emintTypes "github.com/cosmos/ethermint/types"
+	emintUtils "github.com/cosmos/ethermint/x/evm/client/utils"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -45,6 +48,11 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
+			kb, err := emintkeys.NewKeyBaseFromHomeFlag()
+			if err != nil {
+				panic(err)
+			}
+
 			nonce, err := strconv.ParseUint(args[0], 0, 64)
 			if err != nil {
 				return err
@@ -68,13 +76,14 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 			payload := args[5]
 
 			// TODO: Remove explicit photon check and check variables
-			msg := types.NewEthereumTxMsg(nonce, ethcmn.HexToAddress(args[1]), big.NewInt(coins.AmountOf("photon").Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
+			msg := types.NewEthereumTxMsg(nonce, ethcmn.HexToAddress(args[1]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{*msg})
+			// TODO: possibly overwrite gas values in txBldr
+			return emintUtils.GenerateOrBroadcastETHMsgs(cliCtx, txBldr.WithSequence(nonce).WithKeybase(kb), []sdk.Msg{msg})
 		},
 	}
 }
