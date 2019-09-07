@@ -66,9 +66,6 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			payload := args[5]
-			if err != nil {
-				return err
-			}
 
 			// TODO: Remove explicit photon check and check variables
 			msg := types.NewEthereumTxMsg(nonce, ethcmn.HexToAddress(args[1]), big.NewInt(coins.AmountOf("photon").Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
