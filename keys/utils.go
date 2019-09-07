@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	emintKeys "github.com/cosmos/ethermint/crypto/keys"
 )
 
 // available output formats.
@@ -18,7 +19,7 @@ const (
 	OutputFormatJSON = "json"
 )
 
-type bechKeyOutFn func(keyInfo cosmosKeys.Info) (cosmosKeys.KeyOutput, error)
+type bechKeyOutFn func(keyInfo cosmosKeys.Info) (emintKeys.KeyOutput, error)
 
 // GetKeyInfo returns key info for a given name. An error is returned if the
 // keybase cannot be retrieved or getting the info fails.
@@ -39,7 +40,7 @@ func printKeyInfo(keyInfo cosmosKeys.Info, bechKeyOut bechKeyOutFn) {
 
 	switch viper.Get(cli.OutputFlag) {
 	case OutputFormatText:
-		printTextInfos([]cosmosKeys.KeyOutput{ko})
+		printTextInfos([]emintKeys.KeyOutput{ko})
 
 	case OutputFormatJSON:
 		var out []byte
@@ -84,7 +85,7 @@ func printKeyInfo(keyInfo cosmosKeys.Info, bechKeyOut bechKeyOutFn) {
 // 	}
 // }
 
-func printTextInfos(kos []cosmosKeys.KeyOutput) {
+func printTextInfos(kos []emintKeys.KeyOutput) {
 	out, err := yaml.Marshal(&kos)
 	if err != nil {
 		panic(err)
