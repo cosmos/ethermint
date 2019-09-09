@@ -7,12 +7,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	emintkeys "github.com/cosmos/ethermint/crypto/keys"
+	emintkeys "github.com/cosmos/ethermint/keys"
 	emintTypes "github.com/cosmos/ethermint/types"
 	emintUtils "github.com/cosmos/ethermint/x/evm/client/utils"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -44,7 +43,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 		Short: "generating transaction",
 		Args:  cobra.ExactArgs(6),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			cliCtx := emintUtils.NewETHCLIContext().WithCodec(cdc)
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 

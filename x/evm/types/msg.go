@@ -128,7 +128,7 @@ func (msg EthereumTxMsg) Type() string { return TypeEthereumTxMsg }
 // checks of a Transaction. If returns an sdk.Error if validation fails.
 func (msg EthereumTxMsg) ValidateBasic() sdk.Error {
 	if msg.Data.Price.Sign() != 1 {
-		return types.ErrInvalidValue("price must be positive")
+		return types.ErrInvalidValue(fmt.Sprintf("Price must be positive: %x, %x, %x", msg.Data.Price, msg.Data.Amount, msg.Data.Recipient))
 	}
 
 	if msg.Data.Amount.Sign() != 1 {
