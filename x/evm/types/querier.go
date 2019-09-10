@@ -2,8 +2,6 @@ package types
 
 import (
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // QueryResProtocolVersion is response type for protocol version query
@@ -17,7 +15,7 @@ func (q QueryResProtocolVersion) String() string {
 
 // QueryResBalance is response type for balance query
 type QueryResBalance struct {
-	Balance *hexutil.Big `json:"result"`
+	Balance *big.Int `json:"result"`
 }
 
 func (q QueryResBalance) String() string {
