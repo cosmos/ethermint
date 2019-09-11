@@ -187,6 +187,8 @@ func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 	if !ok {
 		return sig, fmt.Errorf("Transaction message not an Ethereum Tx")
 	}
+
+	// TODO: Remove duplicate logic
 	// parse the chainID from a string to a base-10 integer
 	chainID, ok := new(big.Int).SetString(msg.ChainID, 10)
 	if !ok {

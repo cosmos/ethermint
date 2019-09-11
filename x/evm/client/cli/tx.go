@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 
@@ -133,8 +132,6 @@ func GetCmdGenETHTx(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			fmt.Println(tx.Data.Price)
 
 			return emintUtils.BroadcastETHTx(cliCtx, txBldr.WithSequence(nonce).WithKeybase(kb), tx)
 		},
