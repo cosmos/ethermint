@@ -30,7 +30,8 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	evmTxCmd.AddCommand(client.PostCommands(
-		GetCmdGenTx(cdc),
+		// TODO: Add back generating cosmos tx for Ethereum tx message
+		// GetCmdGenTx(cdc),
 		GetCmdGenETHTx(cdc),
 	)...)
 
@@ -40,9 +41,9 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 // GetCmdGenTx generates an ethereum transaction wrapped in a Cosmos standard transaction
 func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "generate-tx [nonce] [ethaddress] [amount] [gaslimit] [gasprice] [payload]",
+		Use:   "generate-tx [ethaddress] [amount] [gaslimit] [gasprice] [payload]",
 		Short: "generate eth tx wrapped in a Cosmos Standard tx",
-		Args:  cobra.ExactArgs(6),
+		Args:  cobra.ExactArgs(5),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: remove inputs and infer based on StdTx
 			cliCtx := emintUtils.NewETHCLIContext().WithCodec(cdc)
@@ -54,37 +55,32 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 				panic(err)
 			}
 
-			nonce, err := strconv.ParseUint(args[0], 0, 64)
+			coins, err := sdk.ParseCoins(args[1])
 			if err != nil {
 				return err
 			}
 
-			coins, err := sdk.ParseCoins(args[2])
+			gasLimit, err := strconv.ParseUint(args[2], 0, 64)
 			if err != nil {
 				return err
 			}
 
-			gasLimit, err := strconv.ParseUint(args[3], 0, 64)
+			gasPrice, err := strconv.ParseUint(args[3], 0, 64)
 			if err != nil {
 				return err
 			}
 
-			gasPrice, err := strconv.ParseUint(args[4], 0, 64)
-			if err != nil {
-				return err
-			}
-
-			payload := args[5]
+			payload := args[4]
 
 			// TODO: Remove explicit photon check and check variables
-			msg := types.NewEthereumTxMsg(nonce, ethcmn.HexToAddress(args[1]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
+			msg := types.NewEthereumTxMsg(0, ethcmn.HexToAddress(args[0]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
 
 			// TODO: possibly overwrite gas values in txBldr
-			return emintUtils.GenerateOrBroadcastETHMsgs(cliCtx, txBldr.WithSequence(nonce).WithKeybase(kb), []sdk.Msg{msg})
+			return emintUtils.GenerateOrBroadcastETHMsgs(cliCtx, txBldr.WithKeybase(kb), []sdk.Msg{msg})
 		},
 	}
 }

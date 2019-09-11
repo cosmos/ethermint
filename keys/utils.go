@@ -1,17 +1,16 @@
 package keys
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 	"gopkg.in/yaml.v2"
 
+	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/input"
 	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	emintKeys "github.com/cosmos/ethermint/crypto/keys"
 )
@@ -69,24 +68,10 @@ func GetPassphrase(name string) (string, error) {
 
 	// we only need a passphrase for locally stored keys
 	if keyInfo.GetType().String() == emintKeys.TypeLocal.String() {
-		passphrase, err = ReadPassphraseFromStdin(name)
+		passphrase, err = clientkeys.ReadPassphraseFromStdin(name)
 		if err != nil {
 			return passphrase, err
 		}
-	}
-
-	return passphrase, nil
-}
-
-// ReadPassphraseFromStdin attempts to read a passphrase from STDIN return an
-// error upon failure.
-func ReadPassphraseFromStdin(name string) (string, error) {
-	buf := bufio.NewReader(os.Stdin)
-	prompt := fmt.Sprintf("Password to sign with '%s':", name)
-
-	passphrase, err := input.GetPassword(prompt, buf)
-	if err != nil {
-		return passphrase, fmt.Errorf("Error reading passphrase: %v", err)
 	}
 
 	return passphrase, nil

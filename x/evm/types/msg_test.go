@@ -141,7 +141,6 @@ func TestMsgEthereumTxAmino(t *testing.T) {
 func TestMarshalAndUnmarshalInt(t *testing.T) {
 	i := big.NewInt(3)
 	m := marshalBigInt(i)
-	// i2 := new(big.Int)
 	i2, err := unmarshalBigInt(m)
 	require.NoError(t, err)
 
@@ -150,6 +149,7 @@ func TestMarshalAndUnmarshalInt(t *testing.T) {
 
 func TestMarshalAndUnmarshalData(t *testing.T) {
 	addr := GenerateEthAddress()
+	hash := ethcmn.BigToHash(big.NewInt(2))
 	e := EncodableTxData{
 		AccountNonce: 2,
 		Price:        marshalBigInt(big.NewInt(3)),
@@ -162,7 +162,7 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 		R: marshalBigInt(big.NewInt(6)),
 		S: marshalBigInt(big.NewInt(7)),
 
-		Hash: &ethcmn.Hash{},
+		Hash: &hash,
 	}
 	str, err := marshalAmino(e)
 	require.NoError(t, err)

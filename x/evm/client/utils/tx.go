@@ -188,7 +188,7 @@ func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 		return sig, fmt.Errorf("Transaction message not an Ethereum Tx")
 	}
 
-	// TODO: Remove duplicate logic
+	// TODO: Move this logic to after tx is rlp decoded in keybase Sign function
 	// parse the chainID from a string to a base-10 integer
 	chainID, ok := new(big.Int).SetString(msg.ChainID, 10)
 	if !ok {
@@ -246,6 +246,10 @@ func signEthTx(keybase crkeys.Keybase, name, passphrase string,
 
 	return ethTx, err
 }
+
+// * This context is needed because the previous GetFromFields function would initialize a
+// * default keybase to lookup the address or name. The new one overrides the keybase with the
+// * ethereum compatible one
 
 // NewCLIContextWithFrom returns a new initialized CLIContext with parameters from the
 // command line using Viper. It takes a key name or address and populates the FromName and
