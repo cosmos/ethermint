@@ -37,15 +37,50 @@ func GenerateOrBroadcastETHMsgs(cliCtx context.CLIContext, txBldr authtypes.TxBu
 		return utils.PrintUnsignedStdTx(txBldr, cliCtx, msgs)
 	}
 
-	return CompleteAndBroadcastETHTxCLI(txBldr, cliCtx, msgs)
+	return completeAndBroadcastETHTxCLI(txBldr, cliCtx, msgs)
 }
 
-// CompleteAndBroadcastTxCLI implements a utility function that facilitates
+// BroadcastETHTx Broadcasts an Ethereum Tx not wrapped in a Std Tx
+func BroadcastETHTx(cliCtx context.CLIContext, txBldr authtypes.TxBuilder, tx *evmtypes.EthereumTxMsg) error {
+	txBldr, err := utils.PrepareTxBuilder(txBldr, cliCtx)
+	if err != nil {
+		return err
+	}
+
+	fromName := cliCtx.GetFromName()
+
+	passphrase, err := emintkeys.GetPassphrase(fromName)
+	if err != nil {
+		return err
+	}
+
+	ethTx, err := signEthTx(txBldr.Keybase(), fromName, passphrase, tx, txBldr.ChainID())
+	if err != nil {
+		return err
+	}
+
+	txEncoder := txBldr.TxEncoder()
+
+	txBytes, err := txEncoder(ethTx)
+	if err != nil {
+		return err
+	}
+
+	// broadcast to a Tendermint node
+	res, err := cliCtx.BroadcastTx(txBytes)
+	if err != nil {
+		return err
+	}
+
+	return cliCtx.PrintOutput(res)
+}
+
+// completeAndBroadcastETHTxCLI implements a utility function that facilitates
 // sending a series of messages in a signed transaction given a TxBuilder and a
 // QueryContext. It ensures that the account exists, has a proper number and
 // sequence set. In addition, it builds and signs a transaction with the
 // supplied messages. Finally, it broadcasts the signed transaction to a node.
-func CompleteAndBroadcastETHTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
+func completeAndBroadcastETHTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
 	txBldr, err := utils.PrepareTxBuilder(txBldr, cliCtx)
 	if err != nil {
 		return err
@@ -178,6 +213,36 @@ func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 		PubKey:    pubkey,
 		Signature: sigBytes,
 	}, nil
+}
+
+func signEthTx(keybase crkeys.Keybase, name, passphrase string,
+	ethTx *evmtypes.EthereumTxMsg, chainID string) (_ *evmtypes.EthereumTxMsg, err error) {
+	if keybase == nil {
+		keybase, err = emintkeys.NewKeyBaseFromHomeFlag()
+		if err != nil {
+			return
+		}
+	}
+
+	// parse the chainID from a string to a base-10 integer
+	intChainID, ok := new(big.Int).SetString(chainID, 10)
+	if !ok {
+		return ethTx, emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", chainID))
+	}
+
+	privKey, err := keybase.ExportPrivateKeyObject(name, passphrase)
+	if err != nil {
+		return
+	}
+
+	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	if !ok {
+		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+	}
+
+	ethTx.Sign(intChainID, emintKey.ToECDSA())
+
+	return ethTx, err
 }
 
 // NewCLIContextWithFrom returns a new initialized CLIContext with parameters from the
