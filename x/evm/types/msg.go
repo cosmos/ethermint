@@ -273,7 +273,7 @@ func (msg *EthereumTxMsg) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	V.Sub(V, big8)
 
 	sigHash := msg.RLPSignBytes(chainID)
-	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	sender, err := RecoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
 		return ethcmn.Address{}, err
 	}
@@ -321,7 +321,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 // returns the sender or an error.
 //
 // Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
-func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
+func RecoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
 	if Vb.BitLen() > 8 {
 		return ethcmn.Address{}, errors.New("invalid signature")
 	}
