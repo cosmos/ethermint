@@ -41,12 +41,12 @@ func ErrInvalidChainID(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeInvalidChainID, msg)
 }
 
-// ErrInvalidSender returns a standardized SDK error resulting from an invalid transaction sender
+// ErrInvalidSender returns a standardized SDK error resulting from an invalid transaction sender.
 func ErrInvalidSender(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeInvalidSender, msg)
 }
 
-// ErrInvalidSender returns a standardized SDK error resulting from an invalid transaction sender
+// ErrVMExecution returns a standardized SDK error resulting from an error in EVM execution.
 func ErrVMExecution(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeVMExecution, msg)
 }
