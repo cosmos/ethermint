@@ -29,8 +29,13 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 // Handle an Ethereum specific tx
 func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk.Result {
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		fmt.Println("\tPanic recovered: ", r)
+	// 	}
+	// }()
 	if err := msg.ValidateBasic(); err != nil {
-		return sdk.ErrUnknownRequest("Basic validation failed").Result()
+		return err.Result()
 	}
 
 	// parse the chainID from a string to a base-10 integer
@@ -47,8 +52,7 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	sigHash := msg.RLPSignBytes(intChainID)
 	sender, err := types.RecoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
-		// TODO: Change this error
-		return sdk.ErrUnknownAddress("Unknown Sender").Result()
+		return emint.ErrInvalidSender(err.Error()).Result()
 	}
 
 	// Create context for evm
@@ -75,27 +79,31 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	)
 
 	if contractCreation {
+		// fmt.Println("\tCONTRACT CREATION")
 		// TODO: Check if ctx.GasMeter().Limit() matches
 		ret, _, gasUsed, vmerr = vmenv.Create(senderRef, msg.Data.Payload, ctx.GasMeter().Limit(), msg.Data.Amount)
 	} else {
+		// fmt.Println("\tCALL")
 		// Increment the nonce for the next transaction
-		keeper.csdb.SetNonce(sender, keeper.csdb.GetNonce(sender)+1)
+		keeper.SetNonce(ctx, sender, keeper.GetNonce(ctx, sender)+1)
 		ret, gasUsed, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, ctx.GasMeter().Limit(), msg.Data.Amount)
 	}
 
+	// fmt.Println(vmerr)
+
 	// handle errors
 	if vmerr != nil {
-		// TODO: Change this error to custom vm error
-		return sdk.ErrUnknownRequest("VM execution error").Result()
+		return emint.ErrVMExecution(vmerr.Error()).Result()
 	}
 
 	// Refund remaining gas from tx (Check these values and ensure gas is being consumed correctly)
+	// fmt.Println("\tCONSUME GAS")
 	ctx.GasMeter().ConsumeGas(gasUsed, "VM execution")
 
 	// add balance for the processor of the tx (determine who rewards are being processed to)
 	// TODO: Double check nothing needs to be done here
 
-	// TODO: Remove this
+	// TODO: Remove this when determined return isn't needed
 	fmt.Println("VM Return: ", ret)
 
 	return sdk.Result{}
