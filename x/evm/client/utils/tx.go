@@ -25,7 +25,7 @@ import (
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 )
 
-// * Code from this file is a modified version of cosmos-sdk/auth/client/utils
+// * Code from this file is a modified version of cosmos-sdk/auth/client/utils/tx.go
 // * to allow for using the Ethermint keybase for signing the transaction
 
 // GenerateOrBroadcastMsgs creates a StdTx given a series of messages. If
@@ -54,11 +54,13 @@ func BroadcastETHTx(cliCtx context.CLIContext, txBldr authtypes.TxBuilder, tx *e
 		return err
 	}
 
+	// Sign V, R, S fields for tx
 	ethTx, err := signEthTx(txBldr.Keybase(), fromName, passphrase, tx, txBldr.ChainID())
 	if err != nil {
 		return err
 	}
 
+	// Use default Tx Encoder since it will just be broadcasted to TM node at this point
 	txEncoder := txBldr.TxEncoder()
 
 	txBytes, err := txEncoder(ethTx)
@@ -80,6 +82,7 @@ func BroadcastETHTx(cliCtx context.CLIContext, txBldr authtypes.TxBuilder, tx *e
 // QueryContext. It ensures that the account exists, has a proper number and
 // sequence set. In addition, it builds and signs a transaction with the
 // supplied messages. Finally, it broadcasts the signed transaction to a node.
+// * Modified version from github.com/cosmos/cosmos-sdk/x/auth/client/utils/tx.go
 func completeAndBroadcastETHTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
 	txBldr, err := utils.PrepareTxBuilder(txBldr, cliCtx)
 	if err != nil {
@@ -128,12 +131,14 @@ func completeAndBroadcastETHTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLI
 		}
 	}
 
+	// * This function is overriden to change the keybase reference here
 	passphrase, err := emintkeys.GetPassphrase(fromName)
 	if err != nil {
 		return err
 	}
 
 	// build and sign the transaction
+	// * needed to be modified also to change how the data is signed
 	txBytes, err := buildAndSign(txBldr, fromName, passphrase, msgs)
 	if err != nil {
 		return err
@@ -150,6 +155,8 @@ func completeAndBroadcastETHTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLI
 
 // BuildAndSign builds a single message to be signed, and signs a transaction
 // with the built message given a name, passphrase, and a set of messages.
+// * overriden from github.com/cosmos/cosmos-sdk/x/auth/types/txbuilder.go
+// * This is just modified to change the functionality in makeSignature, through sign
 func buildAndSign(bldr authtypes.TxBuilder, name, passphrase string, msgs []sdk.Msg) ([]byte, error) {
 	msg, err := bldr.BuildSignMsg(msgs)
 	if err != nil {
@@ -176,12 +183,14 @@ func sign(bldr authtypes.TxBuilder, name, passphrase string, msg authtypes.StdSi
 func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 	msg authtypes.StdSignMsg) (sig authtypes.StdSignature, err error) {
 	if keybase == nil {
+		// * This is overriden to allow ethermint keys, but not used because keybase is set
 		keybase, err = emintkeys.NewKeyBaseFromHomeFlag()
 		if err != nil {
 			return
 		}
 	}
 
+	// EthereumTxMsg always returns the data in the 0th index so it is safe to do this
 	var ethTx *evmtypes.EthereumTxMsg
 	ethTx, ok := msg.Msgs[0].(*evmtypes.EthereumTxMsg)
 	if !ok {
@@ -207,6 +216,7 @@ func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 
 	ethTx.Sign(chainID, emintKey.ToECDSA())
 
+	// * This is needed to be overriden to get bytes to sign (RLPSignBytes) with the chainID
 	sigBytes, pubkey, err := keybase.Sign(name, passphrase, ethTx.RLPSignBytes(chainID).Bytes())
 	if err != nil {
 		return
@@ -217,6 +227,7 @@ func makeSignature(keybase crkeys.Keybase, name, passphrase string,
 	}, nil
 }
 
+// signEthTx populates the V, R, and S fields of an EthereumTxMsg using an ethermint key
 func signEthTx(keybase crkeys.Keybase, name, passphrase string,
 	ethTx *evmtypes.EthereumTxMsg, chainID string) (_ *evmtypes.EthereumTxMsg, err error) {
 	if keybase == nil {
@@ -237,6 +248,7 @@ func signEthTx(keybase crkeys.Keybase, name, passphrase string,
 		return
 	}
 
+	// Key must be a ethermint key to be able to be converted into an ECDSA private key to sign
 	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
 	if !ok {
 		panic(fmt.Sprintf("invalid private key type: %T", privKey))
@@ -261,6 +273,8 @@ func NewETHCLIContext() context.CLIContext {
 	from := viper.GetString(flags.FlagFrom)
 
 	genOnly := viper.GetBool(flags.FlagGenerateOnly)
+
+	// * This function is needed only to override this call to access correct keybase
 	fromAddress, fromName, err := getFromFields(from, genOnly)
 	if err != nil {
 		fmt.Printf("failed to get from fields: %v", err)
@@ -311,6 +325,7 @@ func getFromFields(from string, genOnly bool) (sdk.AccAddress, string, error) {
 		return addr, "", nil
 	}
 
+	// * This is the line that needed to be overriden, change could be to pass in optional keybase?
 	keybase, err := emintkeys.NewKeyBaseFromHomeFlag()
 	if err != nil {
 		return nil, "", err
