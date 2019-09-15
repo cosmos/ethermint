@@ -73,20 +73,25 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	contractCreation := msg.To() == nil
 	senderRef := vm.AccountRef(sender)
 	var (
-		gasUsed uint64
-		vmerr   error
-		ret     []byte
+		leftOverGas uint64
+		vmerr       error
+		ret         []byte
 	)
 
 	if contractCreation {
-		// fmt.Println("\tCONTRACT CREATION")
 		// TODO: Check if ctx.GasMeter().Limit() matches
-		ret, _, gasUsed, vmerr = vmenv.Create(senderRef, msg.Data.Payload, ctx.GasMeter().Limit(), msg.Data.Amount)
+		ret, _, leftOverGas, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
 	} else {
-		// fmt.Println("\tCALL")
 		// Increment the nonce for the next transaction
 		keeper.SetNonce(ctx, sender, keeper.GetNonce(ctx, sender)+1)
-		ret, gasUsed, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, ctx.GasMeter().Limit(), msg.Data.Amount)
+		// fmt.Println("\tPRE BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
+		// fmt.Println("\tSENDER BALANCE: ", keeper.GetBalance(ctx, sender))
+		// fmt.Println("\tSENDER: ", sender.Hex())
+		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
+		// fmt.Println("\tGAS REMAINING: ", leftOverGas)
+		// fmt.Println("\tRECIPIENT BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
+		// fmt.Println("\tPOST SENDER: ", keeper.GetBalance(ctx, sender))
+		// fmt.Println("\tERROR?: ", vmerr)
 	}
 
 	// fmt.Println(vmerr)
@@ -97,14 +102,18 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	}
 
 	// Refund remaining gas from tx (Check these values and ensure gas is being consumed correctly)
-	// fmt.Println("\tCONSUME GAS")
-	ctx.GasMeter().ConsumeGas(gasUsed, "VM execution")
+	ctx.GasMeter().ConsumeGas(msg.Data.GasLimit-leftOverGas, "EVM execution")
 
 	// add balance for the processor of the tx (determine who rewards are being processed to)
 	// TODO: Double check nothing needs to be done here
 
 	// TODO: Remove this when determined return isn't needed
 	fmt.Println("VM Return: ", ret)
+	keeper.csdb.Finalise(true)
+
+	// TODO: Remove commit from tx handler (should be done at end of block)
+	_, err = keeper.csdb.Commit(true)
+	fmt.Println(err)
 
 	return sdk.Result{}
 }
