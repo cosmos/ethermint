@@ -44,16 +44,28 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
 	}
 
-	// TODO: move this logic into a .From() function added to EthereumTxMsg
-	chainIDMul := new(big.Int).Mul(intChainID, big.NewInt(2))
-	V := new(big.Int).Sub(msg.Data.V, chainIDMul)
-	V.Sub(V, big.NewInt(8))
-
-	sigHash := msg.RLPSignBytes(intChainID)
-	sender, err := types.RecoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	// Verify signature and retrieve sender address
+	sender, err := msg.VerifySig(intChainID)
 	if err != nil {
 		return emint.ErrInvalidSender(err.Error()).Result()
 	}
+	contractCreation := msg.To() == nil
+
+	// // Pay intrinsic gas
+	// // TODO: Check config for homestead enabled
+	// gas, err := core.IntrinsicGas(msg.Data.Payload, contractCreation, true)
+	// if err != nil {
+	// 	return emint.ErrInvalidIntrinsicGas(err.Error()).Result()
+	// }
+	// fmt.Println(gas)
+	// // TODO: Use gas
+
+	// if ctx.GasMeter().IsOutOfGas() {
+	// 	return sdk.ErrOutOfGas("Not enough intrinsic gas to process evm tx").Result()
+	// }
+
+	// ethmsg := ethtypes.NewMessage(sender, msg.To(), msg.Data.AccountNonce, msg.Data.Amount,
+	// 	msg.Data.GasLimit, msg.Data.Price, msg.Data.Payload, true)
 
 	// Create context for evm
 	context := vm.Context{
@@ -70,31 +82,33 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 
 	vmenv := vm.NewEVM(context, keeper.csdb, params.MainnetChainConfig, vm.Config{})
 
-	contractCreation := msg.To() == nil
-	senderRef := vm.AccountRef(sender)
 	var (
-		leftOverGas uint64
-		vmerr       error
-		ret         []byte
+		// leftOverGas uint64
+		vmerr     error
+		ret       []byte
+		senderRef = vm.AccountRef(sender)
 	)
+
+	// _, gas, failed, err := core.ApplyMessage(vmenv, ethmsg, gp)
+	// if err != nil {
+	// 	return emint.ErrVMExecution(err.Error()).Result()
+	// }
 
 	if contractCreation {
 		// TODO: Check if ctx.GasMeter().Limit() matches
-		ret, _, leftOverGas, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
+		ret, _, _, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
 	} else {
 		// Increment the nonce for the next transaction
 		keeper.SetNonce(ctx, sender, keeper.GetNonce(ctx, sender)+1)
 		// fmt.Println("\tPRE BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
 		// fmt.Println("\tSENDER BALANCE: ", keeper.GetBalance(ctx, sender))
 		// fmt.Println("\tSENDER: ", sender.Hex())
-		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
+		ret, _, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
 		// fmt.Println("\tGAS REMAINING: ", leftOverGas)
 		// fmt.Println("\tRECIPIENT BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
 		// fmt.Println("\tPOST SENDER: ", keeper.GetBalance(ctx, sender))
 		// fmt.Println("\tERROR?: ", vmerr)
 	}
-
-	// fmt.Println(vmerr)
 
 	// handle errors
 	if vmerr != nil {
@@ -102,7 +116,7 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	}
 
 	// Refund remaining gas from tx (Check these values and ensure gas is being consumed correctly)
-	ctx.GasMeter().ConsumeGas(msg.Data.GasLimit-leftOverGas, "EVM execution")
+	// TODO: refund gas
 
 	// add balance for the processor of the tx (determine who rewards are being processed to)
 	// TODO: Double check nothing needs to be done here

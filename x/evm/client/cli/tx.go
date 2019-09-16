@@ -88,9 +88,9 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 // GetCmdGenTx generates an ethereum transaction
 func GetCmdGenETHTx(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "generate-eth-tx [nonce] [ethaddress] [amount] [gaslimit] [gasprice] [payload]",
+		Use:   "generate-eth-tx [ethaddress] [amount] [gaslimit] [gasprice] [payload]",
 		Short: "geberate and broadcast an Ethereum tx",
-		Args:  cobra.ExactArgs(6),
+		Args:  cobra.ExactArgs(5),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := emintUtils.NewETHCLIContext().WithCodec(cdc)
 
@@ -101,35 +101,35 @@ func GetCmdGenETHTx(cdc *codec.Codec) *cobra.Command {
 				panic(err)
 			}
 
-			nonce, err := strconv.ParseUint(args[0], 0, 64)
+			// nonce, err := strconv.ParseUint(args[0], 0, 64)
+			// if err != nil {
+			// 	return err
+			// }
+
+			coins, err := sdk.ParseCoins(args[1])
 			if err != nil {
 				return err
 			}
 
-			coins, err := sdk.ParseCoins(args[2])
+			gasLimit, err := strconv.ParseUint(args[2], 0, 64)
 			if err != nil {
 				return err
 			}
 
-			gasLimit, err := strconv.ParseUint(args[3], 0, 64)
+			gasPrice, err := strconv.ParseUint(args[3], 0, 64)
 			if err != nil {
 				return err
 			}
 
-			gasPrice, err := strconv.ParseUint(args[4], 0, 64)
-			if err != nil {
-				return err
-			}
+			payload := args[4]
 
-			payload := args[5]
-
-			tx := types.NewEthereumTxMsg(nonce, ethcmn.HexToAddress(args[1]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
+			tx := types.NewEthereumTxMsg(txBldr.Sequence(), ethcmn.HexToAddress(args[0]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
 			err = tx.ValidateBasic()
 			if err != nil {
 				return err
 			}
 
-			return emintUtils.BroadcastETHTx(cliCtx, txBldr.WithSequence(nonce).WithKeybase(kb), tx)
+			return emintUtils.BroadcastETHTx(cliCtx, txBldr.WithKeybase(kb), tx)
 		},
 	}
 }

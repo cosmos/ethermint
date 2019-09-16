@@ -9,10 +9,11 @@ const (
 	// DefaultCodespace reserves a Codespace for Ethermint.
 	DefaultCodespace sdk.CodespaceType = "ethermint"
 
-	CodeInvalidValue   sdk.CodeType = 1
-	CodeInvalidChainID sdk.CodeType = 2
-	CodeInvalidSender  sdk.CodeType = 3
-	CodeVMExecution    sdk.CodeType = 4
+	CodeInvalidValue        sdk.CodeType = 1
+	CodeInvalidChainID      sdk.CodeType = 2
+	CodeInvalidSender       sdk.CodeType = 3
+	CodeVMExecution         sdk.CodeType = 4
+	CodeInvalidIntrinsicGas sdk.CodeType = 5
 )
 
 // CodeToDefaultMsg takes the CodeType variable and returns the error string
@@ -26,6 +27,8 @@ func CodeToDefaultMsg(code sdk.CodeType) string {
 		return "could not derive sender from transaction"
 	case CodeVMExecution:
 		return "error while executing evm transaction"
+	case CodeInvalidIntrinsicGas:
+		return "invalid intrinsic gas"
 	default:
 		return sdk.CodeToDefaultMsg(code)
 	}
@@ -49,4 +52,9 @@ func ErrInvalidSender(msg string) sdk.Error {
 // ErrVMExecution returns a standardized SDK error resulting from an error in EVM execution.
 func ErrVMExecution(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, CodeVMExecution, msg)
+}
+
+// ErrVMExecution returns a standardized SDK error resulting from an error in EVM execution.
+func ErrInvalidIntrinsicGas(msg string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, CodeInvalidIntrinsicGas, msg)
 }
