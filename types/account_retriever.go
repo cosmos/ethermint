@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -19,12 +18,13 @@ type AccountRetriever struct {
 	codec   *codec.Codec
 }
 
+// * Modified to allow a codec to be passed in
 // NewAccountRetriever initialises a new AccountRetriever instance.
-func NewAccountRetriever(context context.CLIContext, codec *codec.Codec) AccountRetriever {
+func NewAccountRetriever(querier auth.NodeQuerier, codec *codec.Codec) AccountRetriever {
 	if codec == nil {
 		codec = auth.ModuleCdc
 	}
-	return AccountRetriever{querier: context, codec: codec}
+	return AccountRetriever{querier: querier, codec: codec}
 }
 
 // GetAccount queries for an account given an address and a block height. An
@@ -38,6 +38,7 @@ func (ar AccountRetriever) GetAccount(addr sdk.AccAddress) (exported.Account, er
 // height of the query with the account. An error is returned if the query
 // or decoding fails.
 func (ar AccountRetriever) GetAccountWithHeight(addr sdk.AccAddress) (exported.Account, int64, error) {
+	// ** This line was changed to use non-static codec
 	bs, err := ar.codec.MarshalJSON(auth.NewQueryAccountParams(addr))
 	if err != nil {
 		return nil, 0, err
@@ -49,6 +50,7 @@ func (ar AccountRetriever) GetAccountWithHeight(addr sdk.AccAddress) (exported.A
 	}
 
 	var account exported.Account
+	// ** This line was changed to use non-static codec
 	if err := ar.codec.UnmarshalJSON(res, &account); err != nil {
 		return nil, 0, err
 	}
