@@ -101,7 +101,7 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		fmt.Println(addr)
 	} else {
 		// Increment the nonce for the next transaction
-		keeper.SetNonce(ctx, sender, keeper.GetNonce(ctx, sender)+1)
+		keeper.csdb.SetNonce(sender, keeper.csdb.GetNonce(sender)+1)
 		// fmt.Println("\tPRE BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
 		// fmt.Println("\tSENDER BALANCE: ", keeper.GetBalance(ctx, sender))
 		// fmt.Println("\tSENDER: ", sender.Hex())
