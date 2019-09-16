@@ -80,10 +80,11 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
-	vmenv := vm.NewEVM(context, keeper.csdb, params.MainnetChainConfig, vm.Config{})
+	vmenv := vm.NewEVM(context, keeper.csdb.WithContext(ctx), params.MainnetChainConfig, vm.Config{})
 
 	var (
 		// leftOverGas uint64
+		addr      common.Address
 		vmerr     error
 		ret       []byte
 		senderRef = vm.AccountRef(sender)
@@ -96,7 +97,8 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 
 	if contractCreation {
 		// TODO: Check if ctx.GasMeter().Limit() matches
-		ret, _, _, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
+		ret, addr, _, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
+		fmt.Println(addr)
 	} else {
 		// Increment the nonce for the next transaction
 		keeper.SetNonce(ctx, sender, keeper.GetNonce(ctx, sender)+1)
