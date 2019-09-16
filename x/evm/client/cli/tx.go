@@ -123,6 +123,11 @@ func GetCmdGenETHTx(cdc *codec.Codec) *cobra.Command {
 
 			payload := args[4]
 
+			txBldr, err = emintUtils.PrepareTxBuilder(txBldr, cliCtx)
+			if err != nil {
+				return err
+			}
+
 			tx := types.NewEthereumTxMsg(txBldr.Sequence(), ethcmn.HexToAddress(args[0]), big.NewInt(coins.AmountOf(emintTypes.DenomDefault).Int64()), gasLimit, new(big.Int).SetUint64(gasPrice), []byte(payload))
 			err = tx.ValidateBasic()
 			if err != nil {

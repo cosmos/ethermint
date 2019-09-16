@@ -42,10 +42,6 @@ func GenerateOrBroadcastETHMsgs(cliCtx context.CLIContext, txBldr authtypes.TxBu
 
 // BroadcastETHTx Broadcasts an Ethereum Tx not wrapped in a Std Tx
 func BroadcastETHTx(cliCtx context.CLIContext, txBldr authtypes.TxBuilder, tx *evmtypes.EthereumTxMsg) error {
-	txBldr, err := prepareTxBuilder(txBldr, cliCtx)
-	if err != nil {
-		return err
-	}
 
 	fromName := cliCtx.GetFromName()
 
@@ -347,8 +343,9 @@ func getFromFields(from string, genOnly bool) (sdk.AccAddress, string, error) {
 	return info.GetAddress(), info.GetName(), nil
 }
 
+// * Overriden function from cosmos-sdk/auth/client/utils/tx.go
 // PrepareTxBuilder populates a TxBuilder in preparation for the build of a Tx.
-func prepareTxBuilder(txBldr authtypes.TxBuilder, cliCtx context.CLIContext) (authtypes.TxBuilder, error) {
+func PrepareTxBuilder(txBldr authtypes.TxBuilder, cliCtx context.CLIContext) (authtypes.TxBuilder, error) {
 	from := cliCtx.GetFromAddress()
 
 	// * Function is needed to override to use different account getter (to not use static codec)
