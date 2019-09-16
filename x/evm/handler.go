@@ -51,65 +51,44 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	}
 	contractCreation := msg.To() == nil
 
-	// // Pay intrinsic gas
-	// // TODO: Check config for homestead enabled
-	// gas, err := core.IntrinsicGas(msg.Data.Payload, contractCreation, true)
-	// if err != nil {
-	// 	return emint.ErrInvalidIntrinsicGas(err.Error()).Result()
-	// }
-	// fmt.Println(gas)
-	// // TODO: Use gas
+	// Pay intrinsic gas
+	// TODO: Check config for homestead enabled
+	cost, err := core.IntrinsicGas(msg.Data.Payload, contractCreation, true)
+	if err != nil {
+		return emint.ErrInvalidIntrinsicGas(err.Error()).Result()
+	}
 
-	// if ctx.GasMeter().IsOutOfGas() {
-	// 	return sdk.ErrOutOfGas("Not enough intrinsic gas to process evm tx").Result()
-	// }
-
-	// ethmsg := ethtypes.NewMessage(sender, msg.To(), msg.Data.AccountNonce, msg.Data.Amount,
-	// 	msg.Data.GasLimit, msg.Data.Price, msg.Data.Payload, true)
+	usableGas := msg.Data.GasLimit - cost
 
 	// Create context for evm
 	context := vm.Context{
-		CanTransfer: core.CanTransfer, // Looks good, but double check
-		Transfer:    core.Transfer,    // Looks good, but double check
+		CanTransfer: core.CanTransfer,
+		Transfer:    core.Transfer,
 		Origin:      sender,
 		Coinbase:    common.Address{},
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
-		Time:        new(big.Int).SetUint64(5), // TODO: doesn't seem necessary
-		Difficulty:  big.NewInt(0x30000),       // TODO: doesn't seem used in call or create
+		Time:        new(big.Int).SetUint64(5), // unused
+		Difficulty:  big.NewInt(0x30000),       // unused
 		GasLimit:    ctx.GasMeter().Limit(),
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
+	// TODO: Change defaulting to mainnet chainconfig
 	vmenv := vm.NewEVM(context, keeper.csdb.WithContext(ctx), params.MainnetChainConfig, vm.Config{})
 
 	var (
-		// leftOverGas uint64
-		addr      common.Address
-		vmerr     error
-		ret       []byte
-		senderRef = vm.AccountRef(sender)
+		leftOverGas uint64
+		addr        common.Address
+		vmerr       error
+		senderRef   = vm.AccountRef(sender)
 	)
 
-	// _, gas, failed, err := core.ApplyMessage(vmenv, ethmsg, gp)
-	// if err != nil {
-	// 	return emint.ErrVMExecution(err.Error()).Result()
-	// }
-
 	if contractCreation {
-		// TODO: Check if ctx.GasMeter().Limit() matches
-		ret, addr, _, vmerr = vmenv.Create(senderRef, msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
-		fmt.Println(addr)
+		_, addr, leftOverGas, vmerr = vmenv.Create(senderRef, msg.Data.Payload, usableGas, msg.Data.Amount)
 	} else {
 		// Increment the nonce for the next transaction
 		keeper.csdb.SetNonce(sender, keeper.csdb.GetNonce(sender)+1)
-		// fmt.Println("\tPRE BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
-		// fmt.Println("\tSENDER BALANCE: ", keeper.GetBalance(ctx, sender))
-		// fmt.Println("\tSENDER: ", sender.Hex())
-		ret, _, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, msg.Data.GasLimit, msg.Data.Amount)
-		// fmt.Println("\tGAS REMAINING: ", leftOverGas)
-		// fmt.Println("\tRECIPIENT BALANCE: ", keeper.GetBalance(ctx, *msg.To()))
-		// fmt.Println("\tPOST SENDER: ", keeper.GetBalance(ctx, sender))
-		// fmt.Println("\tERROR?: ", vmerr)
+		_, leftOverGas, vmerr = vmenv.Call(senderRef, *msg.To(), msg.Data.Payload, usableGas, msg.Data.Amount)
 	}
 
 	// handle errors
@@ -118,18 +97,38 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	}
 
 	// Refund remaining gas from tx (Check these values and ensure gas is being consumed correctly)
-	// TODO: refund gas
+	refundGas(keeper.csdb, &leftOverGas, msg.Data.GasLimit, context.GasPrice, sender)
 
 	// add balance for the processor of the tx (determine who rewards are being processed to)
 	// TODO: Double check nothing needs to be done here
 
-	// TODO: Remove this when determined return isn't needed
-	fmt.Println("VM Return: ", ret)
-	keeper.csdb.Finalise(true)
+	keeper.csdb.Finalise(true) // Change to depend on config
 
 	// TODO: Remove commit from tx handler (should be done at end of block)
-	_, err = keeper.csdb.Commit(true)
-	fmt.Println(err)
+	keeper.csdb.Commit(true)
 
-	return sdk.Result{}
+	// TODO: Consume gas from sender
+
+	return sdk.Result{Log: addr.Hex(), GasUsed: msg.Data.GasLimit - leftOverGas}
+}
+
+func refundGas(
+	st vm.StateDB, gasRemaining *uint64, initialGas uint64, gasPrice *big.Int,
+	from common.Address,
+) {
+	// Apply refund counter, capped to half of the used gas.
+	refund := (initialGas - *gasRemaining) / 2
+	if refund > st.GetRefund() {
+		refund = st.GetRefund()
+	}
+	*gasRemaining += refund
+
+	// Return ETH for remaining gas, exchanged at the original rate.
+	remaining := new(big.Int).Mul(new(big.Int).SetUint64(*gasRemaining), gasPrice)
+	st.AddBalance(from, remaining)
+
+	// // Also return remaining gas to the block gas counter so it is
+	// // available for the next transaction.
+	// TODO: Return gas to block gas meter?
+	// st.gp.AddGas(st.gas)
 }
