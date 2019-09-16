@@ -101,11 +101,6 @@ func GetCmdGenETHTx(cdc *codec.Codec) *cobra.Command {
 				panic(err)
 			}
 
-			// nonce, err := strconv.ParseUint(args[0], 0, 64)
-			// if err != nil {
-			// 	return err
-			// }
-
 			coins, err := sdk.ParseCoins(args[0])
 			if err != nil {
 				return err

@@ -29,11 +29,6 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 // Handle an Ethereum specific tx
 func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk.Result {
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		fmt.Println("\tPanic recovered: ", r)
-	// 	}
-	// }()
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
