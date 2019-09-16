@@ -80,6 +80,8 @@ func MakeCodec() *codec.Codec {
 	ModuleBasics.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
+	eminttypes.RegisterCodec(cdc)
+
 	return cdc
 }
 
