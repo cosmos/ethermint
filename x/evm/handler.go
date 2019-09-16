@@ -105,7 +105,10 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	keeper.csdb.Finalise(true) // Change to depend on config
 
 	// TODO: Remove commit from tx handler (should be done at end of block)
-	keeper.csdb.Commit(true)
+	_, err = keeper.csdb.Commit(true)
+	if err != nil {
+		return sdk.ErrUnknownRequest("Failed to write data to kv store").Result()
+	}
 
 	// TODO: Consume gas from sender
 
