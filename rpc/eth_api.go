@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -163,8 +165,13 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumb
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
-func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) hexutil.Bytes {
-	return nil
+func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
+	// TODO: Change this functionality to find an unlocked account by address
+	if e.key == nil || bytes.Compare(e.key.PubKey().Address().Bytes(), address.Bytes()) != 0 {
+		return nil, keystore.ErrLocked
+	}
+
+	return e.key.Sign(data)
 }
 
 // SendTransaction sends an Ethereum transaction.
