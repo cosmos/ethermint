@@ -167,7 +167,7 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumb
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || bytes.Compare(e.key.PubKey().Address().Bytes(), address.Bytes()) != 0 {
+	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), address.Bytes()) {
 		return nil, keystore.ErrLocked
 	}
 
