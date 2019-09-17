@@ -223,7 +223,9 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// TODO: Determine why tx is not being broadcasted to node
-	res, err := e.cliCtx.BroadcastTxSync(txBytes)
+	res, err := e.cliCtx.BroadcastTx(txBytes)
+	// If error is encountered on the node, the broadcast will not return an error
+	fmt.Println(res.RawLog)
 	if err != nil {
 		return common.Hash{}, err
 	}
