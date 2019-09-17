@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/params"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	emint "github.com/cosmos/ethermint/types"
@@ -68,8 +67,7 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
-	// TODO: Change defaulting to mainnet chainconfig
-	vmenv := vm.NewEVM(context, keeper.csdb.WithContext(ctx), params.MainnetChainConfig, vm.Config{})
+	vmenv := vm.NewEVM(context, keeper.csdb.WithContext(ctx), types.GenerateChainConfig(intChainID), vm.Config{})
 
 	var (
 		leftOverGas uint64
