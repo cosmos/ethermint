@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/cosmos/ethermint/version"
@@ -14,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/signer/core"
 )
@@ -204,9 +206,29 @@ func (e *PublicEthAPI) SendTransaction(args core.SendTxArgs) common.Hash {
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
-func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) common.Hash {
-	var h common.Hash
-	return h
+func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
+	tx := new(types.EthereumTxMsg)
+
+	if err := rlp.DecodeBytes(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return common.Hash{}, err
+	}
+
+	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
+	// TODO: Determine why tx is not being broadcasted to node
+	res, err := e.cliCtx.BroadcastTxSync(txBytes)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.HexToHash(res.TxHash), nil
 }
 
 // CallArgs represents arguments to a smart contract call as provided by RPC clients.
