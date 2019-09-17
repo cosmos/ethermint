@@ -47,14 +47,17 @@ func registerRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
 	accountName := viper.GetString(flagUnlockKey)
 
-	passphrase, err := emintkeys.GetPassphrase(accountName)
-	if err != nil {
-		return
-	}
+	var emintKey emintcrypto.PrivKeySecp256k1
+	if len(accountName) > 0 {
+		passphrase, err := emintkeys.GetPassphrase(accountName)
+		if err != nil {
+			log.Println(err)
+		}
 
-	emintKey, err := unlockKeyFromNameAndPassphrase(accountName, passphrase)
-	if err != nil {
-		log.Println(err)
+		emintKey, err = unlockKeyFromNameAndPassphrase(accountName, passphrase)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	apis := GetRPCAPIs(rs.CliCtx, emintKey)
@@ -76,10 +79,6 @@ func registerRoutes(rs *lcd.RestServer) {
 }
 
 func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
-	if len(accountName) == 0 {
-		return
-	}
-
 	keybase, err := emintkeys.NewKeyBaseFromHomeFlag()
 	if err != nil {
 		return

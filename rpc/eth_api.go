@@ -171,7 +171,13 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 		return nil, keystore.ErrLocked
 	}
 
-	return e.key.Sign(data)
+	// Sign the requested hash with the wallet
+	signature, err := e.key.Sign(data)
+	if err == nil {
+		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	}
+
+	return signature, err
 }
 
 // SendTransaction sends an Ethereum transaction.
