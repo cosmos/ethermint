@@ -14,11 +14,19 @@ func GetRPCAPIs(cliCtx context.CLIContext) []rpc.API {
 			Namespace: "web3",
 			Version:   "1.0",
 			Service:   NewPublicWeb3API(),
+			Public:    true,
 		},
 		{
 			Namespace: "eth",
 			Version:   "1.0",
 			Service:   NewPublicEthAPI(cliCtx),
+			Public:    true,
+		},
+		{
+			Namespace: "personal",
+			Version:   "1.0",
+			Service:   NewPersonalEthAPI(cliCtx),
+			Public:    false,
 		},
 	}
 }

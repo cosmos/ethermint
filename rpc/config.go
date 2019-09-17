@@ -5,13 +5,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/cobra"
+
 	"log"
 )
 
-// defaultModules returns all available modules
-func defaultModules() []string {
-	return []string{"web3", "eth"}
-}
+const (
+	flagUnlockKey = "unlock-key"
+)
 
 // Config contains configuration fields that determine the behavior of the RPC HTTP server.
 // TODO: These may become irrelevant if HTTP config is handled by the SDK
@@ -30,7 +30,10 @@ type Config struct {
 
 // Web3RpcCmd creates a CLI command to start RPC server
 func Web3RpcCmd(cdc *codec.Codec) *cobra.Command {
-	return lcd.ServeCommand(cdc, registerRoutes)
+	cmd := lcd.ServeCommand(cdc, registerRoutes)
+	// Attach flag to cmd output to be handled in registerRoutes
+	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
+	return cmd
 }
 
 // registerRoutes creates a new server and registers the `/rpc` endpoint.
@@ -40,11 +43,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	apis := GetRPCAPIs(rs.CliCtx)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
-	modules := defaultModules()
 	whitelist := make(map[string]bool)
-	for _, module := range modules {
-		whitelist[module] = true
-	}
 
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
