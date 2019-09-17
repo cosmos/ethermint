@@ -28,7 +28,7 @@ func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext) *PersonalEthAPI {
 //
 // The key used to calculate the signature is decrypted with the given password.
 //
-// https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign\
+// https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
 func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
 	return nil, nil
 }
