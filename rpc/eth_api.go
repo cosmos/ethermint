@@ -5,8 +5,10 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -16,12 +18,14 @@ import (
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx context.CLIContext
+	key    emintcrypto.PrivKeySecp256k1
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext) *PublicEthAPI {
+func NewPublicEthAPI(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
 	return &PublicEthAPI{
 		cliCtx: cliCtx,
+		key:    key,
 	}
 }
 

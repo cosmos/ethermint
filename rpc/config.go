@@ -1,12 +1,17 @@
 package rpc
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/spf13/cobra"
 
-	"log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -40,7 +45,19 @@ func Web3RpcCmd(cdc *codec.Codec) *cobra.Command {
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func registerRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
-	apis := GetRPCAPIs(rs.CliCtx)
+	accountName := viper.GetString(flagUnlockKey)
+
+	passphrase, err := emintkeys.GetPassphrase(accountName)
+	if err != nil {
+		return
+	}
+
+	emintKey, err := unlockKeyFromNameAndPassphrase(accountName, passphrase)
+	if err != nil {
+		log.Println(err)
+	}
+
+	apis := GetRPCAPIs(rs.CliCtx, emintKey)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -56,4 +73,28 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 
 	rs.Mux.HandleFunc("/rpc", s.ServeHTTP).Methods("POST")
+}
+
+func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
+	if len(accountName) == 0 {
+		return
+	}
+
+	keybase, err := emintkeys.NewKeyBaseFromHomeFlag()
+	if err != nil {
+		return
+	}
+
+	privKey, err := keybase.ExportPrivateKeyObject(accountName, passphrase)
+	if err != nil {
+		return
+	}
+
+	var ok bool
+	emintKey, ok = privKey.(emintcrypto.PrivKeySecp256k1)
+	if !ok {
+		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+	}
+
+	return
 }
