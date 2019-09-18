@@ -18,6 +18,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 )
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -222,14 +225,17 @@ func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error
 	// Assemble transaction from fields
 	tx.PopulateFromArgs(args)
 
-	// // parse the chainID from a string to a base-10 integer
-	// intChainID, ok := new(big.Int).SetString(e.cliCtx.ChainID(), 10)
-	// if !ok {
-	// 	return common.Hash{}, fmt.Errorf("Invalid chainID")
-	// }
+	// ChainID must be set as flag to send transaction
+	chainID := viper.GetString(flags.FlagChainID)
+	// parse the chainID from a string to a base-10 integer
+	intChainID, ok := new(big.Int).SetString(chainID, 10)
+	if !ok {
+		return common.Hash{}, fmt.Errorf(
+			fmt.Sprintf("Invalid chainID: %s, must be integer format", chainID))
+	}
 
-	// // Sign transaction
-	// tx.Sign(intChainID, e.key.ToECDSA())
+	// Sign transaction
+	tx.Sign(intChainID, e.key.ToECDSA())
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
