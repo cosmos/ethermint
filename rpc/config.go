@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -51,12 +50,12 @@ func registerRoutes(rs *lcd.RestServer) {
 	if len(accountName) > 0 {
 		passphrase, err := emintkeys.GetPassphrase(accountName)
 		if err != nil {
-			log.Println(err)
+			panic(err)
 		}
 
 		emintKey, err = unlockKeyFromNameAndPassphrase(accountName, passphrase)
 		if err != nil {
-			log.Println(err)
+			panic(err)
 		}
 	}
 
@@ -69,8 +68,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	for _, api := range apis {
 		if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
 			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
-				log.Println(err)
-				return
+				panic(err)
 			}
 		}
 	}
