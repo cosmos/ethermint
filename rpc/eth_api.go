@@ -1,14 +1,21 @@
 package rpc
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/signer/core"
 )
@@ -16,12 +23,14 @@ import (
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx context.CLIContext
+	key    emintcrypto.PrivKeySecp256k1
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext) *PublicEthAPI {
+func NewPublicEthAPI(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
 	return &PublicEthAPI{
 		cliCtx: cliCtx,
+		key:    key,
 	}
 }
 
@@ -58,8 +67,24 @@ func (e *PublicEthAPI) GasPrice() *hexutil.Big {
 }
 
 // Accounts returns the list of accounts available to this node.
-func (e *PublicEthAPI) Accounts() []common.Address {
-	return nil
+func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
+	addresses := make([]common.Address, 0) // return [] instead of nil if empty
+	keybase, err := emintkeys.NewKeyBaseFromHomeFlag()
+	if err != nil {
+		return addresses, err
+	}
+
+	infos, err := keybase.List()
+	if err != nil {
+		return addresses, err
+	}
+
+	for _, info := range infos {
+		addressBytes := info.GetPubKey().Address().Bytes()
+		addresses = append(addresses, common.BytesToAddress(addressBytes))
+	}
+
+	return addresses, nil
 }
 
 // BlockNumber returns the current block number.
@@ -102,8 +127,16 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
-func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rpc.BlockNumber) hexutil.Uint64 {
-	return 0
+func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rpc.BlockNumber) (hexutil.Uint64, error) {
+	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/nonce/%s", types.ModuleName, address), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	var out types.QueryResNonce
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return hexutil.Uint64(out.Nonce), nil
 }
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
@@ -151,8 +184,19 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumb
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
-func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) hexutil.Bytes {
-	return nil
+func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
+	// TODO: Change this functionality to find an unlocked account by address
+	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), address.Bytes()) {
+		return nil, keystore.ErrLocked
+	}
+
+	// Sign the requested hash with the wallet
+	signature, err := e.key.Sign(data)
+	if err == nil {
+		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	}
+
+	return signature, err
 }
 
 // SendTransaction sends an Ethereum transaction.
@@ -162,9 +206,31 @@ func (e *PublicEthAPI) SendTransaction(args core.SendTxArgs) common.Hash {
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
-func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) common.Hash {
-	var h common.Hash
-	return h
+func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
+	tx := new(types.EthereumTxMsg)
+
+	// RLP decode raw transaction bytes
+	if err := rlp.DecodeBytes(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return common.Hash{}, nil
+	}
+
+	// Encode transaction by default Tx encoder
+	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
+	res, err := e.cliCtx.BroadcastTx(txBytes)
+	// If error is encountered on the node, the broadcast will not return an error
+	fmt.Println(res.RawLog)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.HexToHash(res.TxHash), nil
 }
 
 // CallArgs represents arguments to a smart contract call as provided by RPC clients.

@@ -55,7 +55,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // Get the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return nil // cli.GetTxCmd(StoreKey, cdc)
+	return cli.GetTxCmd(types.ModuleName, cdc)
 }
 
 type AppModule struct {
@@ -94,7 +94,8 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 
 func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 
-func (am AppModule) EndBlock(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate {
+func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+	// TODO: Commit database here ?
 	return []abci.ValidatorUpdate{}
 }
 
