@@ -9,6 +9,7 @@ import (
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
+	"github.com/cosmos/ethermint/rpc/args"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 
@@ -17,20 +18,23 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/signer/core"
 )
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
-	cliCtx context.CLIContext
-	key    emintcrypto.PrivKeySecp256k1
+	cliCtx    context.CLIContext
+	key       emintcrypto.PrivKeySecp256k1
+	nonceLock *AddrLocker
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
+func NewPublicEthAPI(cliCtx context.CLIContext, nonceLock *AddrLocker,
+	key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
+
 	return &PublicEthAPI{
-		cliCtx: cliCtx,
-		key:    key,
+		cliCtx:    cliCtx,
+		key:       key,
+		nonceLock: nonceLock,
 	}
 }
 
@@ -200,9 +204,49 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 }
 
 // SendTransaction sends an Ethereum transaction.
-func (e *PublicEthAPI) SendTransaction(args core.SendTxArgs) common.Hash {
-	var h common.Hash
-	return h
+func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error) {
+	// TODO: Change this functionality to find an unlocked account by address
+	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
+		return common.Hash{}, keystore.ErrLocked
+	}
+
+	// Mutex lock the address' nonce to avoid assigning it to multiple requests
+	if args.Nonce == nil {
+		e.nonceLock.LockAddr(args.From)
+		defer e.nonceLock.UnlockAddr(args.From)
+	}
+
+	// Transaction defaults and terminate on failure
+	tx := new(types.EthereumTxMsg)
+
+	// Assemble transaction from fields
+	tx.PopulateFromArgs(args)
+
+	// // parse the chainID from a string to a base-10 integer
+	// intChainID, ok := new(big.Int).SetString(e.cliCtx.ChainID(), 10)
+	// if !ok {
+	// 	return common.Hash{}, fmt.Errorf("Invalid chainID")
+	// }
+
+	// // Sign transaction
+	// tx.Sign(intChainID, e.key.ToECDSA())
+
+	// Encode transaction by default Tx encoder
+	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	// Broadcast transaction
+	res, err := e.cliCtx.BroadcastTx(txBytes)
+	// If error is encountered on the node, the broadcast will not return an error
+	fmt.Println(res.RawLog)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.HexToHash(res.TxHash), nil
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
