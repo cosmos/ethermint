@@ -3,6 +3,7 @@ package evm
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -61,8 +62,8 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		Origin:      sender,
 		Coinbase:    common.Address{},
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
-		Time:        new(big.Int).SetUint64(5), // unused
-		Difficulty:  big.NewInt(0x30000),       // unused
+		Time:        big.NewInt(time.Now().Unix()),
+		Difficulty:  big.NewInt(0x30000), // unused
 		GasLimit:    ctx.GasMeter().Limit(),
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
