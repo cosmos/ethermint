@@ -68,12 +68,6 @@ func call(method string, params []string) (*Response, error) {
 		return nil, err
 	}
 
-	//tmpRes, err := ioutil.ReadAll(res.Body)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fmt.Println(string(tmpRes))
-
 	decoder := json.NewDecoder(res.Body)
 	var rpcRes *Response
 	err = decoder.Decode(&rpcRes)
@@ -129,10 +123,6 @@ func TestEth_blockNumber(t *testing.T) {
 
 	t.Logf("Got block number: %s\n", res.String())
 
-	//// -1 if x <  y, 0 if x == y; where x is res, y is 0
-	//if res  0 {
-	//	t.Fatalf("Invalid block number got: %v", res)
-	//}
 }
 
 func TestEth_GetBalance(t *testing.T) {
