@@ -395,7 +395,7 @@ func GenerateFromArgs(args args.SendTxArgs, ctx context.CLIContext) (msg *Ethere
 	var input []byte
 	if args.Input != nil {
 		input = *args.Input
-	} else {
+	} else if args.Data != nil {
 		input = *args.Data
 	}
 
