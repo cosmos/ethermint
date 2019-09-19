@@ -219,11 +219,11 @@ func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error
 		defer e.nonceLock.UnlockAddr(args.From)
 	}
 
-	// Transaction defaults and terminate on failure
-	tx := new(types.EthereumTxMsg)
-
 	// Assemble transaction from fields
-	tx.PopulateFromArgs(args)
+	tx, err := types.GenerateFromArgs(args, e.cliCtx)
+	if err != nil {
+		return common.Hash{}, err
+	}
 
 	// ChainID must be set as flag to send transaction
 	chainID := viper.GetString(flags.FlagChainID)
