@@ -66,9 +66,9 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 
 func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	num := ctx.BlockHeight()
-	hexBig := hexutil.Uint64(num)
+	hexUint := hexutil.Uint64(num)
 
-	res, err := codec.MarshalJSONIndent(keeper.cdc, hexBig)
+	res, err := codec.MarshalJSONIndent(keeper.cdc, hexUint)
 
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())

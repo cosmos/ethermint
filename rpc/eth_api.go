@@ -136,7 +136,7 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rpc.
 	}
 
 	var out *hexutil.Uint64
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.cliCtx.Codec.MustUnmarshalJSON(res, out)
 	return out, nil
 }
 
