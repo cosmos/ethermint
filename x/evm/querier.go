@@ -92,7 +92,6 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.BytesToAddress([]byte(path[1]))
 	code := keeper.GetCode(ctx, addr)
-	//cRes := types.QueryResCode{Code: code}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, code)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())
