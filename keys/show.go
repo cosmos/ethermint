@@ -74,7 +74,7 @@ func runShowCmd(cmd *cobra.Command, args []string) (err error) {
 	isShowEitherAddr := isShowAddr || isShowEthAddr
 
 	if isShowEitherAddr && isShowPubKey {
-		return errors.New("cannot use both --address and --pubkey at once")
+		return errors.New("cannot get address, with --address or --ethwallet, and --pubkey at once")
 	}
 
 	if isOutputSet && (isShowEitherAddr || isShowPubKey) {

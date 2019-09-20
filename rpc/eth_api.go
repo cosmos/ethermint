@@ -247,12 +247,14 @@ func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error
 	// Broadcast transaction
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
+	// TODO: Remove res log
 	fmt.Println(res.RawLog)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	return common.HexToHash(res.TxHash), nil
+	// Return RLP encoded bytes
+	return tx.Hash(), nil
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
@@ -275,12 +277,14 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
+	// TODO: Remove res log
 	fmt.Println(res.RawLog)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	return common.HexToHash(res.TxHash), nil
+	// Return RLP encoded bytes
+	return tx.Hash(), nil
 }
 
 // CallArgs represents arguments to a smart contract call as provided by RPC clients.
