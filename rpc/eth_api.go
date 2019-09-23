@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
@@ -324,6 +325,7 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 	if err != nil {
 		return nil, err
 	}
+	header := block.BlockMeta.Header
 
 	genesis, err := node.Genesis()
 	if err != nil {
@@ -333,32 +335,45 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 
 	txs := block.Block.Txs
 	transactions := make([]interface{}, len(txs))
+	var gasUsed *big.Int
 	if fullTx {
-		return nil, fmt.Errorf("Full Transactions not implemented")
+		gasUsed = big.NewInt(0)
+		// Decode transaction from amino encoding
+		for i, v := range txs {
+			var tx sdk.Tx
+			err := e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(v, &tx)
+			ethTx, ok := tx.(*types.EthereumTxMsg)
+			if !ok || err != nil {
+				continue
+			}
+			// TODO: Remove gas usage calculation if saving gasUsed per block
+			gasUsed.Add(gasUsed, ethTx.Fee())
+			transactions[i] = newRPCTransaction(ethTx, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height), uint64(i))
+		}
+	} else {
+		// TODO: Gas used not saved and cannot be calculated by hashes
+		// Only including hash
+		for i, v := range txs {
+			transactions[i] = common.BytesToHash(v.Hash())
+		}
 	}
 
-	// Only including hash
-	for i, v := range txs {
-		transactions[i] = common.BytesToHash(v.Hash())
-	}
-
-	header := block.BlockMeta.Header
 	return map[string]interface{}{
 		"number":           header.Height,
 		"hash":             header.ConsensusHash,
-		"parentHash":       header.LastBlockID.Hash, // TODO: returns empty string
-		"nonce":            nil,                     // PoW specific
-		"sha3Uncles":       nil,                     // No uncles in Tendermint
-		"logsBloom":        "",                      // TODO
-		"transactionsRoot": header.DataHash,         // TODO: returns empty string
-		"stateRoot":        header.AppHash,          // TODO: returns empty string
+		"parentHash":       header.LastBlockID.Hash,
+		"nonce":            nil, // PoW specific
+		"sha3Uncles":       nil, // No uncles in Tendermint
+		"logsBloom":        "",  // TODO: Complete with #55
+		"transactionsRoot": header.DataHash,
+		"stateRoot":        header.AppHash,
 		"miner":            header.ValidatorsHash,
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
 		"extraData":        nil,
 		"size":             hexutil.Uint64(block.Block.Size()),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
-		"gasUsed":          "",                       // Calculate based on reconstructed txs?
+		"gasUsed":          gasUsed,
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions,
 		"uncles":           nil,
@@ -367,7 +382,7 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 
 // Transaction represents a transaction returned to RPC clients.
 type Transaction struct {
-	BlockHash        common.Hash     `json:"blockHash"`
+	BlockHash        *common.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big    `json:"blockNumber"`
 	From             common.Address  `json:"from"`
 	Gas              hexutil.Uint64  `json:"gas"`
@@ -376,11 +391,38 @@ type Transaction struct {
 	Input            hexutil.Bytes   `json:"input"`
 	Nonce            hexutil.Uint64  `json:"nonce"`
 	To               *common.Address `json:"to"`
-	TransactionIndex hexutil.Uint    `json:"transactionIndex"`
+	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
 	Value            *hexutil.Big    `json:"value"`
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
+}
+
+// newRPCTransaction returns a transaction that will serialize to the RPC
+// representation, with the given location metadata set (if available).
+func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumber uint64, index uint64) *Transaction {
+	// Verify signature and retrieve sender address
+	from, _ := tx.VerifySig(tx.ChainID())
+
+	result := &Transaction{
+		From:     from,
+		Gas:      hexutil.Uint64(tx.Data.GasLimit),
+		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		Hash:     tx.Hash(),
+		Input:    hexutil.Bytes(tx.Data.Payload),
+		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Data.Amount),
+		V:        (*hexutil.Big)(tx.Data.V),
+		R:        (*hexutil.Big)(tx.Data.R),
+		S:        (*hexutil.Big)(tx.Data.S),
+	}
+	if blockHash != (common.Hash{}) {
+		result.BlockHash = &blockHash
+		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
+		result.TransactionIndex = (*hexutil.Uint64)(&index)
+	}
+	return result
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
