@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/cosmos/ethermint/rpc/args"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +19,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+
 	"github.com/spf13/viper"
 )
 
@@ -334,25 +337,14 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
 
 	txs := block.Block.Txs
-	transactions := make([]interface{}, len(txs))
 	var gasUsed *big.Int
+	var transactions []interface{}
 	if fullTx {
-		gasUsed = big.NewInt(0)
-		// Decode transaction from amino encoding
-		for i, v := range txs {
-			var tx sdk.Tx
-			err := e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(v, &tx)
-			ethTx, ok := tx.(*types.EthereumTxMsg)
-			if !ok || err != nil {
-				continue
-			}
-			// TODO: Remove gas usage calculation if saving gasUsed per block
-			gasUsed.Add(gasUsed, ethTx.Fee())
-			transactions[i] = newRPCTransaction(ethTx, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height), uint64(i))
-		}
+		transactions, gasUsed = convertTransactionsToRPC(e.cliCtx, txs, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height))
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
 		// Only including hash
+		transactions = make([]interface{}, len(txs))
 		for i, v := range txs {
 			transactions[i] = common.BytesToHash(v.Hash())
 		}
@@ -378,6 +370,23 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 		"transactions":     transactions,
 		"uncles":           nil,
 	}, err
+}
+
+func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int) {
+	transactions := make([]interface{}, len(txs))
+	gasUsed := big.NewInt(0)
+	for i, v := range txs {
+		var tx sdk.Tx
+		err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(v, &tx)
+		ethTx, ok := tx.(*types.EthereumTxMsg)
+		if !ok || err != nil {
+			continue
+		}
+		// TODO: Remove gas usage calculation if saving gasUsed per block
+		gasUsed.Add(gasUsed, ethTx.Fee())
+		transactions[i] = newRPCTransaction(ethTx, blockHash, height, uint64(i))
+	}
+	return transactions, gasUsed
 }
 
 // Transaction represents a transaction returned to RPC clients.
