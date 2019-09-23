@@ -318,35 +318,32 @@ func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) map[string]
 
 // GetBlockByNumber returns the block identified by number.
 func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	node, err := e.cliCtx.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
 	value := blockNum.Int64()
-	block, err := node.Block(&value)
+	block, err := e.cliCtx.Client.Block(&value)
 	if err != nil {
 		return nil, err
 	}
 	header := block.BlockMeta.Header
 
-	genesis, err := node.Genesis()
+	genesis, err := e.cliCtx.Client.Genesis()
 	if err != nil {
 		return nil, err
 	}
 	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
 
-	txs := block.Block.Txs
 	var gasUsed *big.Int
 	var transactions []interface{}
+
 	if fullTx {
-		transactions, gasUsed = convertTransactionsToRPC(e.cliCtx, txs, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height))
+		// Populate full transaction data
+		transactions, gasUsed = convertTransactionsToRPC(e.cliCtx, block.Block.Txs,
+			common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height))
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
-		// Only including hash
-		transactions = make([]interface{}, len(txs))
-		for i, v := range txs {
-			transactions[i] = common.BytesToHash(v.Hash())
+		// Return slice of transaction hashes
+		transactions = make([]interface{}, len(block.Block.Txs))
+		for i, tx := range block.Block.Txs {
+			transactions[i] = common.BytesToHash(tx.Hash())
 		}
 	}
 
@@ -375,10 +372,10 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int) {
 	transactions := make([]interface{}, len(txs))
 	gasUsed := big.NewInt(0)
-	for i, v := range txs {
-		var tx sdk.Tx
-		err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(v, &tx)
-		ethTx, ok := tx.(*types.EthereumTxMsg)
+	for i, tx := range txs {
+		var stdTx sdk.Tx
+		err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(tx, &stdTx)
+		ethTx, ok := stdTx.(*types.EthereumTxMsg)
 		if !ok || err != nil {
 			continue
 		}
