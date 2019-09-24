@@ -32,6 +32,7 @@ type PublicEthAPI struct {
 	cliCtx    context.CLIContext
 	key       emintcrypto.PrivKeySecp256k1
 	nonceLock *AddrLocker
+	gasLimit  *int64
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
@@ -325,11 +326,10 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 	}
 	header := block.BlockMeta.Header
 
-	genesis, err := e.cliCtx.Client.Genesis()
+	gasLimit, err := e.getGasLimit()
 	if err != nil {
 		return nil, err
 	}
-	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
 
 	var gasUsed *big.Int
 	var transactions []interface{}
@@ -355,21 +355,21 @@ func formatBlock(
 	gasUsed *big.Int, transactions []interface{},
 ) map[string]interface{} {
 	return map[string]interface{}{
-		"number":           header.Height,
-		"hash":             header.ConsensusHash,
-		"parentHash":       header.LastBlockID.Hash,
+		"number":           hexutil.Uint64(header.Height),
+		"hash":             hexutil.Bytes(header.ConsensusHash),
+		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
 		"nonce":            nil, // PoW specific
 		"sha3Uncles":       nil, // No uncles in Tendermint
 		"logsBloom":        "",  // TODO: Complete with #55
-		"transactionsRoot": header.DataHash,
-		"stateRoot":        header.AppHash,
-		"miner":            header.ValidatorsHash,
+		"transactionsRoot": hexutil.Bytes(header.DataHash),
+		"stateRoot":        hexutil.Bytes(header.AppHash),
+		"miner":            hexutil.Bytes(header.ValidatorsHash),
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
 		"extraData":        nil,
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
-		"gasUsed":          gasUsed,
+		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions,
 		"uncles":           nil,
@@ -466,4 +466,23 @@ func (e *PublicEthAPI) GetUncleByBlockHashAndIndex(hash common.Hash, idx hexutil
 // GetUncleByBlockNumberAndIndex returns the uncle identified by number and index. Always returns nil.
 func (e *PublicEthAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint, idx hexutil.Uint) map[string]interface{} {
 	return nil
+}
+
+// getGasLimit returns the gas limit per block set in genesis
+func (e *PublicEthAPI) getGasLimit() (int64, error) {
+	// Retrieve from gasLimit variable cache
+	if e.gasLimit != nil {
+		return *e.gasLimit, nil
+	}
+
+	// Query genesis block if hasn't been retrieved yet
+	genesis, err := e.cliCtx.Client.Genesis()
+	if err != nil {
+		return 0, err
+	}
+
+	// Save value to gasLimit cached value
+	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
+	e.gasLimit = &gasLimit
+	return gasLimit, nil
 }
