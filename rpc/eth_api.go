@@ -463,6 +463,10 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
 
 	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
+	if err != nil {
+		return nil, err
+	}
+
 	return newRPCTransaction(ethTx, blockHash, uint64(tx.Height), uint64(tx.Index)), nil
 }
 
