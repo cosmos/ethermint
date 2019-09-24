@@ -451,7 +451,8 @@ func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumb
 func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
-		return nil, err
+		// Return nil for transaction when not found
+		return nil, nil
 	}
 
 	// Can either cache or just leave this out if not necessary
