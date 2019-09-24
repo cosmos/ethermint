@@ -490,7 +490,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = hexutil.Uint(0)
 	}
 
-	return map[string]interface{}{
+	fields := map[string]interface{}{
 		"blockHash":         blockHash,
 		"blockNumber":       hexutil.Uint64(tx.Height),
 		"transactionHash":   hash,
@@ -499,11 +499,17 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"to":                ethTx.To(),
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
 		"cumulativeGasUsed": hexutil.Uint64(0), // TODO: determine if necessary
-		"contractAddress":   hexutil.Bytes(tx.TxResult.GetData()),
-		"logs":              tx.TxResult.Log, // TODO: Do with #55 (eth_getLogs output)
+		"contractAddress":   nil,
+		"logs":              nil, // TODO: Do with #55 (eth_getLogs output)
 		"logsBloom":         nil,
 		"status":            status,
-	}, nil
+	}
+
+	if common.BytesToAddress(tx.TxResult.GetData()) != (common.Address{}) {
+		fields["contractAddress"] = hexutil.Bytes(tx.TxResult.GetData())
+	}
+
+	return fields, nil
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
