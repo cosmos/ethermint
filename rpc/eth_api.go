@@ -450,8 +450,28 @@ func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx h
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNumber rpc.BlockNumber, idx hexutil.Uint) *Transaction {
-	return nil
+func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpc.BlockNumber, idx hexutil.Uint) (*Transaction, error) {
+	value := blockNum.Int64()
+	block, err := e.cliCtx.Client.Block(&value)
+	if err != nil {
+		return nil, err
+	}
+	header := block.BlockMeta.Header
+
+	txs := block.Block.Txs
+	if uint64(idx) >= uint64(len(txs)) {
+		return nil, nil
+	}
+	txBytes := txs[idx]
+	var tx sdk.Tx
+	err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+	ethTx, ok := tx.(*types.EthereumTxMsg)
+	if !ok || err != nil {
+		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
+	}
+
+	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height), uint64(idx))
+	return transaction, nil
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
