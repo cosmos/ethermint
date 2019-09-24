@@ -320,7 +320,14 @@ func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) map[string]
 // GetBlockByNumber returns the block identified by number.
 func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
-	block, err := e.cliCtx.Client.Block(&value)
+
+	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
+	var blkNumPtr *int64
+	if value != 0 {
+		blkNumPtr = &value
+	}
+
+	block, err := e.cliCtx.Client.Block(blkNumPtr)
 	if err != nil {
 		return nil, err
 	}
