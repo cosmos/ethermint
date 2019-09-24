@@ -476,9 +476,6 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	if !ok || err != nil {
 		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	from, _ := ethTx.VerifySig(ethTx.ChainID())
 
