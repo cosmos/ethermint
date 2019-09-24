@@ -347,6 +347,13 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 		}
 	}
 
+	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions), nil
+}
+
+func formatBlock(
+	header tmtypes.Header, size int, gasLimit int64,
+	gasUsed *big.Int, transactions []interface{},
+) map[string]interface{} {
 	return map[string]interface{}{
 		"number":           header.Height,
 		"hash":             header.ConsensusHash,
@@ -360,13 +367,13 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
 		"extraData":        nil,
-		"size":             hexutil.Uint64(block.Block.Size()),
+		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          gasUsed,
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions,
 		"uncles":           nil,
-	}, err
+	}
 }
 
 func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int) {
