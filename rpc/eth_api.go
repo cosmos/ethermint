@@ -455,8 +455,55 @@ func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNumber rpc.Block
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
-func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) map[string]interface{} {
-	return nil
+func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
+	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
+	if err != nil {
+		// Return nil for transaction when not found
+		return nil, nil
+	}
+
+	// Can either cache or just leave this out if not necessary
+	block, err := e.cliCtx.Client.Block(&tx.Height)
+	if err != nil {
+		return nil, err
+	}
+	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
+
+	// Change to conversion function when merged
+	var stdTx sdk.Tx
+	err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(tx.Tx, &stdTx)
+	ethTx, ok := stdTx.(*types.EthereumTxMsg)
+	if !ok || err != nil {
+		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	from, _ := ethTx.VerifySig(ethTx.ChainID())
+
+	// Set status codes based on tx result
+	var status hexutil.Uint
+	if tx.TxResult.IsOK() {
+		status = hexutil.Uint(1)
+	} else {
+		status = hexutil.Uint(0)
+	}
+
+	return map[string]interface{}{
+		"blockHash":         blockHash,
+		"blockNumber":       hexutil.Uint64(tx.Height),
+		"transactionHash":   hash,
+		"transactionIndex":  hexutil.Uint64(tx.Index),
+		"from":              from,
+		"to":                ethTx.To(),
+		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
+		"cumulativeGasUsed": hexutil.Uint64(0), // TODO: determine if necessary
+		"contractAddress":   hexutil.Bytes(tx.TxResult.GetData()),
+		"logs":              tx.TxResult.Log, // TODO: Do with #55 (eth_getLogs output)
+		"logsBloom":         nil,
+		"status":            status,
+	}, nil
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
