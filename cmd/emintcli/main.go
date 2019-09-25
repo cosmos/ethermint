@@ -12,6 +12,10 @@ import (
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	emintkeys "github.com/cosmos/ethermint/keys"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
+	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
 	emintapp "github.com/cosmos/ethermint/app"
 	"github.com/spf13/cobra"
@@ -23,6 +27,8 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	cdc := emintapp.MakeCodec()
+
+	authtypes.ModuleCdc = cdc
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
@@ -48,7 +54,7 @@ func main() {
 		sdkrpc.StatusCommand(),
 		client.ConfigCmd(emintapp.DefaultCLIHome),
 		queryCmd(cdc),
-		// TODO: Set up tx command
+		txCmd(cdc),
 		// TODO: Set up rest routes (if included, different from web3 api)
 		rpc.Web3RpcCmd(cdc),
 		client.LineBreak,
@@ -73,14 +79,40 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 	}
 
 	// TODO: Possibly add these query commands from other modules
-	//queryCmd.AddCommand(
-	// ...
-	//)
+	queryCmd.AddCommand(
+		authcmd.GetAccountCmd(cdc),
+		client.LineBreak,
+		authcmd.QueryTxsByEventsCmd(cdc),
+		authcmd.QueryTxCmd(cdc),
+		client.LineBreak,
+	)
 
 	// add modules' query commands
 	emintapp.ModuleBasics.AddQueryCommands(queryCmd, cdc)
 
 	return queryCmd
+}
+
+func txCmd(cdc *amino.Codec) *cobra.Command {
+	txCmd := &cobra.Command{
+		Use:   "tx",
+		Short: "Transactions subcommands",
+	}
+
+	txCmd.AddCommand(
+		bankcmd.SendTxCmd(cdc),
+		client.LineBreak,
+		authcmd.GetSignCommand(cdc),
+		client.LineBreak,
+		authcmd.GetBroadcastCommand(cdc),
+		authcmd.GetEncodeCommand(cdc),
+		client.LineBreak,
+	)
+
+	// add modules' tx commands
+	emintapp.ModuleBasics.AddTxCommands(txCmd, cdc)
+
+	return txCmd
 }
 
 func initConfig(cmd *cobra.Command) error {

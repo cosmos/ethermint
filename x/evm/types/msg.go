@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
@@ -10,8 +11,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/ethermint/rpc/args"
 	"github.com/cosmos/ethermint/types"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -28,7 +32,7 @@ var big8 = big.NewInt(8)
 // message type and route constants
 const (
 	TypeEthereumTxMsg  = "ethereum_tx"
-	RouteEthereumTxMsg = "evm"
+	RouteEthereumTxMsg = RouterKey
 )
 
 // EthereumTxMsg encapsulates an Ethereum transaction as an SDK message.
@@ -128,11 +132,12 @@ func (msg EthereumTxMsg) Type() string { return TypeEthereumTxMsg }
 // checks of a Transaction. If returns an sdk.Error if validation fails.
 func (msg EthereumTxMsg) ValidateBasic() sdk.Error {
 	if msg.Data.Price.Sign() != 1 {
-		return types.ErrInvalidValue("price must be positive")
+		return types.ErrInvalidValue(fmt.Sprintf("Price must be positive: %x", msg.Data.Price))
 	}
 
-	if msg.Data.Amount.Sign() != 1 {
-		return types.ErrInvalidValue("amount must be positive")
+	// Amount can be 0
+	if msg.Data.Amount.Sign() == -1 {
+		return types.ErrInvalidValue(fmt.Sprintf("amount must be positive: %x", msg.Data.Amount))
 	}
 
 	return nil
@@ -294,6 +299,24 @@ func (msg EthereumTxMsg) Fee() *big.Int {
 	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
 }
 
+// ChainID returns which chain id this transaction was signed for (if at all)
+func (msg *EthereumTxMsg) ChainID() *big.Int {
+	return deriveChainID(msg.Data.V)
+}
+
+// deriveChainID derives the chain id from the given v parameter
+func deriveChainID(v *big.Int) *big.Int {
+	if v.BitLen() <= 64 {
+		v := v.Uint64()
+		if v == 27 || v == 28 {
+			return new(big.Int)
+		}
+		return new(big.Int).SetUint64((v - 35) / 2)
+	}
+	v = new(big.Int).Sub(v, big.NewInt(35))
+	return v.Div(v, big.NewInt(2))
+}
+
 // ----------------------------------------------------------------------------
 // Auxiliary
 
@@ -353,4 +376,61 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+// GenerateFromArgs populates tx message with args (used in RPC API)
+func GenerateFromArgs(args args.SendTxArgs, ctx context.CLIContext) (msg *EthereumTxMsg, err error) {
+	var nonce uint64
+
+	var gasLimit uint64
+
+	amount := (*big.Int)(args.Value)
+
+	gasPrice := (*big.Int)(args.GasPrice)
+
+	if args.GasPrice == nil {
+		// Set default gas price
+		// TODO: Change to min gas price from context once available through server/daemon
+		gasPrice = big.NewInt(20)
+	}
+
+	if args.Nonce == nil {
+		// Get nonce (sequence) from account
+		from := sdk.AccAddress(args.From.Bytes())
+		_, nonce, err = authtypes.NewAccountRetriever(ctx).GetAccountNumberSequence(from)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		nonce = (uint64)(*args.Nonce)
+	}
+
+	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
+		return nil, fmt.Errorf(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+	}
+
+	// Sets input to either Input or Data, if both are set and not equal error above returns
+	var input []byte
+	if args.Input != nil {
+		input = *args.Input
+	} else if args.Data != nil {
+		input = *args.Data
+	}
+
+	if args.To == nil {
+		// Contract creation
+		if len(input) == 0 {
+			return nil, fmt.Errorf("contract creation without any data provided")
+		}
+	}
+
+	if args.Gas == nil {
+		// Estimate the gas usage if necessary.
+		// TODO: Set gas based on estimate when simulating txs are setup
+		gasLimit = 22000
+	} else {
+		gasLimit = (uint64)(*args.Gas)
+	}
+
+	return newEthereumTxMsg(nonce, args.To, amount, gasLimit, gasPrice, input), nil
 }
