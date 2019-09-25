@@ -8,6 +8,7 @@ import (
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/cosmos/ethermint/rpc/args"
+	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 
@@ -105,10 +106,9 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 		return hexutil.Uint64(0), err
 	}
 
-	var qRes uint64
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &qRes)
-
-	return hexutil.Uint64(qRes), nil
+	var out types.QueryResBlockNumber
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return hexutil.Uint64(out.Number), nil
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
@@ -121,8 +121,12 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 
 	var out *big.Int
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	val, err := utils.UnmarshalBigInt(out.Balance)
+	if err != nil {
+		return nil, err
+	}
 
-	return (*hexutil.Big)(out), nil
+	return (*hexutil.Big)(val), nil
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
@@ -135,7 +139,7 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 
 	var out []byte
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out, nil
+	return out.Value, nil
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -146,9 +150,9 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 		return nil, err
 	}
 
-	var out *hexutil.Uint64
-	e.cliCtx.Codec.MustUnmarshalJSON(res, out)
-	return out, nil
+	var out types.QueryResNonce
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return (*hexutil.Uint64)(&out.Nonce), nil
 }
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.

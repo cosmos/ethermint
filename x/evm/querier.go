@@ -3,7 +3,9 @@ package evm
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
+	"github.com/cosmos/ethermint/x/evm/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -54,9 +56,11 @@ func queryProtocolVersion(keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	addr := ethcmn.BytesToAddress([]byte(path[1]))
+	addr := ethcmn.HexToAddress(path[1])
 	balance := keeper.GetBalance(ctx, addr)
-	res, err := codec.MarshalJSONIndent(keeper.cdc, balance)
+
+	bRes := types.QueryResBalance{Balance: utils.MarshalBigInt(balance)}
+	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON: ")
 	}
@@ -66,10 +70,8 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 
 func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	num := ctx.BlockHeight()
-	hexUint := hexutil.Uint64(num)
-
-	res, err := codec.MarshalJSONIndent(keeper.cdc, hexUint)
-
+	bnRes := types.QueryResBlockNumber{Number: num}
+	res, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())
 	}
@@ -78,8 +80,8 @@ func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	addr := ethcmn.BytesToAddress([]byte(path[1]))
-	key := ethcmn.BytesToHash([]byte(path[2]))
+	addr := ethcmn.HexToAddress(path[1])
+	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetState(ctx, addr, key)
 	bRes := hexutil.Bytes(val.Bytes())
 	res, err := codec.MarshalJSONIndent(keeper.cdc, &bRes)
@@ -90,7 +92,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 }
 
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	addr := ethcmn.BytesToAddress([]byte(path[1]))
+	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
 	res, err := codec.MarshalJSONIndent(keeper.cdc, code)
 	if err != nil {
@@ -101,7 +103,7 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error
 }
 
 func queryNonce(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	addr := ethcmn.BytesToAddress([]byte(path[1]))
+	addr := ethcmn.HexToAddress(path[1])
 	nonce := keeper.GetNonce(ctx, addr)
 	nRes := hexutil.Uint64(nonce)
 	res, err := codec.MarshalJSONIndent(keeper.cdc, nRes)

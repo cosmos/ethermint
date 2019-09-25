@@ -33,7 +33,19 @@ type Request struct {
 	Version string   `json:"jsonrpc"`
 	Method  string   `json:"method"`
 	Params  []string `json:"params"`
-	Id      int      `json:"id"`
+	ID      int      `json:"id"`
+}
+
+type RPCError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+type Response struct {
+	Error  *RPCError       `json:"error"`
+	ID     int             `json:"id"`
+	Result json.RawMessage `json:"result,omitempty"`
 }
 
 type RPCError struct {
@@ -53,7 +65,7 @@ func createRequest(method string, params []string) Request {
 		Version: "2.0",
 		Method:  method,
 		Params:  params,
-		Id:      1,
+		ID:      1,
 	}
 }
 
