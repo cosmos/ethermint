@@ -53,12 +53,7 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
 // outlining the state of the sync if it is.
 func (e *PublicEthAPI) Syncing() (interface{}, error) {
-	node, err := e.cliCtx.GetNode()
-	if err != nil {
-		return false, err
-	}
-
-	status, err := node.Status()
+	status, err := e.cliCtx.Client.Status()
 	if err != nil {
 		return false, err
 	}
@@ -68,11 +63,11 @@ func (e *PublicEthAPI) Syncing() (interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		// "startingBlock": hexutil.Uint64(progress.StartingBlock),
+		// "startingBlock": nil, // NA
 		"currentBlock": hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
-		// "highestBlock":  hexutil.Uint64(progress.HighestBlock),
-		// "pulledStates":  hexutil.Uint64(progress.PulledStates),
-		// "knownStates":   hexutil.Uint64(progress.KnownStates),
+		// "highestBlock":  nil, // NA
+		// "pulledStates":  nil, // NA
+		// "knownStates":   nil, // NA
 	}, nil
 }
 
