@@ -518,12 +518,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	}
 	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
 
-	// Change to conversion function when merged
-	var stdTx sdk.Tx
-	err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(tx.Tx, &stdTx)
-	ethTx, ok := stdTx.(*types.EthereumTxMsg)
-	if !ok || err != nil {
-		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
+	// Convert tx bytes to eth transaction
+	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
+	if err != nil {
+		return nil, err
 	}
 
 	from, _ := ethTx.VerifySig(ethTx.ChainID())
