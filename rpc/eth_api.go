@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -113,7 +112,7 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-func (e *PublicEthAPI) GetBalance(address common.Address, blockNum rpc.BlockNumber) (*hexutil.Big, error) {
+func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", types.ModuleName, address), nil)
 	if err != nil {
@@ -127,7 +126,7 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum rpc.BlockNumb
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
-func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum rpc.BlockNumber) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", types.ModuleName, address, key), nil)
 	if err != nil {
@@ -140,7 +139,7 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
-func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rpc.BlockNumber) (*hexutil.Uint64, error) {
+func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/nonce/%s", types.ModuleName, address), nil)
 	if err != nil {
@@ -158,7 +157,7 @@ func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) hexutil.
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
-func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpc.BlockNumber) (hexutil.Uint, error) {
+func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) (hexutil.Uint, error) {
 	node, err := e.cliCtx.GetNode()
 	if err != nil {
 		return 0, err
@@ -179,12 +178,12 @@ func (e *PublicEthAPI) GetUncleCountByBlockHash(hash common.Hash) hexutil.Uint {
 }
 
 // GetUncleCountByBlockNumber returns the number of uncles in the block idenfied by number. Always zero.
-func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum rpc.BlockNumber) hexutil.Uint {
+func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.Uint {
 	return 0
 }
 
 // GetCode returns the contract code at the given address and block number.
-func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumber) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/code/%s", types.ModuleName, address), nil)
 	if err != nil {
@@ -304,12 +303,12 @@ type CallArgs struct {
 }
 
 // Call performs a raw contract call.
-func (e *PublicEthAPI) Call(args CallArgs, blockNum rpc.BlockNumber) hexutil.Bytes {
+func (e *PublicEthAPI) Call(args CallArgs, blockNum BlockNumber) hexutil.Bytes {
 	return nil
 }
 
 // EstimateGas estimates gas usage for the given smart contract call.
-func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNum rpc.BlockNumber) hexutil.Uint64 {
+func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNum BlockNumber) hexutil.Uint64 {
 	return 0
 }
 
@@ -319,9 +318,16 @@ func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) map[string]
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *PublicEthAPI) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
-	block, err := e.cliCtx.Client.Block(&value)
+
+	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
+	var blkNumPtr *int64
+	if value != 0 {
+		blkNumPtr = &value
+	}
+
+	block, err := e.cliCtx.Client.Block(blkNumPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -381,10 +387,8 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 	transactions := make([]interface{}, len(txs))
 	gasUsed := big.NewInt(0)
 	for i, tx := range txs {
-		var stdTx sdk.Tx
-		err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(tx, &stdTx)
-		ethTx, ok := stdTx.(*types.EthereumTxMsg)
-		if !ok || err != nil {
+		ethTx, err := bytesToEthTx(cliCtx, tx)
+		if err != nil {
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
@@ -410,6 +414,16 @@ type Transaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
+}
+
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.EthereumTxMsg, error) {
+	var stdTx sdk.Tx
+	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
+	ethTx, ok := stdTx.(*types.EthereumTxMsg)
+	if !ok || err != nil {
+		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
+	}
+	return ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -440,8 +454,26 @@ func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumb
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
-func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) *Transaction {
-	return nil
+func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
+	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
+	if err != nil {
+		// Return nil for transaction when not found
+		return nil, nil
+	}
+
+	// Can either cache or just leave this out if not necessary
+	block, err := e.cliCtx.Client.Block(&tx.Height)
+	if err != nil {
+		return nil, err
+	}
+	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
+
+	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return newRPCTransaction(ethTx, blockHash, uint64(tx.Height), uint64(tx.Index)), nil
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -450,7 +482,7 @@ func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx h
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNumber rpc.BlockNumber, idx hexutil.Uint) *Transaction {
+func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNumber BlockNumber, idx hexutil.Uint) *Transaction {
 	return nil
 }
 
