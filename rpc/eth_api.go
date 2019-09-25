@@ -462,7 +462,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, nil
 	}
 
-	// Can either cache or just leave this out if not necessary
+	// Query block for consensus hash
 	block, err := e.cliCtx.Client.Block(&tx.Height)
 	if err != nil {
 		return nil, err
@@ -495,7 +495,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"from":              from,
 		"to":                ethTx.To(),
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
-		"cumulativeGasUsed": hexutil.Uint64(0), // TODO: determine if necessary
+		"cumulativeGasUsed": nil, // ignore until needed
 		"contractAddress":   nil,
 		"logs":              nil, // TODO: Do with #55 (eth_getLogs output)
 		"logsBloom":         nil,
