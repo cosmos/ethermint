@@ -494,12 +494,9 @@ func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber,
 	if uint64(idx) >= uint64(len(txs)) {
 		return nil, nil
 	}
-	txBytes := txs[idx]
-	var tx sdk.Tx
-	err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
-	ethTx, ok := tx.(*types.EthereumTxMsg)
-	if !ok || err != nil {
-		return nil, fmt.Errorf("Invalid transaction type, must be an amino encoded Ethereum transaction")
+	ethTx, err := bytesToEthTx(e.cliCtx, txs[idx])
+	if err != nil {
+		return nil, err
 	}
 
 	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height), uint64(idx))
