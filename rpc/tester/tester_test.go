@@ -48,18 +48,6 @@ type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
 }
 
-type RPCError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-type Response struct {
-	Error  *RPCError       `json:"error"`
-	Id     int             `json:"id"`
-	Result json.RawMessage `json:"result,omitempty"`
-}
-
 func createRequest(method string, params []string) Request {
 	return Request{
 		Version: "2.0",

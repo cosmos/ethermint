@@ -46,8 +46,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 func queryProtocolVersion(keeper Keeper) ([]byte, sdk.Error) {
 	vers := version.ProtocolVersion
 
-	bigRes := hexutil.Uint(vers)
-	res, err := codec.MarshalJSONIndent(keeper.cdc, bigRes)
+	res, err := codec.MarshalJSONIndent(keeper.cdc, hexutil.Uint(vers))
 	if err != nil {
 		panic("could not marshal result to JSON")
 	}
@@ -62,7 +61,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	bRes := types.QueryResBalance{Balance: utils.MarshalBigInt(balance)}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
-		panic("could not marshal result to JSON: ")
+		panic("could not marshal result to JSON: " + err.Error())
 	}
 
 	return res, nil
@@ -83,8 +82,8 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	addr := ethcmn.HexToAddress(path[1])
 	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetState(ctx, addr, key)
-	bRes := hexutil.Bytes(val.Bytes())
-	res, err := codec.MarshalJSONIndent(keeper.cdc, &bRes)
+	bRes := types.QueryResStorage{Value: val.Bytes()}
+	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())
 	}
@@ -94,7 +93,8 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
-	res, err := codec.MarshalJSONIndent(keeper.cdc, code)
+	cRes := types.QueryResCode{Code: code}
+	res, err := codec.MarshalJSONIndent(keeper.cdc, cRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())
 	}
@@ -105,7 +105,7 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error
 func queryNonce(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.HexToAddress(path[1])
 	nonce := keeper.GetNonce(ctx, addr)
-	nRes := hexutil.Uint64(nonce)
+	nRes := types.QueryResNonce{Nonce: nonce}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, nRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())

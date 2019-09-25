@@ -119,7 +119,7 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 		return nil, err
 	}
 
-	var out *big.Int
+	var out types.QueryResBalance
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	val, err := utils.UnmarshalBigInt(out.Balance)
 	if err != nil {
@@ -137,7 +137,7 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 		return nil, err
 	}
 
-	var out []byte
+	var out types.QueryResStorage
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Value, nil
 }
@@ -194,9 +194,9 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 		return nil, err
 	}
 
-	var out []byte
+	var out types.QueryResCode
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out, nil
+	return out.Code, nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
