@@ -118,7 +118,7 @@ func queryNonce(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Erro
 }
 
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	blockHash := ethcmn.Hex2Bytes(path[1])
+	blockHash := ethcmn.FromHex(path[1])
 	blockNumber := keeper.GetBlockHashMapping(ctx, blockHash)
 
 	bRes := types.QueryResBlockNumber{Number: blockNumber}

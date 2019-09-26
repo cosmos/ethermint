@@ -81,6 +81,7 @@ func TestDBStorage(t *testing.T) {
 	ek.SetCode(ctx, address, []byte{0x1})
 
 	// Test block hash mapping functionality
+	ek.SetBlockHashMapping(ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68"), 7)
 	ek.SetBlockHashMapping(ctx, []byte{0x43, 0x32}, 8)
 
 	// Get those state transitions
@@ -89,6 +90,7 @@ func TestDBStorage(t *testing.T) {
 	require.Equal(t, ek.GetState(ctx, address, ethcmn.HexToHash("0x2")), ethcmn.HexToHash("0x3"))
 	require.Equal(t, ek.GetCode(ctx, address), []byte{0x1})
 
+	require.Equal(t, ek.GetBlockHashMapping(ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")), int64(7))
 	require.Equal(t, ek.GetBlockHashMapping(ctx, []byte{0x43, 0x32}), int64(8))
 
 	// commit stateDB
