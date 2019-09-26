@@ -374,7 +374,7 @@ func (e *PublicEthAPI) getEthBlockByNumber(value int64, fullTx bool) (map[string
 	if fullTx {
 		// Populate full transaction data
 		transactions, gasUsed = convertTransactionsToRPC(e.cliCtx, block.Block.Txs,
-			common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height))
+			common.BytesToHash(header.Hash()), uint64(header.Height))
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
 		// Return slice of transaction hashes
@@ -496,7 +496,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
+	blockHash := common.BytesToHash(block.BlockMeta.Header.Hash())
 
 	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
 	if err != nil {
@@ -529,7 +529,7 @@ func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber,
 		return nil, err
 	}
 
-	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.ConsensusHash.Bytes()), uint64(header.Height), uint64(idx))
+	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), uint64(header.Height), uint64(idx))
 	return transaction, nil
 }
 
@@ -546,7 +546,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.BlockMeta.Header.ConsensusHash)
+	blockHash := common.BytesToHash(block.BlockMeta.Header.Hash())
 
 	// Convert tx bytes to eth transaction
 	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
