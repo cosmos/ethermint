@@ -172,24 +172,33 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 }
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
-func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) hexutil.Uint {
-	return 0
+func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	if err != nil {
+		// Return nil if block does not exist
+		return nil
+	}
+
+	var out types.QueryResBlockNumber
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return e.getBlockTransactionCountByNumber(out.Number)
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
-func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) (hexutil.Uint, error) {
-	node, err := e.cliCtx.GetNode()
-	if err != nil {
-		return 0, err
-	}
-
+func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) *hexutil.Uint {
 	height := blockNum.Int64()
-	block, err := node.Block(&height)
+	return e.getBlockTransactionCountByNumber(height)
+}
+
+func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.Uint {
+	block, err := e.cliCtx.Client.Block(&number)
 	if err != nil {
-		return 0, err
+		// Return nil if block doesn't exist
+		return nil
 	}
 
-	return hexutil.Uint(block.Block.NumTxs), nil
+	n := hexutil.Uint(block.Block.NumTxs)
+	return &n
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
@@ -507,14 +516,25 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
-func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) *Transaction {
-	return nil
+func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	if err != nil {
+		return nil, err
+	}
+
+	var out types.QueryResBlockNumber
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return e.getTransactionByBlockNumberAndIndex(out.Number, idx)
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber, idx hexutil.Uint) (*Transaction, error) {
 	value := blockNum.Int64()
-	block, err := e.cliCtx.Client.Block(&value)
+	return e.getTransactionByBlockNumberAndIndex(value, idx)
+}
+
+func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hexutil.Uint) (*Transaction, error) {
+	block, err := e.cliCtx.Client.Block(&number)
 	if err != nil {
 		return nil, err
 	}
