@@ -53,7 +53,7 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
 	if bytes.Equal(bz, []byte{}) {
-		panic(fmt.Errorf("block with hash %s not found", ethcmn.Bytes2Hex(hash)))
+		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
 	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &height)
 	return
