@@ -14,7 +14,6 @@ import (
 
 // StateTransition defines data to transitionDB in evm
 type StateTransition struct {
-	// gp         *GasPool
 	Sender       common.Address
 	AccountNonce uint64
 	Price        *big.Int

@@ -68,7 +68,8 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	txHash := tm.Tx(txBytes).Hash()
 
 	// Prepare db for logs
-	keeper.csdb.Prepare(common.BytesToHash(txHash), common.Hash{}, 0) // change 0 to tx count
+	keeper.csdb.Prepare(common.BytesToHash(txHash), common.Hash{}, *keeper.txCount)
+	*keeper.txCount = *keeper.txCount + 1
 
 	return st.TransitionCSDB(ctx)
 }
@@ -101,7 +102,8 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Resu
 	}
 
 	// Prepare db for logs
-	keeper.csdb.Prepare(common.Hash{}, common.Hash{}, 0) // Cannot provide tx data to logs
+	keeper.csdb.Prepare(common.Hash{}, common.Hash{}, *keeper.txCount) // Cannot provide tx hash
+	*keeper.txCount = *keeper.txCount + 1
 
 	return st.TransitionCSDB(ctx)
 }

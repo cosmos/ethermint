@@ -23,6 +23,7 @@ type Keeper struct {
 	csdb     *types.CommitStateDB
 	cdc      *codec.Codec
 	blockKey sdk.StoreKey
+	txCount  *int
 }
 
 // NewKeeper generates new evm module keeper
@@ -32,6 +33,7 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey,
 		csdb:     types.NewCommitStateDB(sdk.Context{}, ak, storageKey, codeKey),
 		cdc:      cdc,
 		blockKey: blockKey,
+		txCount:  new(int),
 	}
 }
 
