@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -584,6 +585,9 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = hexutil.Uint(0)
 	}
 
+	// TODO: change hard coded indexing of bytes
+	bloomFilter := ethtypes.BytesToBloom(tx.TxResult.GetData()[20:])
+
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
 		"blockNumber":       hexutil.Uint64(tx.Height),
@@ -595,12 +599,13 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"cumulativeGasUsed": nil, // ignore until needed
 		"contractAddress":   nil,
 		"logs":              nil, // TODO: Do with #55 (eth_getLogs output)
-		"logsBloom":         nil,
+		"logsBloom":         bloomFilter,
 		"status":            status,
 	}
 
 	if common.BytesToAddress(tx.TxResult.GetData()) != (common.Address{}) {
-		fields["contractAddress"] = hexutil.Bytes(tx.TxResult.GetData())
+		// TODO: change hard coded indexing of first 20 bytes
+		fields["contractAddress"] = hexutil.Bytes(tx.TxResult.GetData()[:20])
 	}
 
 	return fields, nil

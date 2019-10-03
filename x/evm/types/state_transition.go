@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,6 +24,7 @@ type StateTransition struct {
 	Payload      []byte
 	Csdb         *CommitStateDB
 	ChainID      *big.Int
+	THash        *common.Hash
 }
 
 // TransitionCSDB performs an evm state transition from a transaction
@@ -74,7 +76,18 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) sdk.Result {
 
 	// TODO: Consume gas from sender
 
-	return sdk.Result{Data: addr.Bytes(), GasUsed: st.GasLimit - leftOverGas}
+	// Generate bloom filter to be saved in tx receipt data
+	var bloomFilter ethtypes.Bloom
+	if st.THash != nil {
+		logs := st.Csdb.GetLogs(*st.THash)
+		bl := ethtypes.LogsBloom(logs).Bytes()
+		bloomFilter = ethtypes.BytesToBloom(bl)
+	}
+
+	// TODO: coniditionally add either/ both of these to return data
+	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
+
+	return sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
 }
 
 func refundGas(
