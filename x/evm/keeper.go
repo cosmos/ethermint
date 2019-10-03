@@ -76,6 +76,30 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 }
 
 // ----------------------------------------------------------------------------
+// Block bloom bits mapping functions
+// May be removed when using only as module (only required by rpc api)
+// ----------------------------------------------------------------------------
+
+// SetBlockBloomMapping sets the mapping from block height to bloom bits
+func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom []byte, height uint64) {
+	store := ctx.KVStore(k.blockKey)
+	if !bytes.Equal(bloom, []byte{}) {
+		store.Set(k.cdc.MustMarshalBinaryLengthPrefixed(height), bloom)
+	}
+}
+
+// GetBlockBloomMapping gets bloombits from block height
+func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height uint64) []byte {
+	store := ctx.KVStore(k.blockKey)
+	bn := k.cdc.MustMarshalBinaryLengthPrefixed(height)
+	bloom := store.Get(bn)
+	if bytes.Equal(bloom, []byte{}) {
+		panic(fmt.Errorf("block with bloombits %s not found", bloom))
+	}
+	return bloom
+}
+
+// ----------------------------------------------------------------------------
 // Genesis
 // ----------------------------------------------------------------------------
 

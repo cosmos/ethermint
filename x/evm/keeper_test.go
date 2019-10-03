@@ -84,6 +84,9 @@ func TestDBStorage(t *testing.T) {
 	ek.SetBlockHashMapping(ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68"), 7)
 	ek.SetBlockHashMapping(ctx, []byte{0x43, 0x32}, 8)
 
+	// Test block height mapping functionality
+	ek.SetBlockBloomMapping(ctx, []byte{0x43, 0x32}, 4)
+
 	// Get those state transitions
 	require.Equal(t, ek.GetBalance(ctx, address).Cmp(big.NewInt(5)), 0)
 	require.Equal(t, ek.GetNonce(ctx, address), uint64(4))
@@ -92,6 +95,8 @@ func TestDBStorage(t *testing.T) {
 
 	require.Equal(t, ek.GetBlockHashMapping(ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")), int64(7))
 	require.Equal(t, ek.GetBlockHashMapping(ctx, []byte{0x43, 0x32}), int64(8))
+
+	require.Equal(t, ek.GetBlockBloomMapping(ctx, uint64(4)), []byte{0x43, 0x32})
 
 	// commit stateDB
 	_, err = ek.Commit(ctx, false)
