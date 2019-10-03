@@ -24,6 +24,7 @@ type Keeper struct {
 	cdc      *codec.Codec
 	blockKey sdk.StoreKey
 	txCount  *count
+	bloom    *big.Int
 }
 
 type count int
@@ -48,6 +49,7 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey,
 		cdc:      cdc,
 		blockKey: blockKey,
 		txCount:  new(count),
+		bloom:    big.NewInt(0),
 	}
 }
 
@@ -81,22 +83,23 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // ----------------------------------------------------------------------------
 
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom []byte, height uint64) {
+func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	if !bytes.Equal(bloom, []byte{}) {
-		store.Set(k.cdc.MustMarshalBinaryLengthPrefixed(height), bloom)
+	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
+	if !bytes.Equal(heightHash, []byte{}) {
+		store.Set(heightHash, bloom.Bytes())
 	}
 }
 
 // GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height uint64) []byte {
+func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bloom {
 	store := ctx.KVStore(k.blockKey)
-	bn := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	bloom := store.Get(bn)
-	if bytes.Equal(bloom, []byte{}) {
+	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
+	bloom := store.Get(heightHash)
+	if bytes.Equal(heightHash, []byte{}) {
 		panic(fmt.Errorf("block with bloombits %s not found", bloom))
 	}
-	return bloom
+	return ethtypes.BytesToBloom(bloom)
 }
 
 // ----------------------------------------------------------------------------

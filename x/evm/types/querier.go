@@ -68,3 +68,12 @@ type QueryTxLogs struct {
 func (q QueryTxLogs) String() string {
 	return string(fmt.Sprintf("%+v", q.Logs))
 }
+
+// QueryBloomFilter is response type for tx logs query
+type QueryBloomFilter struct {
+	Bloom ethtypes.Bloom `json:"bloom"`
+}
+
+func (q QueryBloomFilter) String() string {
+	return string(q.Bloom.Bytes())
+}

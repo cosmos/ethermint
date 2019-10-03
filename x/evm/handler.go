@@ -72,7 +72,9 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	keeper.csdb.Prepare(ethHash, common.Hash{}, keeper.txCount.get())
 	keeper.txCount.increment()
 
-	return st.TransitionCSDB(ctx)
+	res, bloom := st.TransitionCSDB(ctx)
+	keeper.bloom.Or(keeper.bloom, bloom)
+	return res
 }
 
 func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Result {
@@ -106,5 +108,6 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Resu
 	keeper.csdb.Prepare(common.Hash{}, common.Hash{}, keeper.txCount.get()) // Cannot provide tx hash
 	keeper.txCount.increment()
 
-	return st.TransitionCSDB(ctx)
+	res, _ := st.TransitionCSDB(ctx)
+	return res
 }

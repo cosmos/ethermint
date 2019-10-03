@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"strconv"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
@@ -394,12 +395,20 @@ func (e *PublicEthAPI) getEthBlockByNumber(value int64, fullTx bool) (map[string
 		}
 	}
 
-	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions), nil
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
+	if err != nil {
+		return nil, err
+	}
+
+	var out types.QueryBloomFilter
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
 }
 
 func formatBlock(
 	header tmtypes.Header, size int, gasLimit int64,
-	gasUsed *big.Int, transactions []interface{},
+	gasUsed *big.Int, transactions []interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
@@ -407,7 +416,7 @@ func formatBlock(
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
 		"nonce":            nil, // PoW specific
 		"sha3Uncles":       nil, // No uncles in Tendermint
-		"logsBloom":        "",  // TODO: Complete with #55
+		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
 		"miner":            hexutil.Bytes(header.ValidatorsHash),
