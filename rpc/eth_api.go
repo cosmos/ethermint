@@ -621,9 +621,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"status":            status,
 	}
 
-	if common.BytesToAddress(tx.TxResult.GetData()) != (common.Address{}) {
+	contractAddress := common.BytesToAddress(tx.TxResult.GetData()[:20])
+	if contractAddress != (common.Address{}) {
 		// TODO: change hard coded indexing of first 20 bytes
-		fields["contractAddress"] = hexutil.Bytes(tx.TxResult.GetData()[:20])
+		fields["contractAddress"] = contractAddress
 	}
 
 	return fields, nil
