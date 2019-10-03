@@ -585,6 +585,15 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = hexutil.Uint(0)
 	}
 
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, hash.Hex()))
+	if err != nil {
+		// TODO: remove print/ return if not needed
+		fmt.Println(err)
+	}
+
+	var logs types.QueryTxLogs
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
+
 	// TODO: change hard coded indexing of bytes
 	bloomFilter := ethtypes.BytesToBloom(tx.TxResult.GetData()[20:])
 
@@ -598,7 +607,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
 		"cumulativeGasUsed": nil, // ignore until needed
 		"contractAddress":   nil,
-		"logs":              nil, // TODO: Do with #55 (eth_getLogs output)
+		"logs":              logs.Logs,
 		"logsBloom":         bloomFilter,
 		"status":            status,
 	}
