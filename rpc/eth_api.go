@@ -596,8 +596,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, hash.Hex()))
 	if err != nil {
-		// TODO: remove print/ return if not needed
-		fmt.Println(err)
+		return nil, err
 	}
 
 	var logs types.QueryTxLogs
