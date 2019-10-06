@@ -24,7 +24,7 @@ const (
 	QueryHashToHeight    = "hashToHeight"
 	QueryTxLogs          = "txLogs"
 	QueryLogsBloom       = "logsBloom"
-	QueryLogs       	 = "logs"
+	QueryLogs            = "logs"
 )
 
 // NewQuerier is the module level router for state queries

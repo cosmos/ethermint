@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	"math/big"
-
 
 	eth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,37 +21,14 @@ type FilterCriteria eth.FilterQuery
 
 // PublicFilterAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicFilterAPI struct {
-	cliCtx  context.CLIContext
+	cliCtx context.CLIContext
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicFilterAPI(cliCtx context.CLIContext) *PublicFilterAPI {
 	return &PublicFilterAPI{
-		cliCtx:  cliCtx,
+		cliCtx: cliCtx,
 	}
-}
-
-// Request
-//curl -X POST --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":[{"topics":["0x0000000000000000000000000000000000000000000000000000000012341234"]}],"id":73}'
-func (e *PublicFilterAPI) NewFilter(criteria FilterCriteria) (int, error) {
-	return 1, nil
-}
-
-// Request
-//curl -X POST --data '{"jsonrpc":"2.0","method":"eth_newBlockFilter","params":[],"id":73}'
-func (e *PublicFilterAPI) NewBlockFilter(criteria FilterCriteria) (int, error) {
-	return 1, nil
-}
-
-// Request
-//curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterChanges","params":["0x16"],"id":73}'
-func (e *PublicFilterAPI) GetFilterChanges(id int) ([]*ethtypes.Log, error) {
-	return []*ethtypes.Log{}, nil
-}
-
-// see above
-func (e *PublicFilterAPI) GetFilterLogs(criteria FilterCriteria) ([]*ethtypes.Log, error) {
-	return []*ethtypes.Log{}, nil
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
@@ -61,7 +38,7 @@ func (e *PublicFilterAPI) GetLogs(criteria FilterCriteria) ([]*ethtypes.Log, err
 	var filter *Filter
 	if criteria.BlockHash != nil {
 		/*
-		Still need to add blockhash in prepare function for log entry
+			Still need to add blockhash in prepare function for log entry
 		*/
 		filter = NewBlockFilter(*criteria.BlockHash, criteria.Addresses, criteria.Topics)
 		results := e.getLogs()
@@ -86,7 +63,7 @@ func (e *PublicFilterAPI) GetLogs(criteria FilterCriteria) ([]*ethtypes.Log, err
 	}
 }
 
-func(e *PublicFilterAPI) getLogs() (results []*ethtypes.Log) {
+func (e *PublicFilterAPI) getLogs() (results []*ethtypes.Log) {
 	l, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/logs", types.ModuleName), nil)
 	if err != nil {
 		fmt.Printf("error from querier %e ", err)

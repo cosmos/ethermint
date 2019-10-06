@@ -1,10 +1,10 @@
 package rpc
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	f "github.com/ethereum/go-ethereum/eth/filters"
-	"math/big"
 )
 
 /*
@@ -14,12 +14,10 @@ import (
 
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
-	backend f.Backend
 	addresses []common.Address
 	topics    [][]common.Hash
 
 	block      common.Hash // Block hash if filtering a single block
-	begin, end int64       // Range interval if filtering multiple blocks
 }
 
 // NewBlockFilter creates a new filter which directly inspects the contents of
