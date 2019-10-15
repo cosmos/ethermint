@@ -77,3 +77,10 @@ type QueryBloomFilter struct {
 func (q QueryBloomFilter) String() string {
 	return string(q.Bloom.Bytes())
 }
+
+// QueryAccount is response type for querying Ethereum state objects
+type QueryAccount struct {
+	Balance  string `json:"balance"`
+	CodeHash []byte `json:"codeHash"`
+	Nonce    uint64 `json:"nonce"`
+}
