@@ -165,7 +165,7 @@ func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Err
 	txHash := ethcmn.HexToHash(path[1])
 	logs := keeper.GetLogs(ctx, txHash)
 
-	bRes := types.QueryTxLogs{Logs: logs}
+	bRes := types.QueryETHLogs{Logs: logs}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())
@@ -177,7 +177,7 @@ func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Err
 func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	logs := keeper.Logs(ctx)
 
-	lRes := types.QueryTxLogs{Logs: logs}
+	lRes := types.QueryETHLogs{Logs: logs}
 	l, err := codec.MarshalJSONIndent(keeper.cdc, lRes)
 	if err != nil {
 		panic("could not marshal result to JSON: " + err.Error())

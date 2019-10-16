@@ -600,7 +600,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, err
 	}
 
-	var logs types.QueryTxLogs
+	var logs types.QueryETHLogs
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	// TODO: change hard coded indexing of bytes
