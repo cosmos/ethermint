@@ -48,7 +48,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	}
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
-	evmGasMeter := sdk.NewGasMeter(gasLimit)
+	evmGasMeter := sdk.NewInfiniteGasMeter()
 
 	vmenv := vm.NewEVM(
 		context, st.Csdb.WithContext(ctx.WithGasMeter(evmGasMeter)),
