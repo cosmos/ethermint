@@ -84,6 +84,8 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
+	fmt.Println("height::: ", height)
+	fmt.Println("bloom::: ", bloom)
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
 	if !bytes.Equal(heightHash, []byte{}) {
