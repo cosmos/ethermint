@@ -244,9 +244,6 @@ func ethAnteHandler(
 		if !res.IsOK() {
 			return ctx, res, true
 		}
-
-		// Reload account after fees deducted
-		senderAcc = ak.GetAccount(ctx, senderAcc.GetAddress())
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
