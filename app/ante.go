@@ -211,6 +211,11 @@ func ethAnteHandler(
 		if res, senderAddr = validateSignature(ctx, ethTxMsg); !res.IsOK() {
 			return ctx, res, true
 		}
+
+		// Explicit nonce check is also needed in case of multiple txs with same nonce not being handled
+		if res := checkNonce(ctx, ak, ethTxMsg, senderAddr); !res.IsOK() {
+			return ctx, res, true
+		}
 	}
 
 	// Recover and catch out of gas error
@@ -338,12 +343,9 @@ func validateAccount(
 			)).Result()
 	}
 
-	// Validate the transaction nonce is valid (equivalent to the sender account’s
-	// current nonce).
-	seq := acc.GetSequence()
-	if ethTxMsg.Data.AccountNonce != seq {
-		return sdk.ErrInvalidSequence(
-			fmt.Sprintf("nonce too low; got %d, expected %d", ethTxMsg.Data.AccountNonce, seq)).Result()
+	// Validate nonce is correct
+	if res := checkNonce(ctx, ak, ethTxMsg, signer); !res.IsOK() {
+		return res
 	}
 
 	// validate sender has enough funds
@@ -352,6 +354,21 @@ func validateAccount(
 		return sdk.ErrInsufficientFunds(
 			fmt.Sprintf("insufficient funds: %s < %s", balance, ethTxMsg.Cost()),
 		).Result()
+	}
+
+	return sdk.Result{}
+}
+
+func checkNonce(
+	ctx sdk.Context, ak auth.AccountKeeper, ethTxMsg *evmtypes.EthereumTxMsg, signer sdk.AccAddress,
+) sdk.Result {
+	acc := ak.GetAccount(ctx, signer)
+	// Validate the transaction nonce is valid (equivalent to the sender account’s
+	// current nonce).
+	seq := acc.GetSequence()
+	if ethTxMsg.Data.AccountNonce != seq {
+		return sdk.ErrInvalidSequence(
+			fmt.Sprintf("invalid nonce; got %d, expected %d", ethTxMsg.Data.AccountNonce, seq)).Result()
 	}
 
 	return sdk.Result{}
