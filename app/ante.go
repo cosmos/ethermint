@@ -287,12 +287,6 @@ func validateEthTxCheckTx(
 		return nil, res
 	}
 
-	acc := ak.GetAccount(ctx, signer)
-	err := acc.SetSequence(acc.GetSequence() + 1)
-	if err != nil {
-		return nil, sdk.ErrInternal("failed to set account nonce").Result()
-	}
-
 	return sdk.AccAddress(signer.Bytes()), sdk.Result{}
 }
 
