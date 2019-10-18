@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
@@ -103,16 +102,18 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 	if f.block != (common.Hash{}) {
 		bn, err := f.backend.GetBlockNumberFromHash(ctx, f.block)
 		if err != nil {
-			fmt.Println("error with getBlockNumberFromHash", "err", err)
+			 return nil, err
 		}
 		bl, err := ctx.Client.Block(&bn)
 		if err != nil {
-			fmt.Println("error with client block", "err", err)
+			return nil, err
 		}
 
 		// getBloom from block height
 		bloom, err := f.backend.GetBloom(ctx, bl)
-
+		if err != nil {
+			return nil, err
+		}
 		return f.blockLogs(ctx, bl, bloom, f.block)
 	}
 	// Figure out the limits of the filter range
@@ -186,12 +187,9 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 			num := int64(number)
 			bl, err := cliCtx.Client.Block(&num)
 			if err != nil {
-				fmt.Println("err retrieving block result", err)
+				return nil, err
 			}
-			header := &bl.BlockMeta.Header
-			if header == nil || err != nil {
-				return logs, err
-			}
+
 			found, err := f.checkMatches(cliCtx, bl, f.block)
 			if err != nil {
 				return logs, err
@@ -213,13 +211,13 @@ func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes
 		num := rpc.BlockNumber(f.begin).Int64()
 		bl, err := ctx.Client.Block(&num)
 		if err != nil {
-			fmt.Println("err retrieving block result", err)
+			return nil, err
 		}
-		header := &bl.BlockMeta.Header
-		if header == nil || err != nil {
+		
+		bloom, err := f.backend.GetBloom(ctx, bl)
+		if err != nil {
 			return logs, err
 		}
-		bloom, err := f.backend.GetBloom(ctx, bl)
 		found, err := f.blockLogs(ctx, bl, bloom, f.block)
 		if err != nil {
 			return logs, err

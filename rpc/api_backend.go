@@ -134,7 +134,7 @@ func (e *EmintAPIBackend) GetTransactionReceipt(cliCtx context2.CLIContext, hash
 		return nil, err
 	}
 
-	var logs types.QueryTxLogs
+	var logs types.QueryETHLogs
 	cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	// TODO: change hard coded indexing of bytes
