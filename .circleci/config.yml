@@ -10,12 +10,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - go-mod-v0-{{ checksum "go.sum" }}
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Verify Dependencies and compile binaries for daemon and cli
           command: make verify build
       - save_cache:
-          key: go-mod-v0-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 
@@ -29,7 +29,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - go-mod-v0-{{ checksum "go.sum" }}
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Get tools
           command: make tools
@@ -37,7 +37,7 @@ jobs:
           name: Run linter
           command: make test-lint
       - save_cache:
-          key: go-mod-v0-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 
@@ -51,12 +51,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - go-mod-v0-{{ checksum "go.sum" }}
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Run all tests
           command: make test-unit test-import
       - save_cache:
-          key: go-mod-v0-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 
