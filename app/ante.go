@@ -40,7 +40,7 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 			return sdkAnteHandler(ctx, ak, sk, castTx, sim)
 
 		case *evmtypes.EthereumTxMsg:
-			return ethAnteHandler(ctx, castTx, ak, sk, sim)
+			return ethAnteHandler(ctx, ak, sk, castTx, sim)
 
 		default:
 			return ctx, sdk.ErrInternal(fmt.Sprintf("transaction type invalid: %T", tx)).Result(), true
@@ -191,8 +191,8 @@ func consumeSigGas(meter sdk.GasMeter, pubkey tmcrypto.PubKey) {
 // perform the same series of checks. The distinction is made in CheckTx to
 // prevent spam and DoS attacks.
 func ethAnteHandler(
-	ctx sdk.Context, ethTxMsg *evmtypes.EthereumTxMsg, ak auth.AccountKeeper,
-	sk types.SupplyKeeper, sim bool,
+	ctx sdk.Context, ak auth.AccountKeeper, sk types.SupplyKeeper,
+	ethTxMsg *evmtypes.EthereumTxMsg, sim bool,
 ) (newCtx sdk.Context, res sdk.Result, abort bool) {
 
 	var senderAddr sdk.AccAddress
@@ -237,8 +237,11 @@ func ethAnteHandler(
 
 	// Charge sender for gas up to limit
 	if ethTxMsg.Data.GasLimit != 0 {
+		// Cost calculates the fees paid to validators based on gas limit and price
+		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
+
 		res = auth.DeductFees(sk, ctx, senderAcc, sdk.Coins{
-			sdk.NewInt64Coin(emint.DenomDefault, int64(ethTxMsg.Data.GasLimit)),
+			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
 		})
 
 		if !res.IsOK() {
