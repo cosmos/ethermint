@@ -203,12 +203,12 @@ func ethAnteHandler(
 	if ctx.IsCheckTx() {
 		// Only perform pre-message (Ethereum transaction) execution validation
 		// during CheckTx. Otherwise, during DeliverTx the EVM will handle them.
-		if res, senderAddr = validateEthTxCheckTx(ctx, ak, ethTxMsg); !res.IsOK() {
+		if senderAddr, res = validateEthTxCheckTx(ctx, ak, ethTxMsg); !res.IsOK() {
 			return ctx, res, true
 		}
 	} else {
 		// This is still currently needed to retrieve the sender address
-		if res, senderAddr = validateSignature(ctx, ethTxMsg); !res.IsOK() {
+		if senderAddr, res = validateSignature(ctx, ethTxMsg); !res.IsOK() {
 			return ctx, res, true
 		}
 
@@ -265,46 +265,52 @@ func ethAnteHandler(
 
 func validateEthTxCheckTx(
 	ctx sdk.Context, ak auth.AccountKeeper, ethTxMsg *evmtypes.EthereumTxMsg,
-) (sdk.Result, sdk.AccAddress) {
+) (sdk.AccAddress, sdk.Result) {
 	// Validate sufficient fees have been provided that meet a minimum threshold
 	// defined by the proposer (for mempool purposes during CheckTx).
 	if res := ensureSufficientMempoolFees(ctx, ethTxMsg); !res.IsOK() {
-		return res, nil
+		return nil, res
 	}
 
 	// validate enough intrinsic gas
 	if res := validateIntrinsicGas(ethTxMsg); !res.IsOK() {
-		return res, nil
+		return nil, res
 	}
 
-	res, signer := validateSignature(ctx, ethTxMsg)
+	signer, res := validateSignature(ctx, ethTxMsg)
 	if !res.IsOK() {
-		return res, nil
+		return nil, res
 	}
 
 	// validate account (nonce and balance checks)
 	if res := validateAccount(ctx, ak, ethTxMsg, signer); !res.IsOK() {
-		return res, nil
+		return nil, res
 	}
 
-	return sdk.Result{}, sdk.AccAddress(signer.Bytes())
+	acc := ak.GetAccount(ctx, signer)
+	err := acc.SetSequence(acc.GetSequence() + 1)
+	if err != nil {
+		return nil, sdk.ErrInternal("failed to set account nonce").Result()
+	}
+
+	return sdk.AccAddress(signer.Bytes()), sdk.Result{}
 }
 
 // Validates signature and returns sender address
-func validateSignature(ctx sdk.Context, ethTxMsg *evmtypes.EthereumTxMsg) (sdk.Result, sdk.AccAddress) {
+func validateSignature(ctx sdk.Context, ethTxMsg *evmtypes.EthereumTxMsg) (sdk.AccAddress, sdk.Result) {
 	// parse the chainID from a string to a base-10 integer
 	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result(), nil
+		return nil, emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
 	}
 
 	// validate sender/signature
 	signer, err := ethTxMsg.VerifySig(chainID)
 	if err != nil {
-		return sdk.ErrUnauthorized(fmt.Sprintf("signature verification failed: %s", err)).Result(), nil
+		return nil, sdk.ErrUnauthorized(fmt.Sprintf("signature verification failed: %s", err)).Result()
 	}
 
-	return sdk.Result{}, sdk.AccAddress(signer.Bytes())
+	return sdk.AccAddress(signer.Bytes()), sdk.Result{}
 }
 
 // validateIntrinsicGas validates that the Ethereum tx message has enough to
