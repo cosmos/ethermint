@@ -16,7 +16,6 @@ import (
 type EmintAPIBackend struct{}
 
 //func (b *EmintAPIBackend) BloomStatus() (uint64, uint64) {
-//	fmt.Println("bloomstatus")
 //	sections, _, _ := b.bloomIndexer.Sections()
 //	fmt.Println("indexer__+_+)+")
 //	return params.BloomBitsBlocks, sections
@@ -56,10 +55,24 @@ func (e *EmintAPIBackend) GetBlockNumberFromHash(cliCtx context2.CLIContext, bha
 	return out.Number, nil
 }
 
+// GetBlockHashFromHeight returns block hash from provided block height
+func (e *EmintAPIBackend) GetBlockHashFromHeight(cliCtx context2.CLIContext, height int64) (common.Hash, error) {
+	res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s/%v", types.ModuleName, evm.QueryHeightToHash, height))
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	var out types.QueryResBlockHash
+	cliCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	return common.BytesToHash(out.Hash), nil
+}
+
 // GetBloom returns bloomFilter from provided block
 func (e *EmintAPIBackend) GetBloom(cliCtx context2.CLIContext, block *core_types.ResultBlock) (ethtypes.Bloom, error) {
 	res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
 	if err != nil {
+		fmt.Println("does this hit?")
 		return ethtypes.Bloom{}, err
 	}
 
@@ -165,40 +178,45 @@ func (e *EmintAPIBackend) GetTransactionReceipt(cliCtx context2.CLIContext, hash
 }
 
 // GetBlockLogs creates a slice of logs matching the given criteria.
-func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes.Log, bhash common.Hash, blockNumber int64) []*ethtypes.Log {
+func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes.Log, bhash common.Hash, blockNumber int64) ([]*ethtypes.Log, error) {
 	var ret []*ethtypes.Log
 	var bn int64
+	var blockHash common.Hash
 	var err error
 
 	if bhash != (common.Hash{}) {
-		bn, err = e.GetBlockNumberFromHash(ctx, bhash)
+		blockHash = bhash
+		bn, err = e.GetBlockNumberFromHash(ctx, blockHash)
 		if err != nil {
-			fmt.Println("err retrieving block number from hash", err)
+			return nil, err
 		}
 	} else {
 		bn = blockNumber
+		blockHash, err = e.GetBlockHashFromHeight(ctx, bn)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	for _, lg := range logs {
 		if bn > 0 && uint64(bn) == lg.BlockNumber {
-			if bhash != (common.Hash{}) {
-				lg.BlockHash = bhash
-			}
+			lg.BlockHash = blockHash
 			ret = append(ret, lg)
 		}
 	}
 
-	return ret
+	return ret, nil
 }
 
 // GetLogs returns logs from committed state
 func (e *EmintAPIBackend) GetLogs(cliCtx context2.CLIContext) (results []*ethtypes.Log) {
+	var res types.QueryETHLogs
 	l, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/logs", types.ModuleName), nil)
 	if err != nil {
 		fmt.Printf("error from querier %e ", err)
 	}
-
-	if err := json.Unmarshal(l, &results); err != nil {
+	if err := json.Unmarshal(l, &res); err != nil {
 		panic(err)
 	}
-	return results
+	return res.Logs
 }

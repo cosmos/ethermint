@@ -29,9 +29,6 @@ func (e *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.
 	var filter *Filter
 
 	if criteria.BlockHash != nil {
-		/*
-			Still need to add blockhash in prepare function for log entry
-		*/
 		filter = NewBlockFilter(e.backend, *criteria.BlockHash, criteria.Addresses, criteria.Topics)
 	} else {
 		// Convert the RPC block numbers into internal representations

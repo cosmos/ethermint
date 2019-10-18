@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
@@ -25,7 +26,7 @@ type Backend interface {
 	GetBloom(cliCtx context2.CLIContext, block *core_types.ResultBlock) (ethtypes.Bloom, error)
 	GetReceipts(cliCtx context2.CLIContext, block *core_types.ResultBlock) []Receipt
 	GetTransactionReceipt(cliCtx context2.CLIContext, hash common.Hash) (*Receipt, error)
-	GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes.Log, bhash common.Hash, blockNumber int64) []*ethtypes.Log
+	GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes.Log, bhash common.Hash, blockNumber int64) ([]*ethtypes.Log, error)
 	GetLogs(cliCtx context2.CLIContext) (results []*ethtypes.Log)
 	BloomStatus() (uint64, uint64)
 }
@@ -109,7 +110,7 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 			return nil, err
 		}
 
-		// getBloom from block height
+		// GetBloom from block height
 		bloom, err := f.backend.GetBloom(ctx, bl)
 		if err != nil {
 			return nil, err
@@ -118,16 +119,17 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 	}
 	// Figure out the limits of the filter range
 	bn, _ := f.backend.GetBlockNumber(ctx)
-	header, _ := ctx.Client.Block(&bn)
+	bl, _ := ctx.Client.Block(&bn)
 
-	head := header.Block.Height
+	head := bl.Block.Height
 	if f.begin == -1 {
 		f.begin = int64(head)
 	}
 	end := uint64(f.end)
 	if f.end == -1 {
-		end = uint64(head)
+		end = uint64(head) -1
 	}
+
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
 		logs []*ethtypes.Log
@@ -154,6 +156,7 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 //// indexedLogs returns the logs matching the filter criteria based on the bloom
 //// bits indexed available locally or via the network.
 func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, end uint64) ([]*ethtypes.Log, error) {
+	fmt.Println("indexedLogs ---> ")
 	// Create a matcher session and request servicing from the backend
 	matches := make(chan uint64, 64)
 
@@ -189,7 +192,6 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 			if err != nil {
 				return nil, err
 			}
-
 			found, err := f.checkMatches(cliCtx, bl, f.block)
 			if err != nil {
 				return logs, err
@@ -205,9 +207,10 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 //// indexedLogs returns the logs matching the filter criteria based on raw block
 //// iteration and bloom matching.
 func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes.Log, error) {
+	fmt.Println("unindexedLogs ---> ")
 	var logs []*ethtypes.Log
 
-	for ; f.begin <= int64(end); f.begin++ {
+	for ; f.begin <= int64(end) + 1; f.begin++ {
 		num := rpc.BlockNumber(f.begin).Int64()
 		bl, err := ctx.Client.Block(&num)
 		if err != nil {
@@ -218,12 +221,14 @@ func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes
 		if err != nil {
 			return logs, err
 		}
+		fmt.Println("BLOOM", bloom)
 		found, err := f.blockLogs(ctx, bl, bloom, f.block)
 		if err != nil {
 			return logs, err
 		}
 		logs = append(logs, found...)
 	}
+
 	return logs, nil
 }
 
@@ -244,7 +249,10 @@ func (f *Filter) blockLogs(ctx context2.CLIContext, block *core_types.ResultBloc
 func (f *Filter) checkMatches(ctx context2.CLIContext, block *core_types.ResultBlock, bhash common.Hash) (logs []*ethtypes.Log, err error) {
 	// Get the logs of the block
 	lg := f.backend.GetLogs(ctx)
-	logsList := f.backend.GetBlockLogs(ctx, lg, bhash, block.Block.Height)
+	logsList, err := f.backend.GetBlockLogs(ctx, lg, bhash, block.Block.Height)
+	if err != nil {
+		return nil, err
+	}
 	logs = filterLogs(logsList, nil, nil, f.addresses, f.topics)
 
 	if len(logs) > 0 {

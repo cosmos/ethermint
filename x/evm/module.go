@@ -111,6 +111,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, bl abci.RequestBeginBlock) {
 	bloom := ethtypes.BytesToBloom(am.keeper.bloom.Bytes())
 	am.keeper.SetBlockBloomMapping(ctx, bloom, bl.Header.GetHeight()-1)
 	am.keeper.SetBlockHashMapping(ctx, bl.Header.LastBlockId.GetHash(), bl.Header.GetHeight()-1)
+	am.keeper.SetBlockHeightMapping(ctx, bl.Header.LastBlockId.GetHash(), bl.Header.GetHeight()-1)
 	am.keeper.bloom = big.NewInt(0)
 	am.keeper.txCount.reset()
 }
