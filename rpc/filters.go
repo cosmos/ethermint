@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
@@ -156,7 +155,6 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 //// indexedLogs returns the logs matching the filter criteria based on the bloom
 //// bits indexed available locally or via the network.
 func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, end uint64) ([]*ethtypes.Log, error) {
-	fmt.Println("indexedLogs ---> ")
 	// Create a matcher session and request servicing from the backend
 	matches := make(chan uint64, 64)
 
@@ -207,7 +205,6 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 //// indexedLogs returns the logs matching the filter criteria based on raw block
 //// iteration and bloom matching.
 func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes.Log, error) {
-	fmt.Println("unindexedLogs ---> ")
 	var logs []*ethtypes.Log
 
 	for ; f.begin <= int64(end) + 1; f.begin++ {
@@ -221,7 +218,7 @@ func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes
 		if err != nil {
 			return logs, err
 		}
-		fmt.Println("BLOOM", bloom)
+
 		found, err := f.blockLogs(ctx, bl, bloom, f.block)
 		if err != nil {
 			return logs, err

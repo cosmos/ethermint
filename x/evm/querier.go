@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -167,7 +166,7 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 	if err != nil {
 		panic("could not unmarshall block number: " + err.Error())
 	}
-	fmt.Println("BLOCK NUM> ", num)
+
 	bloom := keeper.GetBlockBloomMapping(ctx, num)
 
 	bRes := types.QueryBloomFilter{Bloom: bloom}

@@ -72,7 +72,6 @@ func (e *EmintAPIBackend) GetBlockHashFromHeight(cliCtx context2.CLIContext, hei
 func (e *EmintAPIBackend) GetBloom(cliCtx context2.CLIContext, block *core_types.ResultBlock) (ethtypes.Bloom, error) {
 	res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
 	if err != nil {
-		fmt.Println("does this hit?")
 		return ethtypes.Bloom{}, err
 	}
 
