@@ -74,6 +74,15 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		_, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
 
+	// Generate bloom filter to be saved in tx receipt data
+	bloomInt := big.NewInt(0)
+	var bloomFilter ethtypes.Bloom
+	if st.THash != nil {
+		logs := st.Csdb.GetLogs(*st.THash)
+		bloomInt = ethtypes.LogsBloom(logs)
+		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
+	}
+
 	// handle errors
 	if vmerr != nil {
 		return emint.ErrVMExecution(vmerr.Error()).Result(), nil
@@ -86,15 +95,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-
-	// Generate bloom filter to be saved in tx receipt data
-	bloomInt := big.NewInt(0)
-	var bloomFilter ethtypes.Bloom
-	if st.THash != nil {
-		logs := st.Csdb.GetLogs(*st.THash)
-		bloomInt = ethtypes.LogsBloom(logs)
-		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
-	}
 
 	// TODO: coniditionally add either/ both of these to return data
 	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
