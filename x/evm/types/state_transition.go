@@ -83,9 +83,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
+	// TODO: coniditionally add either/ both of these to return data
+	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
+
 	// handle errors
 	if vmerr != nil {
-		return emint.ErrVMExecution(vmerr.Error()).Result(), nil
+		res := emint.ErrVMExecution(vmerr.Error()).Result()
+		res.Data = returnData
+		return res, nil
 	}
 
 	// Refunds would happen here, if intended in future
@@ -95,9 +100,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-
-	// TODO: coniditionally add either/ both of these to return data
-	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
 
 	return sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}, bloomInt
 }
