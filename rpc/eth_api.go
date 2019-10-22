@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -341,8 +340,19 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	result, err := e.doCall(args, blockNr, vm.Config{}, big.NewInt(emint.DefaultRPCGasLimit))
-	return (hexutil.Bytes)(result), err
+	result, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	if err != nil {
+		return []byte{}, err
+	}
+	var simResult sdk.Result
+	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(result, &simResult); err != nil {
+		return []byte{}, err
+	}
+	_, _, ret, err := types.DecodeReturnData(simResult.Data)
+	if err != nil {
+		return []byte{}, err
+	}
+	return (hexutil.Bytes)(ret), err
 }
 
 // account indicates the overriding fields of account during the execution of
@@ -360,7 +370,7 @@ type account struct {
 }
 
 // DoCall performs a simulated call operation through the evm
-func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, globalGasCap *big.Int) ([]byte, error) {
+func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int) ([]byte, error) {
 	// Set height for historical queries
 	ctx := e.cliCtx.WithHeight(blockNr.Int64())
 
@@ -430,19 +440,22 @@ func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.C
 		return []byte{}, err
 	}
 
-	var simResult sdk.Result
-	if err = ctx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
-		return nil, err
-	}
-
-	_, _, ret, err := types.DecodeReturnData(simResult.Data)
-
-	return ret, err
+	return res, nil
 }
 
 // EstimateGas estimates gas usage for the given smart contract call.
-func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNum BlockNumber) hexutil.Uint64 {
-	return 0
+func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNr rpc.BlockNumber) (hexutil.Uint64, error) {
+	result, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	if err != nil {
+		return 0, err
+	}
+
+	var simResult sdk.Result
+	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(result, &simResult); err != nil {
+		return 0, err
+	}
+
+	return hexutil.Uint64(simResult.GasUsed), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
