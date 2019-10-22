@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"bytes"
-	baseContext "context"
 	"fmt"
 	"log"
 	"math/big"
@@ -342,7 +341,7 @@ type CallArgs struct {
 }
 
 // Call performs a raw contract call.
-func (e *PublicEthAPI) Call(ctx baseContext.Context, args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
 	result, err := e.doCall(args, blockNr, vm.Config{}, big.NewInt(emint.DefaultRPCGasLimit))
 	return (hexutil.Bytes)(result), err
 }
