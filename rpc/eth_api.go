@@ -341,7 +341,7 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNum BlockNumber) hexutil.Bytes {
 
 // EstimateGas estimates gas usage for the given smart contract call.
 func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNum BlockNumber) hexutil.Uint64 {
-	return 0
+return 0
 }
 
 // GetBlockByHash returns the block identified by hash.

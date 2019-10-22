@@ -3,7 +3,9 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	"strconv"
+	"time"
 
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm"
@@ -13,19 +15,36 @@ import (
 	core_types "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-type EmintAPIBackend struct{}
+const (
+	// bloomFilterThreads is the number of goroutines used locally per filter to
+	// multiplex requests onto the global servicing goroutines.
+	bloomFilterThreads = 3
 
-//func (b *EmintAPIBackend) BloomStatus() (uint64, uint64) {
-//	sections, _, _ := b.bloomIndexer.Sections()
+	// bloomRetrievalBatch is the maximum number of bloom bit retrievals to service
+	// in a single batch.
+	bloomRetrievalBatch = 16
+
+	// bloomRetrievalWait is the maximum time to wait for enough bloom bit requests
+	// to accumulate request an entire batch (avoiding hysteresis).
+	bloomRetrievalWait = time.Duration(0)
+)
+
+type EmintAPIBackend struct{
+	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
+	//bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
+}
+
+//func (e *EmintAPIBackend) BloomStatus() (uint64, uint64) {
+//	sections, _, _ := e.bloomIndexer.Sections()
 //	fmt.Println("indexer__+_+)+")
 //	return params.BloomBitsBlocks, sections
 //}
 
-//func (b *EmintAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
-//	for i := 0; i < bloomFilterThreads; i++ {
-//		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.eth.bloomRequests)
-//	}
-//}
+func (e *EmintAPIBackend) ServiceFilter(session *bloombits.MatcherSession) {
+	for i := 0; i < bloomFilterThreads; i++ {
+		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, e.bloomRequests)
+	}
+}
 
 // BloomStatus stubbed
 func (e *EmintAPIBackend) BloomStatus() (uint64, uint64) { return 4096, 0 }
@@ -53,19 +72,6 @@ func (e *EmintAPIBackend) GetBlockNumberFromHash(cliCtx context2.CLIContext, bha
 	var out types.QueryResBlockNumber
 	cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Number, nil
-}
-
-// GetBlockHashFromHeight returns block hash from provided block height
-func (e *EmintAPIBackend) GetBlockHashFromHeight(cliCtx context2.CLIContext, height int64) (common.Hash, error) {
-	res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s/%v", types.ModuleName, evm.QueryHeightToHash, height))
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	var out types.QueryResBlockHash
-	cliCtx.Codec.MustUnmarshalJSON(res, &out)
-
-	return common.BytesToHash(out.Hash), nil
 }
 
 // GetBloom returns bloomFilter from provided block
@@ -191,10 +197,13 @@ func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes
 		}
 	} else {
 		bn = blockNumber
-		blockHash, err = e.GetBlockHashFromHeight(ctx, bn)
+		b, err := ctx.Client.Block(&blockNumber)
 		if err != nil {
 			return nil, err
 		}
+		hash := b.BlockMeta.Header.Hash()
+		bhash := "0x" + common.Bytes2Hex(hash)
+		blockHash = common.HexToHash(bhash)
 	}
 
 	for _, lg := range logs {

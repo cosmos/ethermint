@@ -22,7 +22,6 @@ const (
 	QueryCode            = "code"
 	QueryNonce           = "nonce"
 	QueryHashToHeight    = "hashToHeight"
-	QueryHeightToHash    = "HeightToHash"
 	QueryTxLogs          = "txLogs"
 	QueryLogsBloom       = "logsBloom"
 	QueryLogs            = "logs"
@@ -47,8 +46,6 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryNonce(ctx, path, keeper)
 		case QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
-		case QueryHeightToHash:
-			return queryHeightToHash(ctx, path, keeper)
 		case QueryTxLogs:
 			return queryTxLogs(ctx, path, keeper)
 		case QueryLogsBloom:
@@ -144,20 +141,6 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, s
 		panic("could not marshal result to JSON: " + err.Error())
 	}
 
-	return res, nil
-}
-
-func queryHeightToHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
-	bn, err := strconv.ParseInt(path[1], 10, 64)
-	if err != nil {
-		panic("could not parse integer: " + err.Error())
-	}
-	blockHash := keeper.GetBlockHeightMapping(ctx, bn)
-	bRes := types.QueryResBlockHash{Hash: blockHash}
-	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)
-	if err != nil {
-		panic("could not marshal result to JSON: " + err.Error())
-	}
 	return res, nil
 }
 

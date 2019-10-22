@@ -2,11 +2,11 @@ package rpc
 
 import (
 	"context"
-	"math/big"
-
+	"fmt"
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 	core_types "github.com/tendermint/tendermint/rpc/core/types"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -28,6 +28,7 @@ type Backend interface {
 	GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes.Log, bhash common.Hash, blockNumber int64) ([]*ethtypes.Log, error)
 	GetLogs(cliCtx context2.CLIContext) (results []*ethtypes.Log)
 	BloomStatus() (uint64, uint64)
+	ServiceFilter(session *bloombits.MatcherSession)
 }
 
 // Filter can be used to retrieve and filter logs.
@@ -83,8 +84,12 @@ func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Addres
 		filters = append(filters, filter)
 	}
 	// BloomStatus is currently stubbed to return 4096, 0
+	// ----------------------------------------------------------------------------
+	// Returns size and sections variables which are required for bloom matching
+	// see https://github.com/ethereum/go-ethereum/blob/master/core/bloombits/matcher.go AND
+	// https://github.com/ethereum/go-ethereum/blob/master/eth/api_backend.go
+	// ----------------------------------------------------------------------------
 	size, _ := backend.BloomStatus()
-
 	// Create a generic filter and convert it into a range filter
 	filter := newFilter(backend, addresses, topics)
 
@@ -122,20 +127,29 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 
 	head := bl.Block.Height
 	if f.begin == -1 {
-		f.begin = int64(head)
+		f.begin = int64(head) -1
 	}
 	end := uint64(f.end)
 	if f.end == -1 {
 		end = uint64(head) -1
 	}
-
+	fmt.Println("begin --> ", f.begin)
+	fmt.Println("End --> ", end)
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
 		logs []*ethtypes.Log
 		err  error
 	)
+
 	// Not really meaningful right now since indexed will never be greater than f.begin
 	size, sections := f.backend.BloomStatus()
+
+	// ----------------------------------------------------------------------------
+	// indexedLogs is currently never hit since sections * size will always equal 0 as it is stubbed;
+	// change manually or pull out indexedLogs func and call explicitly
+	// when user inputs address/topic it should hit indexedLogs function
+	// @todo context
+	// ----------------------------------------------------------------------------
 	if indexed := sections * size; indexed > uint64(f.begin) {
 		if indexed > end {
 			logs, err = f.indexedLogs(ctx, context.Background(), end)
@@ -157,20 +171,27 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, end uint64) ([]*ethtypes.Log, error) {
 	// Create a matcher session and request servicing from the backend
 	matches := make(chan uint64, 64)
-
+	// ----------------------------------------------------------------------------
+	// f.matcher.Start starts the matching process and returns a stream of bloom matches in
+	// a given range of blocks
+	// see see https://github.com/ethereum/go-ethereum/blob/master/core/bloombits/matcher.go
+	// ----------------------------------------------------------------------------
 	// f.matcher.Start does not do much right now since ServiceFilter is not implemented
-	session, err := f.matcher.Start(context.Background(), uint64(f.begin), end, matches)
+	session, err := f.matcher.Start(ctx, uint64(f.begin), end, matches)
 	if err != nil {
 		return nil, err
 	}
 	defer session.Close()
 
 	// @TODO implement ServiceFilter
-	//f.backend.ServiceFilter(ctx, session)
-
+	f.backend.ServiceFilter(session)
 	// Iterate over the matches until exhausted or context closed
 	var logs []*ethtypes.Log
 
+	// ----------------------------------------------------------------------------
+	// never receive matches currently which is required to continue to filter logs and
+	// return logs given filter params
+	// ----------------------------------------------------------------------------
 	for {
 		select {
 		case number, ok := <-matches:
@@ -190,6 +211,12 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 			if err != nil {
 				return nil, err
 			}
+
+			//bloom, err := f.backend.GetBloom(cliCtx, bl)
+			//if err != nil {
+			//	return logs, err
+			//}
+
 			found, err := f.checkMatches(cliCtx, bl, f.block)
 			if err != nil {
 				return logs, err
@@ -200,6 +227,7 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 			return logs, ctx.Err()
 		}
 	}
+
 }
 
 //// indexedLogs returns the logs matching the filter criteria based on raw block

@@ -81,26 +81,6 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 	return
 }
 
-// SetBlockHeightMapping sets the mapping from block block height to block hash
-func (k *Keeper) SetBlockHeightMapping(ctx sdk.Context, hash []byte, height int64) {
-	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if height != 0 {
-		store.Set(heightHash, hash)
-	}
-}
-
-// GetBlockHeightMapping gets block hash from block height
-func (k *Keeper) GetBlockHeightMapping(ctx sdk.Context, height int64) (blockHash []byte) {
-	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	bhash := store.Get(heightHash)
-	if bytes.Equal(bhash, []byte{}) {
-		panic(fmt.Errorf("block with height %s not found", heightHash))
-	}
-	return bhash
-}
-
 // ----------------------------------------------------------------------------
 // Block bloom bits mapping functions
 // May be removed when using only as module (only required by rpc api)
