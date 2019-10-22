@@ -364,11 +364,6 @@ type account struct {
 // DoCall performs a simulated call operation through the evm
 func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, globalGasCap *big.Int) ([]byte, error) {
 	defer func(start time.Time) { log.Println("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println(err)
-		}
-	}()
 
 	// Set height for historical queries
 	ctx := e.cliCtx.WithHeight(blockNr.Int64())
@@ -444,7 +439,9 @@ func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.C
 		return nil, err
 	}
 
-	return nil, nil
+	_, _, ret, err := types.DecodeReturnData(simResult.Data)
+
+	return ret, err
 }
 
 // EstimateGas estimates gas usage for the given smart contract call.
@@ -714,13 +711,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	txData := tx.TxResult.GetData()
-	var bloomFilter ethtypes.Bloom
-	var contractAddress common.Address
-	if len(txData) >= 20 {
-		// TODO: change hard coded indexing of bytes
-		bloomFilter = ethtypes.BytesToBloom(txData[20:])
-		contractAddress = common.BytesToAddress(txData[:20])
-	}
+	contractAddress, bloomFilter, _, _ := types.DecodeReturnData(txData)
 
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
@@ -738,7 +729,6 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	}
 
 	if contractAddress != (common.Address{}) {
-		// TODO: change hard coded indexing of first 20 bytes
 		fields["contractAddress"] = contractAddress
 	}
 

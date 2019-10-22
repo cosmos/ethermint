@@ -61,6 +61,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	)
 
 	var (
+		ret         []byte
 		leftOverGas uint64
 		addr        common.Address
 		vmerr       error
@@ -68,11 +69,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	)
 
 	if contractCreation {
-		_, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
+		ret, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
 	} else {
 		// Increment the nonce for the next transaction
 		st.Csdb.SetNonce(st.Sender, st.Csdb.GetNonce(st.Sender)+1)
-		_, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
 
 	// Generate bloom filter to be saved in tx receipt data
@@ -84,8 +85,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
-	// TODO: coniditionally add either/ both of these to return data
-	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
+	// Encode all necessary data into slice of bytes to return in sdk result
+	returnData := EncodeReturnData(addr, bloomFilter, ret)
 
 	// handle errors
 	if vmerr != nil {
