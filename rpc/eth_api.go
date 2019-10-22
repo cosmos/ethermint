@@ -3,12 +3,14 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math/big"
 	"strconv"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
 	"github.com/cosmos/ethermint/rpc/args"
+	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm"
@@ -21,12 +23,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/spf13/viper"
 )
@@ -324,19 +329,115 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	return common.HexToHash(res.TxHash), nil
 }
 
-// CallArgs represents arguments to a smart contract call as provided by RPC clients.
+// CallArgs represents the arguments for a call.
 type CallArgs struct {
-	From     common.Address `json:"from"`
-	To       common.Address `json:"to"`
-	Gas      hexutil.Uint64 `json:"gas"`
-	GasPrice hexutil.Big    `json:"gasPrice"`
-	Value    hexutil.Big    `json:"value"`
-	Data     hexutil.Bytes  `json:"data"`
+	From     *common.Address `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *hexutil.Big    `json:"value"`
+	Data     *hexutil.Bytes  `json:"data"`
 }
 
 // Call performs a raw contract call.
-func (e *PublicEthAPI) Call(args CallArgs, blockNum BlockNumber) hexutil.Bytes {
-	return nil
+func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
+	result, err := e.doCall(args, blockNr, vm.Config{}, big.NewInt(emint.DefaultRPCGasLimit))
+	return (hexutil.Bytes)(result), err
+}
+
+// account indicates the overriding fields of account during the execution of
+// a message call.
+// Note, state and stateDiff can't be specified at the same time. If state is
+// set, message execution will only use the data in the given state. Otherwise
+// if statDiff is set, all diff will be applied first and then execute the call
+// message.
+type account struct {
+	Nonce     *hexutil.Uint64              `json:"nonce"`
+	Code      *hexutil.Bytes               `json:"code"`
+	Balance   **hexutil.Big                `json:"balance"`
+	State     *map[common.Hash]common.Hash `json:"state"`
+	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
+}
+
+// DoCall performs a simulated call operation through the evm
+func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, globalGasCap *big.Int) ([]byte, error) {
+	// Set height for historical queries
+	ctx := e.cliCtx.WithHeight(blockNr.Int64())
+
+	// Set sender address or use a default if none specified
+	var addr common.Address
+	if args.From == nil {
+		if e.key != nil {
+			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
+		}
+		// No error handled here intentionally to match geth behaviour
+	} else {
+		addr = *args.From
+	}
+
+	// Set default gas & gas price if none were set
+	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
+	gas := uint64(emint.DefaultRPCGasLimit)
+	if args.Gas != nil {
+		gas = uint64(*args.Gas)
+	}
+	if globalGasCap != nil && globalGasCap.Uint64() < gas {
+		log.Println("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
+		gas = globalGasCap.Uint64()
+	}
+
+	// Set gas price using default or parameter if passed in
+	gasPrice := new(big.Int).SetUint64(emint.DefaultGasPrice)
+	if args.GasPrice != nil {
+		gasPrice = args.GasPrice.ToInt()
+	}
+
+	// Set value for transaction
+	value := new(big.Int)
+	if args.Value != nil {
+		value = args.Value.ToInt()
+	}
+
+	// Set Data if provided
+	var data []byte
+	if args.Data != nil {
+		data = []byte(*args.Data)
+	}
+
+	// Set destination address for call
+	var toAddr sdk.AccAddress
+	if args.To != nil {
+		toAddr = sdk.AccAddress(args.To.Bytes())
+	}
+
+	// Create new call message
+	msg := types.NewEmintMsg(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
+		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
+
+	// Generate tx to be used to simulate (signature isn't needed)
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{authtypes.StdSignature{}}, "")
+
+	// Encode transaction by default Tx encoder
+	txEncoder := authutils.GetTxEncoder(ctx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	// Transaction simulation through query
+	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	var simResult sdk.Result
+	if err = ctx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
+		return nil, err
+	}
+
+	_, _, ret, err := types.DecodeReturnData(simResult.Data)
+
+	return ret, err
 }
 
 // EstimateGas estimates gas usage for the given smart contract call.
@@ -443,7 +544,7 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i] = newRPCTransaction(ethTx, blockHash, height, uint64(i))
+		transactions[i] = newRPCTransaction(ethTx, blockHash, &height, uint64(i))
 	}
 	return transactions, gasUsed
 }
@@ -478,7 +579,7 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.EthereumTxMsg, e
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumber uint64, index uint64) *Transaction {
+func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumber *uint64, index uint64) *Transaction {
 	// Verify signature and retrieve sender address
 	from, _ := tx.VerifySig(tx.ChainID())
 
@@ -497,7 +598,7 @@ func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumb
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = &blockHash
-		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
+		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(*blockNumber))
 		result.TransactionIndex = (*hexutil.Uint64)(&index)
 	}
 	return result
@@ -523,7 +624,8 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 		return nil, err
 	}
 
-	return newRPCTransaction(ethTx, blockHash, uint64(tx.Height), uint64(tx.Index)), nil
+	height := uint64(tx.Height)
+	return newRPCTransaction(ethTx, blockHash, &height, uint64(tx.Index)), nil
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -560,7 +662,8 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 		return nil, err
 	}
 
-	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), uint64(header.Height), uint64(idx))
+	height := uint64(header.Height)
+	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
 	return transaction, nil
 }
 
@@ -603,8 +706,8 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	var logs types.QueryETHLogs
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
-	// TODO: change hard coded indexing of bytes
-	bloomFilter := ethtypes.BytesToBloom(tx.TxResult.GetData()[20:])
+	txData := tx.TxResult.GetData()
+	contractAddress, bloomFilter, _, _ := types.DecodeReturnData(txData)
 
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
@@ -621,13 +724,34 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"status":            status,
 	}
 
-	contractAddress := common.BytesToAddress(tx.TxResult.GetData()[:20])
 	if contractAddress != (common.Address{}) {
-		// TODO: change hard coded indexing of first 20 bytes
 		fields["contractAddress"] = contractAddress
 	}
 
 	return fields, nil
+}
+
+// PendingTransactions returns the transactions that are in the transaction pool
+// and have a from address that is one of the accounts this node manages.
+func (e *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
+	pendingTxs, err := e.cliCtx.Client.UnconfirmedTxs(100)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions := make([]*Transaction, 0, 100)
+	for _, tx := range pendingTxs.Txs {
+		ethTx, err := bytesToEthTx(e.cliCtx, tx)
+		if err != nil {
+			return nil, err
+		}
+
+		// * Should check signer and reference against accounts the node manages in future
+		rpcTx := newRPCTransaction(ethTx, common.Hash{}, nil, 0)
+		transactions = append(transactions, rpcTx)
+	}
+
+	return transactions, nil
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.

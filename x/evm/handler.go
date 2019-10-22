@@ -20,8 +20,8 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case types.EthereumTxMsg:
 			return handleETHTxMsg(ctx, keeper, msg)
-		case types.EmintMsg:
-			return handleEmintMsg(ctx, keeper, msg)
+		case *types.EmintMsg:
+			return handleEmintMsg(ctx, keeper, *msg)
 		default:
 			errMsg := fmt.Sprintf("Unrecognized ethermint Msg type: %v", msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -64,9 +64,10 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         keeper.csdb,
+		Csdb:         keeper.csdb.WithContext(ctx),
 		ChainID:      intChainID,
 		THash:        &ethHash,
+		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
 	keeper.csdb.Prepare(ethHash, common.Hash{}, keeper.txCount.get())
@@ -95,8 +96,9 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Resu
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         keeper.csdb,
+		Csdb:         keeper.csdb.WithContext(ctx),
 		ChainID:      intChainID,
+		Simulate:     ctx.IsCheckTx(),
 	}
 
 	if msg.Recipient != nil {

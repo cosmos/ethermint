@@ -25,11 +25,19 @@ type StateTransition struct {
 	Csdb         *CommitStateDB
 	ChainID      *big.Int
 	THash        *common.Hash
+	Simulate     bool
 }
 
 // TransitionCSDB performs an evm state transition from a transaction
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int) {
 	contractCreation := st.Recipient == nil
+
+	if res := st.checkNonce(); !res.IsOK() {
+		return res, nil
+	}
+
+	// This gas limit the the transaction gas limit with intrinsic gas subtracted
+	gasLimit := ctx.GasMeter().Limit()
 
 	// Create context for evm
 	context := vm.Context{
@@ -40,13 +48,20 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(time.Now().Unix()),
 		Difficulty:  big.NewInt(0x30000), // unused
-		GasLimit:    ctx.GasMeter().Limit(),
+		GasLimit:    gasLimit,
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
-	vmenv := vm.NewEVM(context, st.Csdb.WithContext(ctx), GenerateChainConfig(st.ChainID), vm.Config{})
+	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
+	evmGasMeter := sdk.NewInfiniteGasMeter()
+
+	vmenv := vm.NewEVM(
+		context, st.Csdb.WithContext(ctx.WithGasMeter(evmGasMeter)),
+		GenerateChainConfig(st.ChainID), vm.Config{},
+	)
 
 	var (
+		ret         []byte
 		leftOverGas uint64
 		addr        common.Address
 		vmerr       error
@@ -54,27 +69,12 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	)
 
 	if contractCreation {
-		_, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, st.GasLimit, st.Amount)
+		ret, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
 	} else {
 		// Increment the nonce for the next transaction
 		st.Csdb.SetNonce(st.Sender, st.Csdb.GetNonce(st.Sender)+1)
-		_, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, st.GasLimit, st.Amount)
+		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
-
-	// handle errors
-	if vmerr != nil {
-		return emint.ErrVMExecution(vmerr.Error()).Result(), nil
-	}
-
-	// Refund remaining gas from tx (Check these values and ensure gas is being consumed correctly)
-	refundGas(st.Csdb, &leftOverGas, st.GasLimit, context.GasPrice, st.Sender)
-
-	// add balance for the processor of the tx (determine who rewards are being processed to)
-	// TODO: Double check nothing needs to be done here
-
-	st.Csdb.Finalise(true) // Change to depend on config
-
-	// TODO: Consume gas from sender
 
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
@@ -85,29 +85,38 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
-	// TODO: coniditionally add either/ both of these to return data
-	returnData := append(addr.Bytes(), bloomFilter.Bytes()...)
+	// Encode all necessary data into slice of bytes to return in sdk result
+	returnData := EncodeReturnData(addr, bloomFilter, ret)
+
+	// handle errors
+	if vmerr != nil {
+		res := emint.ErrVMExecution(vmerr.Error()).Result()
+		res.Data = returnData
+		return res, nil
+	}
+
+	// TODO: Refund unused gas here, if intended in future
+
+	st.Csdb.Finalise(true) // Change to depend on config
+
+	// Consume gas from evm execution
+	// Out of gas check does not need to be done here since it is done within the EVM execution
+	ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
 
 	return sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}, bloomInt
 }
 
-func refundGas(
-	st vm.StateDB, gasRemaining *uint64, initialGas uint64, gasPrice *big.Int,
-	from common.Address,
-) {
-	// Apply refund counter, capped to half of the used gas.
-	refund := (initialGas - *gasRemaining) / 2
-	if refund > st.GetRefund() {
-		refund = st.GetRefund()
+func (st *StateTransition) checkNonce() sdk.Result {
+	// If simulated transaction, don't verify nonce
+	if !st.Simulate {
+		// Make sure this transaction's nonce is correct.
+		nonce := st.Csdb.GetNonce(st.Sender)
+		if nonce < st.AccountNonce {
+			return emint.ErrInvalidNonce("nonce too high").Result()
+		} else if nonce > st.AccountNonce {
+			return emint.ErrInvalidNonce("nonce too low").Result()
+		}
 	}
-	*gasRemaining += refund
 
-	// // Return ETH for remaining gas, exchanged at the original rate.
-	// remaining := new(big.Int).Mul(new(big.Int).SetUint64(*gasRemaining), gasPrice)
-	// st.AddBalance(from, remaining)
-
-	// // Also return remaining gas to the block gas counter so it is
-	// // available for the next transaction.
-	// TODO: Return gas to block gas meter?
-	// st.gp.AddGas(st.gas)
+	return sdk.Result{}
 }
