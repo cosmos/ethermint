@@ -93,7 +93,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 		return res, nil
 	}
 
-	// Refunds would happen here, if intended in future
+	// TODO: Refund unused gas here, if intended in future
 
 	st.Csdb.Finalise(true) // Change to depend on config
 
