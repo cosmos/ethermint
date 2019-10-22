@@ -25,6 +25,7 @@ type StateTransition struct {
 	Csdb         *CommitStateDB
 	ChainID      *big.Int
 	THash        *common.Hash
+	Simulate     bool
 }
 
 // TransitionCSDB performs an evm state transition from a transaction
@@ -105,12 +106,15 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 }
 
 func (st *StateTransition) checkNonce() sdk.Result {
-	// Make sure this transaction's nonce is correct.
-	nonce := st.Csdb.GetNonce(st.Sender)
-	if nonce < st.AccountNonce {
-		return emint.ErrInvalidNonce("nonce too high").Result()
-	} else if nonce > st.AccountNonce {
-		return emint.ErrInvalidNonce("nonce too low").Result()
+	// If simulated transaction, don't verify nonce
+	if !st.Simulate {
+		// Make sure this transaction's nonce is correct.
+		nonce := st.Csdb.GetNonce(st.Sender)
+		if nonce < st.AccountNonce {
+			return emint.ErrInvalidNonce("nonce too high").Result()
+		} else if nonce > st.AccountNonce {
+			return emint.ErrInvalidNonce("nonce too low").Result()
+		}
 	}
 
 	return sdk.Result{}
