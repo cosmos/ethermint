@@ -53,7 +53,7 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
-// GenerateReturnData takes all of the necessary data from the EVM execution
+// EncodeReturnData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice
 func EncodeReturnData(addr ethcmn.Address, bloom ethtypes.Bloom, evmRet []byte) []byte {
 	// Append address, bloom, evm return bytes in that order

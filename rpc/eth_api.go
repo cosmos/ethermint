@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/big"
 	"strconv"
-	"time"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
@@ -362,8 +361,6 @@ type account struct {
 
 // DoCall performs a simulated call operation through the evm
 func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, globalGasCap *big.Int) ([]byte, error) {
-	defer func(start time.Time) { log.Println("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
-
 	// Set height for historical queries
 	ctx := e.cliCtx.WithHeight(blockNr.Int64())
 
