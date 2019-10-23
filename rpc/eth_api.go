@@ -344,14 +344,9 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *m
 	if err != nil {
 		return []byte{}, err
 	}
-	var simResult sdk.Result
-	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(result, &simResult); err != nil {
-		return []byte{}, err
-	}
-	_, _, ret, err := types.DecodeReturnData(simResult.Data)
-	if err != nil {
-		return []byte{}, err
-	}
+
+	_, _, ret, err := types.DecodeReturnData(result.Data)
+	
 	return (hexutil.Bytes)(ret), err
 }
 
@@ -370,7 +365,7 @@ type account struct {
 }
 
 // DoCall performs a simulated call operation through the evm
-func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int) ([]byte, error) {
+func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int) (sdk.Result, error) {
 	// Set height for historical queries
 	ctx := e.cliCtx.WithHeight(blockNr.Int64())
 
@@ -431,16 +426,21 @@ func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasC
 	txEncoder := authutils.GetTxEncoder(ctx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
-		return []byte{}, err
+		return sdk.Result{}, err
 	}
 
 	// Transaction simulation through query
 	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
-		return []byte{}, err
+		return sdk.Result{}, err
 	}
 
-	return res, nil
+	var simResult sdk.Result
+	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
+		return sdk.Result{}, err
+	}
+
+	return simResult, nil
 }
 
 // EstimateGas estimates gas usage for the given smart contract call.
@@ -450,12 +450,7 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs, blockNr rpc.BlockNumber) (hexu
 		return 0, err
 	}
 
-	var simResult sdk.Result
-	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(result, &simResult); err != nil {
-		return 0, err
-	}
-
-	return hexutil.Uint64(simResult.GasUsed), nil
+	return hexutil.Uint64(result.GasUsed), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
