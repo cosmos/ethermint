@@ -133,8 +133,6 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 	if f.end == -1 {
 		end = uint64(head) -1
 	}
-	fmt.Println("begin --> ", f.begin)
-	fmt.Println("End --> ", end)
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
 		logs []*ethtypes.Log
@@ -233,15 +231,16 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 //// indexedLogs returns the logs matching the filter criteria based on raw block
 //// iteration and bloom matching.
 func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes.Log, error) {
+	fmt.Println("unindexed logs ---> ", f.begin)
 	var logs []*ethtypes.Log
 
-	for ; f.begin <= int64(end) + 1; f.begin++ {
+	for ; f.begin <= int64(end); f.begin++ {
 		num := rpc.BlockNumber(f.begin).Int64()
 		bl, err := ctx.Client.Block(&num)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		bloom, err := f.backend.GetBloom(ctx, bl)
 		if err != nil {
 			return logs, err
@@ -346,7 +345,12 @@ func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]co
 	if len(addresses) > 0 {
 		var included bool
 		for _, addr := range addresses {
+			fmt.Println("addresses --> ", addr.Hex())
+			fmt.Println("addresses --> ", addr)
+			fmt.Println("bloom --> ", bloom)
 			if ethtypes.BloomLookup(bloom, addr) {
+				fmt.Println("addresses --> ", addr.Hex())
+				fmt.Println("bloom --> ", bloom)
 				included = true
 				break
 			}
