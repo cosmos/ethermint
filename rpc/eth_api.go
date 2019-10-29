@@ -9,7 +9,7 @@ import (
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	emintkeys "github.com/cosmos/ethermint/keys"
-	"github.com/cosmos/ethermint/rpc/args"
+	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
@@ -31,7 +31,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
+	etypes "github.com/cosmos/ethermint/types"
 	"github.com/spf13/viper"
 )
 
@@ -248,7 +248,7 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 }
 
 // SendTransaction sends an Ethereum transaction.
-func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error) {
+func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
 	// TODO: Change this functionality to find an unlocked account by address
 	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
 		return common.Hash{}, keystore.ErrLocked
@@ -261,7 +261,7 @@ func (e *PublicEthAPI) SendTransaction(args args.SendTxArgs) (common.Hash, error
 	}
 
 	// Assemble transaction from fields
-	tx, err := types.GenerateFromArgs(args, e.cliCtx)
+	tx, err := e.GenerateFromArgs(args)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -851,4 +851,69 @@ func (e *PublicEthAPI) getGasLimit() (int64, error) {
 	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
 	e.gasLimit = &gasLimit
 	return gasLimit, nil
+}
+
+// GenerateFromArgs populates tx message with args (used in RPC API)
+func (e *PublicEthAPI) GenerateFromArgs(args params.SendTxArgs) (msg *types.EthereumTxMsg, err error) {
+	var nonce uint64
+
+	var gasLimit uint64
+
+	amount := (*big.Int)(args.Value)
+
+	gasPrice := (*big.Int)(args.GasPrice)
+
+	if args.GasPrice == nil {
+
+		// Set default gas price
+		// TODO: Change to min gas price from context once available through server/daemon
+		gasPrice = big.NewInt(etypes.DefaultGasPrice)
+	}
+
+	if args.Nonce == nil {
+		// Get nonce (sequence) from account
+		from := sdk.AccAddress(args.From.Bytes())
+		_, nonce, err = authtypes.NewAccountRetriever(e.cliCtx).GetAccountNumberSequence(from)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		nonce = (uint64)(*args.Nonce)
+	}
+
+	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
+		return nil, fmt.Errorf(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+	}
+
+	// Sets input to either Input or Data, if both are set and not equal error above returns
+	var input []byte
+	if args.Input != nil {
+		input = *args.Input
+	} else if args.Data != nil {
+		input = *args.Data
+	}
+
+	if args.To == nil {
+		// Contract creation
+		if len(input) == 0 {
+			return nil, fmt.Errorf("contract creation without any data provided")
+		}
+	}
+
+	if args.Gas == nil {
+		callArgs := CallArgs{
+			From: &args.From,
+			To: args.To,
+			Gas: args.Gas,
+			GasPrice: args.GasPrice,
+			Value: args.Value,
+			Data: args.Data,
+		}
+		g, _ := e.EstimateGas(callArgs, rpc.BlockNumber(e.cliCtx.Height))
+		gasLimit = uint64(g)
+	} else {
+		gasLimit = (uint64)(*args.Gas)
+	}
+
+	return types.NewEthereumTxMsg(nonce, *args.To, amount, gasLimit, gasPrice, input), nil
 }
