@@ -44,9 +44,9 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
 	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
 
-	// This check is because stdTxs use gas differently, but for eth_call it needs to be the same
-	// as an Ethereum transaction sent through the web3 API
 	if st.Simulate {
+		// gasLimit is set here because stdTxs incur gaskv charges in the ante handler, but for eth_call
+		// the cost needs to be the same as an Ethereum transaction sent through the web3 API
 		gasLimit = st.GasLimit - cost
 	}
 
