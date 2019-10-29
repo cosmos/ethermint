@@ -228,10 +228,9 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 
 }
 
-//// indexedLogs returns the logs matching the filter criteria based on raw block
-//// iteration and bloom matching.
+// unindexedLogs...
 func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes.Log, error) {
-	fmt.Println("unindexed logs ---> ", f.begin)
+	fmt.Println("unindexed logs ---> ")
 	var logs []*ethtypes.Log
 
 	for ; f.begin <= int64(end); f.begin++ {
@@ -345,12 +344,11 @@ func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]co
 	if len(addresses) > 0 {
 		var included bool
 		for _, addr := range addresses {
-			fmt.Println("addresses --> ", addr.Hex())
-			fmt.Println("addresses --> ", addr)
-			fmt.Println("bloom --> ", bloom)
+			// ----------------------------------------------------------------------------
+			// BloomLookup never returns true even though the addr
+			// and bloom should provide a positive check
+			// ----------------------------------------------------------------------------
 			if ethtypes.BloomLookup(bloom, addr) {
-				fmt.Println("addresses --> ", addr.Hex())
-				fmt.Println("bloom --> ", bloom)
 				included = true
 				break
 			}
