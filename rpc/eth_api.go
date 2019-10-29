@@ -864,7 +864,9 @@ func (e *PublicEthAPI) GenerateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 	gasPrice := (*big.Int)(args.GasPrice)
 
 	if args.GasPrice == nil {
+
 		// Set default gas price
+		// TODO: Change to min gas price from context once available through server/daemon
 		gasPrice = big.NewInt(etypes.DefaultGasPrice)
 	}
 
