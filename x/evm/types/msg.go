@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/big"
 	"sync/atomic"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/types"
@@ -71,11 +70,11 @@ type (
 
 // NewEthereumTxMsg returns a reference to a new Ethereum transaction message.
 func NewEthereumTxMsg(
-	nonce uint64, to ethcmn.Address, amount *big.Int,
+	nonce uint64, to *ethcmn.Address, amount *big.Int,
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
 ) *EthereumTxMsg {
 
-	return newEthereumTxMsg(nonce, &to, amount, gasLimit, gasPrice, payload)
+	return newEthereumTxMsg(nonce, to, amount, gasLimit, gasPrice, payload)
 }
 
 // NewEthereumTxMsgContract returns a reference to a new Ethereum transaction

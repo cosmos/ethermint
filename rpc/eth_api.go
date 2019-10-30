@@ -11,6 +11,7 @@ import (
 	emintkeys "github.com/cosmos/ethermint/keys"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
+	etypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm"
@@ -31,7 +32,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	etypes "github.com/cosmos/ethermint/types"
 	"github.com/spf13/viper"
 )
 
@@ -899,7 +899,6 @@ func (e *PublicEthAPI) GenerateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 			return nil, fmt.Errorf("contract creation without any data provided")
 		}
 	}
-
 	if args.Gas == nil {
 		callArgs := CallArgs{
 			From: &args.From,
@@ -915,5 +914,5 @@ func (e *PublicEthAPI) GenerateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 		gasLimit = (uint64)(*args.Gas)
 	}
 
-	return types.NewEthereumTxMsg(nonce, *args.To, amount, gasLimit, gasPrice, input), nil
+	return types.NewEthereumTxMsg(nonce, args.To, amount, gasLimit, gasPrice, input), nil
 }
