@@ -346,7 +346,7 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *m
 	}
 
 	_, _, ret, err := types.DecodeReturnData(result.Data)
-	
+
 	return (hexutil.Bytes)(ret), err
 }
 
@@ -901,12 +901,12 @@ func (e *PublicEthAPI) GenerateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 	}
 	if args.Gas == nil {
 		callArgs := CallArgs{
-			From: &args.From,
-			To: args.To,
-			Gas: args.Gas,
+			From:     &args.From,
+			To:       args.To,
+			Gas:      args.Gas,
 			GasPrice: args.GasPrice,
-			Value: args.Value,
-			Data: args.Data,
+			Value:    args.Value,
+			Data:     args.Data,
 		}
 		g, _ := e.EstimateGas(callArgs, rpc.BlockNumber(e.cliCtx.Height))
 		gasLimit = uint64(g)
