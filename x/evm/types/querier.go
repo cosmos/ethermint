@@ -23,15 +23,6 @@ func (q QueryResBalance) String() string {
 	return q.Balance
 }
 
-// QueryResBlockHash is response type for block number query
-type QueryResBlockHash struct {
-	Hash []byte `json:"blockHash"`
-}
-
-func (q QueryResBlockHash) String() string {
-	return string(q.Hash)
-}
-
 // QueryResBlockNumber is response type for block number query
 type QueryResBlockNumber struct {
 	Number int64 `json:"blockNumber"`

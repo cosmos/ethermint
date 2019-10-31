@@ -64,10 +64,6 @@ func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64)
 	if !bytes.Equal(hash, []byte{}) {
 		store.Set(hash, k.cdc.MustMarshalBinaryLengthPrefixed(height))
 	}
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if height != 0 {
-		store.Set(heightHash, hash)
-	}
 }
 
 // GetBlockHashMapping gets block height from block consensus hash
