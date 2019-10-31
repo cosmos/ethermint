@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/cosmos/ethermint/crypto"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -46,8 +48,9 @@ func ValidateSigner(signBytes, sig []byte, signer ethcmn.Address) error {
 func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
 
-	// nolint:errcheck
-	rlp.Encode(hasher, x)
+	if err := rlp.Encode(hasher, x); err != nil {
+		log.Error("error with RLP encoding", err)
+	}
 	hasher.Sum(hash[:0])
 
 	return hash

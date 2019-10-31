@@ -44,8 +44,9 @@ func newTestSetup() testSetup {
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeIAVL, db)
-	// nolint:errcheck
-	ms.LoadLatestVersion()
+
+	if err := ms.LoadLatestVersion(); err != nil {
+	}
 
 	cdc := MakeCodec()
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
