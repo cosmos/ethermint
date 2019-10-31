@@ -36,7 +36,6 @@ type Filter struct {
 	backend   Backend
 	addresses []common.Address
 	topics    [][]common.Hash
-
 	block      common.Hash // Block hash if filtering a single block
 	begin, end int64       // Range interval if filtering multiple blocks
 

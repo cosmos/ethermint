@@ -29,15 +29,29 @@ type StateTransition struct {
 }
 
 // TransitionCSDB performs an evm state transition from a transaction
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int) {
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result) {
 	contractCreation := st.Recipient == nil
 
 	if res := st.checkNonce(); !res.IsOK() {
-		return res, nil
+		return nil, res
+	}
+
+	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
+	if err != nil {
+		return nil, sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
-	gasLimit := ctx.GasMeter().Limit()
+	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
+
+	var snapshot int
+	if st.Simulate {
+		// gasLimit is set here because stdTxs incur gaskv charges in the ante handler, but for eth_call
+		// the cost needs to be the same as an Ethereum transaction sent through the web3 API
+		gasLimit = st.GasLimit - cost
+
+		snapshot = st.Csdb.Snapshot()
+	}
 
 	// Create context for evm
 	context := vm.Context{
@@ -91,8 +105,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	// handle errors
 	if vmerr != nil {
 		res := emint.ErrVMExecution(vmerr.Error()).Result()
+		if vmerr == vm.ErrOutOfGas || vmerr == vm.ErrCodeStoreOutOfGas {
+			res = sdk.ErrOutOfGas("EVM execution went out of gas").Result()
+		}
 		res.Data = returnData
-		return res, nil
+		// Consume gas before returning
+		ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
+		return nil, res
+	}
+
+	if st.Simulate {
+		st.Csdb.RevertToSnapshot(snapshot)
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -103,7 +126,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (sdk.Result, *big.Int)
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
 
-	return sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}, bloomInt
+	return bloomInt, sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
 }
 
 func (st *StateTransition) checkNonce() sdk.Result {
