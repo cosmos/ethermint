@@ -3,9 +3,10 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/bloombits"
 	"strconv"
 	"time"
+
+	"github.com/ethereum/go-ethereum/core/bloombits"
 
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm"
@@ -29,24 +30,19 @@ const (
 	bloomRetrievalWait = time.Duration(0)
 )
 
-type EmintAPIBackend struct{
+type EmintAPIBackend struct {
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	//bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
 }
 
-//func (e *EmintAPIBackend) BloomStatus() (uint64, uint64) {
-//	sections, _, _ := e.bloomIndexer.Sections()
-//	fmt.Println("indexer__+_+)+")
-//	return params.BloomBitsBlocks, sections
-//}
-
+// ServiceFilter stubbed right now
 func (e *EmintAPIBackend) ServiceFilter(session *bloombits.MatcherSession) {
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, e.bloomRequests)
 	}
 }
 
-// BloomStatus stubbed
+// BloomStatus stubbed for right now
 func (e *EmintAPIBackend) BloomStatus() (uint64, uint64) { return 4096, 0 }
 
 // GetBlockNumber returns block number from canonical head
@@ -87,6 +83,8 @@ func (e *EmintAPIBackend) GetBloom(cliCtx context2.CLIContext, block *core_types
 }
 
 // GetReceipts returns a slice of receipts from provided block
+//
+// Used in checkMatches fn to check if we need to resolve full logs
 func (e *EmintAPIBackend) GetReceipts(cliCtx context2.CLIContext, block *core_types.ResultBlock) []Receipt {
 	var transactions []Receipt
 
@@ -101,6 +99,7 @@ func (e *EmintAPIBackend) GetReceipts(cliCtx context2.CLIContext, block *core_ty
 	return transactions
 }
 
+// Ethereum receipt struct
 type Receipt struct {
 	BlockHash         common.Hash     `json:"blockHash"`
 	BlockNumber       uint64          `json:"blockNumber"`
@@ -188,7 +187,7 @@ func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes
 	var bn int64
 	var blockHash common.Hash
 	var err error
-
+	// filter criteria specified block hash
 	if bhash != (common.Hash{}) {
 		blockHash = bhash
 		bn, err = e.GetBlockNumberFromHash(ctx, blockHash)
@@ -196,6 +195,7 @@ func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes
 			return nil, err
 		}
 	} else {
+		// no block hash provided but a block range
 		bn = blockNumber
 		b, err := ctx.Client.Block(&blockNumber)
 		if err != nil {
@@ -207,6 +207,7 @@ func (e *EmintAPIBackend) GetBlockLogs(ctx context2.CLIContext, logs []*ethtypes
 	}
 
 	for _, lg := range logs {
+		// if block numbers match append correct blockhash for response
 		if bn > 0 && uint64(bn) == lg.BlockNumber {
 			lg.BlockHash = blockHash
 			ret = append(ret, lg)

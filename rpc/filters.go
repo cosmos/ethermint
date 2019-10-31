@@ -2,11 +2,11 @@ package rpc
 
 import (
 	"context"
-	"fmt"
+	"math/big"
+
 	context2 "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 	core_types "github.com/tendermint/tendermint/rpc/core/types"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -33,9 +33,9 @@ type Backend interface {
 
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
-	backend   Backend
-	addresses []common.Address
-	topics    [][]common.Hash
+	backend    Backend
+	addresses  []common.Address
+	topics     [][]common.Hash
 	block      common.Hash // Block hash if filtering a single block
 	begin, end int64       // Range interval if filtering multiple blocks
 
@@ -106,7 +106,7 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 	if f.block != (common.Hash{}) {
 		bn, err := f.backend.GetBlockNumberFromHash(ctx, f.block)
 		if err != nil {
-			 return nil, err
+			return nil, err
 		}
 		bl, err := ctx.Client.Block(&bn)
 		if err != nil {
@@ -126,11 +126,11 @@ func (f *Filter) Logs(ctx context2.CLIContext) ([]*ethtypes.Log, error) {
 
 	head := bl.Block.Height
 	if f.begin == -1 {
-		f.begin = int64(head) -1
+		f.begin = int64(head) - 1
 	}
 	end := uint64(f.end)
 	if f.end == -1 {
-		end = uint64(head) -1
+		end = uint64(head) - 1
 	}
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
@@ -229,7 +229,6 @@ func (f *Filter) indexedLogs(cliCtx context2.CLIContext, ctx context.Context, en
 
 // unindexedLogs...
 func (f *Filter) unindexedLogs(ctx context2.CLIContext, end uint64) ([]*ethtypes.Log, error) {
-	fmt.Println("unindexed logs ---> ")
 	var logs []*ethtypes.Log
 
 	for ; f.begin <= int64(end); f.begin++ {
