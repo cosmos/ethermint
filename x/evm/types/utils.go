@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/cosmos/ethermint/crypto"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -49,7 +47,7 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
 
 	if err := rlp.Encode(hasher, x); err != nil {
-		log.Error("error with RLP encoding", err)
+		_ = fmt.Errorf("error with RLP encoding %e", err)
 	}
 	hasher.Sum(hash[:0])
 

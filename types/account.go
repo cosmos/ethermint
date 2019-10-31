@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/log"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
@@ -49,9 +47,8 @@ func (acc Account) Balance() sdk.Int {
 
 // SetBalance sets an account's balance.
 func (acc Account) SetBalance(amt sdk.Int) {
-	// nolint:errcheck
 	if err := acc.SetCoins(sdk.Coins{sdk.NewCoin(DenomDefault, amt)}); err != nil {
-		log.Error("error setting account balance", err)
+		_ = fmt.Errorf("error setting account balance %e", err)
 	}
 }
 
