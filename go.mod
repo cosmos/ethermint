@@ -7,7 +7,7 @@ require (
 	github.com/aristanetworks/goarista v0.0.0-20181101003910-5bb443fba8e0 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.37.2
+	github.com/cosmos/cosmos-sdk v0.37.3
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
@@ -18,6 +18,7 @@ require (
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/google/uuid v1.0.0 // indirect
+	github.com/gordonklaus/ineffassign v0.0.0-20190601041439-ed7b1b5ee0f8 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/huin/goupnp v1.0.0 // indirect
@@ -26,6 +27,7 @@ require (
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
+	github.com/mdempsky/unconvert v0.0.0-20190921185256-3ecd357795af // indirect
 	github.com/olekukonko/tablewriter v0.0.1 // indirect
 	github.com/onsi/ginkgo v1.10.1 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
@@ -48,7 +50,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 	github.com/tendermint/go-amino v0.15.0
-	github.com/tendermint/tendermint v0.32.5
+	github.com/tendermint/tendermint v0.32.6
 	github.com/tendermint/tm-db v0.2.0
 	github.com/tyler-smith/go-bip39 v1.0.0 // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
@@ -56,11 +58,12 @@ require (
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478 // indirect
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/urfave/cli.v1 v1.0.0-00010101000000-000000000000 // indirect
 	gopkg.in/yaml.v2 v2.2.4
+	mvdan.cc/unparam v0.0.0-20190917161559-b83a221c10a2 // indirect
 )
 
 replace gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
