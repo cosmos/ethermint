@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -17,9 +18,9 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
+	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -44,8 +45,10 @@ func newTestSetup() testSetup {
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeIAVL, db)
-	// nolint:errcheck
-	ms.LoadLatestVersion()
+
+	if err := ms.LoadLatestVersion(); err != nil {
+		cmn.Exit(err.Error())
+	}
 
 	cdc := MakeCodec()
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
@@ -54,17 +57,18 @@ func newTestSetup() testSetup {
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 
-	// Add keepers
-	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
-	supplyKeeper := auth.NewDummySupplyKeeper(accKeeper)
-	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
-
 	ctx := sdk.NewContext(
 		ms,
 		abci.Header{ChainID: "3", Time: time.Now().UTC()},
 		true,
 		log.NewNopLogger(),
 	)
+
+	// Add keepers
+	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
+	accKeeper.SetParams(ctx, types.DefaultParams())
+	supplyKeeper := mock.NewDummySupplyKeeper(accKeeper)
+	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
 
 	return testSetup{
 		ctx:          ctx,
