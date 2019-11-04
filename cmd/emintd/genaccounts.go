@@ -17,6 +17,8 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
+
+	ethermint "github.com/cosmos/ethermint/types"
 )
 
 const (
@@ -75,10 +77,9 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			// create concrete account type based on input parameters
 			var genAccount authexported.GenesisAccount
 
-			// TODO: Change from base account
-			baseAccount := auth.NewBaseAccount(addr, coins.Sort(), nil, 0, 0)
+			baseAcc := auth.NewBaseAccount(addr, coins.Sort(), nil, 0, 0)
 			if !vestingAmt.IsZero() {
-				baseVestingAccount, err := authvesting.NewBaseVestingAccount(baseAccount, vestingAmt.Sort(), vestingEnd)
+				baseVestingAccount, err := authvesting.NewBaseVestingAccount(baseAcc, vestingAmt.Sort(), vestingEnd)
 				if err != nil {
 					return fmt.Errorf("failed to create base vesting account: %w", err)
 				}
@@ -94,7 +95,8 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					return errors.New("invalid vesting parameters; must supply start and end time or end time")
 				}
 			} else {
-				genAccount = baseAccount
+				// Genesis account is created with Ethermint account type
+				genAccount = &ethermint.Account{BaseAccount: baseAcc}
 			}
 
 			if err := genAccount.Validate(); err != nil {

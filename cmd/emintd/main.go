@@ -12,6 +12,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	genutil "github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
@@ -32,6 +34,9 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	cdc := emintapp.MakeCodec()
+
+	genutil.ModuleCdc = cdc
+	authtypes.ModuleCdc = cdc
 
 	config := sdk.GetConfig()
 	// TODO: Remove or change prefix if usable to generate Ethereum address

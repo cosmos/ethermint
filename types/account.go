@@ -11,6 +11,7 @@ import (
 )
 
 var _ exported.Account = (*Account)(nil)
+var _ exported.GenesisAccount = (*Account)(nil)
 
 const (
 	// DenomDefault defines the single coin type/denomination supported in

@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/ethermint/types"
@@ -81,12 +80,7 @@ type (
 func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	acc, ok := accProto.(*types.Account)
 	if !ok {
-		// State object can be created from a baseAccount
-		baseAccount, ok := accProto.(*auth.BaseAccount)
-		if !ok {
-			panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
-		}
-		acc = &types.Account{BaseAccount: baseAccount}
+		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
 	if acc.CodeHash == nil {
