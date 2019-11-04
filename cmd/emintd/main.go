@@ -56,7 +56,7 @@ func main() {
 	rootCmd.AddCommand(
 		withChainIDValidation(genutilcli.InitCmd(ctx, cdc, emintapp.ModuleBasics, emintapp.DefaultNodeHome)),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, auth.GenesisAccountIterator{}, emintapp.DefaultNodeHome),
-		genutilcli.GenTxCmd(
+		GenTxCmd(
 			ctx, cdc, emintapp.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{}, emintapp.DefaultNodeHome, emintapp.DefaultCLIHome,
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, emintapp.ModuleBasics),
