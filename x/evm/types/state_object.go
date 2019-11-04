@@ -7,7 +7,8 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	auth "github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/ethermint/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -77,7 +78,7 @@ type (
 	}
 )
 
-func newObject(db *CommitStateDB, accProto auth.Account) *stateObject {
+func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	acc, ok := accProto.(*types.Account)
 	if !ok {
 		// State object can be created from a baseAccount
