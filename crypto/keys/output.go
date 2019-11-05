@@ -16,6 +16,7 @@ type KeyOutput struct {
 	Address    string `json:"address"`
 	ETHAddress string `json:"ethaddress"`
 	PubKey     string `json:"pubkey"`
+	ETHPrivKey string `json:"ethprivkey"`
 	ETHPubKey  string `json:"ethpubkey"`
 	Mnemonic   string `json:"mnemonic,omitempty"`
 	Threshold  uint   `json:"threshold,omitempty"`

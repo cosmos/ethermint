@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bufio"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	cosmosKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/crypto/keys"
@@ -204,6 +206,18 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	privKey, err := kb.ExportPrivateKeyObject(name, encryptPassword)
+	if err != nil {
+		return err
+	}
+
+	var ok bool
+	var emintKey emintcrypto.PrivKeySecp256k1
+	emintKey, ok = privKey.(emintcrypto.PrivKeySecp256k1)
+	if !ok {
+		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+	}
+
 	// Recover key from seed passphrase
 	if viper.GetBool(flagRecover) {
 		// Hide mnemonic from output
@@ -211,10 +225,10 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		mnemonic = ""
 	}
 
-	return printCreate(cmd, info, showMnemonic, mnemonic)
+	return printCreate(cmd, info, showMnemonic, mnemonic, hex.EncodeToString(emintKey))
 }
 
-func printCreate(cmd *cobra.Command, info cosmosKeys.Info, showMnemonic bool, mnemonic string) error {
+func printCreate(cmd *cobra.Command, info cosmosKeys.Info, showMnemonic bool, mnemonic, ethPrivKey string) error {
 	output := viper.Get(cli.OutputFlag)
 
 	switch output {
@@ -237,6 +251,7 @@ func printCreate(cmd *cobra.Command, info cosmosKeys.Info, showMnemonic bool, mn
 
 		if showMnemonic {
 			out.Mnemonic = mnemonic
+			out.ETHPrivKey = ethPrivKey
 		}
 
 		var jsonString []byte
