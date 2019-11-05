@@ -25,6 +25,7 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	emintapp "github.com/cosmos/ethermint/app"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -44,7 +45,8 @@ func main() {
 	genutiltypes.ModuleCdc = cdc
 	authtypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
-	tmamino.AminoCdc = cdc
+	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)

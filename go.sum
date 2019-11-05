@@ -44,6 +44,8 @@ github.com/chainsafe/cosmos-sdk v0.34.4-0.20191105182341-b5e2a1dfdcf6 h1:v3aiYKq
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191105182341-b5e2a1dfdcf6/go.mod h1:jfj68M7UAsSvG+XmGU5zVfSij5fzlOdiQc1NKt+YK2A=
 github.com/chainsafe/tendermint v0.32.2-0.20191105184713-ebe344a40a1c h1:P6JJqWIHxRIYN9dZA2sQLrA5bz3jE7ulL10XtujhRRY=
 github.com/chainsafe/tendermint v0.32.2-0.20191105184713-ebe344a40a1c/go.mod h1:zhk6jGOCB5pi7NF8XtP77lqcDZ5n0biPwl2/AyS/vPM=
+github.com/chainsafe/tendermint v0.32.2-0.20191105211315-bd56da568e15 h1:wGxBiAN4kWM/XfQnOIcnQH6rdzwfMelph+Y5CjqzYcw=
+github.com/chainsafe/tendermint v0.32.2-0.20191105211315-bd56da568e15/go.mod h1:zhk6jGOCB5pi7NF8XtP77lqcDZ5n0biPwl2/AyS/vPM=
 github.com/client9/misspell v0.3.4 h1:ta993UF76GwbvJcIo3Y68y/M3WxlpEHPWIGDkJYwzJI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=

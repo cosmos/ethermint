@@ -60,6 +60,6 @@ require (
 
 replace (
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191105182341-b5e2a1dfdcf6
-	github.com/tendermint/tendermint v0.32.7 => github.com/chainsafe/tendermint v0.32.2-0.20191105184713-ebe344a40a1c
+	github.com/tendermint/tendermint v0.32.7 => github.com/chainsafe/tendermint v0.32.2-0.20191105211315-bd56da568e15
 	gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
 )

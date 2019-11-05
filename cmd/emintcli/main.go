@@ -6,6 +6,7 @@ import (
 
 	emintapp "github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/rpc"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	"github.com/tendermint/go-amino"
 
@@ -33,7 +34,8 @@ func main() {
 	cryptokeys.CryptoCdc = cdc
 	authtypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
-	tmamino.AminoCdc = cdc
+	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
