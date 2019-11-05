@@ -26,6 +26,7 @@ import (
 	"github.com/cosmos/ethermint/app"
 	emintapp "github.com/cosmos/ethermint/app"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
+	emint "github.com/cosmos/ethermint/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -43,8 +44,10 @@ func main() {
 	cryptokeys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
 	genutiltypes.ModuleCdc = cdc
-	authtypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
+	authtypes.RegisterAccountTypeCodec(emint.Account{}, emint.EthermintAccountName)
+	authtypes.RegisterAccountTypeCodec(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	authtypes.RegisterAccountTypeCodec(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 

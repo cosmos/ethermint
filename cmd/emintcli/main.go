@@ -7,6 +7,7 @@ import (
 	emintapp "github.com/cosmos/ethermint/app"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
+	emint "github.com/cosmos/ethermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -32,8 +33,10 @@ func main() {
 	cdc := emintapp.MakeCodec()
 
 	cryptokeys.CryptoCdc = cdc
-	authtypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
+	authtypes.RegisterAccountTypeCodec(emint.Account{}, emint.EthermintAccountName)
+	authtypes.RegisterAccountTypeCodec(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	authtypes.RegisterAccountTypeCodec(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
