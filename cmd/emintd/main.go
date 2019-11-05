@@ -15,6 +15,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	genutil "github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	"github.com/spf13/cobra"
@@ -36,6 +37,7 @@ func main() {
 	cdc := emintapp.MakeCodec()
 
 	genutil.ModuleCdc = cdc
+	genutiltypes.ModuleCdc = cdc
 	authtypes.ModuleCdc = cdc
 
 	config := sdk.GetConfig()
