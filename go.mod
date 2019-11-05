@@ -36,7 +36,7 @@ require (
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.5.0
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48 // indirect
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
@@ -58,4 +58,8 @@ require (
 	gopkg.in/yaml.v2 v2.2.4
 )
 
-replace gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
+replace (
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191105182341-b5e2a1dfdcf6
+	github.com/tendermint/tendermint v0.32.7 => github.com/chainsafe/tendermint v0.32.2-0.20191105184713-ebe344a40a1c
+	gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
+)

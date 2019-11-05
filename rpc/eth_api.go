@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	emintkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
-	emintkeys "github.com/cosmos/ethermint/keys"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
 	etypes "github.com/cosmos/ethermint/types"
