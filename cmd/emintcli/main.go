@@ -5,8 +5,8 @@ import (
 	"path"
 
 	emintapp "github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/rpc"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/rpc"
 
 	"github.com/tendermint/go-amino"
 
