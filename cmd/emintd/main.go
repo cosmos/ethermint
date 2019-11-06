@@ -14,8 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	genutil "github.com/cosmos/cosmos-sdk/x/genutil"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
@@ -25,11 +24,8 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	emintapp "github.com/cosmos/ethermint/app"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
-	emint "github.com/cosmos/ethermint/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -45,11 +41,6 @@ func main() {
 	genutil.ModuleCdc = cdc
 	genutiltypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
-	authtypes.RegisterAccountTypeCodec(emint.Account{}, emint.EthermintAccountName)
-	authtypes.RegisterAccountTypeCodec(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	authtypes.RegisterAccountTypeCodec(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)

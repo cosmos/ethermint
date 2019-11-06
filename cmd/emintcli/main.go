@@ -5,9 +5,7 @@ import (
 	"path"
 
 	emintapp "github.com/cosmos/ethermint/app"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
-	emint "github.com/cosmos/ethermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -16,14 +14,12 @@ import (
 	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 )
 
@@ -34,11 +30,6 @@ func main() {
 
 	cryptokeys.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc
-	authtypes.RegisterAccountTypeCodec(emint.Account{}, emint.EthermintAccountName)
-	authtypes.RegisterAccountTypeCodec(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	authtypes.RegisterAccountTypeCodec(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
