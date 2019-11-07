@@ -541,7 +541,7 @@ func formatBlock(
 		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
-		"miner":            hexutil.Bytes(header.ValidatorsHash),
+		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
 		"extraData":        nil,
