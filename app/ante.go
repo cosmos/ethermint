@@ -48,7 +48,9 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 				ante.NewDeductFeeDecorator(ak, sk),
 				ante.NewSigGasConsumeDecorator(ak, consumeSigGas),
 				ante.NewSigVerificationDecorator(ak),
-				ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				// * Increment sequence decorator is disabled temporarily, since increment occurs in
+				// * state transition
+				// ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 			)
 
 			return stdAnte(ctx, tx, sim)
