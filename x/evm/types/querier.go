@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
