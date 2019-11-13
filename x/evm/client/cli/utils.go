@@ -56,10 +56,8 @@ func cosmosAddressFromArg(addr string) (sdk.AccAddress, error) {
 		return toAddr, nil
 	}
 
-	if strings.HasPrefix(addr, "0x") {
-		// Strip 0x prefix if exists
-		addr = addr[2:]
-	}
+	// Strip 0x prefix if exists
+	addr = strings.TrimPrefix(addr, "0x")
 
 	return sdk.AccAddressFromHex(addr)
 }
