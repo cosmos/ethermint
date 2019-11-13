@@ -16,7 +16,7 @@ const (
 	flagDryRun = "dry-run"
 )
 
-// Commands registers a sub-tree of commands to interact with
+// keyCommands registers a sub-tree of commands to interact with
 // local private key storage.
 func keyCommands() *cobra.Command {
 	cmd := &cobra.Command{
