@@ -42,7 +42,8 @@ func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "could not parse account address")
 			}
-			key := args[1]
+
+			key := formatKeyToHash(args[1])
 
 			res, _, err := cliCtx.Query(
 				fmt.Sprintf("custom/%s/storage/%s/%s", queryRoute, account, key))

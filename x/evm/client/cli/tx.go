@@ -51,7 +51,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			toAddr, err := sdk.AccAddressFromBech32(args[0])
+			toAddr, err := cosmosAddressFromArg(args[0])
 			if err != nil {
 				return errors.Wrap(err, "must provide a valid Bech32 address for to_address")
 			}
