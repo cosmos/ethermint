@@ -2,17 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/x/evm/types"
 )
@@ -87,27 +83,4 @@ func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return cliCtx.PrintOutput(out)
 		},
 	}
-}
-
-func accountToHex(addr string) (string, error) {
-	if strings.HasPrefix("cosmos", addr) {
-		// Check to see if address is Cosmos bech32 formatted
-		toAddr, err := sdk.AccAddressFromBech32(addr)
-		if err != nil {
-			return "", errors.Wrap(err, "must provide a valid Bech32 address")
-		}
-		ethAddr := common.BytesToAddress(toAddr.Bytes())
-		return ethAddr.Hex(), nil
-	}
-
-	if !strings.HasPrefix(addr, "0x") {
-		addr = "0x" + addr
-	}
-
-	valid := common.IsHexAddress(addr)
-	if !valid {
-		return "", fmt.Errorf("%s is not a valid Ethereum or Cosmos address", addr)
-	}
-
-	return addr, nil
 }
