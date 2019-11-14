@@ -9,6 +9,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
+	emint "github.com/cosmos/ethermint/types"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -535,6 +537,21 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 
 	csdb.clearJournalAndRefund()
 	return nil
+}
+
+// UpdateAccounts updates the nonce and coin balances of accounts
+func (csdb *CommitStateDB) UpdateAccounts() {
+	for addr, so := range csdb.stateObjects {
+		currAcc := csdb.ak.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
+		emintAcc, ok := currAcc.(*emint.Account)
+		if ok {
+			if (so.Balance() != emintAcc.Balance().BigInt()) || (so.Nonce() != emintAcc.GetSequence()) {
+				// If queried account's balance or nonce are invalid, update the account pointer
+				so.account = emintAcc
+			}
+		}
+
+	}
 }
 
 // ClearStateObjects clears cache of state objects to handle account changes outside of the EVM

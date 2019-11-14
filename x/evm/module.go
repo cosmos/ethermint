@@ -126,6 +126,9 @@ func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.Val
 		panic(err)
 	}
 
+	// Clear accounts cache after account data has been committed
+	am.keeper.csdb.ClearStateObjects()
+
 	return []abci.ValidatorUpdate{}
 }
 

@@ -30,8 +30,6 @@ type StateTransition struct {
 
 // TransitionCSDB performs an evm state transition from a transaction
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result) {
-	// Clear cache of accounts to handle changes outside of the EVM
-	st.Csdb.ClearStateObjects()
 
 	contractCreation := st.Recipient == nil
 
@@ -57,6 +55,9 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 
 		csdb = st.Csdb.Copy()
 	}
+
+	// Clear cache of accounts to handle changes outside of the EVM
+	csdb.UpdateAccounts()
 
 	// Create context for evm
 	context := vm.Context{
