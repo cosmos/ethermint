@@ -130,8 +130,17 @@ func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 	}
 }
 
-// SetNonce sets the nonce (sequence number) of an account.
+// SetNonce is a no op function which is called inside the EVM
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
+	// ! No op to disable setting nonce from within the EVM state transition
+	// so := csdb.GetOrNewStateObject(addr)
+	// if so != nil {
+	// 	so.SetNonce(nonce)
+	// }
+}
+
+// SetEmintNonce sets the nonce (sequence number) of an account.
+func (csdb *CommitStateDB) SetEmintNonce(addr ethcmn.Address, nonce uint64) {
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
 		so.SetNonce(nonce)
@@ -523,7 +532,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // Reset clears out all ephemeral state objects from the state db, but keeps
 // the underlying account mapper and store keys to avoid reloading data for the
 // next operations.
-func (csdb *CommitStateDB) Reset(root ethcmn.Hash) error {
+func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
@@ -535,6 +544,12 @@ func (csdb *CommitStateDB) Reset(root ethcmn.Hash) error {
 
 	csdb.clearJournalAndRefund()
 	return nil
+}
+
+// ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
+func (csdb *CommitStateDB) ClearStateObjects() {
+	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
 
 func (csdb *CommitStateDB) clearJournalAndRefund() {

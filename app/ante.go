@@ -48,9 +48,7 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 				ante.NewDeductFeeDecorator(ak, sk),
 				ante.NewSigGasConsumeDecorator(ak, consumeSigGas),
 				ante.NewSigVerificationDecorator(ak),
-				// * Increment sequence decorator is disabled temporarily, since increment occurs in
-				// * state transition
-				// ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 			)
 
 			return stdAnte(ctx, tx, sim)
@@ -156,6 +154,16 @@ func ethAnteHandler(
 
 	gas, _ := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
+
+	// no need to increment sequence on CheckTx or RecheckTx
+	if !(ctx.IsCheckTx() && !sim) {
+		// increment sequence of sender
+		acc := ak.GetAccount(ctx, senderAddr)
+		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+			panic(err)
+		}
+		ak.SetAccount(ctx, acc)
+	}
 
 	return newCtx, nil
 }
