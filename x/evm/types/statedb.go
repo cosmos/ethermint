@@ -130,17 +130,8 @@ func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 	}
 }
 
-// SetNonce is a no op function which is called inside the EVM
+// SetNonce sets the nonce (sequence number) of an account.
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
-	// ! No op to disable setting nonce from within the EVM state transition
-	// so := csdb.GetOrNewStateObject(addr)
-	// if so != nil {
-	// 	so.SetNonce(nonce)
-	// }
-}
-
-// SetEmintNonce sets the nonce (sequence number) of an account.
-func (csdb *CommitStateDB) SetEmintNonce(addr ethcmn.Address, nonce uint64) {
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
 		so.SetNonce(nonce)

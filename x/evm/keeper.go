@@ -138,7 +138,7 @@ func (k *Keeper) SubBalance(ctx sdk.Context, addr ethcmn.Address, amount *big.In
 
 // SetNonce calls CommitStateDB.SetNonce using the passed in context
 func (k *Keeper) SetNonce(ctx sdk.Context, addr ethcmn.Address, nonce uint64) {
-	k.csdb.WithContext(ctx).SetEmintNonce(addr, nonce)
+	k.csdb.WithContext(ctx).SetNonce(addr, nonce)
 }
 
 // SetState calls CommitStateDB.SetState using the passed in context
