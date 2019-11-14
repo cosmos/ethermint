@@ -120,6 +120,9 @@ func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.Val
 	// Gas costs are handled within msg handler so costs should be ignored
 	ebCtx := ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 
+	// Update account balances before committing other parts of state
+	am.keeper.csdb.UpdateAccounts()
+
 	// Commit state objects to KV store
 	_, err := am.keeper.csdb.WithContext(ebCtx).Commit(true)
 	if err != nil {
