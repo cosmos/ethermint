@@ -24,6 +24,7 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	emintapp "github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/client/genaccounts"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -70,7 +71,7 @@ func main() {
 		genutilcli.ValidateGenesisCmd(ctx, cdc, emintapp.ModuleBasics),
 
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
-		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
+		genaccounts.AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 	)
 
 	// Tendermint node base commands
