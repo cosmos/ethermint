@@ -55,7 +55,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 
 	// Formats key for output
 	privB := ethcrypto.FromECDSA(emintKey.ToECDSA())
-	keyS := strings.ToUpper(hexutil.Encode(privB))
+	keyS := strings.ToUpper(hexutil.Encode(privB)[2:])
 
 	fmt.Println(keyS)
 
