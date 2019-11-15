@@ -95,10 +95,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 
 	if contractCreation {
 		ret, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
-
-		// Sets the nonce of the created contract to 1
-		st.Csdb.SetNonce(addr, 1)
 	} else {
+		// Increment the nonce for the next transaction	(just for evm state transition)
+		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
+
 		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
 
