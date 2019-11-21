@@ -27,7 +27,7 @@ func exportEthKeyCommand() *cobra.Command {
 }
 
 func runExportCmd(cmd *cobra.Command, args []string) error {
-	kb, err := clientkeys.NewKeyBaseFromHomeFlag()
+	kb, err := clientkeys.NewKeyringFromHomeFlag(cmd.InOrStdin())
 	if err != nil {
 		return err
 	}

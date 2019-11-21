@@ -42,7 +42,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/tendermint v0.32.7
+	github.com/tendermint/tendermint v0.32.8
 	github.com/tendermint/tm-db v0.2.0
 	github.com/tyler-smith/go-bip39 v1.0.0 // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
@@ -50,13 +50,10 @@ require (
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478 // indirect
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 )
 
-replace (
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191105182341-b5e2a1dfdcf6
-	github.com/tendermint/tendermint v0.32.7 => github.com/chainsafe/tendermint v0.32.2-0.20191105211315-bd56da568e15
-)
+replace github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3

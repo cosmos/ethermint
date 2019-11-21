@@ -1,9 +1,12 @@
 package rpc
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/client/input"
 	emintkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -49,7 +52,10 @@ func registerRoutes(rs *lcd.RestServer) {
 
 	var emintKey emintcrypto.PrivKeySecp256k1
 	if len(accountName) > 0 {
-		passphrase, err := emintkeys.GetPassphrase(accountName)
+		buf := bufio.NewReader(os.Stdin)
+		passphrase, err := input.GetPassword(
+			fmt.Sprintf("Password to sign with '%s':", accountName),
+			buf)
 		if err != nil {
 			panic(err)
 		}
@@ -78,7 +84,7 @@ func registerRoutes(rs *lcd.RestServer) {
 }
 
 func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
-	keybase, err := emintkeys.NewKeyBaseFromHomeFlag()
+	keybase, err := emintkeys.NewKeyringFromHomeFlag(os.Stdin)
 	if err != nil {
 		return
 	}
