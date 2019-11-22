@@ -43,6 +43,8 @@ github.com/cespare/cp v1.1.1/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3 h1:ffeNd/6ONw1Pct3aXluk2C9SeDKYusMqLjOxhFPzDks=
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3/go.mod h1:tA4b40PRtoZdit2w1o29YYdrCfuAVEpD7bRz9JDo43M=
+github.com/chainsafe/cosmos-sdk v0.34.4-0.20191122131920-d0c28009760e h1:avq41+Q/FcRPDWw2X5HsbkucwB+J0E3HD8GA4aKQxwI=
+github.com/chainsafe/cosmos-sdk v0.34.4-0.20191122131920-d0c28009760e/go.mod h1:tA4b40PRtoZdit2w1o29YYdrCfuAVEpD7bRz9JDo43M=
 github.com/client9/misspell v0.3.4 h1:ta993UF76GwbvJcIo3Y68y/M3WxlpEHPWIGDkJYwzJI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=

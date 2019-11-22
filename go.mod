@@ -56,4 +56,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.7
 )
 
-replace github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3
+replace github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191122131920-d0c28009760e
