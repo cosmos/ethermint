@@ -45,6 +45,8 @@ github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3 h1:ffeNd/6
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191121170204-d37829668ed3/go.mod h1:tA4b40PRtoZdit2w1o29YYdrCfuAVEpD7bRz9JDo43M=
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191122131920-d0c28009760e h1:avq41+Q/FcRPDWw2X5HsbkucwB+J0E3HD8GA4aKQxwI=
 github.com/chainsafe/cosmos-sdk v0.34.4-0.20191122131920-d0c28009760e/go.mod h1:tA4b40PRtoZdit2w1o29YYdrCfuAVEpD7bRz9JDo43M=
+github.com/chainsafe/cosmos-sdk v0.34.4-0.20191125153326-566ebe18431b h1:OOn8OgtIz+XINmtBrVyzJK9tRu7IHUyfi6F7N9dyj2w=
+github.com/chainsafe/cosmos-sdk v0.34.4-0.20191125153326-566ebe18431b/go.mod h1:tA4b40PRtoZdit2w1o29YYdrCfuAVEpD7bRz9JDo43M=
 github.com/client9/misspell v0.3.4 h1:ta993UF76GwbvJcIo3Y68y/M3WxlpEHPWIGDkJYwzJI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
