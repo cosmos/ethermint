@@ -32,17 +32,17 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get password from input or standard input
 	buf := bufio.NewReader(cmd.InOrStdin())
-	decryptPassword, err := input.GetPassword(
-		"**WARNING this is an unsafe way to export your unencrypted private key**\nEnter key password:",
-		buf)
+	conf, err := input.GetConfirmation("**WARNING** this is an unsafe way to export your unencrypted private key, are you sure?", buf)
 	if err != nil {
 		return err
 	}
+	if !conf {
+		return nil
+	}
 
 	// Exports private key from keybase using password
-	privKey, err := kb.ExportPrivateKeyObject(args[0], decryptPassword)
+	privKey, err := kb.ExportPrivateKeyObject(args[0], "")
 	if err != nil {
 		return err
 	}
