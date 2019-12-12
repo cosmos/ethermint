@@ -6,10 +6,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
@@ -33,16 +35,25 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	buf := bufio.NewReader(cmd.InOrStdin())
-	conf, err := input.GetConfirmation("**WARNING** this is an unsafe way to export your unencrypted private key, are you sure?", buf)
-	if err != nil {
-		return err
+	decryptPassword := ""
+	conf := true
+	keyringBackend := viper.GetString(flags.FlagKeyringBackend)
+	switch keyringBackend {
+	case flags.KeyringBackendFile:
+		decryptPassword, err = input.GetPassword(
+			"**WARNING this is an unsafe way to export your unencrypted private key**\nEnter key password:",
+			buf)
+	case flags.KeyringBackendOS:
+		conf, err = input.GetConfirmation(
+			"**WARNING** this is an unsafe way to export your unencrypted private key, are you sure?",
+			buf)
 	}
-	if !conf {
-		return nil
+	if err != nil || !conf {
+		return err
 	}
 
 	// Exports private key from keybase using password
-	privKey, err := kb.ExportPrivateKeyObject(args[0], "")
+	privKey, err := kb.ExportPrivateKeyObject(args[0], decryptPassword)
 	if err != nil {
 		return err
 	}
