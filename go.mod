@@ -7,7 +7,7 @@ require (
 	github.com/aristanetworks/goarista v0.0.0-20181101003910-5bb443fba8e0 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20191212215224-0e28da23e7f0
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
@@ -54,5 +54,3 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7
 )
-
-replace github.com/cosmos/cosmos-sdk v0.34.4-0.20191031200835-02c6c9fafd58 => github.com/chainsafe/cosmos-sdk v0.34.4-0.20191211145535-372411c20080
