@@ -139,10 +139,11 @@ func ethAnteHandler(
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
 
-		err = auth.DeductFees(sk, ctx, senderAcc, sdk.Coins{
+		feeAmt := sdk.Coins{
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
-		})
+		}
 
+		err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 		if err != nil {
 			return ctx, err
 		}
@@ -153,6 +154,16 @@ func ethAnteHandler(
 
 	gas, _ := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
+
+	// no need to increment sequence on CheckTx or RecheckTx
+	if !(ctx.IsCheckTx() && !sim) {
+		// increment sequence of sender
+		acc := ak.GetAccount(ctx, senderAddr)
+		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+			panic(err)
+		}
+		ak.SetAccount(ctx, acc)
+	}
 
 	return newCtx, nil
 }

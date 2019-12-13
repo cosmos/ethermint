@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"os"
 
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/x/evm"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -76,8 +78,10 @@ func MakeCodec() *codec.Codec {
 	var cdc = codec.New()
 
 	ModuleBasics.RegisterCodec(cdc)
+	cryptokeys.RegisterCodec(cdc) // temporary
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
+	emintcrypto.RegisterCodec(cdc)
 	eminttypes.RegisterCodec(cdc)
 
 	return cdc
@@ -197,9 +201,9 @@ func NewEthermintApp(
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
-	app.mm.SetOrderBeginBlockers(mint.ModuleName, distr.ModuleName, slashing.ModuleName, evmtypes.ModuleName)
+	app.mm.SetOrderBeginBlockers(evmtypes.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName)
 
-	app.mm.SetOrderEndBlockers(crisis.ModuleName, gov.ModuleName, staking.ModuleName, evmtypes.ModuleName)
+	app.mm.SetOrderEndBlockers(evmtypes.ModuleName, crisis.ModuleName, gov.ModuleName, staking.ModuleName)
 
 	// NOTE: The genutils module must occur after staking so that pools are
 	// properly initialized with tokens from genesis accounts.
