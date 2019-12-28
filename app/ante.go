@@ -156,7 +156,7 @@ func ethAnteHandler(
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
 
 	// no need to increment sequence on CheckTx or RecheckTx
-	if !(ctx.IsCheckTx() && !sim) {
+	if !sim {
 		// increment sequence of sender
 		acc := ak.GetAccount(ctx, senderAddr)
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
