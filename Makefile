@@ -17,8 +17,9 @@ COMMIT_HASH := $(shell git rev-parse --short HEAD)
 BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
-ETHERMINT_DAEMON_BINARY = emintd
-ETHERMINT_CLI_BINARY = emintcli
+APP_NAME = emint
+ETHERMINT_DAEMON_BINARY = ${APP_NAME}d
+ETHERMINT_CLI_BINARY = ${APP_NAME}cli
 GO_MOD=GO111MODULE=on
 
 all: tools verify install
