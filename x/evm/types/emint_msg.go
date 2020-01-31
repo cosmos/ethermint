@@ -12,9 +12,10 @@ var (
 	_ sdk.Msg = EmintMsg{}
 )
 
-const (
+var (
+	appName = "emint"
 	// TypeEmintMsg defines the type string of Emint message
-	TypeEmintMsg = "emint_tx"
+	TypeEmintMsg = appName + "_tx"
 )
 
 // EmintMsg implements a cosmos equivalent structure for Ethereum transactions

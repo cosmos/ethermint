@@ -14,6 +14,8 @@ import (
 	tm "github.com/tendermint/tendermint/types"
 )
 
+var appName = "ethermint"
+
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
@@ -23,7 +25,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		case *types.EmintMsg:
 			return handleEmintMsg(ctx, keeper, *msg)
 		default:
-			errMsg := fmt.Sprintf("Unrecognized ethermint Msg type: %v", msg.Type())
+			errMsg := fmt.Sprintf("Unrecognized %s Msg type: %v", appName, msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
 	}

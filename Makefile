@@ -14,12 +14,14 @@
 
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
-BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
+SET_PROJECT_APPNAME = -X main.appName=${APP_NAME} -X main.appNameLong=${APP_NAME} -X app.appName=${APP_NAME} -X app.shortAppName=${APP_NAME} -X mintkey.appName=${APP_NAME} -X types.appName=${APP_NAME} -X types.appNameLong=${APP_NAME} -X evm.appName=${APP_NAME} 
+BUILD_FLAGS_NAME_SET = ${if ${APP_NAME}, $(SET_PROJECT_APPNAME), }
+BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH} $(BUILD_FLAGS_NAME_SET)"
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
-APP_NAME = emint
-ETHERMINT_DAEMON_BINARY = ${APP_NAME}d
-ETHERMINT_CLI_BINARY = ${APP_NAME}cli
+EMINT = emint
+ETHERMINT_DAEMON_BINARY = ${if ${APP_NAME},${APP_NAME}d,emintd}
+ETHERMINT_CLI_BINARY = ${if ${APP_NAME},${APP_NAME}cli,emintcli}
 GO_MOD=GO111MODULE=on
 
 all: tools verify install

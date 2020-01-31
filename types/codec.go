@@ -10,9 +10,10 @@ func init() {
 	RegisterCodec(typesCodec)
 }
 
-const (
+var (
+	appName = "emint"
 	// Amino encoding name
-	EthermintAccountName = "emint/Account"
+	EthermintAccountName = appName + "/Account"
 )
 
 // RegisterCodec registers all the necessary types with amino for the given

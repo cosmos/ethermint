@@ -25,6 +25,9 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 )
 
+var appName = "emint"
+var appNameLong = "Ethermint"
+
 func main() {
 	cobra.EnableCommandSorting = false
 
@@ -44,8 +47,8 @@ func main() {
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "emintcli",
-		Short: "Ethermint Client",
+		Use:   (appName + "cli"),
+		Short: (appNameLong + " Client"),
 	}
 
 	// Add --chain-id to persistent flags and mark it required

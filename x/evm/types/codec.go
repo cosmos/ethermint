@@ -6,6 +6,7 @@ import (
 
 // ModuleCdc defines the codec to be used by evm module
 var ModuleCdc = codec.New()
+var appNameLong = "ethermint"
 
 func init() {
 	cdc := codec.New()
@@ -17,6 +18,6 @@ func init() {
 
 // RegisterCodec registers concrete types and interfaces on the given codec.
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(&EthereumTxMsg{}, "ethermint/MsgEthereumTx", nil)
-	cdc.RegisterConcrete(&EmintMsg{}, "ethermint/MsgEmint", nil)
+	cdc.RegisterConcrete(&EthereumTxMsg{}, appNameLong+"/MsgEthereumTx", nil)
+	cdc.RegisterConcrete(&EmintMsg{}, appNameLong+"/MsgEmint", nil)
 }

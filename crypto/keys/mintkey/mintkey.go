@@ -17,10 +17,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
 )
 
-const (
-	blockTypePrivKey = "ETHERMINT PRIVATE KEY"
-	blockTypeKeyInfo = "ETHERMINT KEY INFO"
-	blockTypePubKey  = "ETHERMINT PUBLIC KEY"
+var appName = "ETHERMINT"
+
+var (
+	blockTypePrivKey = appName + " PRIVATE KEY"
+	blockTypeKeyInfo = appName + " KEY INFO"
+	blockTypePubKey  = appName + " PUBLIC KEY"
 )
 
 // BcryptSecurityParameter is the security parameter var,
