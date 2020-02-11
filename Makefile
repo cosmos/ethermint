@@ -14,7 +14,7 @@
 
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
-SET_PROJECT_APPNAME = -X main.appName=${APP_NAME} -X main.appNameLong=${APP_NAME} -X app.appName=${APP_NAME} -X app.shortAppName=${APP_NAME} -X mintkey.appName=${APP_NAME} -X types.appName=${APP_NAME} -X types.appNameLong=${APP_NAME} -X evm.appName=${APP_NAME} 
+SET_PROJECT_APPNAME = -X main.appName=${APP_NAME} -X main.shortAppName=${APP_NAME} -X app.appName=${APP_NAME} -X app.shortAppName=${APP_NAME} -X types.appName=${APP_NAME} -X types.shortAppName=${APP_NAME} -X evm.appName=${APP_NAME} 
 BUILD_FLAGS_NAME_SET = ${if ${APP_NAME}, $(SET_PROJECT_APPNAME), }
 BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH} $(BUILD_FLAGS_NAME_SET)"
 DOCKER_TAG = unstable

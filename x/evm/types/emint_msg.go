@@ -13,9 +13,9 @@ var (
 )
 
 var (
-	appName = "emint"
+	shortAppName = "emint"
 	// TypeEmintMsg defines the type string of Emint message
-	TypeEmintMsg = appName + "_tx"
+	TypeEmintMsg = shortAppName + "_tx"
 )
 
 // EmintMsg implements a cosmos equivalent structure for Ethereum transactions

@@ -4,13 +4,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var appNameLong = "ethermint"
+var appName = "ethermint"
+
+// DefaultCodespace reserves a Codespace for Ethermint.
+var DefaultCodespace sdk.CodespaceType = sdk.CodespaceType(appName)
 
 // Ethermint error codes
-var (
-	// DefaultCodespace reserves a Codespace for Ethermint.
-	DefaultCodespace sdk.CodespaceType = sdk.CodespaceType(appNameLong)
-
+const (
 	CodeInvalidValue   sdk.CodeType = 1
 	CodeInvalidChainID sdk.CodeType = 2
 	CodeInvalidSender  sdk.CodeType = 3

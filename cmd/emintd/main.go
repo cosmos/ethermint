@@ -35,8 +35,8 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-var appName string = "emint"
-var appNameLong string = "Ethermint"
+var shortAppName string = "emint"
+var appName string = "Ethermint"
 
 func main() {
 	cobra.EnableCommandSorting = false
@@ -60,8 +60,8 @@ func main() {
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
-		Use:               (appName + "d"),
-		Short:             (appNameLong + " App Daemon (server)"),
+		Use:               (shortAppName + "d"),
+		Short:             (appName + " App Daemon (server)"),
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 	// CLI commands to initialize the chain

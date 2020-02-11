@@ -35,8 +35,8 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-const appName = "Ethermint"
-const shortAppName = "emint"
+var appName = "Ethermint"
+var shortAppName = "emint"
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI

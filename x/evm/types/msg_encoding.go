@@ -15,7 +15,7 @@ func init() {
 
 // RegisterAmino registers all crypto related types in the given (amino) codec.
 func RegisterAmino(cdc *codec.Codec) {
-	cdc.RegisterConcrete(EncodableTxData{}, appNameLong+"/EncodedMessage", nil)
+	cdc.RegisterConcrete(EncodableTxData{}, "ethermint/EncodedMessage", nil)
 }
 
 // EncodableTxData implements the Ethereum transaction data structure. It is used
