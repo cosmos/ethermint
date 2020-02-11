@@ -11,7 +11,6 @@ func init() {
 }
 
 const (
-	shortAppName = "emint"
 	// Amino encoding name
 	EthermintAccountName = "emint/Account"
 )
