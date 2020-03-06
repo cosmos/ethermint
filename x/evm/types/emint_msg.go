@@ -1,9 +1,9 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	"github.com/cosmos/ethermint/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
@@ -58,14 +58,14 @@ func (msg EmintMsg) GetSignBytes() []byte {
 }
 
 // ValidateBasic runs stateless checks on the message
-func (msg EmintMsg) ValidateBasic() sdk.Error {
+func (msg EmintMsg) ValidateBasic() error {
 	if msg.Price.Sign() != 1 {
-		return types.ErrInvalidValue(fmt.Sprintf("Price must be positive: %x", msg.Price))
+		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
 	}
 
 	// Amount can be 0
 	if msg.Amount.Sign() == -1 {
-		return types.ErrInvalidValue(fmt.Sprintf("amount cannot be negative: %x", msg.Amount))
+		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
 	}
 
 	return nil

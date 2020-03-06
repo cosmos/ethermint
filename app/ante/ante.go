@@ -121,9 +121,8 @@ func ethAnteHandler(
 	defer func() {
 		if r := recover(); r != nil {
 			switch rType := r.(type) {
-			case sdk.ErrorOutOfGas:
-				log := fmt.Sprintf("out of gas in location: %v", rType.Descriptor)
-				err = sdk.ErrOutOfGas(log)
+			case sdkerrors.ErrorOutOfGas:
+				err = sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "out of gas in location: %v", rType.Descriptor)
 			default:
 				panic(r)
 			}
@@ -141,9 +140,9 @@ func ethAnteHandler(
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
 
-		feeAmt := sdk.Coins{
+		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
-		}
+		)
 
 		err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 		if err != nil {

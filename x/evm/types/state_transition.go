@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	emint "github.com/cosmos/ethermint/types"
 )
 
@@ -27,14 +28,16 @@ type StateTransition struct {
 	Simulate     bool
 }
 
+// TODO: move to keeper
 // TransitionCSDB performs an evm state transition from a transaction
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result) {
+// TODO: update godoc, it doesn't explain what it does in depth.
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result, error) {
 
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		return nil, sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
+		return nil, nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -76,13 +79,12 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
-	vmenv := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
+	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
 
 	var (
 		ret         []byte
 		leftOverGas uint64
 		addr        common.Address
-		vmerr       error
 		senderRef   = vm.AccountRef(st.Sender)
 	)
 
@@ -91,14 +93,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
 
-	if contractCreation {
-		ret, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
-	} else {
+	switch contractCreation {
+	case true:
+		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 
-		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
+
+	gasConsumed := gasLimit - leftOverGas
 
 	// Resets nonce to value pre state transition
 	st.Csdb.SetNonce(st.Sender, currentNonce)
@@ -116,15 +121,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 	returnData := EncodeReturnData(addr, bloomFilter, ret)
 
 	// handle errors
-	if vmerr != nil {
-		res := emint.ErrVMExecution(vmerr.Error()).Result()
-		if vmerr == vm.ErrOutOfGas || vmerr == vm.ErrCodeStoreOutOfGas {
-			res = sdk.ErrOutOfGas("EVM execution went out of gas").Result()
+	if err != nil {
+		if err == vm.ErrOutOfGas || err == vm.ErrCodeStoreOutOfGas {
+			return nil, nil, sdkerrors.Wrap(err, "evm execution went out of gas")
 		}
-		res.Data = returnData
+
 		// Consume gas before returning
-		ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-		return nil, res
+		ctx.GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		return nil, nil, err
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -136,7 +140,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
+	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
-	return bloomInt, sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
+	return bloomInt, &sdk.Result{Data: returnData}, nil
 }

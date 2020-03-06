@@ -16,10 +16,10 @@ import (
 
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case types.EthereumTxMsg:
-			return handleETHTxMsg(ctx, k, msg)
+			return handleEthTxMsg(ctx, k, msg)
 		case *types.EmintMsg:
 			return handleEmintMsg(ctx, k, *msg)
 		default:
@@ -29,29 +29,30 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-// Handle an Ethereum specific tx
-func handleETHTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) sdk.Result {
+// handleEthTxMsg handles an Ethereum specific tx
+func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Result, error) {
+	// TODO: move to client
 	if err := msg.ValidateBasic(); err != nil {
-		return err.Result()
+		return nil, err
 	}
 
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
+		return sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
 
 	// Verify signature and retrieve sender address
 	sender, err := msg.VerifySig(intChainID)
 	if err != nil {
-		return emint.ErrInvalidSender(err.Error()).Result()
+		return err
 	}
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authutils.GetTxEncoder(types.ModuleCdc)
 	txBytes, err := txEncoder(msg)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return err
 	}
 	txHash := tmtypes.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
@@ -73,11 +74,16 @@ func handleETHTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) sdk.Resu
 	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get())
 	k.TxCount.Increment()
 
-	bloom, res := st.TransitionCSDB(ctx)
-	if res.IsOK() {
-		k.Bloom.Or(k.Bloom, bloom)
+	// TODO: move to keeper
+	bloom, res, err := st.TransitionCSDB(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return res
+
+	// TODO: why is this necessary ?
+	k.Bloom.Or(k.Bloom, bloom)
+
+	return res, nil
 }
 
 func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
