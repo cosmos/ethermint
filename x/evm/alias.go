@@ -26,4 +26,5 @@ var (
 type (
 	Keeper          = keeper.Keeper
 	QueryResAccount = types.QueryResAccount
+	GenesisState    = types.GenesisState
 )

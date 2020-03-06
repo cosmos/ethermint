@@ -9,14 +9,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
-func NewHandler(k keeper.Keeper) sdk.Handler {
+func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case types.EthereumTxMsg:
@@ -31,7 +30,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 }
 
 // Handle an Ethereum specific tx
-func handleETHTxMsg(ctx sdk.Context, k keeper.Keeper, msg types.EthereumTxMsg) sdk.Result {
+func handleETHTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -81,7 +80,7 @@ func handleETHTxMsg(ctx sdk.Context, k keeper.Keeper, msg types.EthereumTxMsg) s
 	return res
 }
 
-func handleEmintMsg(ctx sdk.Context, k keeper.Keeper, msg types.EmintMsg) sdk.Result {
+func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}

@@ -67,11 +67,11 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule is struct that defines variables used within module
 type AppModule struct {
 	AppModuleBasic
-	keeper keeper.Keeper
+	keeper Keeper
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k keeper.Keeper) AppModule {
+func NewAppModule(k Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
