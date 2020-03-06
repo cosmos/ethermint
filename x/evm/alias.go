@@ -7,23 +7,23 @@ import (
 
 const (
 	QueryProtocolVersion = types.QueryProtocolVersion
-	QueryBalance = types.QueryBalance
-	QueryBlockNumber = types.QueryBlockNumber
-	QueryStorage = types.QueryStorage
-	QueryCode = types.QueryCode
-	QueryNonce = types.QueryNonce
-	QueryHashToHeight = types.QueryHashToHeight
-	QueryTxLogs = types.QueryTxLogs
-	QueryLogsBloom = types.QueryLogsBloom
-	QueryLogs = types.QueryLogs
-	QueryAccount = types.QueryAccount
+	QueryBalance         = types.QueryBalance
+	QueryBlockNumber     = types.QueryBlockNumber
+	QueryStorage         = types.QueryStorage
+	QueryCode            = types.QueryCode
+	QueryNonce           = types.QueryNonce
+	QueryHashToHeight    = types.QueryHashToHeight
+	QueryTxLogs          = types.QueryTxLogs
+	QueryLogsBloom       = types.QueryLogsBloom
+	QueryLogs            = types.QueryLogs
+	QueryAccount         = types.QueryAccount
 )
 
 var (
-	NewKeeper                     = keeper.NewKeeper
+	NewKeeper = keeper.NewKeeper
 )
 
 type (
-	Keeper                = keeper.Keeper
+	Keeper          = keeper.Keeper
 	QueryResAccount = types.QueryResAccount
 )
