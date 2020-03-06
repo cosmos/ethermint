@@ -20,8 +20,8 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
+	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -47,7 +47,7 @@ func newTestSetup() testSetup {
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeIAVL, db)
 
 	if err := ms.LoadLatestVersion(); err != nil {
-		cmn.Exit(err.Error())
+		tmos.Exit(err.Error())
 	}
 
 	cdc := MakeCodec()
