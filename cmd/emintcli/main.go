@@ -9,20 +9,21 @@ import (
 	"github.com/cosmos/ethermint/rpc"
 
 	"github.com/tendermint/go-amino"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	sdkrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	"github.com/cosmos/cosmos-sdk/version"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/libs/cli"
 )
 
 func main() {
@@ -49,21 +50,23 @@ func main() {
 	}
 
 	// Add --chain-id to persistent flags and mark it required
-	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
 		return initConfig(rootCmd)
 	}
 
 	// Construct Root Command
 	rootCmd.AddCommand(
-		sdkrpc.StatusCommand(),
+		clientrpc.StatusCommand(),
 		client.ConfigCmd(emintapp.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
 		rpc.EmintServeCmd(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 		keyCommands(),
-		client.LineBreak,
+		flags.LineBreak,
+		version.Cmd,
+		flags.NewCompletionCmd(rootCmd, true),
 	)
 
 	executor := cli.PrepareMainCmd(rootCmd, "EM", emintapp.DefaultCLIHome)
@@ -82,10 +85,10 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 
 	queryCmd.AddCommand(
 		authcmd.GetAccountCmd(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
 		authcmd.QueryTxCmd(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 	)
 
 	// add modules' query commands
@@ -102,12 +105,12 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 
 	txCmd.AddCommand(
 		bankcmd.SendTxCmd(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 		authcmd.GetSignCommand(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 		authcmd.GetBroadcastCommand(cdc),
 		authcmd.GetEncodeCommand(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 	)
 
 	// add modules' tx commands
@@ -130,7 +133,7 @@ func initConfig(cmd *cobra.Command) error {
 			return err
 		}
 	}
-	if err := viper.BindPFlag(client.FlagChainID, cmd.PersistentFlags().Lookup(client.FlagChainID)); err != nil {
+	if err := viper.BindPFlag(flags.FlagChainID, cmd.PersistentFlags().Lookup(flags.FlagChainID)); err != nil {
 		return err
 	}
 	if err := viper.BindPFlag(cli.EncodingFlag, cmd.PersistentFlags().Lookup(cli.EncodingFlag)); err != nil {

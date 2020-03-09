@@ -13,15 +13,18 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
-	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
+
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
 
-func exportEthKeyCommand() *cobra.Command {
+const appName = "ethermint"
+
+func unsafeExportEthKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "export-eth-key <name>",
-		Short: "Export an Ethereum private key",
-		Long:  `Export an Ethereum private key unencrypted to use in dev tooling **UNSAFE**`,
+		Use:   "unsafe-export-eth-key <name>",
+		Short: "**UNSAFE** Export an Ethereum private key",
+		Long:  `**UNSAFE** Export an Ethereum private key unencrypted to use in dev tooling`,
 		Args:  cobra.ExactArgs(1),
 		RunE:  runExportCmd,
 	}
@@ -29,24 +32,31 @@ func exportEthKeyCommand() *cobra.Command {
 }
 
 func runExportCmd(cmd *cobra.Command, args []string) error {
-	kb, err := clientkeys.NewKeyringFromHomeFlag(cmd.InOrStdin())
+
+	inBuf := bufio.NewReader(cmd.InOrStdin())
+
+	kb, err := keys.NewKeyring(
+		appName,
+		viper.GetString(flags.FlagKeyringBackend),
+		viper.GetString(flags.FlagHome),
+		inBuf,
+	)
 	if err != nil {
-		return err
+		return nil
 	}
 
-	buf := bufio.NewReader(cmd.InOrStdin())
 	decryptPassword := ""
 	conf := true
 	keyringBackend := viper.GetString(flags.FlagKeyringBackend)
 	switch keyringBackend {
-	case flags.KeyringBackendFile:
+	case keys.BackendFile:
 		decryptPassword, err = input.GetPassword(
 			"**WARNING this is an unsafe way to export your unencrypted private key**\nEnter key password:",
-			buf)
-	case flags.KeyringBackendOS:
+			inBuf)
+	case keys.BackendOS:
 		conf, err = input.GetConfirmation(
 			"**WARNING** this is an unsafe way to export your unencrypted private key, are you sure?",
-			buf)
+			inBuf)
 	}
 	if err != nil || !conf {
 		return err

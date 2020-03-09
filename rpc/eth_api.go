@@ -211,7 +211,7 @@ func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.U
 		return nil
 	}
 
-	n := hexutil.Uint(block.Block.NumTxs)
+	n := hexutil.Uint(len(block.Block.Txs))
 	return &n
 }
 
@@ -494,7 +494,7 @@ func (e *PublicEthAPI) getEthBlockByNumber(value int64, fullTx bool) (map[string
 	if err != nil {
 		return nil, err
 	}
-	header := block.BlockMeta.Header
+	header := block.Block.Header
 
 	gasLimit, err := e.getGasLimit()
 	if err != nil {
@@ -637,7 +637,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.BlockMeta.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
 	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
 	if err != nil {
@@ -671,7 +671,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	if err != nil {
 		return nil, err
 	}
-	header := block.BlockMeta.Header
+	header := block.Block.Header
 
 	txs := block.Block.Txs
 	if uint64(idx) >= uint64(len(txs)) {
@@ -700,7 +700,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.BlockMeta.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
 	// Convert tx bytes to eth transaction
 	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)

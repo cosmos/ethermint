@@ -39,7 +39,7 @@ type Config struct {
 	RPCVHosts []string
 }
 
-// EmintServeCmd creates a CLI command to start Cosmos LCD server with web3 RPC API and
+// EmintServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
 func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
