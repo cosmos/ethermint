@@ -13,11 +13,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
+	"github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/log"
@@ -54,7 +56,7 @@ func newTestSetup() testSetup {
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
 	// Set params keeper and subspaces
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 
 	ctx := sdk.NewContext(
@@ -68,7 +70,7 @@ func newTestSetup() testSetup {
 	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
 	accKeeper.SetParams(ctx, types.DefaultParams())
 	supplyKeeper := mock.NewDummySupplyKeeper(accKeeper)
-	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
+	anteHandler := ante.NewAnteHandler(accKeeper, supplyKeeper)
 
 	return testSetup{
 		ctx:          ctx,

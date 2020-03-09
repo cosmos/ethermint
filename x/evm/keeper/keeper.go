@@ -21,7 +21,7 @@ import (
 // to the StateDB interface
 type Keeper struct {
 	cdc           *codec.Codec
-	storeKey      sdk.StoreKey
+	blockKey      sdk.StoreKey
 	CommitStateDB *types.CommitStateDB
 	TxCount       *count
 	Bloom         *big.Int
@@ -43,12 +43,13 @@ func (c *count) Reset() {
 }
 
 // NewKeeper generates new evm module keeper
-func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey,
-	storeKey sdk.StoreKey, cdc *codec.Codec) Keeper {
+func NewKeeper(
+	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak auth.AccountKeeper,
+) Keeper {
 	return Keeper{
 		cdc:           cdc,
-		storeKey:      storeKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, ak, storageKey, codeKey),
+		blockKey:      blockKey,
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
 		TxCount:       new(count),
 		Bloom:         big.NewInt(0),
 	}
@@ -61,7 +62,7 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey,
 
 // SetBlockHashMapping sets the mapping from block consensus hash to block height
 func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
-	store := ctx.KVStore(k.storeKey)
+	store := ctx.KVStore(k.blockKey)
 	if !bytes.Equal(hash, []byte{}) {
 		store.Set(hash, k.cdc.MustMarshalBinaryLengthPrefixed(height))
 	}
@@ -69,7 +70,7 @@ func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64)
 
 // GetBlockHashMapping gets block height from block consensus hash
 func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64) {
-	store := ctx.KVStore(k.storeKey)
+	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
 	if bytes.Equal(bz, []byte{}) {
 		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
@@ -85,7 +86,7 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
-	store := ctx.KVStore(k.storeKey)
+	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
 	if !bytes.Equal(heightHash, []byte{}) {
 		store.Set(heightHash, bloom.Bytes())
@@ -94,7 +95,7 @@ func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, hei
 
 // GetBlockBloomMapping gets bloombits from block height
 func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bloom {
-	store := ctx.KVStore(k.storeKey)
+	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
 	bloom := store.Get(heightHash)
 	if bytes.Equal(heightHash, []byte{}) {

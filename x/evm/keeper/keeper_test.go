@@ -25,10 +25,10 @@ import (
 var (
 	address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
 
-	accKey     = sdk.NewKVStoreKey("acc")
-	storageKey = sdk.NewKVStoreKey(evmtypes.EvmStoreKey)
-	codeKey    = sdk.NewKVStoreKey(evmtypes.EvmCodeKey)
-	blockKey   = sdk.NewKVStoreKey(evmtypes.EvmBlockKey)
+	accKey   = sdk.NewKVStoreKey("acc")
+	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
+	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
+	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
 
 	logger = tmlog.NewNopLogger()
 )
@@ -52,16 +52,16 @@ func TestDBStorage(t *testing.T) {
 	// The ParamsKeeper handles parameter storage for the application
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoBaseAccount)
-	ek := NewKeeper(ak, storageKey, codeKey, blockKey, cdc)
+	ek := NewKeeper(cdc, blockKey, codeKey, storeKey, ak)
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	// mount stores
-	keys := []*sdk.KVStoreKey{accKey, storageKey, codeKey, blockKey}
+	keys := []*sdk.KVStoreKey{accKey, storeKey, codeKey, blockKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}

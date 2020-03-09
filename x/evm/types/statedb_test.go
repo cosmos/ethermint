@@ -37,8 +37,8 @@ func newTestCodec() *codec.Codec {
 
 func setupStateDB() (*CommitStateDB, error) {
 	accKey := sdk.NewKVStoreKey("acc")
-	storageKey := sdk.NewKVStoreKey(EvmStoreKey)
-	codeKey := sdk.NewKVStoreKey(EvmCodeKey)
+	storageKey := sdk.NewKVStoreKey(StoreKey)
+	codeKey := sdk.NewKVStoreKey(CodeKey)
 	logger := tmlog.NewNopLogger()
 
 	db := dbm.NewMemDB()
@@ -50,7 +50,7 @@ func setupStateDB() (*CommitStateDB, error) {
 	// The ParamsKeeper handles parameter storage for the application
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoBaseAccount)
@@ -70,7 +70,7 @@ func setupStateDB() (*CommitStateDB, error) {
 
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
-	return NewCommitStateDB(ctx, ak, storageKey, codeKey), nil
+	return NewCommitStateDB(ctx, codeKey, storageKey, ak), nil
 }
 
 func TestBloomFilter(t *testing.T) {

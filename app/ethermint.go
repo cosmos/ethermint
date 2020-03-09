@@ -1,23 +1,21 @@
 package app
 
 import (
-	"encoding/json"
+	"io"
 	"os"
-
-	emintcrypto "github.com/cosmos/ethermint/crypto"
-	"github.com/cosmos/ethermint/x/evm"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
+	"github.com/cosmos/cosmos-sdk/x/evidence"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/mint"
@@ -28,11 +26,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/cosmos/ethermint/app/ante"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 	eminttypes "github.com/cosmos/ethermint/types"
-	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+	"github.com/cosmos/ethermint/x/evm"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
+	log "github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -63,6 +62,7 @@ var (
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
+		evidence.AppModuleBasic{},
 		evm.AppModuleBasic{},
 	)
 
@@ -123,6 +123,7 @@ type EthermintApp struct {
 	GovKeeper      gov.Keeper
 	CrisisKeeper   crisis.Keeper
 	ParamsKeeper   params.Keeper
+	EvidenceKeeper evidence.Keeper
 	EvmKeeper      evm.Keeper
 
 	// the module manager
@@ -141,23 +142,25 @@ type EthermintApp struct {
 func NewEthermintApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
 	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
-	) *EthermintApp {
+) *EthermintApp {
 	appCodec := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(appCodec), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 
 	keys := sdk.NewKVStoreKeys(
-		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
+		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, evm.StoreKey,
+		gov.StoreKey, params.StoreKey, evm.CodeKey, evm.StoreKey,
 	)
+	blockKey := sdk.NewKVStoreKey(evm.BlockKey)
+
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
 	app := &EthermintApp{
 		BaseApp:        bApp,
-		cdc:            cdc,
+		cdc:            appCodec,
 		invCheckPeriod: invCheckPeriod,
 		keys:           keys,
 		tkeys:          tkeys,
@@ -174,46 +177,55 @@ func NewEthermintApp(
 	app.subspaces[slashing.ModuleName] = app.ParamsKeeper.Subspace(slashing.DefaultParamspace)
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace).WithKeyTable(gov.ParamKeyTable())
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
-)
+	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
 
-		// add keepers
-		app.AccountKeeper = auth.NewAccountKeeper(
-			appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
-		)
-		app.BankKeeper = bank.NewBaseKeeper(
-			appCodec, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
-		)
-		app.SupplyKeeper = supply.NewKeeper(
-			appCodec, keys[supply.StoreKey], app.AccountKeeper, app.BankKeeper, maccPerms,
-		)
-		stakingKeeper := staking.NewKeeper(
-			appCodec, keys[staking.StoreKey], app.BankKeeper, app.SupplyKeeper, app.subspaces[staking.ModuleName],
-		)
-		app.MintKeeper = mint.NewKeeper(
-			appCodec, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
-			app.SupplyKeeper, auth.FeeCollectorName,
-		)
-		app.DistrKeeper = distr.NewKeeper(
-			appCodec, keys[distr.StoreKey], app.subspaces[distr.ModuleName], app.BankKeeper, &stakingKeeper,
-			app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
-		)
-		app.SlashingKeeper = slashing.NewKeeper(
-			appCodec, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
-		)
-		app.CrisisKeeper = crisis.NewKeeper(
-			app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
-		)
-		app.EvmKeeper = evm.NewKeeper(
-			app.accountKeeper, keys[evmtypes.EvmStoreKey], keys[evmtypes.EvmCodeKey], blockKey, cdc,
-		)
+	// add keepers
+	app.AccountKeeper = auth.NewAccountKeeper(
+		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
+	)
+	app.BankKeeper = bank.NewBaseKeeper(
+		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+	)
+	app.SupplyKeeper = supply.NewKeeper(
+		appCodec, keys[supply.StoreKey], app.AccountKeeper, app.BankKeeper, maccPerms,
+	)
+	stakingKeeper := staking.NewKeeper(
+		appCodec, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+	)
+	app.MintKeeper = mint.NewKeeper(
+		appCodec, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
+		app.SupplyKeeper, auth.FeeCollectorName,
+	)
+	app.DistrKeeper = distr.NewKeeper(
+		appCodec, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
+		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
+	)
+	app.SlashingKeeper = slashing.NewKeeper(
+		appCodec, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
+	)
+	app.CrisisKeeper = crisis.NewKeeper(
+		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
+	)
+	app.EvmKeeper = evm.NewKeeper(
+		appCodec, keys[evm.BlockKey], keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+	)
+
+	// create evidence keeper with router
+	evidenceKeeper := evidence.NewKeeper(
+		app.cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
+	)
+	evidenceRouter := evidence.NewRouter()
+	// TODO: Register evidence routes.
+	evidenceKeeper.SetRouter(evidenceRouter)
+	app.EvidenceKeeper = *evidenceKeeper
 
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
-		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper))
 	app.GovKeeper = gov.NewKeeper(
-		appCodec, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.SupplyKeeper,
+		app.cdc, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.SupplyKeeper,
 		&stakingKeeper, govRouter,
 	)
 
@@ -227,30 +239,36 @@ func NewEthermintApp(
 	// must be passed by reference here.
 	app.mm = module.NewManager(
 		genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx),
-		auth.NewAppModule(app.AccountKeeper, app.SupplyKeeper),
+		auth.NewAppModule(app.AccountKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.BankKeeper, app.AccountKeeper),
-		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
-		mint.NewAppModule(app.MintKeeper, app.SupplyKeeper),
-		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
-		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
+		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
+		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.SupplyKeeper),
+		mint.NewAppModule(app.MintKeeper),
+		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
+		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.SupplyKeeper, app.StakingKeeper),
+		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
+		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
-	app.mm.SetOrderBeginBlockers(evmtypes.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName)
-	app.mm.SetOrderEndBlockers(evmtypes.ModuleName, crisis.ModuleName, gov.ModuleName, staking.ModuleName)
+	app.mm.SetOrderBeginBlockers(
+		evm.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName,
+		evidence.ModuleName,
+	)
+	app.mm.SetOrderEndBlockers(
+		evm.ModuleName, crisis.ModuleName, gov.ModuleName, staking.ModuleName,
+	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
 	// properly initialized with tokens from genesis accounts.
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
-		crisis.ModuleName, genutil.ModuleName, evmtypes.ModuleName,
+		crisis.ModuleName, genutil.ModuleName, evidence.ModuleName, evm.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -261,14 +279,14 @@ func NewEthermintApp(
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
 	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(app.AccountKeeper, app.SupplyKeeper),
+		auth.NewAppModule(app.AccountKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.BankKeeper, app.AccountKeeper),
-		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
-		mint.NewAppModule(app.MintKeeper, app.SupplyKeeper),
-		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
-		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
-		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
+		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.SupplyKeeper),
+		mint.NewAppModule(app.MintKeeper),
+		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
+		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.SupplyKeeper, app.StakingKeeper),
+		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(), // NOTE: only used for simulation to generate randomized param change proposals
 	)
 
@@ -277,7 +295,9 @@ func NewEthermintApp(
 	// initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tkeys)
+
 	// Mount block hash mapping key as DB (no need for historical queries)
+	// TODO: why does this need to be always StoreTypeDB?
 	app.MountStore(blockKey, sdk.StoreTypeDB)
 
 	// initialize BaseApp

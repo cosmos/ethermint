@@ -41,9 +41,9 @@ type CommitStateDB struct {
 	// StateDB interface. Perhaps there is a better way.
 	ctx sdk.Context
 
-	ak         auth.AccountKeeper
-	storageKey sdk.StoreKey
-	codeKey    sdk.StoreKey
+	codeKey       sdk.StoreKey
+	storeKey      sdk.StoreKey // i.e storage key
+	accountKeeper auth.AccountKeeper
 
 	// maps that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -84,12 +84,12 @@ type CommitStateDB struct {
 //
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
-func NewCommitStateDB(ctx sdk.Context, ak auth.AccountKeeper, storageKey, codeKey sdk.StoreKey) *CommitStateDB {
+func NewCommitStateDB(ctx sdk.Context, codeKey, storeKey sdk.StoreKey, ak auth.AccountKeeper) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:               ctx,
-		ak:                ak,
-		storageKey:        storageKey,
 		codeKey:           codeKey,
+		storeKey:          storeKey,
+		accountKeeper:     ak,
 		stateObjects:      make(map[ethcmn.Address]*stateObject),
 		stateObjectsDirty: make(map[ethcmn.Address]struct{}),
 		logs:              make(map[ethcmn.Hash][]*ethtypes.Log),
@@ -425,13 +425,13 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) {
-	csdb.ak.SetAccount(csdb.ctx, so.account)
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 }
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
-	csdb.ak.RemoveAccount(csdb.ctx, so.account)
+	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 }
 
 // ----------------------------------------------------------------------------
@@ -542,7 +542,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 // UpdateAccounts updates the nonce and coin balances of accounts
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
-		currAcc := csdb.ak.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
+		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		emintAcc, ok := currAcc.(*emint.Account)
 		if ok {
 			if (so.Balance() != emintAcc.Balance().BigInt()) || (so.Nonce() != emintAcc.GetSequence()) {
@@ -601,9 +601,9 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	// copy all the basic fields, initialize the memory ones
 	state := &CommitStateDB{
 		ctx:               csdb.ctx,
-		ak:                csdb.ak,
-		storageKey:        csdb.storageKey,
 		codeKey:           csdb.codeKey,
+		storeKey:          csdb.storeKey,
+		accountKeeper:     csdb.accountKeeper,
 		stateObjects:      make(map[ethcmn.Address]*stateObject, len(csdb.journal.dirties)),
 		stateObjectsDirty: make(map[ethcmn.Address]struct{}, len(csdb.journal.dirties)),
 		refund:            csdb.refund,
@@ -662,8 +662,9 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		return nil
 	}
 
-	store := csdb.ctx.KVStore(csdb.storageKey)
+	store := csdb.ctx.KVStore(csdb.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, so.Address().Bytes())
+	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
 		key := ethcmn.BytesToHash(iter.Key())
@@ -677,7 +678,6 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		cb(key, ethcmn.BytesToHash(value))
 	}
 
-	iter.Close()
 	return nil
 }
 
@@ -697,7 +697,7 @@ func (csdb *CommitStateDB) GetOrNewStateObject(addr ethcmn.Address) StateObject 
 func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *stateObject) {
 	prevObj = csdb.getStateObject(addr)
 
-	acc := csdb.ak.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
+	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 	newObj = newObject(csdb, acc)
 	newObj.setNonce(0) // sets the object to dirty
 
@@ -731,7 +731,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 	}
 
 	// otherwise, attempt to fetch the account from the account mapper
-	acc := csdb.ak.GetAccount(csdb.ctx, addr.Bytes())
+	acc := csdb.accountKeeper.GetAccount(csdb.ctx, addr.Bytes())
 	if acc == nil {
 		csdb.setError(fmt.Errorf("no account found for address: %X", addr.Bytes()))
 		return nil

@@ -220,7 +220,7 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 
 	for key, value := range so.dirtyStorage {
 		delete(so.dirtyStorage, key)
@@ -325,7 +325,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 
 	// otherwise load the value from the KVStore
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
