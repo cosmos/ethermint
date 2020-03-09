@@ -25,6 +25,7 @@ type Keeper struct {
 	blockKey sdk.StoreKey
 	txCount  *count
 	bloom    *big.Int
+	logs 	[]*ethtypes.Log
 }
 
 type count int

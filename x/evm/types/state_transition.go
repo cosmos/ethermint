@@ -28,13 +28,13 @@ type StateTransition struct {
 }
 
 // TransitionCSDB performs an evm state transition from a transaction
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result) {
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) ([]*ethtypes.Log , *big.Int, sdk.Result) {
 
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		return nil, sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
+		return nil, nil, sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -106,8 +106,9 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
 	var bloomFilter ethtypes.Bloom
+	var logs []*ethtypes.Log
 	if st.THash != nil && !st.Simulate {
-		logs := csdb.GetLogs(*st.THash)
+		logs = csdb.GetLogs(*st.THash)
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
@@ -124,7 +125,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 		res.Data = returnData
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-		return nil, res
+		return nil, nil, res
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -138,5 +139,5 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, sdk.Result)
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
 
-	return bloomInt, sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
+	return logs, bloomInt, sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
 }

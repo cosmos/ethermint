@@ -18,10 +18,10 @@ import (
 func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
-		case types.EthereumTxMsg:
+		case *types.EthereumTxMsg:
 			return handleETHTxMsg(ctx, keeper, msg)
 		case *types.EmintMsg:
-			return handleEmintMsg(ctx, keeper, *msg)
+			return handleEmintMsg(ctx, keeper, msg)
 		default:
 			errMsg := fmt.Sprintf("Unrecognized ethermint Msg type: %v", msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -30,7 +30,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 }
 
 // Handle an Ethereum specific tx
-func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk.Result {
+func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg *types.EthereumTxMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -56,6 +56,10 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	txHash := tm.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
 
+	if keeper.csdb == nil {
+		panic("keeper.csdb is nil")
+	}
+
 	st := types.StateTransition{
 		Sender:       sender,
 		AccountNonce: msg.Data.AccountNonce,
@@ -73,14 +77,15 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg types.EthereumTxMsg) sdk
 	keeper.csdb.Prepare(ethHash, common.Hash{}, keeper.txCount.get())
 	keeper.txCount.increment()
 
-	bloom, res := st.TransitionCSDB(ctx)
+	logs, bloom, res := st.TransitionCSDB(ctx)
 	if res.IsOK() {
 		keeper.bloom.Or(keeper.bloom, bloom)
+		keeper.logs = logs
 	}
 	return res
 }
 
-func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Result {
+func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg *types.EmintMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -112,6 +117,6 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg types.EmintMsg) sdk.Resu
 	keeper.csdb.Prepare(common.Hash{}, common.Hash{}, keeper.txCount.get()) // Cannot provide tx hash
 	keeper.txCount.increment()
 
-	_, res := st.TransitionCSDB(ctx)
+	_, _, res := st.TransitionCSDB(ctx)
 	return res
 }
