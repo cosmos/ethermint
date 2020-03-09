@@ -18,9 +18,12 @@ import (
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
-// to the StateDB interface
+// to the StateDB interface.
 type Keeper struct {
-	cdc           *codec.Codec
+	// Amino codec
+	cdc *codec.Codec
+	// Store key required to update the block bloom filter mappings needed for the
+	// Web3 API
 	blockKey      sdk.StoreKey
 	CommitStateDB *types.CommitStateDB
 	TxCount       *count
