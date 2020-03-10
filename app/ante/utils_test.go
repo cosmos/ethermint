@@ -13,8 +13,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
-	. "github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/app"
+	. "github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"

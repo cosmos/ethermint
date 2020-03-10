@@ -22,7 +22,6 @@ import (
 
 	"github.com/cosmos/ethermint/core"
 	"github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -48,11 +47,10 @@ var (
 	// miner501    = ethcmn.HexToAddress("0x35e8e5dC5FBd97c5b421A80B596C030a2Be2A04D")
 	genInvestor = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0")
 
-	// paramsKey  = sdk.NewKVStoreKey("params")
-	// tParamsKey = sdk.NewTransientStoreKey("transient_params")
 	accKey   = sdk.NewKVStoreKey("acc")
-	storeKey = sdk.NewKVStoreKey(evm.StoreKey)
-	codeKey  = sdk.NewKVStoreKey(evm.CodeKey)
+	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
+	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
+	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
 
 	logger = tmlog.NewNopLogger()
 
@@ -187,6 +185,7 @@ func TestImportBlocks(t *testing.T) {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
 
+	cms.MountStoreWithDB(blockKey, sdk.StoreTypeDB, nil)
 	cms.SetPruning(sdkstore.PruneNothing)
 
 	// load latest version (root)
@@ -270,8 +269,7 @@ func TestImportBlocks(t *testing.T) {
 }
 
 func createStateDB(ctx sdk.Context, ak auth.AccountKeeper) *evmtypes.CommitStateDB {
-	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
-	return stateDB
+	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining

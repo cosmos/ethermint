@@ -3,11 +3,11 @@ package ante_test
 import (
 	"math/big"
 	"testing"
-	
+
 	"github.com/stretchr/testify/require"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	
+
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"

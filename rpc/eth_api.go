@@ -117,6 +117,9 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
 	)
+	if err != nil {
+		return addresses, err
+	}
 
 	infos, err := keybase.List()
 	if err != nil {
