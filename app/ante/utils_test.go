@@ -1,4 +1,4 @@
-package app
+package ante_test
 
 import (
 	"fmt"
@@ -13,7 +13,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
-	"github.com/cosmos/ethermint/app/ante"
+	. "github.com/cosmos/ethermint/app/ante"
+	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -52,7 +53,7 @@ func newTestSetup() testSetup {
 		tmos.Exit(err.Error())
 	}
 
-	cdc := MakeCodec()
+	cdc := app.MakeCodec()
 	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
 	// Set params keeper and subspaces
@@ -70,7 +71,7 @@ func newTestSetup() testSetup {
 	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
 	accKeeper.SetParams(ctx, types.DefaultParams())
 	supplyKeeper := mock.NewDummySupplyKeeper(accKeeper)
-	anteHandler := ante.NewAnteHandler(accKeeper, supplyKeeper)
+	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
 
 	return testSetup{
 		ctx:          ctx,

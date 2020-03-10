@@ -152,7 +152,7 @@ func NewEthermintApp(
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, evm.CodeKey, evm.StoreKey,
+		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.CodeKey, evm.StoreKey,
 	)
 	blockKey := sdk.NewKVStoreKey(evm.BlockKey)
 
