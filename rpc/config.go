@@ -8,10 +8,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
-	emintkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
+
 	"github.com/cosmos/ethermint/app"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -57,14 +58,17 @@ func registerRoutes(rs *lcd.RestServer) {
 	var emintKey emintcrypto.PrivKeySecp256k1
 	if len(accountName) > 0 {
 		var err error
-		buf := bufio.NewReader(os.Stdin)
+		inBuf := bufio.NewReader(os.Stdin)
+
 		keyringBackend := viper.GetString(flags.FlagKeyringBackend)
 		passphrase := ""
 		switch keyringBackend {
-		case flags.KeyringBackendOS:
+		case keys.BackendOS:
 			break
-		case flags.KeyringBackendFile:
-			passphrase, err = input.GetPassword("Enter password to unlock key for RPC API: ", buf)
+		case keys.BackendFile:
+			passphrase, err = input.GetPassword(
+				"Enter password to unlock key for RPC API: ",
+				inBuf)
 			if err != nil {
 				panic(err)
 			}
@@ -100,7 +104,12 @@ func registerRoutes(rs *lcd.RestServer) {
 }
 
 func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
-	keybase, err := emintkeys.NewKeyringFromHomeFlag(os.Stdin)
+	keybase, err := keys.NewKeyring(
+		"ethermint",
+		viper.GetString(flags.FlagKeyringBackend),
+		viper.GetString(flags.FlagHome),
+		os.Stdin,
+	)
 	if err != nil {
 		return
 	}

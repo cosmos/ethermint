@@ -7,7 +7,7 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -24,13 +24,12 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	emintapp "github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/client/genaccounts"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
-	tmlog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -71,7 +70,7 @@ func main() {
 		genutilcli.ValidateGenesisCmd(ctx, cdc, emintapp.ModuleBasics),
 
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
-		genaccounts.AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
+		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 	)
 
 	// Tendermint node base commands
@@ -85,17 +84,17 @@ func main() {
 	}
 }
 
-func newApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return emintapp.NewEthermintApp(logger, db, true, 0,
+func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
+	return emintapp.NewEthermintApp(logger, db, traceStore, true, 0,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))))
 }
 
 func exportAppStateAndTMValidators(
-	logger tmlog.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
+	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		emintApp := emintapp.NewEthermintApp(logger, db, true, 0)
+		emintApp := emintapp.NewEthermintApp(logger, db, traceStore, true, 0)
 		err := emintApp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
@@ -103,7 +102,7 @@ func exportAppStateAndTMValidators(
 		return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	emintApp := emintapp.NewEthermintApp(logger, db, true, 0)
+	emintApp := emintapp.NewEthermintApp(logger, db, traceStore, true, 0)
 
 	return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
@@ -115,13 +114,12 @@ func withChainIDValidation(baseCmd *cobra.Command) *cobra.Command {
 
 	// Function to replace command's RunE function
 	chainIDVerify := func(cmd *cobra.Command, args []string) error {
-		chainIDFlag := viper.GetString(client.FlagChainID)
+		chainIDFlag := viper.GetString(flags.FlagChainID)
 
 		// Verify that the chain-id entered is a base 10 integer
 		_, ok := new(big.Int).SetString(chainIDFlag, 10)
 		if !ok {
-			return fmt.Errorf(
-				fmt.Sprintf("Invalid chainID: %s, must be base-10 integer format", chainIDFlag))
+			return fmt.Errorf("invalid chainID: %s, must be base-10 integer format", chainIDFlag)
 		}
 
 		return baseRunE(cmd, args)

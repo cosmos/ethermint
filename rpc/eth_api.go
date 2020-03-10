@@ -2,13 +2,15 @@ package rpc
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
 	"strconv"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/spf13/viper"
+
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -30,10 +32,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/spf13/viper"
 )
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -108,10 +110,13 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 	e.keybaseLock.Lock()
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
-	keybase, err := keys.NewKeyringFromHomeFlag(e.cliCtx.Input)
-	if err != nil {
-		return addresses, err
-	}
+
+	keybase, err := keys.NewKeyring(
+		"ethermint",
+		viper.GetString(flags.FlagKeyringBackend),
+		viper.GetString(flags.FlagHome),
+		e.cliCtx.Input,
+	)
 
 	infos, err := keybase.List()
 	if err != nil {
@@ -278,8 +283,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(chainID, 10)
 	if !ok {
-		return common.Hash{}, fmt.Errorf(
-			fmt.Sprintf("invalid chainID: %s, must be integer format", chainID))
+		return common.Hash{}, fmt.Errorf("invalid chainID: %s, must be integer format", chainID)
 	}
 
 	// Sign transaction
@@ -353,8 +357,11 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *m
 	}
 
 	_, _, ret, err := types.DecodeReturnData(result.Data)
+	if err != nil {
+		return []byte{}, err
+	}
 
-	return (hexutil.Bytes)(ret), err
+	return (hexutil.Bytes)(ret), nil
 }
 
 // account indicates the overriding fields of account during the execution of
@@ -371,8 +378,11 @@ type account struct {
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }
 
-// DoCall performs a simulated call operation through the evm
-func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int) (sdk.Result, error) {
+// DoCall performs a simulated call operation through the evm. It returns the
+// estimated gas used on the operation or an error if fails.
+func (e *PublicEthAPI) doCall(
+	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
+) (*sdk.Result, error) {
 	// Set height for historical queries
 	ctx := e.cliCtx
 	if blockNr.Int64() != 0 {
@@ -437,32 +447,38 @@ func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasC
 	txEncoder := authutils.GetTxEncoder(ctx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
-		return sdk.Result{}, err
+		return nil, err
 	}
 
 	// Transaction simulation through query
 	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
-		return sdk.Result{}, err
+		return nil, err
 	}
 
 	var simResult sdk.Result
 	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
-		return sdk.Result{}, err
+		return nil, err
 	}
 
-	return simResult, nil
+	return &simResult, nil
 }
 
-// EstimateGas estimates gas usage for the given smart contract call.
-func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
-	result, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+// EstimateGas returns an estimate of gas usage for the given smart contract call.
+// It adds 1,000 gas to the returned value instead of using the gas adjustment
+// param from the SDK.
+func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
+	_, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
 
 	// TODO: change 1000 buffer for more accurate buffer (must be at least 1 to not run OOG)
-	return hexutil.Uint64(result.GasUsed + 1000), nil
+
+	// FIXME: check how to retrieve GasInfo
+	estimatedGas := uint64(0)
+	gas := estimatedGas + 1000
+	return gas, nil
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -873,12 +889,12 @@ func (e *PublicEthAPI) getGasLimit() (int64, error) {
 
 // generateFromArgs populates tx message with args (used in RPC API)
 func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.EthereumTxMsg, err error) {
-	var nonce uint64
-
-	var gasLimit uint64
+	var (
+		nonce    uint64
+		gasLimit uint64
+	)
 
 	amount := (*big.Int)(args.Value)
-
 	gasPrice := (*big.Int)(args.GasPrice)
 
 	if args.GasPrice == nil {
@@ -900,7 +916,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 	}
 
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
-		return nil, fmt.Errorf(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+		return nil, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
@@ -917,6 +933,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 			return nil, fmt.Errorf("contract creation without any data provided")
 		}
 	}
+
 	if args.Gas == nil {
 		callArgs := CallArgs{
 			From:     &args.From,
@@ -926,8 +943,10 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 			Value:    args.Value,
 			Data:     args.Data,
 		}
-		g, _ := e.EstimateGas(callArgs)
-		gasLimit = uint64(g)
+		gasLimit, err = e.EstimateGas(callArgs)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
