@@ -124,13 +124,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 
 	// Encode all necessary data into slice of bytes to return in sdk result
 	res := &ResultData{
-		addr:  addr,
-		bloom: bloomFilter,
-		logs:  logs,
-		ret:   ret,
+		Address: addr,
+		Bloom:   bloomFilter,
+		Logs:    logs,
+		Ret:     ret,
 	}
 	resultData, err := EncodeResultData(res)
 	if err != nil {
+		// TODO: where are the ethermint error types?
 		//returnData.Result = sdk.Err()
 		return returnData
 	}

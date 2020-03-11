@@ -52,11 +52,12 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
+// ResultData represents the data returned in an comsos-sdk/types.Result
 type ResultData struct {
-	addr  ethcmn.Address
-	bloom ethtypes.Bloom
-	logs  []*ethtypes.Log
-	ret   []byte
+	Address ethcmn.Address
+	Bloom   ethtypes.Bloom
+	Logs    []*ethtypes.Log
+	Ret     []byte
 }
 
 // EncodeReturnData takes all of the necessary data from the EVM execution

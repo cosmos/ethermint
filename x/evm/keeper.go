@@ -103,10 +103,12 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bl
 	return ethtypes.BytesToBloom(bloom)
 }
 
+// SetBlockLogs sets the block's logs in the KVStore
 func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log) {
 
 }
 
+// GetBlockLogs gets the logs for a block from the KVStore
 func (k *Keeper) GetBlockLogs(ctx sdk.Context) []*ethtypes.Log {
 	return nil
 }

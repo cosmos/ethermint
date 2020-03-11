@@ -49,7 +49,6 @@ func TestHandler_Logs(t *testing.T) {
 
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
-	//address := ethcmn.BytesToAddress([]byte{0})
 
 	priv1, _ := crypto.GenerateKey()
 
@@ -82,4 +81,6 @@ func TestHandler_Logs(t *testing.T) {
 	t.Log(result.Data)
 	t.Log(ek.bloom)
 	t.Log(ek.logs)
+
+	// TODO: assert that we can set/get logs from the keeper
 }
