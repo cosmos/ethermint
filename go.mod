@@ -14,6 +14,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
+	github.com/go-kit/kit v0.9.0
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/huin/goupnp v1.0.0 // indirect

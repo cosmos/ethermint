@@ -31,7 +31,7 @@ import (
 	"github.com/cosmos/ethermint/x/evm"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	log "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -364,6 +364,21 @@ func (app *EthermintApp) BlacklistedAccAddrs() map[string]bool {
 // SimulationManager implements the SimulationApp interface
 func (app *EthermintApp) SimulationManager() *module.SimulationManager {
 	return app.sm
+}
+
+// GetKey returns the KVStoreKey for the provided store key.
+//
+// NOTE: This is solely to be used for testing purposes.
+func (app *EthermintApp) GetKey(storeKey string) *sdk.KVStoreKey {
+	return app.keys[storeKey]
+}
+
+// Codec returns Ethermint's codec.
+//
+// NOTE: This is solely to be used for testing purposes as it may be desirable
+// for modules to register their own custom testing types.
+func (app *EthermintApp) Codec() *codec.Codec {
+	return app.cdc
 }
 
 // GetMaccPerms returns a copy of the module account permissions
