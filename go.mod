@@ -40,7 +40,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tendermint/ed25519 v0.0.0-20171027050219-d8387025d2b9 // indirect
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/go-crypto v0.9.0
+	github.com/tendermint/go-crypto v0.9.0 // indirect
 	github.com/tendermint/tendermint v0.33.0
 	github.com/tendermint/tm-db v0.4.0
 	github.com/tendermint/tmlibs v0.9.0 // indirect
