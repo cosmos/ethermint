@@ -18,7 +18,7 @@ func BeginBlock(k Keeper, ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.SetBlockBloomMapping(ctx, bloom, req.Header.GetHeight()-1)
 	k.SetBlockHashMapping(ctx, req.Header.LastBlockId.GetHash(), req.Header.GetHeight()-1)
 	k.Bloom = big.NewInt(0)
-	k.TxCount.Reset()
+	k.TxCount = 0
 }
 
 // EndBlock updates the accounts and commits states objects to the KV Store

@@ -70,8 +70,8 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Re
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get())
-	k.TxCount.Increment()
+	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	k.TxCount++
 
 	// TODO: move to keeper
 	bloom, res, err := st.TransitionCSDB(ctx)
@@ -114,8 +114,8 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) (*sdk.Result,
 	}
 
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
-	k.TxCount.Increment()
+	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount) // Cannot provide tx hash
+	k.TxCount++
 
 	_, res, err := st.TransitionCSDB(ctx)
 	if err != nil {

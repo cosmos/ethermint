@@ -19,4 +19,5 @@ func init() {
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&EthereumTxMsg{}, "ethermint/MsgEthereumTx", nil)
 	cdc.RegisterConcrete(&EmintMsg{}, "ethermint/MsgEmint", nil)
+	cdc.RegisterConcrete(EncodableTxData{}, "ethermint/EncodedMessage", nil)
 }

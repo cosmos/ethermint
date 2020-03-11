@@ -54,11 +54,11 @@ func TestEmintEncodingAndDecoding(t *testing.T) {
 
 	msg := NewEmintMsg(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 
-	raw, err := cdc.MarshalBinaryBare(msg)
+	raw, err := ModuleCdc.MarshalBinaryBare(msg)
 	require.NoError(t, err)
 
 	var msg2 EmintMsg
-	err = cdc.UnmarshalBinaryBare(raw, &msg2)
+	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
 	require.NoError(t, err)
 
 	require.Equal(t, msg.AccountNonce, msg2.AccountNonce)

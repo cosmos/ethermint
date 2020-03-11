@@ -25,23 +25,8 @@ type Keeper struct {
 	// Web3 API
 	blockKey      sdk.StoreKey
 	CommitStateDB *types.CommitStateDB
-	TxCount       *count
+	TxCount       int
 	Bloom         *big.Int
-}
-
-// TODO: move to types
-type count int
-
-func (c *count) Get() int {
-	return (int)(*c)
-}
-
-func (c *count) Increment() {
-	*c++
-}
-
-func (c *count) Reset() {
-	*c = 0
 }
 
 // NewKeeper generates new evm module keeper
@@ -52,7 +37,7 @@ func NewKeeper(
 		cdc:           cdc,
 		blockKey:      blockKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
-		TxCount:       new(count),
+		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
 }
