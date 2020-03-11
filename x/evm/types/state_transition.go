@@ -123,7 +123,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := EncodeResultData(addr, bloomFilter, logs, ret)
+	res := &ResultData{
+		addr:  addr,
+		bloom: bloomFilter,
+		logs:  logs,
+		ret:   ret,
+	}
+	resultData, err := EncodeResultData(res)
+	if err != nil {
+		//returnData.Result = sdk.Err()
+		return returnData
+	}
 
 	// handle errors
 	if vmerr != nil {
