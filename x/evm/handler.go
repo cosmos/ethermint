@@ -30,11 +30,6 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // handleEthTxMsg handles an Ethereum specific tx
 func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
-	// TODO: move to client
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -94,7 +89,6 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		),
 	})
 
-	// TODO: handle contract creation event
 	if msg.Data.Recipient != nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
@@ -110,10 +104,6 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 }
 
 func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -158,7 +148,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		),
 	})
 	
-	// TODO: handle contract creation event
 	if msg.Recipient != nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(

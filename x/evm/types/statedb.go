@@ -746,3 +746,10 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 	csdb.stateObjects[so.Address()] = so
 }
+
+// RawDump returns a raw state dump.
+//
+// TODO: Implement if we need it, especially for the RPC API.
+func (csdb *CommitStateDB) RawDump() ethstate.Dump {
+	return ethstate.Dump{}
+}
