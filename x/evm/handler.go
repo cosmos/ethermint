@@ -11,17 +11,17 @@ import (
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
-	tm "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
-func NewHandler(keeper Keeper) sdk.Handler {
+func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case *types.EthereumTxMsg:
-			return handleETHTxMsg(ctx, keeper, msg)
+			return handleETHTxMsg(ctx, k, msg)
 		case *types.EmintMsg:
-			return handleEmintMsg(ctx, keeper, msg)
+			return handleEmintMsg(ctx, k, msg)
 		default:
 			errMsg := fmt.Sprintf("Unrecognized ethermint Msg type: %v", msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -30,7 +30,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 }
 
 // Handle an Ethereum specific tx
-func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg *types.EthereumTxMsg) sdk.Result {
+func handleETHTxMsg(ctx sdk.Context, k Keeper, msg *types.EthereumTxMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -53,11 +53,11 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg *types.EthereumTxMsg) sd
 	if err != nil {
 		return sdk.ErrInternal(err.Error()).Result()
 	}
-	txHash := tm.Tx(txBytes).Hash()
+	txHash := tmtypes.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
 
-	if keeper.csdb == nil {
-		panic("keeper.csdb is nil")
+	if k.CommitStateDB == nil {
+		panic("keeper.CommitStateDB is nil")
 	}
 
 	st := types.StateTransition{
@@ -68,24 +68,25 @@ func handleETHTxMsg(ctx sdk.Context, keeper Keeper, msg *types.EthereumTxMsg) sd
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         keeper.csdb.WithContext(ctx),
+		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
 		THash:        &ethHash,
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	keeper.csdb.Prepare(ethHash, common.Hash{}, keeper.txCount.get())
-	keeper.txCount.increment()
+	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get())
+	k.TxCount.Increment()
 
 	returnData := st.TransitionCSDB(ctx)
 	if returnData.Result.IsOK() {
-		keeper.bloom.Or(keeper.bloom, returnData.Bloom)
-		keeper.logs = returnData.Logs
+		k.Bloom.Or(k.Bloom, returnData.Bloom)
+		k.CurrentLogs = returnData.Logs
 	}
+
 	return returnData.Result
 }
 
-func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg *types.EmintMsg) sdk.Result {
+func handleEmintMsg(ctx sdk.Context, k Keeper, msg *types.EmintMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -103,7 +104,7 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg *types.EmintMsg) sdk.Res
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         keeper.csdb.WithContext(ctx),
+		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
 		Simulate:     ctx.IsCheckTx(),
 	}
@@ -114,8 +115,8 @@ func handleEmintMsg(ctx sdk.Context, keeper Keeper, msg *types.EmintMsg) sdk.Res
 	}
 
 	// Prepare db for logs
-	keeper.csdb.Prepare(common.Hash{}, common.Hash{}, keeper.txCount.get()) // Cannot provide tx hash
-	keeper.txCount.increment()
+	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
+	k.TxCount.Increment()
 
 	returnData := st.TransitionCSDB(ctx)
 	return returnData.Result

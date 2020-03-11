@@ -4,16 +4,19 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/types"
 	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
-	"github.com/cosmos/ethermint/x/evm/types"
-	//ethcmn "github.com/ethereum/go-ethereum/common"
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -33,6 +36,29 @@ import (
 // 	"opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x11 PUSH32 0x775A94827B8FD9B519D36CD827093C664F93347070A554F65E4A6F56CD738898 PUSH1 0x40 MLOAD PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 LOG2 PUSH1 0x35 DUP1 PUSH1 0x4B PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE PUSH1 0x0 DUP1 REVERT INVALID LOG1 PUSH6 0x627A7A723058 KECCAK256 PUSH13 0xAB665F0F557620554BB45ADF26 PUSH8 0x8D2BD349B8A4314 0xbd SELFDESTRUCT KECCAK256 0x5e 0xe8 DIFFICULTY 0xe EXTCODECOPY 0x24 STOP 0x29 ",
 // 	"sourceMap": "25:119:0:-;;;90:52;8:9:-1;5:2;;;30:1;27;20:12;5:2;90:52:0;132:2;126:9;;;;;;;;;;25:119;;;;;;"
 // }
+
+var (
+	address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
+
+	accKey     = sdk.NewKVStoreKey("acc")
+	storageKey = sdk.NewKVStoreKey(evmtypes.EvmStoreKey)
+	codeKey    = sdk.NewKVStoreKey(evmtypes.EvmCodeKey)
+	blockKey   = sdk.NewKVStoreKey(evmtypes.EvmBlockKey)
+
+	logger = tmlog.NewNopLogger()
+)
+
+func newTestCodec() *codec.Codec {
+	cdc := codec.New()
+
+	evmtypes.RegisterCodec(cdc)
+	types.RegisterCodec(cdc)
+	auth.RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+
+	return cdc
+}
 
 func TestHandler_Logs(t *testing.T) {
 	// create logger, codec and root multi-store
@@ -57,7 +83,7 @@ func TestHandler_Logs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tx := types.NewEthereumTxMsg(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx := evmtypes.NewEthereumTxMsg(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(1), priv1.ToECDSA())
 
 	db := dbm.NewMemDB()
@@ -79,8 +105,8 @@ func TestHandler_Logs(t *testing.T) {
 
 	result := handleETHTxMsg(ctx, ek, tx)
 	t.Log(result.Data)
-	t.Log(ek.bloom)
-	t.Log(ek.logs)
+	t.Log(ek.Bloom)
+	t.Log(ek.CurrentLogs)
 
 	// TODO: assert that we can set/get logs from the keeper
 }
