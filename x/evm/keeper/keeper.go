@@ -9,7 +9,6 @@ import (
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/ethermint/x/evm/types"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -47,7 +46,7 @@ func (c *count) Reset() {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak auth.AccountKeeper,
+	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak types.AccountKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
