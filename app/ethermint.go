@@ -207,7 +207,7 @@ func NewEthermintApp(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.EvmKeeper = evm.NewKeeper(
-		appCodec, keys[evm.BlockKey], keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+		appCodec, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
 	)
 
 	// create evidence keeper with router

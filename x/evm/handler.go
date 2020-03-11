@@ -79,7 +79,7 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Re
 		return nil, err
 	}
 
-	// TODO: why is this necessary ?
+	// update block bloom filter
 	k.Bloom.Or(k.Bloom, bloom)
 
 	return res, nil
