@@ -27,14 +27,23 @@ type StateTransition struct {
 	Simulate     bool
 }
 
+// ReturnData represents what's returned from a transition
+type ReturnData struct {
+	Logs   []*ethtypes.Log
+	Bloom  *big.Int
+	Result sdk.Result
+}
+
 // TransitionCSDB performs an evm state transition from a transaction
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) ([]*ethtypes.Log , *big.Int, sdk.Result) {
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
+	returnData := new(ReturnData)
 
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		return nil, nil, sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
+		returnData.Result = sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
+		return returnData
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -114,7 +123,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) ([]*ethtypes.Log , *bi
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	returnData := EncodeReturnData(addr, bloomFilter, ret)
+	resultData := EncodeResultData(addr, bloomFilter, logs, ret)
 
 	// handle errors
 	if vmerr != nil {
@@ -122,10 +131,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) ([]*ethtypes.Log , *bi
 		if vmerr == vm.ErrOutOfGas || vmerr == vm.ErrCodeStoreOutOfGas {
 			res = sdk.ErrOutOfGas("EVM execution went out of gas").Result()
 		}
-		res.Data = returnData
+		res.Data = resultData
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-		return nil, nil, res
+		returnData.Result = res
+		return returnData
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -139,5 +149,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) ([]*ethtypes.Log , *bi
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
 
-	return logs, bloomInt, sdk.Result{Data: returnData, GasUsed: st.GasLimit - leftOverGas}
+	returnData.Logs = logs
+	returnData.Bloom = bloomInt
+	returnData.Result = sdk.Result{Data: resultData, GasUsed: st.GasLimit - leftOverGas}
+	return returnData
 }

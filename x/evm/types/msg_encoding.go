@@ -47,7 +47,7 @@ func unmarshalAmino(td *EncodableTxData, text string) (err error) {
 }
 
 // MarshalAmino defines custom encoding scheme for TxData
-func (td TxData) MarshalAmino() (string, error) {
+func (td *TxData) MarshalAmino() (string, error) {
 	e := EncodableTxData{
 		AccountNonce: td.AccountNonce,
 		Price:        utils.MarshalBigInt(td.Price),

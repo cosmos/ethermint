@@ -25,7 +25,7 @@ type Keeper struct {
 	blockKey sdk.StoreKey
 	txCount  *count
 	bloom    *big.Int
-	logs 	[]*ethtypes.Log
+	logs     []*ethtypes.Log
 }
 
 type count int
@@ -101,6 +101,14 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bl
 		panic(fmt.Errorf("block with bloombits %s not found", bloom))
 	}
 	return ethtypes.BytesToBloom(bloom)
+}
+
+func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log) {
+
+}
+
+func (k *Keeper) GetBlockLogs(ctx sdk.Context) []*ethtypes.Log {
+	return nil
 }
 
 // ----------------------------------------------------------------------------
