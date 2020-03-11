@@ -28,8 +28,7 @@ var big8 = big.NewInt(8)
 
 // message type and route constants
 const (
-	TypeEthereumTxMsg  = "ethereum_tx"
-	RouteEthereumTxMsg = RouterKey
+	TypeEthereumTxMsg = "ethereum_tx"
 )
 
 // EthereumTxMsg encapsulates an Ethereum transaction as an SDK message.
@@ -120,7 +119,7 @@ func newEthereumTxMsg(
 }
 
 // Route returns the route value of an EthereumTxMsg.
-func (msg EthereumTxMsg) Route() string { return RouteEthereumTxMsg }
+func (msg EthereumTxMsg) Route() string { return RouterKey }
 
 // Type returns the type value of an EthereumTxMsg.
 func (msg EthereumTxMsg) Type() string { return TypeEthereumTxMsg }
@@ -143,10 +142,6 @@ func (msg EthereumTxMsg) ValidateBasic() error {
 // To returns the recipient address of the transaction. It returns nil if the
 // transaction is a contract creation.
 func (msg EthereumTxMsg) To() *ethcmn.Address {
-	if msg.Data.Recipient == nil {
-		return nil
-	}
-
 	return msg.Data.Recipient
 }
 

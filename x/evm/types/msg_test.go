@@ -28,7 +28,7 @@ func TestMsgEthereumTx(t *testing.T) {
 	require.Nil(t, msg2.Data.Recipient)
 
 	msg3 := NewEthereumTxMsg(0, &addr, nil, 100000, nil, []byte("test"))
-	require.Equal(t, msg3.Route(), RouteEthereumTxMsg)
+	require.Equal(t, msg3.Route(), RouterKey)
 	require.Equal(t, msg3.Type(), TypeEthereumTxMsg)
 	require.Panics(t, func() { msg3.GetSigners() })
 	require.Panics(t, func() { msg3.GetSignBytes() })
