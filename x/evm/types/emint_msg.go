@@ -13,8 +13,8 @@ var (
 )
 
 const (
-	// TypeMsgEthermint defines the type string of Emint message
-	TypeMsgEthermint = "emint_tx"
+	// TypeMsgEthermint defines the type string of Ethermint message
+	TypeMsgEthermint = "ethermint"
 )
 
 // MsgEthermint implements a cosmos equivalent structure for Ethereum transactions

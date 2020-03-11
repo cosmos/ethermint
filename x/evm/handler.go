@@ -82,6 +82,30 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, bloom)
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeEthereumTx,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Data.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.GetSigners()[0].String()),
+		),
+	})
+
+	// TODO: handle contract creation event
+	if msg.Data.Recipient != nil {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeEthereumTx,
+				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
+			)
+		)
+	}
+
+	// set the events to the result
+	res.Events = ctx.EventManager().Events()
 	return res, nil
 }
 
@@ -122,5 +146,29 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		return nil, err
 	}
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeEthermint,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
+		),
+	})
+	
+	// TODO: handle contract creation event
+	if msg.Recipient != nil {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeEthermint,
+				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Recipient.String()),
+			)
+		)
+	}
+
+	// set the events to the result
+	res.Events = ctx.EventManager().Events()
 	return res, nil
 }
