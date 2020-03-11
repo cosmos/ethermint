@@ -18,10 +18,10 @@ import (
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
-		case types.EthereumTxMsg:
+		case types.MsgEthereumTx:
 			return handleEthTxMsg(ctx, k, msg)
-		case *types.EmintMsg:
-			return handleEmintMsg(ctx, k, *msg)
+		case *types.MsgEthermint:
+			return handleMsgEthermint(ctx, k, *msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
 		}
@@ -29,7 +29,7 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 // handleEthTxMsg handles an Ethereum specific tx
-func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Result, error) {
+func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// TODO: move to client
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Re
 	return res, nil
 }
 
-func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) (*sdk.Result, error) {
+func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}

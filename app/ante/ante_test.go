@@ -53,7 +53,7 @@ func TestValidEthTx(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	requireValidTx(t, input.anteHandler, input.ctx, tx, false)
@@ -183,7 +183,7 @@ func TestEthInvalidSig(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	ctx := input.ctx.WithChainID("4")
@@ -208,7 +208,7 @@ func TestEthInvalidNonce(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
@@ -228,7 +228,7 @@ func TestEthInsufficientBalance(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
@@ -251,7 +251,7 @@ func TestEthInvalidIntrinsicGas(t *testing.T) {
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
 	gasLimit := uint64(1000)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, gasLimit, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, gasLimit, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
@@ -274,7 +274,7 @@ func TestEthInvalidMempoolFees(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
@@ -296,7 +296,7 @@ func TestEthInvalidChainID(t *testing.T) {
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
 	tx := newTestEthTx(input.ctx, ethMsg, priv1)
 	ctx := input.ctx.WithChainID("bad-chain-id")
