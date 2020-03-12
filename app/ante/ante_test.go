@@ -3,15 +3,19 @@ package ante_test
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
@@ -20,61 +24,58 @@ func requireValidTx(
 	t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, tx sdk.Tx, sim bool,
 ) {
 	_, err := anteHandler(ctx, tx, sim)
-	require.True(t, err == nil)
+	require.NoError(t, err)
 }
 
 func requireInvalidTx(
 	t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context,
 	tx sdk.Tx, sim bool,
 ) {
-
 	_, err := anteHandler(ctx, tx, sim)
 	require.Error(t, err)
 }
 
-func TestValidEthTx(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestValidEthTx() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc1 := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc1.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
-	acc2 := input.accKeeper.NewAccountWithAddress(input.ctx, addr2)
+	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	// nolint:errcheck
 	acc2.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	requireValidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	requireValidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestValidTx(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestValidTx() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
 
-	acc1 := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc1.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
-	acc2 := input.accKeeper.NewAccountWithAddress(input.ctx, addr2)
+	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	// nolint:errcheck
 	acc2.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	// require a valid SDK tx to pass
 	fee := newTestStdFee()
@@ -85,28 +86,27 @@ func TestValidTx(t *testing.T) {
 	accNums := []uint64{acc1.GetAccountNumber(), acc2.GetAccountNumber()}
 	accSeqs := []uint64{acc1.GetSequence(), acc2.GetSequence()}
 
-	tx := newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	tx := newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
 
-	requireValidTx(t, input.anteHandler, input.ctx, tx, false)
+	requireValidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestSDKInvalidSigs(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestSDKInvalidSigs() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
 	addr3, priv3 := newTestAddrKey()
 
-	acc1 := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc1.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
-	acc2 := input.accKeeper.NewAccountWithAddress(input.ctx, addr2)
+	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	// nolint:errcheck
 	acc2.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	fee := newTestStdFee()
 	msg1 := newTestMsg(addr1, addr2)
@@ -118,8 +118,8 @@ func TestSDKInvalidSigs(t *testing.T) {
 	accNums := []uint64{acc1.GetAccountNumber(), acc2.GetAccountNumber()}
 	accSeqs := []uint64{acc1.GetSequence(), acc2.GetSequence()}
 
-	tx := newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 
 	// require validation failure with invalid number of signers
 	msgs = []sdk.Msg{msg1}
@@ -128,8 +128,8 @@ func TestSDKInvalidSigs(t *testing.T) {
 	accNums = []uint64{acc1.GetAccountNumber(), acc2.GetAccountNumber()}
 	accSeqs = []uint64{acc1.GetSequence(), acc2.GetSequence()}
 
-	tx = newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx = newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 
 	// require validation failure with an invalid signer
 	msg2 := newTestMsg(addr1, addr3)
@@ -139,20 +139,19 @@ func TestSDKInvalidSigs(t *testing.T) {
 	accNums = []uint64{acc1.GetAccountNumber(), acc2.GetAccountNumber(), 0}
 	accSeqs = []uint64{acc1.GetSequence(), acc2.GetSequence(), 0}
 
-	tx = newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx = newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestSDKInvalidAcc(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestSDKInvalidAcc() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 
-	acc1 := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc1.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
 	fee := newTestStdFee()
 	msg1 := newTestMsg(addr1)
@@ -163,142 +162,141 @@ func TestSDKInvalidAcc(t *testing.T) {
 	accNums := []uint64{1}
 	accSeqs := []uint64{acc1.GetSequence()}
 
-	tx := newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 
 	// require validation failure with invalid sequence (nonce)
 	accNums = []uint64{acc1.GetAccountNumber()}
 	accSeqs = []uint64{1}
 
-	tx = newTestSDKTx(input.ctx, msgs, privKeys, accNums, accSeqs, fee)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx = newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestEthInvalidSig(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestEthInvalidSig() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	_, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	ctx := input.ctx.WithChainID("4")
-	requireInvalidTx(t, input.anteHandler, ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	ctx := suite.ctx.WithChainID("4")
+	requireInvalidTx(suite.T(), suite.anteHandler, ctx, tx, false)
 }
 
-func TestEthInvalidNonce(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestEthInvalidNonce() {
+
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc.SetCoins(newTestCoins())
 	// nolint:errcheck
 	acc.SetSequence(10)
-	input.accKeeper.SetAccount(input.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestEthInsufficientBalance(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestEthInsufficientBalance() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
-	input.accKeeper.SetAccount(input.ctx, acc)
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestEthInvalidIntrinsicGas(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestEthInvalidIntrinsicGas() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
 	gasLimit := uint64(1000)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, gasLimit, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, gasLimit, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestEthInvalidMempoolFees(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
-	input.ctx = input.ctx.WithMinGasPrices(sdk.DecCoins{sdk.NewDecCoin(types.DenomDefault, sdk.NewInt(500000))})
+func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
+	// setup app with checkTx = true
+	suite.app = app.Setup(true)
+	suite.ctx = suite.app.BaseApp.NewContext(true, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.SupplyKeeper)
 
+	suite.ctx = suite.ctx.WithMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoin(types.DenomDefault, sdk.NewInt(500000))))
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
-	// nolint:errcheck
-	acc.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc)
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
+
+	err := acc.SetCoins(newTestCoins())
+	suite.Require().NoError(err)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("payload"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	requireInvalidTx(t, input.anteHandler, input.ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func TestEthInvalidChainID(t *testing.T) {
-	input := newTestSetup()
-	input.ctx = input.ctx.WithBlockHeight(1)
+func (suite *AnteTestSuite) TestEthInvalidChainID() {
+	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
-	acc := input.accKeeper.NewAccountWithAddress(input.ctx, addr1)
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	// nolint:errcheck
 	acc.SetCoins(newTestCoins())
-	input.accKeeper.SetAccount(input.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
 	amt := big.NewInt(32)
 	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewEthereumTxMsg(0, &to, amt, 22000, gas, []byte("test"))
+	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
 
-	tx := newTestEthTx(input.ctx, ethMsg, priv1)
-	ctx := input.ctx.WithChainID("bad-chain-id")
-	requireInvalidTx(t, input.anteHandler, ctx, tx, false)
+	tx := newTestEthTx(suite.ctx, ethMsg, priv1)
+	ctx := suite.ctx.WithChainID("bad-chain-id")
+	requireInvalidTx(suite.T(), suite.anteHandler, ctx, tx, false)
 }

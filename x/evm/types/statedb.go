@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	emint "github.com/cosmos/ethermint/types"
 
@@ -43,7 +42,7 @@ type CommitStateDB struct {
 
 	codeKey       sdk.StoreKey
 	storeKey      sdk.StoreKey // i.e storage key
-	accountKeeper auth.AccountKeeper
+	accountKeeper AccountKeeper
 
 	// maps that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -84,7 +83,7 @@ type CommitStateDB struct {
 //
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
-func NewCommitStateDB(ctx sdk.Context, codeKey, storeKey sdk.StoreKey, ak auth.AccountKeeper) *CommitStateDB {
+func NewCommitStateDB(ctx sdk.Context, codeKey, storeKey sdk.StoreKey, ak AccountKeeper) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:               ctx,
 		codeKey:           codeKey,
@@ -746,4 +745,11 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 	csdb.stateObjects[so.Address()] = so
+}
+
+// RawDump returns a raw state dump.
+//
+// TODO: Implement if we need it, especially for the RPC API.
+func (csdb *CommitStateDB) RawDump() ethstate.Dump {
+	return ethstate.Dump{}
 }

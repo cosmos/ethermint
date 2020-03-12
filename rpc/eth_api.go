@@ -314,7 +314,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 
 // SendRawTransaction send a raw Ethereum transaction.
 func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
-	tx := new(types.EthereumTxMsg)
+	tx := new(types.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
@@ -439,7 +439,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Create new call message
-	msg := types.NewEmintMsg(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
@@ -606,10 +606,10 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.EthereumTxMsg, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
-	ethTx, ok := stdTx.(*types.EthereumTxMsg)
+	ethTx, ok := stdTx.(*types.MsgEthereumTx)
 	if !ok || err != nil {
 		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
 	}
@@ -618,7 +618,7 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.EthereumTxMsg, e
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx *types.EthereumTxMsg, blockHash common.Hash, blockNumber *uint64, index uint64) *Transaction {
+func newRPCTransaction(tx *types.MsgEthereumTx, blockHash common.Hash, blockNumber *uint64, index uint64) *Transaction {
 	// Verify signature and retrieve sender address
 	from, _ := tx.VerifySig(tx.ChainID())
 
@@ -891,7 +891,7 @@ func (e *PublicEthAPI) getGasLimit() (int64, error) {
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.EthereumTxMsg, err error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgEthereumTx, err error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
@@ -954,5 +954,5 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.Ethe
 		gasLimit = (uint64)(*args.Gas)
 	}
 
-	return types.NewEthereumTxMsg(nonce, args.To, amount, gasLimit, gasPrice, input), nil
+	return types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input), nil
 }

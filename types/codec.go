@@ -12,7 +12,7 @@ func init() {
 
 const (
 	// Amino encoding name
-	EthermintAccountName = "emint/Account"
+	EthermintAccountName = "ethermint/Account"
 )
 
 // RegisterCodec registers all the necessary types with amino for the given

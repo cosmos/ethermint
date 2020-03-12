@@ -80,6 +80,7 @@ type (
 func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	acc, ok := accProto.(*types.Account)
 	if !ok {
+		fmt.Println(accProto)
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 

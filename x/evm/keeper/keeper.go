@@ -9,7 +9,6 @@ import (
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/ethermint/x/evm/types"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -26,34 +25,19 @@ type Keeper struct {
 	// Web3 API
 	blockKey      sdk.StoreKey
 	CommitStateDB *types.CommitStateDB
-	TxCount       *count
+	TxCount       int
 	Bloom         *big.Int
-}
-
-// TODO: move to types
-type count int
-
-func (c *count) Get() int {
-	return (int)(*c)
-}
-
-func (c *count) Increment() {
-	*c++
-}
-
-func (c *count) Reset() {
-	*c = 0
 }
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak auth.AccountKeeper,
+	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak types.AccountKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		blockKey:      blockKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
-		TxCount:       new(count),
+		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
 }

@@ -18,10 +18,10 @@ import (
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
-		case types.EthereumTxMsg:
+		case types.MsgEthereumTx:
 			return handleEthTxMsg(ctx, k, msg)
-		case *types.EmintMsg:
-			return handleEmintMsg(ctx, k, *msg)
+		case *types.MsgEthermint:
+			return handleMsgEthermint(ctx, k, *msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
 		}
@@ -29,12 +29,7 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 // handleEthTxMsg handles an Ethereum specific tx
-func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Result, error) {
-	// TODO: move to client
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
+func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -70,8 +65,8 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Re
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get())
-	k.TxCount.Increment()
+	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	k.TxCount++
 
 	// TODO: move to keeper
 	bloom, res, err := st.TransitionCSDB(ctx)
@@ -82,14 +77,33 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) (*sdk.Re
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, bloom)
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeEthereumTx,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Data.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.GetSigners()[0].String()),
+		),
+	})
+
+	if msg.Data.Recipient != nil {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeEthereumTx,
+				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
+			),
+		)
+	}
+
+	// set the events to the result
+	res.Events = ctx.EventManager().Events()
 	return res, nil
 }
 
-func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) (*sdk.Result, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
+func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -114,13 +128,36 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) (*sdk.Result,
 	}
 
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
-	k.TxCount.Increment()
+	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount) // Cannot provide tx hash
+	k.TxCount++
 
 	_, res, err := st.TransitionCSDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeEthermint,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
+		),
+	})
+
+	if msg.Recipient != nil {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeEthermint,
+				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Recipient.String()),
+			),
+		)
+	}
+
+	// set the events to the result
+	res.Events = ctx.EventManager().Events()
 	return res, nil
 }

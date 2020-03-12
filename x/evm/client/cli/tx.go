@@ -86,7 +86,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewEmintMsg(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
+			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
 				sdk.NewInt(emint.DefaultGasPrice), data, from)
 
 			err = msg.ValidateBasic()
@@ -138,7 +138,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewEmintMsg(seq, nil, sdk.NewInt(amount), txBldr.Gas(),
+			msg := types.NewMsgEthermint(seq, nil, sdk.NewInt(amount), txBldr.Gas(),
 				sdk.NewInt(emint.DefaultGasPrice), data, from)
 
 			err = msg.ValidateBasic()
