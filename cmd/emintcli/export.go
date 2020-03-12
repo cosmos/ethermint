@@ -14,11 +14,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
-
-const appName = "ethermint"
 
 func unsafeExportEthKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,7 +35,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 
 	kb, err := keys.NewKeyring(
-		appName,
+		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		inBuf,

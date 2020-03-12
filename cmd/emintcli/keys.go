@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	emintCrypto "github.com/cosmos/ethermint/crypto"
 
@@ -52,18 +53,17 @@ func keyCommands() *cobra.Command {
 	return cmd
 }
 
-func getKeybase(dryrun bool, inBuf io.Reader) (keys.Keybase, error) {
-	if dryrun {
+func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
+	if transient {
 		return keys.NewInMemory(keys.WithKeygenFunc(ethermintKeygenFunc)), nil
 	}
 
 	return keys.NewKeyring(
-		"ethermint",
+		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
-		inBuf,
-		keys.WithKeygenFunc(ethermintKeygenFunc),
-	)
+		buf,
+		keys.WithKeygenFunc(ethermintKeygenFunc))
 }
 
 func runAddCmd(cmd *cobra.Command, args []string) error {
@@ -77,5 +77,5 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 }
 
 func ethermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (crypto.PrivKey, error) {
-	return emintCrypto.PrivKeySecp256k1(bz[:]), nil
+	return emintCrypto.PrivKeySecp256k1(bz), nil
 }

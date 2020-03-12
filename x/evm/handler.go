@@ -94,7 +94,7 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 			sdk.NewEvent(
 				types.EventTypeEthereumTx,
 				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
-			)
+			),
 		)
 	}
 
@@ -147,13 +147,13 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
 		),
 	})
-	
+
 	if msg.Recipient != nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeEthermint,
 				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Recipient.String()),
-			)
+			),
 		)
 	}
 
