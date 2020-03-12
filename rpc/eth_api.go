@@ -112,7 +112,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
 	keybase, err := keys.NewKeyring(
-		"ethermint",
+		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
