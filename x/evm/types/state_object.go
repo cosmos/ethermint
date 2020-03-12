@@ -77,10 +77,9 @@ type (
 	}
 )
 
-func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	acc, ok := accProto.(*types.Account)
 	if !ok {
-		fmt.Println(accProto)
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
@@ -346,7 +345,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newObject(db, so.account)
+	newStateObj := newStateObject(db, so.account)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()

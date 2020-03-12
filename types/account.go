@@ -47,7 +47,10 @@ type Account struct {
 // ProtoBaseAccount defines the prototype function for BaseAccount used for an
 // account mapper.
 func ProtoBaseAccount() exported.Account {
-	return &Account{BaseAccount: &auth.BaseAccount{}}
+	return &Account{
+		BaseAccount: &auth.BaseAccount{},
+		CodeHash:    []byte{},
+	}
 }
 
 // Balance returns the balance of an account.

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	emint "github.com/cosmos/ethermint/types"
 
@@ -697,7 +698,18 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 	prevObj = csdb.getStateObject(addr)
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
-	newObj = newObject(csdb, acc)
+	baseAccount, ok := acc.(*auth.BaseAccount)
+	if !ok {
+		panic("invalid account")
+	}
+
+	acc = &emint.Account{
+		BaseAccount: baseAccount,
+		CodeHash:    []byte{},
+	}
+	csdb.accountKeeper.SetAccount(csdb.ctx, acc)
+
+	newObj = newStateObject(csdb, acc)
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -737,7 +749,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 	}
 
 	// insert the state object into the live set
-	so := newObject(csdb, acc)
+	so := newStateObject(csdb, acc)
 	csdb.setStateObject(so)
 
 	return so

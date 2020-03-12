@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -31,7 +32,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 }
 
@@ -40,9 +41,8 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) TestDBStorage() {
-	suite.app.Commit()
-
 	// Perform state transitions
+	suite.app.EvmKeeper.CreateAccount(suite.ctx, address)
 	suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(5))
 	suite.app.EvmKeeper.SetNonce(suite.ctx, address, 4)
 	suite.app.EvmKeeper.SetState(suite.ctx, address, ethcmn.HexToHash("0x2"), ethcmn.HexToHash("0x3"))
