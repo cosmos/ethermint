@@ -10,25 +10,14 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/x/evm/keeper"
-	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
 )
 
-var (
-	address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
-
-	accKey   = sdk.NewKVStoreKey("acc")
-	storeKey = sdk.NewKVStoreKey(types.StoreKey)
-	codeKey  = sdk.NewKVStoreKey(types.CodeKey)
-	blockKey = sdk.NewKVStoreKey(types.BlockKey)
-
-	logger = tmlog.NewNopLogger()
-)
+var address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
 
 type KeeperTestSuite struct {
 	suite.Suite
