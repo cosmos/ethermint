@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/cosmos/ethermint/app/ante"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
-	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -87,11 +87,11 @@ func MakeCodec() *codec.Codec {
 	var cdc = codec.New()
 
 	ModuleBasics.RegisterCodec(cdc)
+	vesting.RegisterCodec(cdc)
 	cryptokeys.RegisterCodec(cdc) // temporary
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	emintcrypto.RegisterCodec(cdc)
-	eminttypes.RegisterCodec(cdc)
 
 	return cdc
 }

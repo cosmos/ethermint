@@ -20,6 +20,9 @@ DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = emintd
 ETHERMINT_CLI_BINARY = emintcli
 GO_MOD=GO111MODULE=on
+BINDIR ?= $(GOPATH)/bin
+SIMAPP = github.com/cosmos/ethermint/app
+RUNSIM = $(BINDIR)/runsim
 
 all: tools verify install
 
@@ -61,7 +64,6 @@ verify:
 ### TODO: Move tool depedencies to a separate makefile ###
 ##########################################################
 
-GOLINT = github.com/tendermint/lint/golint
 GOCILINT = github.com/golangci/golangci-lint/cmd/golangci-lint
 UNCONVERT = github.com/mdempsky/unconvert
 INEFFASSIGN = github.com/gordonklaus/ineffassign
@@ -77,13 +79,16 @@ MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
 
-tools:
-ifdef GOLINT_CHECK
-	@echo "Golint is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing golint"
-	${GO_MOD} go get -v $(GOLINT)
-endif
+# Install the runsim binary with a temporary workaround of entering an outside
+# directory as the "go get" command ignores the -mod option and will polute the
+# go.{mod, sum} files.
+# 
+# ref: https://github.com/golang/go/issues/30515
+$(RUNSIM):
+	@echo "Installing runsim..."
+	@(cd /tmp && go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+
+tools: $(RUNSIM)
 ifdef GOCILINT_CHECK
 	@echo "golangci-lint is already installed. Run 'make update-tools' to update."
 else
@@ -165,3 +170,48 @@ format:
 
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
+
+#######################
+### Simulations     ###
+#######################
+
+test-sim-nondeterminism:
+	@echo "Running non-determinism test..."
+	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
+
+test-sim-custom-genesis-fast:
+	@echo "Running custom genesis simulation..."
+	@echo "By default, ${HOME}/.gaiad/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullGaiaSimulation -Genesis=${HOME}/.gaiad/config/genesis.json \
+		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
+
+test-sim-import-export: runsim
+	@echo "Running Gaia import/export simulation. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestGaiaImportExport
+
+test-sim-after-import: runsim
+	@echo "Running Gaia simulation-after-import. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestGaiaSimulationAfterImport
+
+test-sim-custom-genesis-multi-seed: runsim
+	@echo "Running multi-seed custom genesis simulation..."
+	@echo "By default, ${HOME}/.gaiad/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.gaiad/config/genesis.json 400 5 TestFullGaiaSimulation
+
+test-sim-multi-seed-long: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
+
+test-sim-multi-seed-short: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
+
+test-sim-benchmark-invariants:
+	@echo "Running simulation invariant benchmarks..."
+	@go test -mod=readonly $(SIMAPP) -benchmem -bench=BenchmarkInvariants -run=^$ \
+	-Enabled=true -NumBlocks=1000 -BlockSize=200 \
+	-Commit=true -Seed=57 -v -timeout 24h
+
+.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
+	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed \
