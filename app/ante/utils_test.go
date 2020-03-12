@@ -3,18 +3,16 @@ package ante_test
 import (
 	"fmt"
 	"math/big"
+	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store"
+	"github.com/stretchr/testify/suite"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/mock"
-	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/app"
-	. "github.com/cosmos/ethermint/app/ante"
+	ante "github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -23,63 +21,28 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	dbm "github.com/tendermint/tm-db"
 )
 
-type testSetup struct {
-	ctx          sdk.Context
-	cdc          *codec.Codec
-	accKeeper    auth.AccountKeeper
-	supplyKeeper types.SupplyKeeper
-	anteHandler  sdk.AnteHandler
+type AnteTestSuite struct {
+	suite.Suite
+
+	ctx         sdk.Context
+	app         *app.EthermintApp
+	anteHandler sdk.AnteHandler
 }
 
-func newTestSetup() testSetup {
-	db := dbm.NewMemDB()
-	authCapKey := sdk.NewKVStoreKey("authCapKey")
-	keySupply := sdk.NewKVStoreKey("keySupply")
-	keyParams := sdk.NewKVStoreKey("params")
-	tkeyParams := sdk.NewTransientStoreKey("transient_params")
+func (suite *AnteTestSuite) SetupTest() {
+	checkTx := false
 
-	ms := store.NewCommitMultiStore(db)
-	ms.MountStoreWithDB(authCapKey, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeIAVL, db)
+	suite.app = app.Setup(checkTx)
+	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	if err := ms.LoadLatestVersion(); err != nil {
-		tmos.Exit(err.Error())
-	}
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.SupplyKeeper)
+}
 
-	cdc := app.MakeCodec()
-	cdc.RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
-
-	// Set params keeper and subspaces
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
-	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-
-	ctx := sdk.NewContext(
-		ms,
-		abci.Header{ChainID: "3", Time: time.Now().UTC()},
-		true,
-		log.NewNopLogger(),
-	)
-
-	// Add keepers
-	accKeeper := auth.NewAccountKeeper(cdc, authCapKey, authSubspace, auth.ProtoBaseAccount)
-	accKeeper.SetParams(ctx, types.DefaultParams())
-	supplyKeeper := mock.NewDummySupplyKeeper(accKeeper)
-	anteHandler := NewAnteHandler(accKeeper, supplyKeeper)
-
-	return testSetup{
-		ctx:          ctx,
-		cdc:          cdc,
-		accKeeper:    accKeeper,
-		supplyKeeper: supplyKeeper,
-		anteHandler:  anteHandler,
-	}
+func TestAnteTestSuite(t *testing.T) {
+	suite.Run(t, new(AnteTestSuite))
 }
 
 func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
@@ -87,7 +50,7 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 }
 
 func newTestCoins() sdk.Coins {
-	return sdk.Coins{sdk.NewInt64Coin(emint.DenomDefault, 500000000)}
+	return sdk.NewCoins(sdk.NewInt64Coin(emint.DenomDefault, 500000000))
 }
 
 func newTestStdFee() auth.StdFee {
