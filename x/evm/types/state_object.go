@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/ethermint/types"
@@ -78,19 +79,32 @@ type (
 )
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	acc, ok := accProto.(*types.Account)
+	var (
+		ethermintAccount *types.Account
+		ok               bool
+	)
+	ethermintAccount, ok = accProto.(*types.Account)
 	if !ok {
-		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
+		// check if account is a BaseAccount
+		baseAcc, ok := accProto.(*auth.BaseAccount)
+		if !ok {
+			panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
+		}
+		ethermintAccount = &types.Account{
+			BaseAccount: baseAcc,
+			CodeHash:    emptyCodeHash,
+		}
 	}
 
-	if acc.CodeHash == nil {
-		acc.CodeHash = emptyCodeHash
+	// set empty code hash
+	if ethermintAccount.CodeHash == nil {
+		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
 	return &stateObject{
 		stateDB:       db,
-		account:       acc,
-		address:       ethcmn.BytesToAddress(acc.Address.Bytes()),
+		account:       ethermintAccount,
+		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
 	}

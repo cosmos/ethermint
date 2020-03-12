@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 var _ exported.Account = (*Account)(nil)
@@ -49,7 +50,7 @@ type Account struct {
 func ProtoBaseAccount() exported.Account {
 	return &Account{
 		BaseAccount: &auth.BaseAccount{},
-		CodeHash:    []byte{},
+		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 }
 
