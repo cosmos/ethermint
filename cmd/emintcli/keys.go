@@ -58,7 +58,12 @@ func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
 		return keys.NewInMemory(keys.WithKeygenFunc(ethermintKeygenFunc)), nil
 	}
 
-	return keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), buf, keys.WithKeygenFunc(ethermintKeygenFunc))
+	return keys.NewKeyring(
+		sdk.KeyringServiceName(),
+		viper.GetString(flags.FlagKeyringBackend),
+		viper.GetString(flags.FlagHome),
+		buf,
+		keys.WithKeygenFunc(ethermintKeygenFunc))
 }
 
 func runAddCmd(cmd *cobra.Command, args []string) error {
@@ -72,5 +77,5 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 }
 
 func ethermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (crypto.PrivKey, error) {
-	return emintCrypto.PrivKeySecp256k1(bz[:]), nil
+	return emintCrypto.PrivKeySecp256k1(bz), nil
 }
