@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -108,13 +109,25 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bl
 }
 
 // SetBlockLogs sets the block's logs in the KVStore
-func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log) {
+func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, height int64) error {
+	store := ctx.KVStore(k.storeKey)
+	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
+	if len(heightHash) == 0 {
+		return errors.New("cannot set block logs")
+	}
 
+	encLogs, err := types.EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+	store.Set(heightHash, encLogs)
+
+	return nil
 }
 
 // GetBlockLogs gets the logs for a block from the KVStore
-func (k *Keeper) GetBlockLogs(ctx sdk.Context) []*ethtypes.Log {
-	return nil
+func (k *Keeper) GetBlockLogs(ctx sdk.Context, height int64) ([]*ethtypes.Log, error) {
+	return nil, nil
 }
 
 // ----------------------------------------------------------------------------

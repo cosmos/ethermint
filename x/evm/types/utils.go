@@ -72,3 +72,13 @@ func DecodeResultData(in []byte) (*ResultData, error) {
 	err := rlp.DecodeBytes(in, data)
 	return data, err
 }
+
+func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
+	return rlp.EncodeToBytes(logs)
+}
+
+func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
+	logs := []*ethtypes.Log{}
+	err := rlp.DecodeBytes(in, logs)
+	return logs, err
+}
