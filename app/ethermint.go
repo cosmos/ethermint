@@ -181,7 +181,7 @@ func NewEthermintApp(
 
 	// add keepers
 	app.AccountKeeper = auth.NewAccountKeeper(
-		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
+		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], eminttypes.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),

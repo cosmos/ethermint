@@ -177,7 +177,7 @@ func TestImportBlocks(t *testing.T) {
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoBaseAccount)
+	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
 
 	// mount stores
 	keys := []*sdk.KVStoreKey{accKey, storeKey, codeKey}

@@ -28,7 +28,7 @@ var big8 = big.NewInt(8)
 
 // message type and route constants
 const (
-	TypeMsgEthereumTx = "ethereum_tx"
+	TypeMsgEthereumTx = "ethereum"
 )
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
