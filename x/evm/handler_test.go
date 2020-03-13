@@ -128,4 +128,8 @@ func TestHandler_Logs(t *testing.T) {
 	if !reflect.DeepEqual(logs, resultData.Logs) {
 		t.Fatalf("Fail: got %v expected %v", logs, resultData.Logs)
 	}
+
+	if !reflect.DeepEqual(ek.Logs, logs) {
+		t.Fatalf("Fail: got %v expected %v", ek.Logs, logs)
+	}
 }
