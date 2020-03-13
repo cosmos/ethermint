@@ -88,24 +88,42 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
+var bloomPrefix = []byte("bloom")
+var logsPrefix = []byte("logs")
+
+func bloomKey(key []byte) []byte {
+	return append(bloomPrefix, key...)
+}
+
+func logsKey(key []byte) []byte {
+	return append(logsPrefix, key...)
+}
+
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
+func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
 	store := ctx.KVStore(k.storeKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if !bytes.Equal(heightHash, []byte{}) {
-		store.Set(heightHash, bloom.Bytes())
+	if bytes.Equal(heightHash, []byte{}) {
+		return fmt.Errorf("block with bloombits %s not found", bloom)
 	}
+	store.Set(bloomKey(heightHash), bloom.Bytes())
+	return nil
 }
 
 // GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bloom {
+func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.storeKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	bloom := store.Get(heightHash)
 	if bytes.Equal(heightHash, []byte{}) {
-		panic(fmt.Errorf("block with bloombits %s not found", bloom))
+		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
-	return ethtypes.BytesToBloom(bloom)
+
+	bloom := store.Get(bloomKey(heightHash))
+	if bytes.Equal(bloom, []byte{}) {
+		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %s not found", bloom)
+	}
+
+	return ethtypes.BytesToBloom(bloom), nil
 }
 
 // SetBlockLogs sets the block's logs in the KVStore
@@ -127,7 +145,14 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, height int6
 
 // GetBlockLogs gets the logs for a block from the KVStore
 func (k *Keeper) GetBlockLogs(ctx sdk.Context, height int64) ([]*ethtypes.Log, error) {
-	return nil, nil
+	store := ctx.KVStore(k.storeKey)
+	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
+	encLogs := store.Get(heightHash)
+	if len(encLogs) == 0 {
+		return nil, errors.New("cannot get block logs")
+	}
+
+	return types.DecodeLogs(encLogs)
 }
 
 // ----------------------------------------------------------------------------

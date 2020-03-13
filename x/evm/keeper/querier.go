@@ -135,7 +135,10 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 		panic("could not unmarshall block number: " + err.Error())
 	}
 
-	bloom := keeper.GetBlockBloomMapping(ctx, num)
+	bloom, err := keeper.GetBlockBloomMapping(ctx, num)
+	if err != nil {
+		panic("failed to get block bloom mapping: " + err.Error())
+	}
 
 	bRes := types.QueryBloomFilter{Bloom: bloom}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)

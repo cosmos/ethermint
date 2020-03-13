@@ -98,7 +98,11 @@ func TestDBStorage(t *testing.T) {
 	require.Equal(t, ek.GetBlockHashMapping(ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")), int64(7))
 	require.Equal(t, ek.GetBlockHashMapping(ctx, []byte{0x43, 0x32}), int64(8))
 
-	require.Equal(t, ek.GetBlockBloomMapping(ctx, 4), testBloom)
+	bloom, err := ek.GetBlockBloomMapping(ctx, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	require.Equal(t, bloom, testBloom)
 
 	// commit stateDB
 	_, err = ek.Commit(ctx, false)
