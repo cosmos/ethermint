@@ -115,7 +115,10 @@ func TestHandler_Logs(t *testing.T) {
 	}
 
 	hash := []byte{1}
-	ek.SetBlockLogs(ctx, resultData.Logs, hash)
+	err = ek.SetBlockLogs(ctx, resultData.Logs, hash)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	logs, err := ek.GetBlockLogs(ctx, hash)
 	if err != nil {
