@@ -296,10 +296,6 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	store := csdb.ctx.KVStore(csdb.storageKey)
 
 	encLogs := store.Get(LogsKey(hash[:]))
-	if len(encLogs) == 0 {
-		return nil, fmt.Errorf("no logs found")
-	}
-
 	logs, err := DecodeLogs(encLogs)
 	if err != nil {
 		return nil, err
