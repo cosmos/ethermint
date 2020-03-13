@@ -87,7 +87,10 @@ func TestDBStorage(t *testing.T) {
 
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
-	ek.SetBlockBloomMapping(ctx, testBloom, 4)
+	err = ek.SetBlockBloomMapping(ctx, testBloom, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Get those state transitions
 	require.Equal(t, ek.GetBalance(ctx, address).Cmp(big.NewInt(5)), 0)

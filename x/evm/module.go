@@ -110,7 +110,10 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 func (am AppModule) BeginBlock(ctx sdk.Context, bl abci.RequestBeginBlock) {
 	// Consider removing this when using evm as module without web3 API
 	bloom := ethtypes.BytesToBloom(am.keeper.Bloom.Bytes())
-	am.keeper.SetBlockBloomMapping(ctx, bloom, bl.Header.GetHeight()-1)
+	err := am.keeper.SetBlockBloomMapping(ctx, bloom, bl.Header.GetHeight()-1)
+	if err != nil {
+		panic(err)
+	}
 	am.keeper.SetBlockHashMapping(ctx, bl.Header.LastBlockId.GetHash(), bl.Header.GetHeight()-1)
 	am.keeper.Bloom = big.NewInt(0)
 	am.keeper.TxCount.Reset()
