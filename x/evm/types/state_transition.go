@@ -117,7 +117,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 	var bloomFilter ethtypes.Bloom
 	var logs []*ethtypes.Log
 	if st.THash != nil && !st.Simulate {
-		logs = csdb.GetLogs(*st.THash)
+		logs, err = csdb.GetLogs(*st.THash)
+		if err != nil {
+			// TODO: handle error
+			logs = nil
+		}
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}

@@ -287,13 +287,31 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 	return ethcmn.Hash{}
 }
 
+var logsPrefix = []byte("logs")
+
+func logsKey(key []byte) []byte {
+	return append(logsPrefix, key...)
+}
+
 // GetLogs returns the current logs for a given hash in the state.
-func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) []*ethtypes.Log {
-	// TODO: if logs aren't in the cache, then reconstruct the logs
+func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	if csdb.logs[hash] != nil {
+		return csdb.logs[hash], nil
+	}
 
-	// question: how to get transaction details and what block it was included in from the hash? assuming the input is a tx hash
+	store := csdb.ctx.KVStore(csdb.storageKey)
 
-	return csdb.logs[hash]
+	encLogs := store.Get(logsKey(hash[:]))
+	if len(encLogs) == 0 {
+		return nil, fmt.Errorf("no logs found")
+	}
+
+	logs, err := DecodeLogs(encLogs)
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
 // Logs returns all the current logs in the state.

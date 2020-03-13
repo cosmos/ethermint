@@ -15,7 +15,6 @@ import (
 	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -115,9 +114,10 @@ func TestHandler_Logs(t *testing.T) {
 		t.Fatal("Fail: expected 2 topics")
 	}
 
-	ek.SetBlockLogs(ctx, resultData.Logs, 1)
+	hash := []byte{1}
+	ek.SetBlockLogs(ctx, resultData.Logs, hash)
 
-	logs, err := ek.GetBlockLogs(ctx, 1)
+	logs, err := ek.GetBlockLogs(ctx, hash)
 	if err != nil {
 		t.Fatal(err)
 	}

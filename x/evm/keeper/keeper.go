@@ -126,27 +126,21 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.B
 }
 
 // SetBlockLogs sets the block's logs in the KVStore
-func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, height int64) error {
+func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
 	store := ctx.KVStore(k.storeKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if len(heightHash) == 0 {
-		return errors.New("cannot set block logs")
-	}
-
 	encLogs, err := types.EncodeLogs(logs)
 	if err != nil {
 		return err
 	}
-	store.Set(logsKey(heightHash), encLogs)
+	store.Set(logsKey(hash), encLogs)
 
 	return nil
 }
 
 // GetBlockLogs gets the logs for a block from the KVStore
-func (k *Keeper) GetBlockLogs(ctx sdk.Context, height int64) ([]*ethtypes.Log, error) {
+func (k *Keeper) GetBlockLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.storeKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	encLogs := store.Get(logsKey(heightHash))
+	encLogs := store.Get(logsKey(hash))
 	if len(encLogs) == 0 {
 		return nil, errors.New("cannot get block logs")
 	}
@@ -274,7 +268,12 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
 func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+	if err != nil {
+		panic(err)
+	}
+
+	return logs
 }
 
 // Logs calls CommitStateDB.Logs using the passed in context
