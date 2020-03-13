@@ -294,6 +294,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) []*ethtypes.Log {
 
 // Logs returns all the current logs in the state.
 func (csdb *CommitStateDB) Logs() []*ethtypes.Log {
+	// nolint: prealloc
 	var logs []*ethtypes.Log
 	for _, lgs := range csdb.logs {
 		logs = append(logs, lgs...)

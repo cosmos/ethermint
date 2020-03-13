@@ -36,11 +36,11 @@ func TestMsgEthereumTx(t *testing.T) {
 
 func TestMsgEthereumTxValidation(t *testing.T) {
 	testCases := []struct {
-		nonce      uint64
 		to         ethcmn.Address
 		amount     *big.Int
-		gasLimit   uint64
 		gasPrice   *big.Int
+		gasLimit   uint64
+		nonce      uint64
 		payload    []byte
 		expectPass bool
 	}{

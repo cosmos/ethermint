@@ -121,7 +121,7 @@ func withChainIDValidation(baseCmd *cobra.Command) *cobra.Command {
 		_, ok := new(big.Int).SetString(chainIDFlag, 10)
 		if !ok {
 			return fmt.Errorf(
-				fmt.Sprintf("Invalid chainID: %s, must be base-10 integer format", chainIDFlag))
+				fmt.Sprintf("invalid chainID: %s, must be base-10 integer format", chainIDFlag))
 		}
 
 		return baseRunE(cmd, args)

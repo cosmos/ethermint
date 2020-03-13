@@ -15,14 +15,14 @@ import (
 // StateTransition defines data to transitionDB in evm
 type StateTransition struct {
 	Sender       common.Address
-	AccountNonce uint64
-	Price        *big.Int
-	GasLimit     uint64
 	Recipient    *common.Address
+	AccountNonce uint64
+	GasLimit     uint64
+	Price        *big.Int
 	Amount       *big.Int
-	Payload      []byte
-	Csdb         *CommitStateDB
 	ChainID      *big.Int
+	Csdb         *CommitStateDB
+	Payload      []byte
 	THash        *common.Hash
 	Simulate     bool
 }
