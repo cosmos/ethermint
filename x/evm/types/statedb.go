@@ -309,7 +309,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 }
 
 // Logs returns all the current logs in the state.
-func (csdb *CommitStateDB) Logs() []*ethtypes.Log {
+func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	var logs []*ethtypes.Log
 	for _, lgs := range csdb.logs {
 		logs = append(logs, lgs...)

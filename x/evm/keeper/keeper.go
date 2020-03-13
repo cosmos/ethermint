@@ -29,6 +29,7 @@ type Keeper struct {
 	CommitStateDB *types.CommitStateDB
 	TxCount       *count
 	Bloom         *big.Int
+	Logs          []*ethtypes.Log
 }
 
 // TODO: move to types
@@ -55,6 +56,7 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, ak, storageKey, codeKey),
 		TxCount:       new(count),
 		Bloom:         big.NewInt(0),
+		Logs:          []*ethtypes.Log{},
 	}
 }
 
@@ -265,9 +267,9 @@ func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) []*ethtypes.Log {
 	return logs
 }
 
-// Logs calls CommitStateDB.Logs using the passed in context
-func (k *Keeper) Logs(ctx sdk.Context) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).Logs()
+// AllLogs calls CommitStateDB.AllLogs using the passed in context
+func (k *Keeper) AllLogs(ctx sdk.Context) []*ethtypes.Log {
+	return k.CommitStateDB.WithContext(ctx).AllLogs()
 }
 
 // GetRefund calls CommitStateDB.GetRefund using the passed in context

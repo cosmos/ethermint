@@ -123,7 +123,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 			logs = nil
 		}
 		bloomInt = ethtypes.LogsBloom(logs)
-		bloomFilter = ethtypegs.BytesToBloom(bloomInt.Bytes())
+		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

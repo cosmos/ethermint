@@ -163,7 +163,7 @@ func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Err
 }
 
 func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
-	logs := keeper.Logs(ctx)
+	logs := keeper.AllLogs(ctx)
 
 	lRes := types.QueryETHLogs{Logs: logs}
 	l, err := codec.MarshalJSONIndent(keeper.cdc, lRes)
