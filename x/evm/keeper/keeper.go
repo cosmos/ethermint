@@ -87,17 +87,6 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-var bloomPrefix = []byte("bloom")
-var logsPrefix = []byte("logs")
-
-func bloomKey(key []byte) []byte {
-	return append(bloomPrefix, key...)
-}
-
-func logsKey(key []byte) []byte {
-	return append(logsPrefix, key...)
-}
-
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
 	store := ctx.KVStore(k.storeKey)
@@ -105,7 +94,7 @@ func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, hei
 	if bytes.Equal(heightHash, []byte{}) {
 		return fmt.Errorf("block with bloombits %s not found", bloom)
 	}
-	store.Set(bloomKey(heightHash), bloom.Bytes())
+	store.Set(types.BloomKey(heightHash), bloom.Bytes())
 	return nil
 }
 
@@ -117,7 +106,7 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.B
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
 
-	bloom := store.Get(bloomKey(heightHash))
+	bloom := store.Get(types.BloomKey(heightHash))
 	if bytes.Equal(bloom, []byte{}) {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
 	}
@@ -132,7 +121,7 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte
 	if err != nil {
 		return err
 	}
-	store.Set(logsKey(hash), encLogs)
+	store.Set(types.LogsKey(hash), encLogs)
 
 	return nil
 }
@@ -140,7 +129,7 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte
 // GetBlockLogs gets the logs for a block from the KVStore
 func (k *Keeper) GetBlockLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.storeKey)
-	encLogs := store.Get(logsKey(hash))
+	encLogs := store.Get(types.LogsKey(hash))
 	if len(encLogs) == 0 {
 		return nil, errors.New("cannot get block logs")
 	}

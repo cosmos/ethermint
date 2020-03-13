@@ -13,6 +13,17 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+var bloomPrefix = []byte("bloom")
+var logsPrefix = []byte("logs")
+
+func BloomKey(key []byte) []byte {
+	return append(bloomPrefix, key...)
+}
+
+func LogsKey(key []byte) []byte {
+	return append(logsPrefix, key...)
+}
+
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := crypto.GenerateKey()
