@@ -29,7 +29,6 @@ type Keeper struct {
 	CommitStateDB *types.CommitStateDB
 	TxCount       *count
 	Bloom         *big.Int
-	CurrentLogs   []*ethtypes.Log
 }
 
 // TODO: move to types
@@ -120,7 +119,7 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.B
 
 	bloom := store.Get(bloomKey(heightHash))
 	if bytes.Equal(bloom, []byte{}) {
-		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %s not found", bloom)
+		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
 	}
 
 	return ethtypes.BytesToBloom(bloom), nil
@@ -138,7 +137,7 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, height int6
 	if err != nil {
 		return err
 	}
-	store.Set(heightHash, encLogs)
+	store.Set(logsKey(heightHash), encLogs)
 
 	return nil
 }
@@ -147,7 +146,7 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, height int6
 func (k *Keeper) GetBlockLogs(ctx sdk.Context, height int64) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.storeKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	encLogs := store.Get(heightHash)
+	encLogs := store.Get(logsKey(heightHash))
 	if len(encLogs) == 0 {
 		return nil, errors.New("cannot get block logs")
 	}

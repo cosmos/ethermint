@@ -2,6 +2,7 @@ package evm
 
 import (
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -38,8 +39,6 @@ import (
 // }
 
 var (
-	address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
-
 	accKey     = sdk.NewKVStoreKey("acc")
 	storageKey = sdk.NewKVStoreKey(evmtypes.EvmStoreKey)
 	codeKey    = sdk.NewKVStoreKey(evmtypes.EvmCodeKey)
@@ -88,7 +87,6 @@ func TestHandler_Logs(t *testing.T) {
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	// mount stores
 	keys := []*sdk.KVStoreKey{accKey, storageKey, codeKey, blockKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
@@ -104,9 +102,27 @@ func TestHandler_Logs(t *testing.T) {
 	ctx = ctx.WithBlockHeight(1).WithChainID("1")
 
 	result := handleETHTxMsg(ctx, ek, tx)
-	t.Log(result.Data)
-	t.Log(ek.Bloom)
-	t.Log(ek.CurrentLogs)
+	resultData, err := evmtypes.DecodeResultData(result.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// TODO: assert that we can set/get logs from the keeper
+	if len(resultData.Logs) == 0 {
+		t.Fatal("Fail: expected 1 log")
+	}
+
+	if len(resultData.Logs[0].Topics) != 2 {
+		t.Fatal("Fail: expected 2 topics")
+	}
+
+	ek.SetBlockLogs(ctx, resultData.Logs, 1)
+
+	logs, err := ek.GetBlockLogs(ctx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(logs, resultData.Logs) {
+		t.Fatalf("Fail: got %v expected %v", logs, resultData.Logs)
+	}
 }

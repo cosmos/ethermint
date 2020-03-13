@@ -13,11 +13,6 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const (
-	bloomIdx  = ethcmn.AddressLength
-	returnIdx = bloomIdx + ethtypes.BloomByteLength + 1
-)
-
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := crypto.GenerateKey()
@@ -79,6 +74,6 @@ func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
 
 func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
-	err := rlp.DecodeBytes(in, logs)
+	err := rlp.DecodeBytes(in, &logs)
 	return logs, err
 }
