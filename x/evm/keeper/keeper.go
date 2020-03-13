@@ -76,7 +76,7 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(hash)
 	if bytes.Equal(bz, []byte{}) {
-		panic(fmt.Errorf("block with hash %v not found", ethcmn.BytesToHash(hash)))
+		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
 	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &height)
 	return
@@ -92,7 +92,7 @@ func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, hei
 	store := ctx.KVStore(k.storeKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
 	if bytes.Equal(heightHash, []byte{}) {
-		return fmt.Errorf("block with bloombits %s not found", bloom)
+		return fmt.Errorf("block with bloombits %v not found", bloom)
 	}
 	store.Set(types.BloomKey(heightHash), bloom.Bytes())
 	return nil
