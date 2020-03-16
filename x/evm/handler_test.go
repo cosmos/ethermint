@@ -13,8 +13,8 @@ import (
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
 	eminttypes "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/utils"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -76,10 +76,7 @@ func TestHandler_Logs(t *testing.T) {
 
 	priv1, _ := crypto.GenerateKey()
 
-	bytecode, err := utils.HexToBytes("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bytecode := common.FromHex("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
 
 	tx := evmtypes.NewEthereumTxMsg(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(1), priv1.ToECDSA())
@@ -91,7 +88,7 @@ func TestHandler_Logs(t *testing.T) {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
 
-	err = cms.LoadLatestVersion()
+	err := cms.LoadLatestVersion()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +103,7 @@ func TestHandler_Logs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(resultData.Logs) == 0 {
+	if len(resultData.Logs) != 1 {
 		t.Fatal("Fail: expected 1 log")
 	}
 

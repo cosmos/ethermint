@@ -80,7 +80,6 @@ func handleETHTxMsg(ctx sdk.Context, k Keeper, msg *types.EthereumTxMsg) sdk.Res
 	returnData := st.TransitionCSDB(ctx)
 	if returnData.Result.IsOK() {
 		k.Bloom.Or(k.Bloom, returnData.Bloom)
-		fmt.Println(returnData.Logs[0])
 		k.Logs = append(k.Logs, returnData.Logs...) // does k.SetBlockLogs or k.AddLog need to be called here?
 	}
 
