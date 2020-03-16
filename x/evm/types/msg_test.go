@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,19 +20,20 @@ import (
 func TestMsgEthereumTx(t *testing.T) {
 	addr := GenerateEthAddress()
 
-	msg1 := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
-	require.NotNil(t, msg1)
-	require.Equal(t, *msg1.Data.Recipient, addr)
+	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
+	require.NotNil(t, msg)
+	require.Equal(t, *msg.Data.Recipient, addr)
+	require.Equal(t, msg.Route(), RouterKey)
+	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
+	require.NotNil(t, msg.To())
+	require.Equal(t, msg.GetMsgs(), []sdk.Msg{*msg})
+	require.Panics(t, func() { msg.GetSigners() })
+	require.Panics(t, func() { msg.GetSignBytes() })
 
-	msg2 := NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
-	require.NotNil(t, msg2)
-	require.Nil(t, msg2.Data.Recipient)
-
-	msg3 := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
-	require.Equal(t, msg3.Route(), RouterKey)
-	require.Equal(t, msg3.Type(), TypeMsgEthereumTx)
-	require.Panics(t, func() { msg3.GetSigners() })
-	require.Panics(t, func() { msg3.GetSignBytes() })
+	msg = NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
+	require.NotNil(t, msg)
+	require.Nil(t, msg.Data.Recipient)
+	require.Nil(t, msg.To())
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {
@@ -50,9 +52,9 @@ func TestMsgEthereumTxValidation(t *testing.T) {
 		msg := NewMsgEthereumTx(0, nil, tc.amount, 0, tc.gasPrice, nil)
 
 		if tc.expectPass {
-			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
+			require.Nil(t, msg.ValidateBasic(), "valid test %d failed: %s", i, tc.msg)
 		} else {
-			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
+			require.NotNil(t, msg.ValidateBasic(), "invalid test %d passed: %s", i, tc.msg)
 		}
 	}
 }
@@ -70,7 +72,7 @@ func TestMsgEthereumTxRLPEncode(t *testing.T) {
 	addr := ethcmn.BytesToAddress([]byte("test_address"))
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 
-	raw, err := rlp.EncodeToBytes(msg)
+	raw, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	require.Equal(t, ethcmn.FromHex("E48080830186A0940000000000000000746573745F61646472657373808474657374808080"), raw)
 }
@@ -153,8 +155,8 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	hash := ethcmn.BigToHash(big.NewInt(2))
 	e := EncodableTxData{
 		AccountNonce: 2,
-		GasPrice:     utils.MarshalBigInt(big.NewInt(3)),
-		Gas:          1,
+		Price:        utils.MarshalBigInt(big.NewInt(3)),
+		GasLimit:     1,
 		Recipient:    &addr,
 		Amount:       utils.MarshalBigInt(big.NewInt(4)),
 		Payload:      []byte("test"),

@@ -2,7 +2,11 @@ package types
 
 import (
 	"fmt"
+	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/ethermint/crypto"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -71,4 +75,64 @@ func DecodeReturnData(bytes []byte) (addr ethcmn.Address, bloom ethtypes.Bloom, 
 	}
 
 	return
+}
+
+// ----------------------------------------------------------------------------
+// Auxiliary
+
+// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
+// MsgEthereumTx transactions.
+func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+	return func(txBytes []byte) (sdk.Tx, error) {
+		var tx sdk.Tx
+
+		if len(txBytes) == 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "txBytes are empty")
+		}
+
+		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+		if err != nil {
+			return nil, err
+		}
+
+		return tx, nil
+	}
+}
+
+// recoverEthSig recovers a signature according to the Ethereum specification and
+// returns the sender or an error.
+//
+// Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
+func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
+	if Vb.BitLen() > 8 {
+		return ethcmn.Address{}, errors.New("invalid signature")
+	}
+
+	V := byte(Vb.Uint64() - 27)
+	if !ethcrypto.ValidateSignatureValues(V, R, S, true) {
+		return ethcmn.Address{}, errors.New("invalid signature")
+	}
+
+	// encode the signature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, 65)
+
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+
+	// recover the public key from the signature
+	pub, err := ethcrypto.Ecrecover(sigHash[:], sig)
+	if err != nil {
+		return ethcmn.Address{}, err
+	}
+
+	if len(pub) == 0 || pub[0] != 4 {
+		return ethcmn.Address{}, errors.New("invalid public key")
+	}
+
+	var addr ethcmn.Address
+	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
+
+	return addr, nil
 }

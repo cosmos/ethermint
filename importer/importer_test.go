@@ -221,7 +221,7 @@ func TestImportBlocks(t *testing.T) {
 
 		var (
 			usedGas = new(uint64)
-			gp      = new(ethcore.GasPool).AddGas(block.Gas())
+			gp      = new(ethcore.GasPool).AddGas(block.GasLimit())
 		)
 
 		header := block.Header()
