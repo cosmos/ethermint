@@ -17,8 +17,8 @@ import (
 type StateTransition struct {
 	Sender       common.Address
 	AccountNonce uint64
-	Price        *big.Int
-	GasLimit     uint64
+	GasPrice     *big.Int
+	Gas          uint64
 	Recipient    *common.Address
 	Amount       *big.Int
 	Payload      []byte
@@ -41,14 +41,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
-	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
+	gasLimit := st.Gas - ctx.GasMeter().GasConsumed()
 
 	csdb := st.Csdb.WithContext(ctx)
 	if st.Simulate {
 		// gasLimit is set here because stdTxs incur gaskv charges in the ante handler, but for eth_call
 		// the cost needs to be the same as an Ethereum transaction sent through the web3 API
 		consumedGas := ctx.GasMeter().GasConsumed()
-		gasLimit = st.GasLimit - cost
+		gasLimit = st.Gas - cost
 		if consumedGas < cost {
 			// If Cosmos standard tx ante handler cost is less than EVM intrinsic cost
 			// gas must be consumed to match to accurately simulate an Ethereum transaction

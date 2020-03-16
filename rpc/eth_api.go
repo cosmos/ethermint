@@ -624,8 +624,8 @@ func newRPCTransaction(tx *types.MsgEthereumTx, blockHash common.Hash, blockNumb
 
 	result := &Transaction{
 		From:     from,
-		Gas:      hexutil.Uint64(tx.Data.GasLimit),
-		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		Gas:      hexutil.Uint64(tx.Data.Gas),
+		GasPrice: (*hexutil.Big)(tx.Data.GasPrice),
 		Hash:     tx.Hash(),
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),

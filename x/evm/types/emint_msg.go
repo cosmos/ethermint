@@ -20,8 +20,8 @@ const (
 // MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
 type MsgEthermint struct {
 	AccountNonce uint64          `json:"nonce"`
-	Price        sdk.Int         `json:"gasPrice"`
-	GasLimit     uint64          `json:"gas"`
+	GasPrice        sdk.Int         `json:"gasPrice"`
+	Gas     uint64          `json:"gas"`
 	Recipient    *sdk.AccAddress `json:"to" rlp:"nil"` // nil means contract creation
 	Amount       sdk.Int         `json:"value"`
 	Payload      []byte          `json:"input"`
@@ -37,8 +37,8 @@ func NewMsgEthermint(
 ) MsgEthermint {
 	return MsgEthermint{
 		AccountNonce: nonce,
-		Price:        gasPrice,
-		GasLimit:     gasLimit,
+		GasPrice:        gasPrice,
+		Gas:     gasLimit,
 		Recipient:    to,
 		Amount:       amount,
 		Payload:      payload,
@@ -59,7 +59,7 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.Sign() != 1 {
+	if msg.GasPrice.Sign() != 1 {
 		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
 	}
 

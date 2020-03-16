@@ -10,8 +10,8 @@ import (
 // solely as intended in Ethereum abiding by the protocol.
 type EncodableTxData struct {
 	AccountNonce uint64          `json:"nonce"`
-	Price        string          `json:"gasPrice"`
-	GasLimit     uint64          `json:"gas"`
+	GasPrice     string          `json:"gasPrice"`
+	Gas          uint64          `json:"gas"`
 	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
 	Amount       string          `json:"value"`
 	Payload      []byte          `json:"input"`
@@ -38,8 +38,8 @@ func unmarshalAmino(td *EncodableTxData, text string) (err error) {
 func (td TxData) MarshalAmino() (string, error) {
 	e := EncodableTxData{
 		AccountNonce: td.AccountNonce,
-		Price:        utils.MarshalBigInt(td.Price),
-		GasLimit:     td.GasLimit,
+		GasPrice:     utils.MarshalBigInt(td.GasPrice),
+		Gas:          td.Gas,
 		Recipient:    td.Recipient,
 		Amount:       utils.MarshalBigInt(td.Amount),
 		Payload:      td.Payload,
@@ -63,19 +63,19 @@ func (td *TxData) UnmarshalAmino(text string) (err error) {
 	}
 
 	td.AccountNonce = e.AccountNonce
-	td.GasLimit = e.GasLimit
+	td.Gas = e.Gas
 	td.Recipient = e.Recipient
 	td.Payload = e.Payload
 	td.Hash = e.Hash
 
-	price, err := utils.UnmarshalBigInt(e.Price)
+	price, err := utils.UnmarshalBigInt(e.GasPrice)
 	if err != nil {
 		return
 	}
-	if td.Price != nil {
-		td.Price.Set(price)
+	if td.GasPrice != nil {
+		td.GasPrice.Set(price)
 	} else {
-		td.Price = price
+		td.GasPrice = price
 	}
 
 	amt, err := utils.UnmarshalBigInt(e.Amount)

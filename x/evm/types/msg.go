@@ -46,8 +46,8 @@ type (
 	// solely as intended in Ethereum abiding by the protocol.
 	TxData struct {
 		AccountNonce uint64          `json:"nonce"`
-		Price        *big.Int        `json:"gasPrice"`
-		GasLimit     uint64          `json:"gas"`
+		GasPrice     *big.Int        `json:"gasPrice"`
+		Gas          uint64          `json:"gas"`
 		Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
 		Amount       *big.Int        `json:"value"`
 		Payload      []byte          `json:"input"`
@@ -100,9 +100,9 @@ func newMsgEthereumTx(
 		AccountNonce: nonce,
 		Recipient:    to,
 		Payload:      payload,
-		GasLimit:     gasLimit,
+		Gas:          gasLimit,
 		Amount:       new(big.Int),
-		Price:        new(big.Int),
+		GasPrice:     new(big.Int),
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
@@ -112,7 +112,7 @@ func newMsgEthereumTx(
 		txData.Amount.Set(amount)
 	}
 	if gasPrice != nil {
-		txData.Price.Set(gasPrice)
+		txData.GasPrice.Set(gasPrice)
 	}
 
 	return &MsgEthereumTx{Data: txData}
@@ -127,7 +127,7 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
-	if msg.Data.Price.Sign() != 1 {
+	if msg.Data.GasPrice.Sign() != 1 {
 		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
 	}
 
@@ -173,8 +173,8 @@ func (msg MsgEthereumTx) GetSignBytes() []byte {
 func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
-		msg.Data.Price,
-		msg.Data.GasLimit,
+		msg.Data.GasPrice,
+		msg.Data.Gas,
 		msg.Data.Recipient,
 		msg.Data.Amount,
 		msg.Data.Payload,
@@ -288,7 +288,7 @@ func (msg MsgEthereumTx) Cost() *big.Int {
 
 // Fee returns gasprice * gaslimit.
 func (msg MsgEthereumTx) Fee() *big.Int {
-	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
+	return new(big.Int).Mul(msg.Data.GasPrice, new(big.Int).SetUint64(msg.Data.Gas))
 }
 
 // ChainID returns which chain id this transaction was signed for (if at all)

@@ -64,8 +64,8 @@ func TestEmintEncodingAndDecoding(t *testing.T) {
 	require.Equal(t, msg.AccountNonce, msg2.AccountNonce)
 	require.Equal(t, msg.Recipient, msg2.Recipient)
 	require.Equal(t, msg.Amount, msg2.Amount)
-	require.Equal(t, msg.GasLimit, msg2.GasLimit)
-	require.Equal(t, msg.Price, msg2.Price)
+	require.Equal(t, msg.Gas, msg2.Gas)
+	require.Equal(t, msg.GasPrice, msg2.GasPrice)
 	require.Equal(t, msg.Payload, msg2.Payload)
 	require.Equal(t, msg.From, msg2.From)
 }

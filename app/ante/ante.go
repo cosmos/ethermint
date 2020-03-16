@@ -144,9 +144,9 @@ func ethAnteHandler(
 	}
 
 	// Charge sender for gas up to limit
-	if ethTxMsg.Data.GasLimit != 0 {
+	if ethTxMsg.Data.Gas != 0 {
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
+		cost := new(big.Int).Mul(ethTxMsg.Data.GasPrice, new(big.Int).SetUint64(ethTxMsg.Data.Gas))
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
@@ -159,7 +159,7 @@ func ethAnteHandler(
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(sim, ctx, ethTxMsg.Data.GasLimit)
+	newCtx = auth.SetGasMeter(sim, ctx, ethTxMsg.Data.Gas)
 
 	gas, _ := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
@@ -229,9 +229,9 @@ func validateIntrinsicGas(ethTxMsg *evmtypes.MsgEthereumTx) error {
 		return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
 
-	if ethTxMsg.Data.GasLimit < gas {
+	if ethTxMsg.Data.Gas < gas {
 		return fmt.Errorf(
-			"intrinsic gas too low: %d < %d", ethTxMsg.Data.GasLimit, gas,
+			"intrinsic gas too low: %d < %d", ethTxMsg.Data.Gas, gas,
 		)
 	}
 

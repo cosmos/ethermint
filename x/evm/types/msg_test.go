@@ -36,21 +36,18 @@ func TestMsgEthereumTx(t *testing.T) {
 
 func TestMsgEthereumTxValidation(t *testing.T) {
 	testCases := []struct {
-		nonce      uint64
-		to         ethcmn.Address
+		msg        string
 		amount     *big.Int
-		gasLimit   uint64
 		gasPrice   *big.Int
-		payload    []byte
 		expectPass bool
 	}{
-		{amount: big.NewInt(100), gasPrice: big.NewInt(100000), expectPass: true},
-		{amount: big.NewInt(-1), gasPrice: big.NewInt(100000), expectPass: false},
-		{amount: big.NewInt(100), gasPrice: big.NewInt(-1), expectPass: false},
+		{msg: "pass", amount: big.NewInt(100), gasPrice: big.NewInt(100000), expectPass: true},
+		{msg: "invalid amount", amount: big.NewInt(-1), gasPrice: big.NewInt(100000), expectPass: false},
+		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(-1), expectPass: false},
 	}
 
 	for i, tc := range testCases {
-		msg := NewMsgEthereumTx(tc.nonce, &tc.to, tc.amount, tc.gasLimit, tc.gasPrice, tc.payload)
+		msg := NewMsgEthereumTx(0, nil, tc.amount, 0, tc.gasPrice, nil)
 
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
@@ -156,8 +153,8 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	hash := ethcmn.BigToHash(big.NewInt(2))
 	e := EncodableTxData{
 		AccountNonce: 2,
-		Price:        utils.MarshalBigInt(big.NewInt(3)),
-		GasLimit:     1,
+		GasPrice:     utils.MarshalBigInt(big.NewInt(3)),
+		Gas:          1,
 		Recipient:    &addr,
 		Amount:       utils.MarshalBigInt(big.NewInt(4)),
 		Payload:      []byte("test"),
