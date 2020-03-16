@@ -84,6 +84,9 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
 	}
 
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := common.BytesToHash(txHash)
+
 	st := types.StateTransition{
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		AccountNonce: msg.AccountNonce,
@@ -93,6 +96,7 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 		Payload:      msg.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
+		THash:        &ethHash,
 		Simulate:     ctx.IsCheckTx(),
 	}
 
@@ -100,9 +104,6 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 		to := common.BytesToAddress(msg.Recipient.Bytes())
 		st.Recipient = &to
 	}
-
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
 
 	// Prepare db for logs
 	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
