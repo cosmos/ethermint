@@ -60,8 +60,12 @@ func queryProtocolVersion(keeper Keeper) ([]byte, error) {
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	addr := ethcmn.HexToAddress(path[1])
 	balance := keeper.GetBalance(ctx, addr)
+	balanceStr, err := utils.MarshalBigInt(balance)
+	if err != nil {
+		return nil, err
+	}
 
-	res := types.QueryResBalance{Balance: utils.MarshalBigInt(balance)}
+	res := types.QueryResBalance{Balance: balanceStr}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		panic(sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error()))
@@ -175,8 +179,13 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	addr := ethcmn.HexToAddress(path[1])
 	so := keeper.GetOrNewStateObject(ctx, addr)
 
+	balance, err := utils.MarshalBigInt(so.Balance())
+	if err != nil {
+		return nil, err
+	}
+
 	res := types.QueryResAccount{
-		Balance:  utils.MarshalBigInt(so.Balance()),
+		Balance:  balance,
 		CodeHash: so.CodeHash(),
 		Nonce:    so.Nonce(),
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/crypto"
-	"github.com/cosmos/ethermint/utils"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -138,42 +137,6 @@ func TestMsgEthereumTxAmino(t *testing.T) {
 	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
 	require.NoError(t, err)
 	require.Equal(t, msg.Data, msg2.Data)
-}
-
-func TestMarshalAndUnmarshalInt(t *testing.T) {
-	i := big.NewInt(3)
-	m := utils.MarshalBigInt(i)
-	i2, err := utils.UnmarshalBigInt(m)
-	require.NoError(t, err)
-
-	require.Equal(t, i, i2)
-}
-
-func TestMarshalAndUnmarshalData(t *testing.T) {
-	addr := GenerateEthAddress()
-	hash := ethcmn.BigToHash(big.NewInt(2))
-	e := encodableTxData{
-		AccountNonce: 2,
-		Price:        utils.MarshalBigInt(big.NewInt(3)),
-		GasLimit:     1,
-		Recipient:    &addr,
-		Amount:       utils.MarshalBigInt(big.NewInt(4)),
-		Payload:      []byte("test"),
-
-		V: utils.MarshalBigInt(big.NewInt(5)),
-		R: utils.MarshalBigInt(big.NewInt(6)),
-		S: utils.MarshalBigInt(big.NewInt(7)),
-
-		Hash: &hash,
-	}
-	str, err := marshalAmino(e)
-	require.NoError(t, err)
-
-	e2 := new(encodableTxData)
-
-	err = unmarshalAmino(e2, str)
-	require.NoError(t, err)
-	require.Equal(t, e, *e2)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {

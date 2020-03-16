@@ -48,19 +48,42 @@ type encodableTxData struct {
 
 // MarshalAmino defines custom encoding scheme for TxData
 func (td TxData) MarshalAmino() (string, error) {
+	gasPrice, err := utils.MarshalBigInt(td.Price)
+	if err != nil {
+		return "", err
+	}
+
+	amount, err := utils.MarshalBigInt(td.Amount)
+	if err != nil {
+		return "", err
+	}
+
+	v, err := utils.MarshalBigInt(td.V)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := utils.MarshalBigInt(td.R)
+	if err != nil {
+		return "", err
+	}
+
+	s, err := utils.MarshalBigInt(td.S)
+	if err != nil {
+		return "", err
+	}
+
 	e := encodableTxData{
 		AccountNonce: td.AccountNonce,
-		Price:        utils.MarshalBigInt(td.Price),
+		Price:        gasPrice,
 		GasLimit:     td.GasLimit,
 		Recipient:    td.Recipient,
-		Amount:       utils.MarshalBigInt(td.Amount),
+		Amount:       amount,
 		Payload:      td.Payload,
-
-		V: utils.MarshalBigInt(td.V),
-		R: utils.MarshalBigInt(td.R),
-		S: utils.MarshalBigInt(td.S),
-
-		Hash: td.Hash,
+		V:            v,
+		R:            r,
+		S:            s,
+		Hash:         td.Hash,
 	}
 
 	return marshalAmino(e)
