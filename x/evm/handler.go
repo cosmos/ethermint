@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
@@ -47,13 +46,7 @@ func handleETHTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) sdk.Resu
 		return emint.ErrInvalidSender(err.Error()).Result()
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(types.ModuleCdc)
-	txBytes, err := txEncoder(msg)
-	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
-	}
-	txHash := tmtypes.Tx(txBytes).Hash()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 
 	st := types.StateTransition{
@@ -108,8 +101,11 @@ func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 		st.Recipient = &to
 	}
 
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := common.BytesToHash(txHash)
+
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
+	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount.Get()) // Cannot provide tx hash
 	k.TxCount.Increment()
 
 	_, res := st.TransitionCSDB(ctx)
