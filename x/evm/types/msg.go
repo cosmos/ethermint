@@ -40,25 +40,6 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
-// TxData implements the Ethereum transaction data structure. It is used
-// solely as intended in Ethereum abiding by the protocol.
-type TxData struct {
-	AccountNonce uint64          `json:"nonce"`
-	Price        *big.Int        `json:"gasPrice"`
-	GasLimit     uint64          `json:"gas"`
-	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
-	Amount       *big.Int        `json:"value"`
-	Payload      []byte          `json:"input"`
-
-	// signature values
-	V *big.Int `json:"v"`
-	R *big.Int `json:"r"`
-	S *big.Int `json:"s"`
-
-	// hash is only used when marshaling to JSON
-	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
-}
-
 // sigCache is used to cache the derived sender and contains the signer used
 // to derive it.
 type sigCache struct {

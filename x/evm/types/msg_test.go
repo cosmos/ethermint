@@ -153,7 +153,7 @@ func TestMarshalAndUnmarshalInt(t *testing.T) {
 func TestMarshalAndUnmarshalData(t *testing.T) {
 	addr := GenerateEthAddress()
 	hash := ethcmn.BigToHash(big.NewInt(2))
-	e := EncodableTxData{
+	e := encodableTxData{
 		AccountNonce: 2,
 		Price:        utils.MarshalBigInt(big.NewInt(3)),
 		GasLimit:     1,
@@ -170,7 +170,7 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	str, err := marshalAmino(e)
 	require.NoError(t, err)
 
-	e2 := new(EncodableTxData)
+	e2 := new(encodableTxData)
 
 	err = unmarshalAmino(e2, str)
 	require.NoError(t, err)

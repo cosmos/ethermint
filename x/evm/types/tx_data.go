@@ -1,14 +1,35 @@
 package types
 
 import (
+	"math/big"
+
 	"github.com/cosmos/ethermint/utils"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
-// EncodableTxData implements the Ethereum transaction data structure. It is used
+// TxData implements the Ethereum transaction data structure. It is used
 // solely as intended in Ethereum abiding by the protocol.
-type EncodableTxData struct {
+type TxData struct {
+	AccountNonce uint64          `json:"nonce"`
+	Price        *big.Int        `json:"gasPrice"`
+	GasLimit     uint64          `json:"gas"`
+	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"`
+	Payload      []byte          `json:"input"`
+
+	// signature values
+	V *big.Int `json:"v"`
+	R *big.Int `json:"r"`
+	S *big.Int `json:"s"`
+
+	// hash is only used when marshaling to JSON
+	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+}
+
+// encodableTxData implements the Ethereum transaction data structure. It is used
+// solely as intended in Ethereum abiding by the protocol.
+type encodableTxData struct {
 	AccountNonce uint64          `json:"nonce"`
 	Price        string          `json:"gasPrice"`
 	GasLimit     uint64          `json:"gas"`
@@ -25,18 +46,9 @@ type EncodableTxData struct {
 	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
 }
 
-func marshalAmino(td EncodableTxData) (string, error) {
-	bz, err := ModuleCdc.MarshalBinaryBare(td)
-	return string(bz), err
-}
-
-func unmarshalAmino(td *EncodableTxData, text string) (err error) {
-	return ModuleCdc.UnmarshalBinaryBare([]byte(text), td)
-}
-
 // MarshalAmino defines custom encoding scheme for TxData
 func (td TxData) MarshalAmino() (string, error) {
-	e := EncodableTxData{
+	e := encodableTxData{
 		AccountNonce: td.AccountNonce,
 		Price:        utils.MarshalBigInt(td.Price),
 		GasLimit:     td.GasLimit,
@@ -56,7 +68,7 @@ func (td TxData) MarshalAmino() (string, error) {
 
 // UnmarshalAmino defines custom decoding scheme for TxData
 func (td *TxData) UnmarshalAmino(text string) (err error) {
-	e := new(EncodableTxData)
+	e := new(encodableTxData)
 	err = unmarshalAmino(e, text)
 	if err != nil {
 		return
@@ -119,6 +131,15 @@ func (td *TxData) UnmarshalAmino(text string) (err error) {
 	}
 
 	return
+}
+
+func marshalAmino(td encodableTxData) (string, error) {
+	bz, err := ModuleCdc.MarshalBinaryBare(td)
+	return string(bz), err
+}
+
+func unmarshalAmino(td *encodableTxData, text string) (err error) {
+	return ModuleCdc.UnmarshalBinaryBare([]byte(text), td)
 }
 
 // TODO: Implement JSON marshaling/ unmarshaling for this type
