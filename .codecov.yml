@@ -22,8 +22,8 @@ coverage:
       core:
         target: 50%
         flags: core
-      rpc:
-        flags: rpc
+      clients:
+        flags: clients
     changes: false
 
 comment:
@@ -44,17 +44,15 @@ flags:
       - "core/"
       - "crypto/"
       - "types/"
-  core:
+  clients:
     paths:
       - "rpc/"
+      - "client/"
+      - "x/**/client/"
 
 ignore:
   - "docs"
   - "*.md"
-  - "*.rst"
   - "**/*.pb.go"
   - "types/*.pb.go"
   - "x/**/*.pb.go"
-  - "x/**/test_common.go"
-  - "scripts/"
-  - "contrib"
