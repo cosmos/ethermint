@@ -29,7 +29,6 @@ type Keeper struct {
 	CommitStateDB *types.CommitStateDB
 	TxCount       *count
 	Bloom         *big.Int
-	Logs          []*ethtypes.Log
 }
 
 // TODO: move to types
@@ -56,7 +55,6 @@ func NewKeeper(ak auth.AccountKeeper, storageKey, codeKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, ak, storageKey, codeKey),
 		TxCount:       new(count),
 		Bloom:         big.NewInt(0),
-		Logs:          []*ethtypes.Log{},
 	}
 }
 
@@ -116,8 +114,8 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.B
 	return ethtypes.BytesToBloom(bloom), nil
 }
 
-// SetBlockLogs sets the block's logs in the KVStore
-func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
+// SetBlockLogs sets the transaction's logs in the KVStore
+func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
 	store := ctx.KVStore(k.storeKey)
 	encLogs, err := types.EncodeLogs(logs)
 	if err != nil {
@@ -128,12 +126,12 @@ func (k *Keeper) SetBlockLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte
 	return nil
 }
 
-// GetBlockLogs gets the logs for a block from the KVStore
-func (k *Keeper) GetBlockLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
+// GetBlockLogs gets the logs for a transaction from the KVStore
+func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.storeKey)
 	encLogs := store.Get(types.LogsKey(hash))
 	if len(encLogs) == 0 {
-		return nil, errors.New("cannot get block logs")
+		return nil, errors.New("cannot get transaction logs")
 	}
 
 	return types.DecodeLogs(encLogs)
@@ -258,13 +256,13 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 }
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
-func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) []*ethtypes.Log {
+func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return logs
+	return logs, nil
 }
 
 // AllLogs calls CommitStateDB.AllLogs using the passed in context

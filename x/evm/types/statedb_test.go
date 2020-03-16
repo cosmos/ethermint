@@ -89,7 +89,7 @@ func TestBloomFilter(t *testing.T) {
 
 	// Get log from db
 	logs, err := stateDB.GetLogs(tHash)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, len(logs), 1)
 
 	// get logs bloom from the log

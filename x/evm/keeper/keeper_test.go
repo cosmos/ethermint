@@ -88,9 +88,7 @@ func TestDBStorage(t *testing.T) {
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 	err = ek.SetBlockBloomMapping(ctx, testBloom, 4)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Get those state transitions
 	require.Equal(t, ek.GetBalance(ctx, address).Cmp(big.NewInt(5)), 0)
@@ -102,9 +100,7 @@ func TestDBStorage(t *testing.T) {
 	require.Equal(t, ek.GetBlockHashMapping(ctx, []byte{0x43, 0x32}), int64(8))
 
 	bloom, err := ek.GetBlockBloomMapping(ctx, 4)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	require.Equal(t, bloom, testBloom)
 
 	// commit stateDB

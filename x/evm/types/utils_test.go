@@ -21,15 +21,9 @@ func TestEvmDataEncoding(t *testing.T) {
 	}
 
 	enc, err := EncodeResultData(data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	res, err := DecodeResultData(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	require.NoError(t, err)
 	require.Equal(t, addr, res.Address)
 	require.Equal(t, bloom, res.Bloom)

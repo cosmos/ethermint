@@ -365,7 +365,7 @@ func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, au
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs, err = statedb.GetLogs(tx.Hash())
 	if err != nil {
-		panic(err)
+		return nil, 0, err
 	}
 	receipt.Bloom = ethtypes.CreateBloom(ethtypes.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()

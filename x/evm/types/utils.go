@@ -76,7 +76,10 @@ func EncodeResultData(data *ResultData) ([]byte, error) {
 func DecodeResultData(in []byte) (*ResultData, error) {
 	data := new(ResultData)
 	err := rlp.DecodeBytes(in, data)
-	return data, err
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
@@ -86,5 +89,8 @@ func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
 func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
 	err := rlp.DecodeBytes(in, &logs)
-	return logs, err
+	if err != nil {
+		return nil, err
+	}
+	return logs, nil
 }

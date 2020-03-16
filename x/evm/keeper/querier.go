@@ -151,7 +151,11 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 
 func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	txHash := ethcmn.HexToHash(path[1])
-	logs := keeper.GetLogs(ctx, txHash)
+	logs, err := keeper.GetLogs(ctx, txHash)
+	if err != nil {
+		// TODO: handle err
+		return nil, nil
+	}
 
 	bRes := types.QueryETHLogs{Logs: logs}
 	res, err := codec.MarshalJSONIndent(keeper.cdc, bRes)

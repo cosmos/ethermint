@@ -18,9 +18,9 @@ import (
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
-		case *types.EthereumTxMsg:
+		case types.EthereumTxMsg:
 			return handleETHTxMsg(ctx, k, msg)
-		case *types.EmintMsg:
+		case types.EmintMsg:
 			return handleEmintMsg(ctx, k, msg)
 		default:
 			errMsg := fmt.Sprintf("Unrecognized ethermint Msg type: %v", msg.Type())
@@ -30,7 +30,7 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 // Handle an Ethereum specific tx
-func handleETHTxMsg(ctx sdk.Context, k Keeper, msg *types.EthereumTxMsg) sdk.Result {
+func handleETHTxMsg(ctx sdk.Context, k Keeper, msg types.EthereumTxMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}
@@ -56,10 +56,6 @@ func handleETHTxMsg(ctx sdk.Context, k Keeper, msg *types.EthereumTxMsg) sdk.Res
 	txHash := tmtypes.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
 
-	if k.CommitStateDB == nil {
-		panic("keeper.CommitStateDB is nil")
-	}
-
 	st := types.StateTransition{
 		Sender:       sender,
 		AccountNonce: msg.Data.AccountNonce,
@@ -80,13 +76,17 @@ func handleETHTxMsg(ctx sdk.Context, k Keeper, msg *types.EthereumTxMsg) sdk.Res
 	returnData := st.TransitionCSDB(ctx)
 	if returnData.Result.IsOK() {
 		k.Bloom.Or(k.Bloom, returnData.Bloom)
-		k.Logs = append(k.Logs, returnData.Logs...) // does k.SetBlockLogs or k.AddLog need to be called here?
+		err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
+		if err != nil {
+			// TODO: handle error
+			return returnData.Result
+		}
 	}
 
 	return returnData.Result
 }
 
-func handleEmintMsg(ctx sdk.Context, k Keeper, msg *types.EmintMsg) sdk.Result {
+func handleEmintMsg(ctx sdk.Context, k Keeper, msg types.EmintMsg) sdk.Result {
 	if err := msg.ValidateBasic(); err != nil {
 		return err.Result()
 	}

@@ -97,7 +97,7 @@ func TestHandler_Logs(t *testing.T) {
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 	ctx = ctx.WithBlockHeight(1).WithChainID("1")
 
-	result := handleETHTxMsg(ctx, ek, tx)
+	result := handleETHTxMsg(ctx, ek, *tx)
 	resultData, err := evmtypes.DecodeResultData(result.Data)
 	if err != nil {
 		t.Fatal(err)
@@ -112,12 +112,12 @@ func TestHandler_Logs(t *testing.T) {
 	}
 
 	hash := []byte{1}
-	err = ek.SetBlockLogs(ctx, resultData.Logs, hash)
+	err = ek.SetTransactionLogs(ctx, resultData.Logs, hash)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	logs, err := ek.GetBlockLogs(ctx, hash)
+	logs, err := ek.GetTransactionLogs(ctx, hash)
 	if err != nil {
 		t.Fatal(err)
 	}
