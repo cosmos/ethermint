@@ -98,8 +98,8 @@ func (e *PublicEthAPI) Hashrate() hexutil.Uint64 {
 	return 0
 }
 
-// Price returns the current gas price based on Ethermint's gas price oracle.
-func (e *PublicEthAPI) Price() *hexutil.Big {
+// GasPrice returns the current gas price based on Ethermint's gas price oracle.
+func (e *PublicEthAPI) GasPrice() *hexutil.Big {
 	out := big.NewInt(0)
 	return (*hexutil.Big)(out)
 }
@@ -345,8 +345,8 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 type CallArgs struct {
 	From     *common.Address `json:"from"`
 	To       *common.Address `json:"to"`
-	GasLimit      *hexutil.Uint64 `json:"gas"`
-	Price *hexutil.Big    `json:"gasPrice"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     *hexutil.Bytes  `json:"data"`
 }
@@ -405,8 +405,8 @@ func (e *PublicEthAPI) doCall(
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
 	gas := uint64(emint.DefaultRPCGasLimit)
-	if args.GasLimit != nil {
-		gas = uint64(*args.GasLimit)
+	if args.Gas != nil {
+		gas = uint64(*args.Gas)
 	}
 	if globalGasCap != nil && globalGasCap.Uint64() < gas {
 		log.Println("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
@@ -415,8 +415,8 @@ func (e *PublicEthAPI) doCall(
 
 	// Set gas price using default or parameter if passed in
 	gasPrice := new(big.Int).SetUint64(emint.DefaultGasPrice)
-	if args.Price != nil {
-		gasPrice = args.Price.ToInt()
+	if args.GasPrice != nil {
+		gasPrice = args.GasPrice.ToInt()
 	}
 
 	// Set value for transaction
@@ -592,8 +592,8 @@ type Transaction struct {
 	BlockHash        *common.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big    `json:"blockNumber"`
 	From             common.Address  `json:"from"`
-	GasLimit              hexutil.Uint64  `json:"gas"`
-	Price         *hexutil.Big    `json:"gasPrice"`
+	Gas              hexutil.Uint64  `json:"gas"`
+	GasPrice         *hexutil.Big    `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
 	Input            hexutil.Bytes   `json:"input"`
 	Nonce            hexutil.Uint64  `json:"nonce"`
@@ -623,8 +623,8 @@ func newRPCTransaction(tx *types.MsgEthereumTx, blockHash common.Hash, blockNumb
 
 	result := &Transaction{
 		From:     from,
-		GasLimit:      hexutil.Uint64(tx.Data.GasLimit),
-		Price: (*hexutil.Big)(tx.Data.Price),
+		Gas:      hexutil.Uint64(tx.Data.GasLimit),
+		GasPrice: (*hexutil.Big)(tx.Data.Price),
 		Hash:     tx.Hash(),
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
@@ -897,9 +897,9 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 	)
 
 	amount := (*big.Int)(args.Value)
-	gasPrice := (*big.Int)(args.Price)
+	gasPrice := (*big.Int)(args.GasPrice)
 
-	if args.Price == nil {
+	if args.GasPrice == nil {
 
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
@@ -936,12 +936,12 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 		}
 	}
 
-	if args.GasLimit == nil {
+	if args.Gas == nil {
 		callArgs := CallArgs{
 			From:     &args.From,
 			To:       args.To,
-			GasLimit:      args.GasLimit,
-			Price: args.Price,
+			Gas:      args.Gas,
+			GasPrice: args.GasPrice,
 			Value:    args.Value,
 			Data:     args.Data,
 		}
@@ -950,7 +950,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 			return nil, err
 		}
 	} else {
-		gasLimit = (uint64)(*args.GasLimit)
+		gasLimit = (uint64)(*args.Gas)
 	}
 
 	return types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input), nil

@@ -54,8 +54,8 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	st := types.StateTransition{
 		Sender:       sender,
 		AccountNonce: msg.Data.AccountNonce,
-		Price:     msg.Data.Price,
-		GasLimit:          msg.Data.GasLimit,
+		Price:        msg.Data.Price,
+		GasLimit:     msg.Data.GasLimit,
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
@@ -113,8 +113,8 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	st := types.StateTransition{
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		AccountNonce: msg.AccountNonce,
-		Price:     msg.Price.BigInt(),
-		GasLimit:          msg.GasLimit,
+		Price:        msg.Price.BigInt(),
+		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
