@@ -14,7 +14,6 @@ import (
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
-	etypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm"
@@ -904,7 +903,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(etypes.DefaultGasPrice)
+		gasPrice = big.NewInt(emint.DefaultGasPrice)
 	}
 
 	if args.Nonce == nil {

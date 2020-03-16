@@ -7,7 +7,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -39,7 +38,7 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 
 	// Prepare db for logs
 	tHash := ethcmn.BytesToHash([]byte{0x1})
-	stateDB.Prepare(tHash, common.Hash{}, 0)
+	stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
 
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 

@@ -57,15 +57,17 @@ func (acc Account) Balance() sdk.Int {
 func (acc Account) SetBalance(amt sdk.Int) {
 	coins := acc.GetCoins()
 	diff := amt.Sub(coins.AmountOf(DenomDefault))
-	if diff.IsZero() {
-		return
-	} else if diff.IsPositive() {
+	switch {
+	case diff.IsPositive():
 		// Increase coins to amount
 		coins = coins.Add(sdk.NewCoin(DenomDefault, diff))
-	} else {
+	case diff.IsNegative():
 		// Decrease coins to amount
 		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff.Neg())))
+	default:
+		return
 	}
+
 	if err := acc.SetCoins(coins); err != nil {
 		panic(fmt.Sprintf("Could not set coins for address %s", acc.GetAddress()))
 	}

@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/utils"
-	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -182,13 +181,13 @@ func TestMarshalAndUnmarshalLogs(t *testing.T) {
 
 	logs := []*ethtypes.Log{
 		{
-			Address: common.BytesToAddress([]byte{0x11}),
-			TxHash:  common.HexToHash("0x01"),
+			Address: ethcmn.BytesToAddress([]byte{0x11}),
+			TxHash:  ethcmn.HexToHash("0x01"),
 			// May need to find workaround since Topics is required to unmarshal from JSON
-			Topics:  []common.Hash{},
+			Topics:  []ethcmn.Hash{},
 			Removed: true,
 		},
-		{Address: common.BytesToAddress([]byte{0x01, 0x11}), Topics: []common.Hash{}},
+		{Address: ethcmn.BytesToAddress([]byte{0x01, 0x11}), Topics: []ethcmn.Hash{}},
 	}
 
 	raw, err := codec.MarshalJSONIndent(cdc, logs)
