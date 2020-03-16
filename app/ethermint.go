@@ -28,6 +28,7 @@ import (
 
 	"github.com/cosmos/ethermint/app/ante"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
+	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -92,6 +93,7 @@ func MakeCodec() *codec.Codec {
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	emintcrypto.RegisterCodec(cdc)
+	eminttypes.RegisterCodec(cdc)
 
 	return cdc
 }
