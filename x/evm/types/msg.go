@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	_ sdk.Msg = MsgEthermint{}
 	_ sdk.Msg = MsgEthereumTx{}
 	_ sdk.Tx  = MsgEthereumTx{}
 )
@@ -27,8 +28,81 @@ var big8 = big.NewInt(8)
 
 // message type and route constants
 const (
+	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgEthereumTx = "ethereum"
+	// TypeMsgEthermint defines the type string of Ethermint message
+	TypeMsgEthermint = "ethermint"
 )
+
+// MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
+type MsgEthermint struct {
+	AccountNonce uint64          `json:"nonce"`
+	Price        sdk.Int         `json:"gasPrice"`
+	GasLimit     uint64          `json:"gas"`
+	Recipient    *sdk.AccAddress `json:"to" rlp:"nil"` // nil means contract creation
+	Amount       sdk.Int         `json:"value"`
+	Payload      []byte          `json:"input"`
+
+	// From address (formerly derived from signature)
+	From sdk.AccAddress `json:"from"`
+}
+
+// NewMsgEthermint returns a reference to a new Ethermint transaction
+func NewMsgEthermint(
+	nonce uint64, to *sdk.AccAddress, amount sdk.Int,
+	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
+) MsgEthermint {
+	return MsgEthermint{
+		AccountNonce: nonce,
+		Price:        gasPrice,
+		GasLimit:     gasLimit,
+		Recipient:    to,
+		Amount:       amount,
+		Payload:      payload,
+		From:         from,
+	}
+}
+
+// Route should return the name of the module
+func (msg MsgEthermint) Route() string { return RouterKey }
+
+// Type returns the action of the message
+func (msg MsgEthermint) Type() string { return TypeMsgEthermint }
+
+// GetSignBytes encodes the message for signing
+func (msg MsgEthermint) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgEthermint) ValidateBasic() error {
+	if msg.Price.Sign() != 1 {
+		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
+	}
+
+	// Amount can be 0
+	if msg.Amount.Sign() == -1 {
+		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
+	}
+
+	return nil
+}
+
+// GetSigners defines whose signature is required
+func (msg MsgEthermint) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.From}
+}
+
+// To returns the recipient address of the transaction. It returns nil if the
+// transaction is a contract creation.
+func (msg MsgEthermint) To() *ethcmn.Address {
+	if msg.Recipient == nil {
+		return nil
+	}
+
+	addr := ethcmn.BytesToAddress(msg.Recipient.Bytes())
+	return &addr
+}
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
@@ -147,10 +221,10 @@ func (msg *MsgEthereumTx) Protected() bool {
 	return isProtectedV(msg.Data.V)
 }
 
-func isProtectedV(V *big.Int) bool {
-	if V.BitLen() <= 8 {
-		v := V.Uint64()
-		return v != 27 && v != 28
+func isProtectedV(v *big.Int) bool {
+	if v.BitLen() <= 8 {
+		value := v.Uint64()
+		return value != 27 && value != 28
 	}
 	// anything not 27 or 28 is considered protected
 	return true
@@ -179,12 +253,12 @@ func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
 
-	err := s.Decode(&msg.Data)
-	if err == nil {
-		msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
+	if err := s.Decode(&msg.Data); err != nil {
+		return err
 	}
 
-	return err
+	msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
+	return nil
 }
 
 // To returns the recipient address of the transaction. It returns nil if the
@@ -209,16 +283,16 @@ func (msg *MsgEthereumTx) Hash() ethcmn.Hash {
 // takes a private key and chainID to sign an Ethereum transaction according to
 // EIP155 standard. It mutates the transaction as it populates the V, R, S
 // fields of the Transaction's Signature.
-func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) {
+func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	txHash := msg.RLPSignBytes(chainID)
 
 	sig, err := ethcrypto.Sign(txHash[:], priv)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if len(sig) != 65 {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
+		return fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
 	}
 
 	r := new(big.Int).SetBytes(sig[:32])
@@ -238,6 +312,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) {
 	msg.Data.V = v
 	msg.Data.R = r
 	msg.Data.S = s
+	return nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.

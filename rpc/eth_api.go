@@ -289,7 +289,9 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Sign transaction
-	tx.Sign(intChainID, e.key.ToECDSA())
+	if err := tx.Sign(intChainID, e.key.ToECDSA()); err != nil {
+		return common.Hash{}, err
+	}
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
