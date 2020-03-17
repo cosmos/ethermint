@@ -73,13 +73,13 @@ func EncodeResultData(data *ResultData) ([]byte, error) {
 }
 
 // DecodeReturnData decodes the byte slice of values to their respective types
-func DecodeResultData(in []byte) (*ResultData, error) {
+func DecodeResultData(in []byte) (ResultData, error) {
 	data := new(ResultData)
 	err := rlp.DecodeBytes(in, data)
 	if err != nil {
-		return nil, err
+		return ResultData{}, err
 	}
-	return data, nil
+	return *data, nil
 }
 
 func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {

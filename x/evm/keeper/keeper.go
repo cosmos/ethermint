@@ -76,7 +76,7 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if bytes.Equal(heightHash, []byte{}) {
+	if len(heightHash) == 0 {
 		return fmt.Errorf("block with bloombits %v not found", bloom)
 	}
 	store.Set(types.BloomKey(heightHash), bloom.Bytes())
@@ -87,12 +87,12 @@ func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, hei
 func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if bytes.Equal(heightHash, []byte{}) {
+	if len(heightHash) == 0 {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
 
 	bloom := store.Get(types.BloomKey(heightHash))
-	if bytes.Equal(bloom, []byte{}) {
+	if len(bloom) == 0 {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
 	}
 
