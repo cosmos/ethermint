@@ -2,22 +2,21 @@ package evm
 
 // import (
 // 	"math/big"
-// 	"reflect"
 // 	"testing"
+// 	"time"
 
-// 	"github.com/cosmos/cosmos-sdk/codec"
-// 	"github.com/cosmos/cosmos-sdk/store"
+// 	"github.com/stretchr/testify/suite"
+
 // 	sdk "github.com/cosmos/cosmos-sdk/types"
-// 	"github.com/cosmos/cosmos-sdk/x/auth"
-// 	"github.com/cosmos/cosmos-sdk/x/params"
+
+// 	"github.com/cosmos/ethermint/app"
 // 	"github.com/cosmos/ethermint/crypto"
-// 	"github.com/cosmos/ethermint/types"
-// 	eminttypes "github.com/cosmos/ethermint/types"
-// 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
-// 	"github.com/ethereum/go-ethereum/common"
+// 	"github.com/cosmos/ethermint/x/evm/keeper"
+
+// 	ethcmn "github.com/ethereum/go-ethereum/common"
+// 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 // 	abci "github.com/tendermint/tendermint/abci/types"
-// 	tmlog "github.com/tendermint/tendermint/libs/log"
-// 	dbm "github.com/tendermint/tm-db"
 // )
 
 // pragma solidity ^0.5.1;
@@ -37,25 +36,52 @@ package evm
 // 	"sourceMap": "25:119:0:-;;;90:52;8:9:-1;5:2;;;30:1;27;20:12;5:2;90:52:0;132:2;126:9;;;;;;;;;;25:119;;;;;;"
 // }
 
-// var (
-// 	accKey     = sdk.NewKVStoreKey("acc")
-// 	storageKey = sdk.NewKVStoreKey(evmtypes.EvmStoreKey)
-// 	codeKey    = sdk.NewKVStoreKey(evmtypes.EvmCodeKey)
-// 	blockKey   = sdk.NewKVStoreKey(evmtypes.EvmBlockKey)
+// type EvmTestSuite struct {
+// 	suite.Suite
 
-// 	logger = tmlog.NewNopLogger()
-// )
+// 	ctx     sdk.Context
+// 	querier sdk.Querier
+// 	app     *app.EthermintApp
+// }
 
-// func newTestCodec() *codec.Codec {
-// 	cdc := codec.New()
+// func (suite *EvmTestSuite) SetupTest() {
+// 	checkTx := false
 
-// 	evmtypes.RegisterCodec(cdc)
-// 	types.RegisterCodec(cdc)
-// 	auth.RegisterCodec(cdc)
-// 	sdk.RegisterCodec(cdc)
-// 	codec.RegisterCrypto(cdc)
+// 	suite.app = app.Setup(checkTx)
+// 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
+// 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+// }
 
-// 	return cdc
+// func TestEvmTestSuite(t *testing.T) {
+// 	suite.Run(t, new(EvmTestSuite))
+// }
+
+// func (suite *EvmTestSuite) TestHandler_Logs() {
+// 	// Perform state transitions
+// 	// suite.app.EvmKeeper.CreateAccount(suite.ctx, address)
+// 	// suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(5))
+// 	// suite.app.EvmKeeper.SetNonce(suite.ctx, address, 4)
+
+// 	priv1, _ := crypto.GenerateKey()
+// 	bytecode := common.FromHex("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
+// 	tx := evmtypes.NewEthereumTxMsg(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
+// 	tx.Sign(big.NewInt(1), priv1.ToECDSA())
+
+// 	result := handleETHTxMsg(ctx, suite.App.EvmKeeper, *tx)
+// 	resultData, err := evmtypes.DecodeResultData(result.Data)
+// 	suite.Require().NoError(err, "failed to decode result data")
+
+// 	suite.Require().Equal(len(resultData.Logs), 1)
+// 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
+
+// 	hash := []byte{1}
+// 	err = ek.SetTransactionLogs(ctx, resultData.Logs, hash)
+// 	suite.Require().NoError(err, "failed to set logs")
+
+// 	logs, err := ek.GetTransactionLogs(ctx, hash)
+// 	suite.Require().NoError(err, "failed to get logs")
+
+// 	suite.Require().Equal(logs, resultData.Logs)
 // }
 
 // func TestHandler_Logs(t *testing.T) {
