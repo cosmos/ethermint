@@ -104,11 +104,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -123,8 +129,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	if st.THash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.THash)
 		if err != nil {
-			// TODO: handle error
-			logs = nil
+			return nil, err
 		}
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
