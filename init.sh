@@ -27,3 +27,6 @@ emintd collect-gentxs
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
 emintd validate-genesis
+
+# Start the node (remove the --pruning=nothing flag if historical queries are not needed)
+emintd start --pruning=nothing
