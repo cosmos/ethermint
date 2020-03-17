@@ -13,6 +13,10 @@ import (
 // BeginBlock sets the Bloom and Hash mappings and resets the Bloom filter and
 // the transaction count to 0.
 func BeginBlock(k Keeper, ctx sdk.Context, req abci.RequestBeginBlock) {
+	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
+		return
+	}
+
 	// Consider removing this when using evm as module without web3 API
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloomMapping(ctx, bloom, req.Header.GetHeight()-1)

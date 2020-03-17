@@ -51,7 +51,7 @@ func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error)
 	var height int64
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
-	if bz == nil || len(bz) == 0 {
+	if len(bz) == 0 {
 		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
 
@@ -75,7 +75,7 @@ func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bl
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryBare(height)
 	bz := store.Get(heightHash)
-	if bz == nil {
+	if len(bz) == 0 {
 		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
 
