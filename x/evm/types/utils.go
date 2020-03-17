@@ -8,6 +8,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	amino "github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
@@ -56,28 +57,30 @@ type ResultData struct {
 }
 
 // EncodeReturnData takes all of the necessary data from the EVM execution
-// and returns the data as a byte slice
+// and returns the data as a byte slice encoded with amino
 func EncodeResultData(data *ResultData) ([]byte, error) {
-	return rlp.EncodeToBytes(data)
+	return amino.NewCodec().MarshalBinaryLengthPrefixed(data)
 }
 
-// DecodeReturnData decodes the byte slice of values to their respective types
+// DecodeReturnData decodes an amino-encoded byte slice into ReturnData
 func DecodeResultData(in []byte) (ResultData, error) {
 	data := new(ResultData)
-	err := rlp.DecodeBytes(in, data)
+	err := amino.NewCodec().UnmarshalBinaryLengthPrefixed(in, data)
 	if err != nil {
 		return ResultData{}, err
 	}
 	return *data, nil
 }
 
+// EncodeLogs encodes an array of logs using amino
 func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
-	return rlp.EncodeToBytes(logs)
+	return amino.NewCodec().MarshalBinaryLengthPrefixed(logs)
 }
 
+// DecodeLogs decodes an amino-encoded byte array into an array of logs
 func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
-	err := rlp.DecodeBytes(in, &logs)
+	err := amino.NewCodec().UnmarshalBinaryLengthPrefixed(in, &logs)
 	if err != nil {
 		return nil, err
 	}

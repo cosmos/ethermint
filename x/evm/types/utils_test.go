@@ -16,8 +16,11 @@ func TestEvmDataEncoding(t *testing.T) {
 	data := &ResultData{
 		Address: addr,
 		Bloom:   bloom,
-		Logs:    []*ethtypes.Log{},
-		Ret:     ret,
+		Logs: []*ethtypes.Log{&ethtypes.Log{
+			Data:        []byte{1, 2, 3, 4},
+			BlockNumber: 17,
+		}},
+		Ret: ret,
 	}
 
 	enc, err := EncodeResultData(data)
