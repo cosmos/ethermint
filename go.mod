@@ -41,7 +41,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.32.8
-	github.com/tendermint/tm-db v0.2.0
+	github.com/tendermint/tm-db v0.5.0
 	github.com/tyler-smith/go-bip39 v1.0.0 // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
