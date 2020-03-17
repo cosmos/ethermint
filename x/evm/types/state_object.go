@@ -73,20 +73,21 @@ type (
 	}
 )
 
-func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	acc, ok := accProto.(*types.Account)
+func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
+	ethermintAccount, ok := accProto.(*types.Account)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
-	if acc.CodeHash == nil {
-		acc.CodeHash = emptyCodeHash
+	// set empty code hash
+	if ethermintAccount.CodeHash == nil {
+		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
 	return &stateObject{
 		stateDB:       db,
-		account:       acc,
-		address:       ethcmn.BytesToAddress(acc.Address.Bytes()),
+		account:       ethermintAccount,
+		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
 	}
@@ -216,7 +217,7 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 
 	for key, value := range so.dirtyStorage {
 		delete(so.dirtyStorage, key)
@@ -321,7 +322,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 
 	// otherwise load the value from the KVStore
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
@@ -341,7 +342,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newObject(db, so.account)
+	newStateObj := newStateObject(db, so.account)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()

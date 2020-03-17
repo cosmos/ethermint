@@ -1,24 +1,24 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	"github.com/cosmos/ethermint/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 var (
-	_ sdk.Msg = EmintMsg{}
+	_ sdk.Msg = MsgEthermint{}
 )
 
 const (
-	// TypeEmintMsg defines the type string of Emint message
-	TypeEmintMsg = "emint_tx"
+	// TypeMsgEthermint defines the type string of Ethermint message
+	TypeMsgEthermint = "ethermint"
 )
 
-// EmintMsg implements a cosmos equivalent structure for Ethereum transactions
-type EmintMsg struct {
+// MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
+type MsgEthermint struct {
 	AccountNonce uint64          `json:"nonce"`
 	Price        sdk.Int         `json:"gasPrice"`
 	GasLimit     uint64          `json:"gas"`
@@ -30,12 +30,12 @@ type EmintMsg struct {
 	From sdk.AccAddress `json:"from"`
 }
 
-// NewEmintMsg returns a reference to a new Ethermint transaction
-func NewEmintMsg(
+// NewMsgEthermint returns a reference to a new Ethermint transaction
+func NewMsgEthermint(
 	nonce uint64, to *sdk.AccAddress, amount sdk.Int,
 	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
-) EmintMsg {
-	return EmintMsg{
+) MsgEthermint {
+	return MsgEthermint{
 		AccountNonce: nonce,
 		Price:        gasPrice,
 		GasLimit:     gasLimit,
@@ -47,38 +47,38 @@ func NewEmintMsg(
 }
 
 // Route should return the name of the module
-func (msg EmintMsg) Route() string { return RouterKey }
+func (msg MsgEthermint) Route() string { return RouterKey }
 
 // Type returns the action of the message
-func (msg EmintMsg) Type() string { return TypeEmintMsg }
+func (msg MsgEthermint) Type() string { return TypeMsgEthermint }
 
 // GetSignBytes encodes the message for signing
-func (msg EmintMsg) GetSignBytes() []byte {
+func (msg MsgEthermint) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // ValidateBasic runs stateless checks on the message
-func (msg EmintMsg) ValidateBasic() sdk.Error {
+func (msg MsgEthermint) ValidateBasic() error {
 	if msg.Price.Sign() != 1 {
-		return types.ErrInvalidValue(fmt.Sprintf("Price must be positive: %x", msg.Price))
+		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
 	}
 
 	// Amount can be 0
 	if msg.Amount.Sign() == -1 {
-		return types.ErrInvalidValue(fmt.Sprintf("amount cannot be negative: %x", msg.Amount))
+		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
 	}
 
 	return nil
 }
 
 // GetSigners defines whose signature is required
-func (msg EmintMsg) GetSigners() []sdk.AccAddress {
+func (msg MsgEthermint) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.From}
 }
 
 // To returns the recipient address of the transaction. It returns nil if the
 // transaction is a contract creation.
-func (msg EmintMsg) To() *ethcmn.Address {
+func (msg MsgEthermint) To() *ethcmn.Address {
 	if msg.Recipient == nil {
 		return nil
 	}

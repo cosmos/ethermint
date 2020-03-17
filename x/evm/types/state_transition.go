@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	emint "github.com/cosmos/ethermint/types"
 )
 
@@ -31,19 +32,20 @@ type StateTransition struct {
 type ReturnData struct {
 	Logs   []*ethtypes.Log
 	Bloom  *big.Int
-	Result sdk.Result
+	Result *sdk.Result
 }
 
+// TODO: move to keeper
 // TransitionCSDB performs an evm state transition from a transaction
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
+// TODO: update godoc, it doesn't explain what it does in depth.
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	returnData := new(ReturnData)
 
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		returnData.Result = sdk.ErrOutOfGas("invalid intrinsic gas for transaction").Result()
-		return returnData
+		return nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -85,13 +87,12 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
 
-	vmenv := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
+	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
 
 	var (
 		ret         []byte
 		leftOverGas uint64
 		addr        common.Address
-		vmerr       error
 		senderRef   = vm.AccountRef(st.Sender)
 	)
 
@@ -100,14 +101,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
 
-	if contractCreation {
-		ret, addr, leftOverGas, vmerr = vmenv.Create(senderRef, st.Payload, gasLimit, st.Amount)
-	} else {
+	switch contractCreation {
+	case true:
+		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 
-		ret, leftOverGas, vmerr = vmenv.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
+
+	gasConsumed := gasLimit - leftOverGas
 
 	// Resets nonce to value pre state transition
 	st.Csdb.SetNonce(st.Sender, currentNonce)
@@ -135,22 +139,18 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 	}
 	resultData, err := EncodeResultData(res)
 	if err != nil {
-		// TODO: where are the ethermint error types?
-		//returnData.Result = sdk.Err()
-		return returnData
+		return nil, err
 	}
 
 	// handle errors
-	if vmerr != nil {
-		res := emint.ErrVMExecution(vmerr.Error()).Result()
-		if vmerr == vm.ErrOutOfGas || vmerr == vm.ErrCodeStoreOutOfGas {
-			res = sdk.ErrOutOfGas("EVM execution went out of gas").Result()
+	if err != nil {
+		if err == vm.ErrOutOfGas || err == vm.ErrCodeStoreOutOfGas {
+			return nil, sdkerrors.Wrap(err, "evm execution went out of gas")
 		}
-		res.Data = resultData
+
 		// Consume gas before returning
-		ctx.GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
-		returnData.Result = res
-		return returnData
+		ctx.GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		return nil, err
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -162,10 +162,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) *ReturnData {
 
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasLimit-leftOverGas, "EVM execution consumption")
+	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt
-	returnData.Result = sdk.Result{Data: resultData, GasUsed: st.GasLimit - leftOverGas}
-	return returnData
+	returnData.Result = &sdk.Result{Data: resultData}
+	return returnData, nil
 }

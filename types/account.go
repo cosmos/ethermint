@@ -12,16 +12,11 @@ import (
 	"gopkg.in/yaml.v2"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 var _ exported.Account = (*Account)(nil)
 var _ exported.GenesisAccount = (*Account)(nil)
-
-const (
-	// DenomDefault defines the single coin type/denomination supported in
-	// Ethermint.
-	DenomDefault = "photon"
-)
 
 // ----------------------------------------------------------------------------
 // Main Ethermint account
@@ -32,7 +27,7 @@ func init() {
 }
 
 // Account implements the auth.Account interface and embeds an
-// auth.BaseAccount type. It is compatible with the auth.AccountMapper.
+// auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
 type Account struct {
 	*auth.BaseAccount
 
@@ -44,10 +39,13 @@ type Account struct {
 	CodeHash []byte
 }
 
-// ProtoBaseAccount defines the prototype function for BaseAccount used for an
-// account mapper.
-func ProtoBaseAccount() exported.Account {
-	return &Account{BaseAccount: &auth.BaseAccount{}}
+// ProtoAccount defines the prototype function for BaseAccount used for an
+// AccountKeeper.
+func ProtoAccount() exported.Account {
+	return &Account{
+		BaseAccount: &auth.BaseAccount{},
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
 }
 
 // Balance returns the balance of an account.
@@ -62,7 +60,7 @@ func (acc Account) SetBalance(amt sdk.Int) {
 	switch {
 	case diff.IsPositive():
 		// Increase coins to amount
-		coins = coins.Add(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff)))
+		coins = coins.Add(sdk.NewCoin(DenomDefault, diff))
 	case diff.IsNegative():
 		// Decrease coins to amount
 		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff.Neg())))
@@ -73,39 +71,6 @@ func (acc Account) SetBalance(amt sdk.Int) {
 	if err := acc.SetCoins(coins); err != nil {
 		panic(fmt.Sprintf("Could not set coins for address %s", acc.GetAddress()))
 	}
-}
-
-// ----------------------------------------------------------------------------
-// Code & Storage
-// ----------------------------------------------------------------------------
-
-type (
-	// Code is account Code type alias
-	Code []byte
-	// Storage is account storage type alias
-	Storage map[ethcmn.Hash]ethcmn.Hash
-)
-
-func (c Code) String() string {
-	return string(c)
-}
-
-func (c Storage) String() (str string) {
-	for key, value := range c {
-		str += fmt.Sprintf("%X : %X\n", key, value)
-	}
-
-	return
-}
-
-// Copy returns a copy of storage.
-func (c Storage) Copy() Storage {
-	cpy := make(Storage)
-	for key, value := range c {
-		cpy[key] = value
-	}
-
-	return cpy
 }
 
 type ethermintAccountPretty struct {
