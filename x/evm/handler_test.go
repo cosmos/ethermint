@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/x/evm"
-	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -24,7 +23,7 @@ type EvmTestSuite struct {
 	suite.Suite
 
 	ctx     sdk.Context
-	querier sdk.Querier
+	handler sdk.Handler
 	app     *app.EthermintApp
 }
 
@@ -33,7 +32,7 @@ func (suite *EvmTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
-	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 }
 
 func TestEvmTestSuite(t *testing.T) {

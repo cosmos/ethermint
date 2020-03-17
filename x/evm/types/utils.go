@@ -13,17 +13,6 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-var bloomPrefix = []byte("bloom")
-var logsPrefix = []byte("logs")
-
-func BloomKey(key []byte) []byte {
-	return append(bloomPrefix, key...)
-}
-
-func LogsKey(key []byte) []byte {
-	return append(logsPrefix, key...)
-}
-
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := crypto.GenerateKey()
@@ -58,7 +47,7 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
-// ResultData represents the data returned in an comsos-sdk/types.Result
+// ResultData represents the data returned in an sdk.Result
 type ResultData struct {
 	Address ethcmn.Address
 	Bloom   ethtypes.Bloom
