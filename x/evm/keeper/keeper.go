@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,23 +46,23 @@ func NewKeeper(
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockHashMapping sets the mapping from block consensus hash to block height
-func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
-	store := ctx.KVStore(k.blockKey)
-	if !bytes.Equal(hash, []byte{}) {
-		store.Set(hash, k.cdc.MustMarshalBinaryLengthPrefixed(height))
-	}
-}
-
 // GetBlockHashMapping gets block height from block consensus hash
-func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64) {
+func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error) {
+	var height int64
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
-	if bytes.Equal(bz, []byte{}) {
-		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
+	if bz == nil || len(bz) == 0 {
+		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &height)
-	return
+
+	k.cdc.MustUnmarshalBinaryBare(bz, &height)
+	return height, nil
+}
+
+// SetBlockHashMapping sets the mapping from block consensus hash to block height
+func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
+	store := ctx.KVStore(k.blockKey)
+	store.Set(hash, k.cdc.MustMarshalBinaryBare(height))
 }
 
 // ----------------------------------------------------------------------------
@@ -71,24 +70,23 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
+// GetBlockBloomMapping gets bloombits from block height
+func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if !bytes.Equal(heightHash, []byte{}) {
-		store.Set(heightHash, bloom.Bytes())
+	heightHash := k.cdc.MustMarshalBinaryBare(height)
+	bz := store.Get(heightHash)
+	if bz == nil {
+		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
+
+	return ethtypes.BytesToBloom(bz), nil
 }
 
-// GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bloom {
+// SetBlockBloomMapping sets the mapping from block height to bloom bits
+func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	bloom := store.Get(heightHash)
-	if bytes.Equal(heightHash, []byte{}) {
-		panic(fmt.Errorf("block with bloombits %s not found", bloom))
-	}
-	return ethtypes.BytesToBloom(bloom)
+	heightHash := k.cdc.MustMarshalBinaryBare(height)
+	store.Set(heightHash, bloom.Bytes())
 }
 
 // ----------------------------------------------------------------------------
@@ -103,7 +101,6 @@ func (k *Keeper) CreateGenesisAccount(ctx sdk.Context, account types.GenesisAcco
 	for _, key := range account.Storage {
 		csdb.SetState(account.Address, key, account.Storage[key])
 	}
-
 }
 
 // ----------------------------------------------------------------------------

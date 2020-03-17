@@ -18,7 +18,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-var address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
+const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
+
+var address = ethcmn.HexToAddress(addrHex)
 
 type KeeperTestSuite struct {
 	suite.Suite
@@ -62,13 +64,19 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, address, ethcmn.HexToHash("0x2")), ethcmn.HexToHash("0x3"))
 	suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, address), []byte{0x1})
 
-	suite.Require().Equal(suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")), int64(7))
-	suite.Require().Equal(suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, []byte{0x43, 0x32}), int64(8))
+	height, err := suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68"))
+	suite.Require().NoError(err)
+	suite.Require().Equal(height, int64(7))
+	height, err = suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, []byte{0x43, 0x32})
+	suite.Require().NoError(err)
+	suite.Require().Equal(height, int64(8))
 
-	suite.Require().Equal(suite.app.EvmKeeper.GetBlockBloomMapping(suite.ctx, 4), testBloom)
+	bloom, err := suite.app.EvmKeeper.GetBlockBloomMapping(suite.ctx, 4)
+	suite.Require().NoError(err)
+	suite.Require().Equal(bloom, testBloom)
 
 	// commit stateDB
-	_, err := suite.app.EvmKeeper.Commit(suite.ctx, false)
+	_, err = suite.app.EvmKeeper.Commit(suite.ctx, false)
 	suite.Require().NoError(err, "failed to commit StateDB")
 
 	// simulate BaseApp EndBlocker commitment

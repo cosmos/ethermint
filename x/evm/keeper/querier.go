@@ -126,7 +126,10 @@ func queryNonce(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	blockHash := ethcmn.FromHex(path[1])
-	blockNumber := keeper.GetBlockHashMapping(ctx, blockHash)
+	blockNumber, err := keeper.GetBlockHashMapping(ctx, blockHash)
+	if err != nil {
+		return []byte{}, err
+	}
 
 	res := types.QueryResBlockNumber{Number: blockNumber}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
@@ -140,10 +143,13 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		panic("could not unmarshall block number: " + err.Error())
+		return []byte{}, err
 	}
 
-	bloom := keeper.GetBlockBloomMapping(ctx, num)
+	bloom, err := keeper.GetBlockBloomMapping(ctx, num)
+	if err != nil {
+		return []byte{}, err
+	}
 
 	res := types.QueryBloomFilter{Bloom: bloom}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)

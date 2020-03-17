@@ -461,7 +461,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResult sdk.Result
-	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
+	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResult); err != nil {
 		return nil, err
 	}
 
@@ -609,7 +609,7 @@ type Transaction struct {
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
-	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
+	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	ethTx, ok := stdTx.(*types.MsgEthereumTx)
 	if !ok || err != nil {
 		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
