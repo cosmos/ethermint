@@ -85,7 +85,7 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.GetSigners()[0].String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
 		),
 	})
 
