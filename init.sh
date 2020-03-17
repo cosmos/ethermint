@@ -2,6 +2,8 @@
 rm -rf ~/.emintcli
 rm -rf ~/.emintd
 
+make install
+
 emintcli config keyring-backend test
 emintcli keys add mykey
 
