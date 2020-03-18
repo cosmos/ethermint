@@ -125,7 +125,7 @@ type sigCache struct {
 func NewMsgEthereumTx(
 	nonce uint64, to *ethcmn.Address, amount *big.Int,
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
-) *MsgEthereumTx {
+) MsgEthereumTx {
 	return newMsgEthereumTx(nonce, to, amount, gasLimit, gasPrice, payload)
 }
 
@@ -133,14 +133,14 @@ func NewMsgEthereumTx(
 // message designated for contract creation.
 func NewMsgEthereumTxContract(
 	nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, payload []byte,
-) *MsgEthereumTx {
+) MsgEthereumTx {
 	return newMsgEthereumTx(nonce, nil, amount, gasLimit, gasPrice, payload)
 }
 
 func newMsgEthereumTx(
 	nonce uint64, to *ethcmn.Address, amount *big.Int,
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
-) *MsgEthereumTx {
+) MsgEthereumTx {
 	if len(payload) > 0 {
 		payload = ethcmn.CopyBytes(payload)
 	}
@@ -164,7 +164,7 @@ func newMsgEthereumTx(
 		txData.Price.Set(gasPrice)
 	}
 
-	return &MsgEthereumTx{Data: txData}
+	return MsgEthereumTx{Data: txData}
 }
 
 // Route returns the route value of an MsgEthereumTx.

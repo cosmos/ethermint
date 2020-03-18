@@ -19,9 +19,9 @@ func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return handleEthTxMsg(ctx, k, msg)
-		case *types.MsgEthermint:
-			return handleMsgEthermint(ctx, k, *msg)
+			return handleMsgEthereumTx(ctx, k, msg)
+		case types.MsgEthermint:
+			return handleMsgEthermint(ctx, k, msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
 		}
@@ -29,7 +29,7 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 // handleEthTxMsg handles an Ethereum specific tx
-func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -85,7 +85,7 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.GetSigners()[0].String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
 		),
 	})
 

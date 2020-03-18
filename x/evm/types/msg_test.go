@@ -92,7 +92,7 @@ func TestMsgEthereumTx(t *testing.T) {
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())
-	require.Equal(t, msg.GetMsgs(), []sdk.Msg{*msg})
+	require.Equal(t, msg.GetMsgs(), []sdk.Msg{msg})
 	require.Panics(t, func() { msg.GetSigners() })
 	require.Panics(t, func() { msg.GetSignBytes() })
 
@@ -187,24 +187,6 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
-}
-
-func TestMsgEthereumTxAmino(t *testing.T) {
-	addr := GenerateEthAddress()
-	msg := NewMsgEthereumTx(5, &addr, big.NewInt(1), 100000, big.NewInt(3), []byte("test"))
-
-	msg.Data.V = big.NewInt(1)
-	msg.Data.R = big.NewInt(2)
-	msg.Data.S = big.NewInt(3)
-
-	raw, err := ModuleCdc.MarshalBinaryBare(msg)
-	require.NoError(t, err)
-
-	var msg2 MsgEthereumTx
-
-	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
-	require.NoError(t, err)
-	require.Equal(t, msg.Data, msg2.Data)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {

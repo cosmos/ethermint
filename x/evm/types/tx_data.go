@@ -47,7 +47,7 @@ type encodableTxData struct {
 }
 
 // MarshalAmino defines custom encoding scheme for TxData
-func (td TxData) Marshal() ([]byte, error) {
+func (td TxData) MarshalAmino() ([]byte, error) {
 	gasPrice, err := utils.MarshalBigInt(td.Price)
 	if err != nil {
 		return nil, err
@@ -86,13 +86,13 @@ func (td TxData) Marshal() ([]byte, error) {
 		Hash:         td.Hash,
 	}
 
-	return ModuleCdc.MarshalBinaryLengthPrefixed(e)
+	return ModuleCdc.MarshalBinaryBare(e)
 }
 
 // UnmarshalAmino defines custom decoding scheme for TxData
-func (td *TxData) Unmarshal(data []byte) error {
-	e := new(encodableTxData)
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(data, td)
+func (td *TxData) UnmarshalAmino(data []byte) error {
+	var e encodableTxData
+	err := ModuleCdc.UnmarshalBinaryBare(data, &e)
 	if err != nil {
 		return err
 	}

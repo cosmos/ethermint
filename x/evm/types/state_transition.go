@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -128,6 +129,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result
 
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		fmt.Println("error")
 		return nil, nil, err
 	}
 
