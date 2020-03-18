@@ -88,7 +88,7 @@ func newTestSDKTx(
 	return auth.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
 	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
 		return nil, fmt.Errorf("invalid chainID: %s", ctx.ChainID())
