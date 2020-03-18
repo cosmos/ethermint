@@ -6,13 +6,17 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/cosmos/ethermint/crypto"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/stretchr/testify/require"
+
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
@@ -56,7 +60,7 @@ func TestMsgEthermintValidation(t *testing.T) {
 	}
 }
 
-func TestEmintEncodingAndDecoding(t *testing.T) {
+func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
 	addr := newSdkAddress()
 	fromAddr := newSdkAddress()
 

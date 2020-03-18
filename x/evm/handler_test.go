@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 type EvmTestSuite struct {
@@ -129,26 +130,32 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 }
 
 func (suite *EvmTestSuite) TestMsgEthermint() {
-
-	var tx types.MsgEthermint
+	var (
+		tx   types.MsgEthermint
+		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	)
 
 	testCases := []struct {
 		msg      string
 		malleate func()
 		expPass  bool
 	}{
-		// {
-		// 	"passed",
-		// 	func() {
-		// 		// tx = types.NewMsgEthermint()
-		// 	},
-		// 	true,
-		// },
-		// {
-		// 	"panics",
-		// 	func() {},
-		// 	false,
-		// },
+		{
+			"passed",
+			func() {
+				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
+			},
+			true,
+		},
+		{
+			"invalid state transition",
+			func() {
+				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+			},
+			false,
+		},
 		{
 			"invalid chain ID",
 			func() {
