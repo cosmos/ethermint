@@ -54,7 +54,8 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
-	suite.app.EvmKeeper.SetBlockBloomMapping(suite.ctx, testBloom, 4)
+	err := suite.app.EvmKeeper.SetBlockBloomMapping(suite.ctx, testBloom, 4)
+	suite.Require().NoError(err, "failed to set block bloom mapping")
 
 	// Get those state transitions
 	suite.Require().Equal(suite.app.EvmKeeper.GetBalance(suite.ctx, address).Cmp(big.NewInt(5)), 0)
@@ -64,11 +65,12 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 
 	suite.Require().Equal(suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")), int64(7))
 	suite.Require().Equal(suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, []byte{0x43, 0x32}), int64(8))
-
-	suite.Require().Equal(suite.app.EvmKeeper.GetBlockBloomMapping(suite.ctx, 4), testBloom)
+	bloom, err := suite.app.EvmKeeper.GetBlockBloomMapping(suite.ctx, 4)
+	suite.Require().NoError(err)
+	suite.Require().Equal(bloom, testBloom)
 
 	// commit stateDB
-	_, err := suite.app.EvmKeeper.Commit(suite.ctx, false)
+	_, err = suite.app.EvmKeeper.Commit(suite.ctx, false)
 	suite.Require().NoError(err, "failed to commit StateDB")
 
 	// simulate BaseApp EndBlocker commitment

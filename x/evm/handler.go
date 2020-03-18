@@ -19,17 +19,17 @@ func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return handleEthTxMsg(ctx, k, msg)
-		case *types.MsgEthermint:
-			return handleMsgEthermint(ctx, k, *msg)
+			return HandleEthTxMsg(ctx, k, msg)
+		case types.MsgEthermint:
+			return HandleMsgEthermint(ctx, k, msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
 		}
 	}
 }
 
-// handleEthTxMsg handles an Ethereum specific tx
-func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+// HandleEthTxMsg handles an Ethereum specific tx
+func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -69,13 +69,19 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	k.TxCount++
 
 	// TODO: move to keeper
-	bloom, res, err := st.TransitionCSDB(ctx)
+	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, bloom)
+	k.Bloom.Or(k.Bloom, returnData.Bloom)
+
+	// update transaction logs in KVStore
+	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -99,11 +105,11 @@ func handleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	}
 
 	// set the events to the result
-	res.Events = ctx.EventManager().Events()
-	return res, nil
+	returnData.Result.Events = ctx.EventManager().Events()
+	return returnData.Result, nil
 }
 
-func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -131,7 +137,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount) // Cannot provide tx hash
 	k.TxCount++
 
-	_, res, err := st.TransitionCSDB(ctx)
+	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +164,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	}
 
 	// set the events to the result
-	res.Events = ctx.EventManager().Events()
-	return res, nil
+	returnData.Result.Events = ctx.EventManager().Events()
+	return returnData.Result, nil
 }

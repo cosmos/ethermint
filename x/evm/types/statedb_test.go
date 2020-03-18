@@ -47,7 +47,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	stateDB.AddLog(&log)
 
 	// Get log from db
-	logs := stateDB.GetLogs(tHash)
+	logs, err := stateDB.GetLogs(tHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(len(logs), 1)
 
 	// get logs bloom from the log

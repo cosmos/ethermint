@@ -15,7 +15,10 @@ import (
 func BeginBlock(k Keeper, ctx sdk.Context, req abci.RequestBeginBlock) {
 	// Consider removing this when using evm as module without web3 API
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
-	k.SetBlockBloomMapping(ctx, bloom, req.Header.GetHeight()-1)
+	err := k.SetBlockBloomMapping(ctx, bloom, req.Header.GetHeight()-1)
+	if err != nil {
+		panic(err)
+	}
 	k.SetBlockHashMapping(ctx, req.Header.LastBlockId.GetHash(), req.Header.GetHeight()-1)
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0

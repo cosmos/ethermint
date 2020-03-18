@@ -358,12 +358,12 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *m
 		return []byte{}, err
 	}
 
-	_, _, ret, err := types.DecodeReturnData(result.Data)
+	data, err := types.DecodeResultData(result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	return (hexutil.Bytes)(ret), nil
+	return (hexutil.Bytes)(data.Ret), nil
 }
 
 // account indicates the overriding fields of account during the execution of
@@ -745,7 +745,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	txData := tx.TxResult.GetData()
-	contractAddress, bloomFilter, _, _ := types.DecodeReturnData(txData)
+	data, err := types.DecodeResultData(txData)
+	if err != nil {
+		return nil, err
+	}
 
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
@@ -758,12 +761,12 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"cumulativeGasUsed": nil, // ignore until needed
 		"contractAddress":   nil,
 		"logs":              logs.Logs,
-		"logsBloom":         bloomFilter,
+		"logsBloom":         data.Bloom,
 		"status":            status,
 	}
 
-	if contractAddress != (common.Address{}) {
-		fields["contractAddress"] = contractAddress
+	if data.Address != (common.Address{}) {
+		fields["contractAddress"] = data.Address
 	}
 
 	return fields, nil

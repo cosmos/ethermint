@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -72,23 +73,53 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // ----------------------------------------------------------------------------
 
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
+func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if !bytes.Equal(heightHash, []byte{}) {
-		store.Set(heightHash, bloom.Bytes())
+	if len(heightHash) == 0 {
+		return fmt.Errorf("block with bloombits %v not found", bloom)
 	}
+	store.Set(types.BloomKey(heightHash), bloom.Bytes())
+	return nil
 }
 
 // GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) ethtypes.Bloom {
+func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	bloom := store.Get(heightHash)
-	if bytes.Equal(heightHash, []byte{}) {
-		panic(fmt.Errorf("block with bloombits %s not found", bloom))
+	if len(heightHash) == 0 {
+		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
-	return ethtypes.BytesToBloom(bloom)
+
+	bloom := store.Get(types.BloomKey(heightHash))
+	if len(bloom) == 0 {
+		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
+	}
+
+	return ethtypes.BytesToBloom(bloom), nil
+}
+
+// SetBlockLogs sets the transaction's logs in the KVStore
+func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
+	store := ctx.KVStore(k.blockKey)
+	encLogs, err := types.EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+	store.Set(types.LogsKey(hash), encLogs)
+
+	return nil
+}
+
+// GetBlockLogs gets the logs for a transaction from the KVStore
+func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
+	store := ctx.KVStore(k.blockKey)
+	encLogs := store.Get(types.LogsKey(hash))
+	if len(encLogs) == 0 {
+		return nil, errors.New("cannot get transaction logs")
+	}
+
+	return types.DecodeLogs(encLogs)
 }
 
 // ----------------------------------------------------------------------------
@@ -210,13 +241,18 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 }
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
-func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
-// Logs calls CommitStateDB.Logs using the passed in context
-func (k *Keeper) Logs(ctx sdk.Context) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).Logs()
+// AllLogs calls CommitStateDB.AllLogs using the passed in context
+func (k *Keeper) AllLogs(ctx sdk.Context) []*ethtypes.Log {
+	return k.CommitStateDB.WithContext(ctx).AllLogs()
 }
 
 // GetRefund calls CommitStateDB.GetRefund using the passed in context
