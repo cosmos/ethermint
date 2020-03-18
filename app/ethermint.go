@@ -145,7 +145,7 @@ func NewEthermintApp(
 ) *EthermintApp {
 	appCodec := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(appCodec), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(appCodec), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 

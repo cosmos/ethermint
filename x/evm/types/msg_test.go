@@ -72,7 +72,7 @@ func TestMsgEthereumTxRLPEncode(t *testing.T) {
 	addr := ethcmn.BytesToAddress([]byte("test_address"))
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 
-	raw, err := rlp.EncodeToBytes(msg)
+	raw, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	require.Equal(t, ethcmn.FromHex("E48080830186A0940000000000000000746573745F61646472657373808474657374808080"), raw)
 }

@@ -893,7 +893,7 @@ func (e *PublicEthAPI) getGasLimit() (int64, error) {
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgEthereumTx, err error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEthereumTx, err error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
@@ -914,14 +914,14 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 		from := sdk.AccAddress(args.From.Bytes())
 		_, nonce, err = authtypes.NewAccountRetriever(e.cliCtx).GetAccountNumberSequence(from)
 		if err != nil {
-			return nil, err
+			return types.MsgEthereumTx{}, err
 		}
 	} else {
 		nonce = (uint64)(*args.Nonce)
 	}
 
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
-		return nil, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+		return types.MsgEthereumTx{}, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
@@ -935,7 +935,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 	if args.To == nil {
 		// Contract creation
 		if len(input) == 0 {
-			return nil, fmt.Errorf("contract creation without any data provided")
+			return types.MsgEthereumTx{}, fmt.Errorf("contract creation without any data provided")
 		}
 	}
 
@@ -950,7 +950,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg *types.MsgE
 		}
 		gasLimit, err = e.EstimateGas(callArgs)
 		if err != nil {
-			return nil, err
+			return types.MsgEthereumTx{}, err
 		}
 	} else {
 		gasLimit = (uint64)(*args.Gas)
