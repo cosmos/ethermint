@@ -83,11 +83,6 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		return nil, err
 	}
 
-	signer, err := msg.VerifySig(big.NewInt(3))
-	if err != nil {
-		return nil, err
-	}
-
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
@@ -96,7 +91,7 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, signer.String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
 		),
 	})
 
