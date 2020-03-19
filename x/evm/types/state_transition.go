@@ -141,6 +141,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Bloom:   bloomFilter,
 		Logs:    logs,
 		Ret:     ret,
+		TxHash:  *st.THash,
 	}
 	resultData, err := EncodeResultData(res)
 	if err != nil {

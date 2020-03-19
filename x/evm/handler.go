@@ -83,6 +83,8 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 		return nil, err
 	}
 
+	// TODO: add txHash to returnData.Result.Data
+
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
