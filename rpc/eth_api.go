@@ -471,11 +471,9 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	// TODO: change 1000 buffer for more accurate buffer (must be at least 1 to not run OOG)
-
-	// FIXME: check how to retrieve GasInfo
 	estimatedGas := uint64(txRes.GasUsed)
+
+	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	gas := estimatedGas + 1000
 	return gas, nil
 }
@@ -523,9 +521,12 @@ func (e *PublicEthAPI) getEthBlockByNumber(height int64, fullTx bool) (map[strin
 
 	if fullTx {
 		// Populate full transaction data
-		transactions, gasUsed, err = convertTransactionsToRPC(e.cliCtx, block.Block.Txs,
-
-			common.BytesToHash(header.Hash()), uint64(header.Height))
+		transactions, gasUsed, err = convertTransactionsToRPC(
+			e.cliCtx, block.Block.Txs, common.BytesToHash(header.Hash()), uint64(header.Height),
+		)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
 		// Return slice of transaction hashes
