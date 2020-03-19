@@ -74,7 +74,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 				data, err = hexutil.Decode(payload)
 				if err != nil {
-					fmt.Println(err)
+					return err
 				}
 			}
 
@@ -118,7 +118,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 
 			data, err := hexutil.Decode(payload)
 			if err != nil {
-				fmt.Println(err)
+				return err
 			}
 
 			var amount int64
