@@ -1,11 +1,13 @@
 package rpc
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strconv"
 	"sync"
 
@@ -353,12 +355,13 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	result, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	txRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
+	fmt.Println(txRes)
 
-	data, err := types.DecodeResultData(result.Data)
+	data, err := types.DecodeResultData([]byte(txRes.Data))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -384,9 +387,15 @@ type account struct {
 // estimated gas used on the operation or an error if fails.
 func (e *PublicEthAPI) doCall(
 	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
-) (*sdk.Result, error) {
+) (*sdk.TxResponse, error) {
+
 	// Set height for historical queries
 	ctx := e.cliCtx
+
+	inBuf := bufio.NewReader(os.Stdin)
+	txEncoder := authutils.GetTxEncoder(ctx.Codec)
+	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithTxEncoder(txEncoder)
+
 	if blockNr.Int64() != 0 {
 		ctx = e.cliCtx.WithHeight(blockNr.Int64())
 	}
@@ -442,35 +451,23 @@ func (e *PublicEthAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
-	var stdSig authtypes.StdSignature
-	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	// var stdSig authtypes.StdSignature
+	// tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(ctx.Codec)
-	txBytes, err := txEncoder(tx)
+	ctx.Simulate = true // Enrich tx
+	txRes, err := emint.CompleteAndBroadcastTx(txBldr, ctx, []sdk.Msg{msg})
 	if err != nil {
 		return nil, err
 	}
 
-	// Transaction simulation through query
-	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	var simResult sdk.Result
-	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
-		return nil, err
-	}
-
-	return &simResult, nil
+	return &txRes, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
-	_, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+	txRes, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
@@ -478,7 +475,7 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 	// TODO: change 1000 buffer for more accurate buffer (must be at least 1 to not run OOG)
 
 	// FIXME: check how to retrieve GasInfo
-	estimatedGas := uint64(0)
+	estimatedGas := uint64(txRes.GasUsed)
 	gas := estimatedGas + 1000
 	return gas, nil
 }
@@ -520,7 +517,7 @@ func (e *PublicEthAPI) getEthBlockByNumber(height int64, fullTx bool) (map[strin
 	}
 
 	var (
-		gasUsed *big.Int
+		gasUsed      *big.Int
 		transactions []interface{}
 	)
 
