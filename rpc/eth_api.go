@@ -501,11 +501,11 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
-func (e *PublicEthAPI) getEthBlockByNumber(value int64, fullTx bool) (map[string]interface{}, error) {
+func (e *PublicEthAPI) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {
 	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
 	var blkNumPtr *int64
-	if value != 0 {
-		blkNumPtr = &value
+	if height != 0 {
+		blkNumPtr = &height
 	}
 
 	block, err := e.cliCtx.Client.Block(blkNumPtr)
@@ -519,12 +519,15 @@ func (e *PublicEthAPI) getEthBlockByNumber(value int64, fullTx bool) (map[string
 		return nil, err
 	}
 
-	var gasUsed *big.Int
-	var transactions []interface{}
+	var (
+		gasUsed *big.Int
+		transactions []interface{}
+	)
 
 	if fullTx {
 		// Populate full transaction data
-		transactions, gasUsed = convertTransactionsToRPC(e.cliCtx, block.Block.Txs,
+		transactions, gasUsed, err = convertTransactionsToRPC(e.cliCtx, block.Block.Txs,
+
 			common.BytesToHash(header.Hash()), uint64(header.Height))
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
@@ -572,19 +575,24 @@ func formatBlock(
 	}
 }
 
-func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int) {
+func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int, error) {
 	transactions := make([]interface{}, len(txs))
 	gasUsed := big.NewInt(0)
+
 	for i, tx := range txs {
 		ethTx, err := bytesToEthTx(cliCtx, tx)
 		if err != nil {
-			continue
+			return nil, nil, err
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i] = newRPCTransaction(ethTx, blockHash, &height, uint64(i))
+		transactions[i], err = newRPCTransaction(ethTx, blockHash, &height, uint64(i))
+		if err != nil {
+			return nil, nil, err
+		}
 	}
-	return transactions, gasUsed
+
+	return transactions, gasUsed, nil
 }
 
 // Transaction represents a transaction returned to RPC clients.
@@ -605,23 +613,31 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
-	ethTx, ok := stdTx.(*types.MsgEthereumTx)
-	if !ok || err != nil {
-		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+	if err != nil {
+		return types.MsgEthereumTx{}, err
 	}
+
+	ethTx, ok := stdTx.(types.MsgEthereumTx)
+	if !ok {
+		return types.MsgEthereumTx{}, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+	}
+
 	return ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx *types.MsgEthereumTx, blockHash common.Hash, blockNumber *uint64, index uint64) *Transaction {
+func newRPCTransaction(tx types.MsgEthereumTx, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	from, _ := tx.VerifySig(tx.ChainID())
+	from, err := tx.VerifySig(tx.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
-	result := &Transaction{
+	result := Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
 		GasPrice: (*hexutil.Big)(tx.Data.Price),
@@ -634,12 +650,14 @@ func newRPCTransaction(tx *types.MsgEthereumTx, blockHash common.Hash, blockNumb
 		R:        (*hexutil.Big)(tx.Data.R),
 		S:        (*hexutil.Big)(tx.Data.S),
 	}
+
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = &blockHash
 		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(*blockNumber))
 		result.TransactionIndex = (*hexutil.Uint64)(&index)
 	}
-	return result
+
+	return &result, nil
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
@@ -663,7 +681,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	}
 
 	height := uint64(tx.Height)
-	return newRPCTransaction(ethTx, blockHash, &height, uint64(tx.Index)), nil
+	return newRPCTransaction(ethTx, blockHash, &height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -701,8 +719,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	}
 
 	height := uint64(header.Height)
-	transaction := newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
-	return transaction, nil
+	return newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
@@ -788,7 +805,11 @@ func (e *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
 		}
 
 		// * Should check signer and reference against accounts the node manages in future
-		rpcTx := newRPCTransaction(ethTx, common.Hash{}, nil, 0)
+		rpcTx, err := newRPCTransaction(ethTx, common.Hash{}, nil, 0)
+		if err != nil {
+			return nil, err
+		}
+
 		transactions = append(transactions, rpcTx)
 	}
 
