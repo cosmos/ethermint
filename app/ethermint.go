@@ -7,6 +7,7 @@ import (
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -27,6 +28,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/cosmos/ethermint/app/ante"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -132,8 +135,12 @@ func NewEthermintApp(
 ) *EthermintApp {
 
 	cdc := codecstd.MakeCodec(ModuleBasics)
+	emintcrypto.RegisterCodec(cdc)
+	eminttypes.RegisterCodec(cdc)
+	cryptokeys.RegisterCodec(cdc) // temporary
 	appCodec := codecstd.NewAppCodec(cdc)
 
+	// use custom Ethermint transaction decoder
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -168,8 +175,9 @@ func NewEthermintApp(
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
 	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
 
+	// use custom Ethermint account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
+		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], eminttypes.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		appCodec, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
