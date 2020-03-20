@@ -18,6 +18,7 @@ import (
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/core"
@@ -66,7 +67,7 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *codec.Codec {
+func newTestCodec() codec.Marshaler {
 	cdc := codec.New()
 
 	evmtypes.RegisterCodec(cdc)
@@ -98,12 +99,12 @@ func trapSignals() {
 	}()
 }
 
-func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper) {
+func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, bk bank.Keeper) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 
-	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
+	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak, bk)
 
 	// sort the addresses and insertion of key/value pairs matters
 	genAddrs := make([]string, len(genBlock.Alloc))
@@ -147,7 +148,8 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	// verify account mapper state
 	genAcc := ak.GetAccount(ctx, sdk.AccAddress(genInvestor.Bytes()))
 	require.NotNil(t, genAcc)
-	require.Equal(t, sdk.NewIntFromBigInt(b), genAcc.GetCoins().AmountOf(types.DenomDefault))
+	balance := bk.GetBalance(ctx, genAcc.GetAddress(), types.DenomDefault)
+	require.Equal(t, sdk.NewIntFromBigInt(b), balance)
 }
 
 func TestImportBlocks(t *testing.T) {
@@ -172,12 +174,15 @@ func TestImportBlocks(t *testing.T) {
 	cms := store.NewCommitMultiStore(db)
 
 	// The ParamsKeeper handles parameter storage for the application
+	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
+	bk := bank.NewBaseKeeper(cdc, bankKey, ak, bankSubspace, nil)
 
 	// mount stores
 	keys := []*sdk.KVStoreKey{accKey, storeKey, codeKey}
@@ -193,7 +198,7 @@ func TestImportBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	// set and test genesis block
-	createAndTestGenesis(t, cms, ak)
+	createAndTestGenesis(t, cms, ak, bk)
 
 	// open blockchain export file
 	blockchainInput, err := os.Open(flagBlockchain)
@@ -236,7 +241,7 @@ func TestImportBlocks(t *testing.T) {
 		ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 		ctx = ctx.WithBlockHeight(int64(block.NumberU64()))
 
-		stateDB := createStateDB(ctx, ak)
+		stateDB := createStateDB(ctx, ak, bk)
 
 		if chainConfig.DAOForkSupport && chainConfig.DAOForkBlock != nil && chainConfig.DAOForkBlock.Cmp(block.Number()) == 0 {
 			applyDAOHardFork(stateDB)
@@ -269,8 +274,8 @@ func TestImportBlocks(t *testing.T) {
 	}
 }
 
-func createStateDB(ctx sdk.Context, ak auth.AccountKeeper) *evmtypes.CommitStateDB {
-	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
+func createStateDB(ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper) *evmtypes.CommitStateDB {
+	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak, bk)
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining

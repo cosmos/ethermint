@@ -21,8 +21,7 @@ func init() {
 func TestEthermintAccountJSON(t *testing.T) {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 5))
-	baseAcc := auth.NewBaseAccount(addr, coins, pubkey, 10, 50)
+	baseAcc := auth.NewBaseAccount(addr, pubkey, 10, 50)
 	ethAcc := Account{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
 
 	bz, err := json.Marshal(ethAcc)

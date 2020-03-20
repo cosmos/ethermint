@@ -76,7 +76,6 @@ func main() {
 		txCmd(cdc),
 		rpc.EmintServeCmd(cdc),
 		flags.LineBreak,
-		flags.LineBreak,
 		keyCommands(),
 		flags.LineBreak,
 		version.Cmd,
