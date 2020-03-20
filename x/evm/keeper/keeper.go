@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -87,6 +88,29 @@ func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, heig
 	store := ctx.KVStore(k.blockKey)
 	heightHash := k.cdc.MustMarshalBinaryBare(height)
 	store.Set(heightHash, bloom.Bytes())
+}
+
+// GetBlockLogs gets the logs for a transaction from the KVStore
+func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
+	store := ctx.KVStore(k.blockKey)
+	encLogs := store.Get(types.LogsKey(hash))
+	if len(encLogs) == 0 {
+		return nil, errors.New("cannot get transaction logs")
+	}
+
+	return types.DecodeLogs(encLogs)
+}
+
+// SetBlockLogs sets the transaction's logs in the KVStore
+func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
+	store := ctx.KVStore(k.blockKey)
+	encLogs, err := types.EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	store.Set(types.LogsKey(hash), encLogs)
+	return nil
 }
 
 // ----------------------------------------------------------------------------
@@ -207,13 +231,18 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 }
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
-func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
-// Logs calls CommitStateDB.Logs using the passed in context
-func (k *Keeper) Logs(ctx sdk.Context) []*ethtypes.Log {
-	return k.CommitStateDB.WithContext(ctx).Logs()
+// AllLogs calls CommitStateDB.AllLogs using the passed in context
+func (k *Keeper) AllLogs(ctx sdk.Context) []*ethtypes.Log {
+	return k.CommitStateDB.WithContext(ctx).AllLogs()
 }
 
 // GetRefund calls CommitStateDB.GetRefund using the passed in context

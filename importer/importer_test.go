@@ -363,7 +363,10 @@ func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, au
 		receipt.ContractAddress = ethcrypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+	receipt.Logs, err = statedb.GetLogs(tx.Hash())
+	if err != nil {
+		return nil, 0, err
+	}
 	receipt.Bloom = ethtypes.CreateBloom(ethtypes.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number

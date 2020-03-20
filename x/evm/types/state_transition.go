@@ -28,16 +28,24 @@ type StateTransition struct {
 	Simulate     bool
 }
 
+// ReturnData represents what's returned from a transition
+type ReturnData struct {
+	Logs   []*ethtypes.Log
+	Bloom  *big.Int
+	Result *sdk.Result
+}
+
 // TODO: move to keeper
 // TransitionCSDB performs an evm state transition from a transaction
 // TODO: update godoc, it doesn't explain what it does in depth.
-func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result, error) {
+func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
+	returnData := new(ReturnData)
 
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		return nil, nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
+		return nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -96,11 +104,17 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -111,24 +125,37 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
 	var bloomFilter ethtypes.Bloom
+	var logs []*ethtypes.Log
 	if st.THash != nil && !st.Simulate {
-		logs := csdb.GetLogs(*st.THash)
+		logs, err = csdb.GetLogs(*st.THash)
+		if err != nil {
+			return nil, err
+		}
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	returnData := EncodeReturnData(addr, bloomFilter, ret)
+	res := &ResultData{
+		Address: addr,
+		Bloom:   bloomFilter,
+		Logs:    logs,
+		Ret:     ret,
+	}
+	resultData, err := EncodeResultData(res)
+	if err != nil {
+		return nil, err
+	}
 
 	// handle errors
 	if err != nil {
 		if err == vm.ErrOutOfGas || err == vm.ErrCodeStoreOutOfGas {
-			return nil, nil, sdkerrors.Wrap(err, "evm execution went out of gas")
+			return nil, sdkerrors.Wrap(err, "evm execution went out of gas")
 		}
 
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
-		return nil, nil, err
+		return nil, err
 	}
 
 	// TODO: Refund unused gas here, if intended in future
@@ -142,5 +169,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*big.Int, *sdk.Result
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
-	return bloomInt, &sdk.Result{Data: returnData}, nil
+	returnData.Logs = logs
+	returnData.Bloom = bloomInt
+	returnData.Result = &sdk.Result{Data: resultData}
+	return returnData, nil
 }

@@ -28,7 +28,7 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-// handleEthTxMsg handles an Ethereum specific tx
+// handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
@@ -69,13 +69,19 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	k.TxCount++
 
 	// TODO: move to keeper
-	bloom, res, err := st.TransitionCSDB(ctx)
+	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, bloom)
+	k.Bloom.Or(k.Bloom, returnData.Bloom)
+
+	// update transaction logs in KVStore
+	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -99,10 +105,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	}
 
 	// set the events to the result
-	res.Events = ctx.EventManager().Events()
-	return res, nil
+	returnData.Result.Events = ctx.EventManager().Events()
+	return returnData.Result, nil
 }
 
+// handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
@@ -131,7 +138,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	k.CommitStateDB.Prepare(common.Hash{}, common.Hash{}, k.TxCount) // Cannot provide tx hash
 	k.TxCount++
 
-	_, res, err := st.TransitionCSDB(ctx)
+	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +165,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	}
 
 	// set the events to the result
-	res.Events = ctx.EventManager().Events()
-	return res, nil
+	returnData.Result.Events = ctx.EventManager().Events()
+	return returnData.Result, nil
 }
