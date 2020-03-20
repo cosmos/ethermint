@@ -79,12 +79,12 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		Origin:      st.Sender,
-		Coinbase:    common.Address{},
+		Coinbase:    common.Address{}, // TODO: explain why this is empty
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
-		Difficulty:  big.NewInt(0x30000), // unused
+		Difficulty:  big.NewInt(0x0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
+		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).BigInt(),
 	}
 
 	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
@@ -142,6 +142,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Logs:    logs,
 		Ret:     ret,
 	}
+
 	resultData, err := EncodeResultData(res)
 	if err != nil {
 		return nil, err

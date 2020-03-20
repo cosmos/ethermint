@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -21,10 +20,6 @@ var _ exported.GenesisAccount = (*Account)(nil)
 // ----------------------------------------------------------------------------
 // Main Ethermint account
 // ----------------------------------------------------------------------------
-
-func init() {
-	authtypes.RegisterAccountTypeCodec(Account{}, EthermintAccountName)
-}
 
 // Account implements the auth.Account interface and embeds an
 // auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
@@ -48,31 +43,6 @@ func ProtoAccount() exported.Account {
 	}
 }
 
-// Balance returns the balance of an account.
-func (acc Account) Balance() sdk.Int {
-	return acc.GetCoins().AmountOf(DenomDefault)
-}
-
-// SetBalance sets an account's balance of photons
-func (acc Account) SetBalance(amt sdk.Int) {
-	coins := acc.GetCoins()
-	diff := amt.Sub(coins.AmountOf(DenomDefault))
-	switch {
-	case diff.IsPositive():
-		// Increase coins to amount
-		coins = coins.Add(sdk.NewCoin(DenomDefault, diff))
-	case diff.IsNegative():
-		// Decrease coins to amount
-		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff.Neg())))
-	default:
-		return
-	}
-
-	if err := acc.SetCoins(coins); err != nil {
-		panic(fmt.Sprintf("Could not set coins for address %s", acc.GetAddress()))
-	}
-}
-
 type ethermintAccountPretty struct {
 	Address       sdk.AccAddress `json:"address" yaml:"address"`
 	Coins         sdk.Coins      `json:"coins" yaml:"coins"`
@@ -86,15 +56,10 @@ type ethermintAccountPretty struct {
 func (acc Account) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		Coins:         acc.Coins,
+		PubKey:        acc.PubKey,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
-	}
-
-	if acc.PubKey != nil {
-		alias.PubKey = acc.PubKey.Bytes()
-		fmt.Println(len(alias.PubKey), alias.PubKey)
 	}
 
 	bz, err := yaml.Marshal(alias)
@@ -109,14 +74,10 @@ func (acc Account) MarshalYAML() (interface{}, error) {
 func (acc Account) MarshalJSON() ([]byte, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		Coins:         acc.Coins,
+		PubKey:        acc.PubKey,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
-	}
-
-	if acc.PubKey != nil {
-		alias.PubKey = acc.PubKey.Bytes()
 	}
 
 	return json.Marshal(alias)
@@ -136,11 +97,10 @@ func (acc *Account) UnmarshalJSON(bz []byte) error {
 			return err
 		}
 
-		acc.BaseAccount.PubKey = pubk
+		acc.BaseAccount.PubKey = pubk.Bytes()
 	}
 
 	acc.BaseAccount.Address = alias.Address
-	acc.BaseAccount.Coins = alias.Coins
 	acc.BaseAccount.AccountNumber = alias.AccountNumber
 	acc.BaseAccount.Sequence = alias.Sequence
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)

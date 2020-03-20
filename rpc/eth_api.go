@@ -35,7 +35,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -294,7 +294,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	tx.Sign(intChainID, e.key.ToECDSA())
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -324,7 +324,7 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -393,7 +393,7 @@ func (e *PublicEthAPI) doCall(
 	ctx := e.cliCtx
 
 	inBuf := bufio.NewReader(os.Stdin)
-	txEncoder := authutils.GetTxEncoder(ctx.Codec)
+	txEncoder := authclient.GetTxEncoder(ctx.Codec)
 	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithTxEncoder(txEncoder)
 
 	if blockNr.Int64() != 0 {

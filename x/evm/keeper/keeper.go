@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -21,7 +22,7 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc *codec.Codec
+	cdc codec.Marshaler
 	// Store key required to update the block bloom filter mappings needed for the
 	// Web3 API
 	blockKey      sdk.StoreKey
@@ -32,12 +33,13 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak types.AccountKeeper,
+	cdc codec.Marshaler, blockKey, codeKey, storeKey sdk.StoreKey,
+	ak types.AccountKeeper, bk types.BankKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		blockKey:      blockKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak, bk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -52,7 +54,8 @@ func NewKeeper(
 func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
 	store := ctx.KVStore(k.blockKey)
 	if !bytes.Equal(hash, []byte{}) {
-		store.Set(hash, k.cdc.MustMarshalBinaryLengthPrefixed(height))
+		bz := sdk.Uint64ToBigEndian(uint64(height))
+		store.Set(hash, bz)
 	}
 }
 
@@ -63,8 +66,9 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 	if bytes.Equal(bz, []byte{}) {
 		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
 	}
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &height)
-	return
+
+	height = int64(binary.BigEndian.Uint64(bz))
+	return height
 }
 
 // ----------------------------------------------------------------------------
@@ -75,23 +79,24 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if len(heightHash) == 0 {
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	if len(bz) == 0 {
 		return fmt.Errorf("block with bloombits %v not found", bloom)
 	}
-	store.Set(types.BloomKey(heightHash), bloom.Bytes())
+
+	store.Set(types.BloomKey(bz), bloom.Bytes())
 	return nil
 }
 
 // GetBlockBloomMapping gets bloombits from block height
 func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryLengthPrefixed(height)
-	if len(heightHash) == 0 {
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	if len(bz) == 0 {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
 
-	bloom := store.Get(types.BloomKey(heightHash))
+	bloom := store.Get(types.BloomKey(bz))
 	if len(bloom) == 0 {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
 	}

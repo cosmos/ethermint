@@ -60,6 +60,7 @@ type (
 		dbErr         error
 		stateDB       *CommitStateDB
 		account       *types.Account
+		balance       *big.Int
 		originStorage types.Storage // Storage cache of original entries to dedup rewrites
 		dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
 		address       ethcmn.Address
@@ -144,11 +145,9 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // AddBalance adds an amount to a state object's balance. It is used to add
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
-	amt := sdk.NewIntFromBigInt(amount)
-
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
-	if amt.Sign() == 0 {
+	if amount.Sign() == 0 {
 		if so.empty() {
 			so.touch()
 		}
@@ -156,21 +155,17 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	newBalance := so.account.Balance().Add(amt)
-	so.SetBalance(newBalance.BigInt())
+	newBalance := new(big.Int).Add(so.balance, amount)
+	so.SetBalance(newBalance)
 }
 
 // SubBalance removes an amount from the stateObject's balance. It is used to
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
-	amt := sdk.NewIntFromBigInt(amount)
-
-	if amt.Sign() == 0 {
+	if amount.Sign() == 0 {
 		return
 	}
-
-	newBalance := so.account.Balance().Sub(amt)
-	so.SetBalance(newBalance.BigInt())
+	so.SetBalance(new(big.Int).Sub(so.Balance(), amount))
 }
 
 // SetBalance sets the state object's balance.
@@ -179,17 +174,17 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.Balance(),
+		prev:    amt,
 	})
 
-	so.setBalance(amt)
+	so.setBalance(amount)
 }
 
-func (so *stateObject) setBalance(amount sdk.Int) {
-	so.account.SetBalance(amount)
+func (so *stateObject) setBalance(amount *big.Int) {
+	so.balance = amount
 }
 
-// SetNonce sets the state object's nonce (sequence number).
+// SetNonce sets the state object's nonce (i.e sequence number of the account).
 func (so *stateObject) SetNonce(nonce uint64) {
 	so.stateDB.journal.append(nonceChange{
 		account: &so.address,
@@ -259,7 +254,7 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	return so.account.Balance().BigInt()
+	return so.balance
 }
 
 // CodeHash returns the state object's code hash.
@@ -357,7 +352,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
 	return so.account.Sequence == 0 &&
-		so.account.Balance().Sign() == 0 &&
+		so.Balance().Sign() == 0 &&
 		bytes.Equal(so.account.CodeHash, emptyCodeHash)
 }
 

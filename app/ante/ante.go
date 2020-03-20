@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 
 	"github.com/cosmos/ethermint/crypto"
 	emint "github.com/cosmos/ethermint/types"
@@ -31,7 +32,7 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
@@ -55,7 +56,7 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 			return stdAnte(ctx, tx, sim)
 
 		case evmtypes.MsgEthereumTx:
-			return ethAnteHandler(ctx, ak, sk, castTx, sim)
+			return ethAnteHandler(ctx, ak, bk, sk, castTx, sim)
 
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -91,7 +92,7 @@ func sigGasConsumer(
 // perform the same series of checks. The distinction is made in CheckTx to
 // prevent spam and DoS attacks.
 func ethAnteHandler(
-	ctx sdk.Context, ak auth.AccountKeeper, sk types.SupplyKeeper,
+	ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper,
 	ethTxMsg evmtypes.MsgEthereumTx, sim bool,
 ) (newCtx sdk.Context, err error) {
 
@@ -103,7 +104,7 @@ func ethAnteHandler(
 	if ctx.IsCheckTx() {
 		// Only perform pre-message (Ethereum transaction) execution validation
 		// during CheckTx. Otherwise, during DeliverTx the EVM will handle them.
-		if senderAddr, err = validateEthTxCheckTx(ctx, ak, ethTxMsg); err != nil {
+		if senderAddr, err = validateEthTxCheckTx(ctx, ak, bk, ethTxMsg); err != nil {
 			return ctx, err
 		}
 	} else {
@@ -175,7 +176,7 @@ func ethAnteHandler(
 }
 
 func validateEthTxCheckTx(
-	ctx sdk.Context, ak auth.AccountKeeper, ethTxMsg evmtypes.MsgEthereumTx,
+	ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper, ethTxMsg evmtypes.MsgEthereumTx,
 ) (sdk.AccAddress, error) {
 	// Validate sufficient fees have been provided that meet a minimum threshold
 	// defined by the proposer (for mempool purposes during CheckTx).
@@ -194,7 +195,7 @@ func validateEthTxCheckTx(
 	}
 
 	// validate account (nonce and balance checks)
-	if err := validateAccount(ctx, ak, ethTxMsg, signer); err != nil {
+	if err := validateAccount(ctx, ak, bk, ethTxMsg, signer); err != nil {
 		return nil, err
 	}
 
@@ -241,7 +242,7 @@ func validateIntrinsicGas(ethTxMsg evmtypes.MsgEthereumTx) error {
 // validateAccount validates the account nonce and that the account has enough
 // funds to cover the tx cost.
 func validateAccount(
-	ctx sdk.Context, ak auth.AccountKeeper, ethTxMsg evmtypes.MsgEthereumTx, signer sdk.AccAddress,
+	ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper, ethTxMsg evmtypes.MsgEthereumTx, signer sdk.AccAddress,
 ) error {
 
 	acc := ak.GetAccount(ctx, signer)
@@ -260,11 +261,11 @@ func validateAccount(
 	}
 
 	// validate sender has enough funds
-	balance := acc.GetCoins().AmountOf(emint.DenomDefault)
-	if balance.BigInt().Cmp(ethTxMsg.Cost()) < 0 {
+	balance := bk.GetBalance(ctx, acc.GetAddress(), emint.DenomDefault)
+	if balance.Amount.BigInt().Cmp(ethTxMsg.Cost()) < 0 {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrInsufficientFunds,
-			"%s < %s", balance, ethTxMsg.Cost(),
+			"%s < %s%s", balance.String(), ethTxMsg.Cost().String(), emint.DenomDefault,
 		)
 	}
 
