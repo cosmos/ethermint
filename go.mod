@@ -9,7 +9,8 @@ require (
 	github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20200320171414-1d0967c32a76
+	github.com/cosmos/cosmos-sdk v0.36.0
+	github.com/cosmos/gaia v1.0.0
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/elastic/gosigar v0.10.3 // indirect

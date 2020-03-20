@@ -1,13 +1,11 @@
 package rpc
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
-	"os"
 	"strconv"
 	"sync"
 
@@ -127,7 +125,6 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		return addresses, err
 	}
 
-	keybase.CloseDB()
 	e.keybaseLock.Unlock()
 
 	for _, info := range infos {
@@ -355,13 +352,12 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	txRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
-	fmt.Println(txRes)
 
-	data, err := types.DecodeResultData([]byte(txRes.Data))
+	data, err := types.DecodeResultData([]byte(simRes.Result.Data))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -391,10 +387,6 @@ func (e *PublicEthAPI) doCall(
 
 	// Set height for historical queries
 	ctx := e.cliCtx
-
-	inBuf := bufio.NewReader(os.Stdin)
-	txEncoder := authclient.GetTxEncoder(ctx.Codec)
-	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithTxEncoder(txEncoder)
 
 	if blockNr.Int64() != 0 {
 		ctx = e.cliCtx.WithHeight(blockNr.Int64())
@@ -454,6 +446,12 @@ func (e *PublicEthAPI) doCall(
 	var stdSig authtypes.StdSignature
 	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
 
+	txEncoder := authclient.GetTxEncoder(ctx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Transaction simulation through query
 	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
@@ -461,7 +459,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err = e.cliCtx.Codec.UnmarshalBinarBare(res, &simResponse); err != nil {
+	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
 		return nil, err
 	}
 
@@ -936,7 +934,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		_, nonce, err = authtypes.NewAccountRetriever(e.cliCtx).GetAccountNumberSequence(from)
+		_, nonce, err = authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx).GetAccountNumberSequence(from)
 		if err != nil {
 			return types.MsgEthereumTx{}, err
 		}
