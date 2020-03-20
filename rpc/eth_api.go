@@ -387,7 +387,7 @@ type account struct {
 // estimated gas used on the operation or an error if fails.
 func (e *PublicEthAPI) doCall(
 	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
-) (*sdk.TxResponse, error) {
+) (*sdk.SimulationResponse, error) {
 
 	// Set height for historical queries
 	ctx := e.cliCtx
@@ -451,29 +451,34 @@ func (e *PublicEthAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
-	// var stdSig authtypes.StdSignature
-	// tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	var stdSig authtypes.StdSignature
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
 
-	ctx.Simulate = true // Enrich tx
-	txRes, err := emint.CompleteAndBroadcastTx(txBldr, ctx, []sdk.Msg{msg})
+	// Transaction simulation through query
+	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &txRes, nil
+	var simResponse sdk.SimulationResponse
+	if err = e.cliCtx.Codec.UnmarshalBinarBare(res, &simResponse); err != nil {
+		return nil, err
+	}
+
+	return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
-	txRes, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
-	estimatedGas := uint64(txRes.GasUsed)
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
+	estimatedGas := uint64(simResponse.GasInfo.GasUsed)
 	gas := estimatedGas + 1000
 	return gas, nil
 }
