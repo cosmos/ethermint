@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,7 +24,10 @@ import (
 type EvmTestSuite struct {
 	suite.Suite
 
+	ctx     sdk.Context
 	handler sdk.Handler
+	app     *app.EthermintApp
+}
 
 func (suite *EvmTestSuite) SetupTest() {
 	checkTx := false
@@ -180,7 +184,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 	}
 }
 
-func (suite *EvmTestSuite) TestHandler_Logs() {
+func (suite *EvmTestSuite) TestHandlerLogs() {
 	// Test contract:
 
 	// pragma solidity ^0.5.1;
@@ -210,7 +214,7 @@ func (suite *EvmTestSuite) TestHandler_Logs() {
 	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv)
 
-	result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
+	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
 	resultData, err := types.DecodeResultData(result.Data)
