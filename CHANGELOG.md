@@ -41,7 +41,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (sdk) [\#171](https://github.com/ChainSafe/ethermint/issues/177) Bump Cosmos SDK version to [v0.38.1](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.38.1) [@fedekunze](https://github.com/fedekunze):
   * Add `x/evidence` module to ethermint app
-  * Bump Go requirement to 1.13+
+  * Bump Go requirement to 1.14+
 * (`x/evm`) [\#181](https://github.com/ChainSafe/ethermint/issues/181) Updated EVM module to the recommended module structure. [@fedekunze](https://github.com/fedekunze)
 * (app) [\#188](https://github.com/ChainSafe/ethermint/issues/186)  Misc cleanup [@fedekunze](https://github.com/fedekunze):
   * (`x/evm`) Rename `EthereumTxMsg` --> `MsgEthereumTx` and `EmintMsg` --> `MsgEthermint` for consistency with SDK standards
