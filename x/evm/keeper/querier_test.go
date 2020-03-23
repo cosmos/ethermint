@@ -1,12 +1,14 @@
 package keeper_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,6 +28,7 @@ type QuerierTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	app     *app.EthermintApp
+	codec   *codec.Codec
 }
 
 func (suite *QuerierTestSuite) SetupTest() {
@@ -34,6 +37,7 @@ func (suite *QuerierTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+	suite.codec = codec.New()
 }
 
 func TestQuerierTestSuite(t *testing.T) {
@@ -88,5 +92,15 @@ func (suite *QuerierTestSuite) TestQueryTxLogs() {
 
 	suite.Require().Equal(logs, resultData.Logs)
 
-	//
+	// query tx logs
+	path := []string{"txLogs", fmt.Sprintf("0x%x", hash)}
+	res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
+	suite.Require().NoError(err, "failed to query txLogs")
+
+	var txLogs types.QueryETHLogs
+	suite.codec.MustUnmarshalJSON(res, &txLogs)
+
+	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
+	resultData.Logs[0].Data = []byte{}
+	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
 }
