@@ -21,18 +21,18 @@ var _ exported.GenesisAccount = (*Account)(nil)
 // Main Ethermint account
 // ----------------------------------------------------------------------------
 
-// Account implements the auth.Account interface and embeds an
-// auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
-type Account struct {
-	*auth.BaseAccount
+// // Account implements the auth.Account interface and embeds an
+// // auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
+// type Account struct {
+// 	*auth.BaseAccount
 
-	// merkle root of the storage trie
-	//
-	// TODO: add back root if needed (marshalling is broken if not initializing)
-	// Root ethcmn.Hash
+// 	// merkle root of the storage trie
+// 	//
+// 	// TODO: add back root if needed (marshalling is broken if not initializing)
+// 	// Root ethcmn.Hash
 
-	CodeHash []byte
-}
+// 	CodeHash []byte
+// }
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
