@@ -13,6 +13,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
+	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.0-rc.4
 	github.com/gorilla/mux v1.7.4
 	github.com/huin/goupnp v1.0.0 // indirect
@@ -26,6 +27,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.9.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190706150252-9beb055b7962 // indirect
+	github.com/regen-network/cosmos-proto v0.1.1-0.20200213154359-02baa11ea7c2
 	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.6

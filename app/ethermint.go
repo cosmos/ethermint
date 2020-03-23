@@ -6,8 +6,6 @@ import (
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -26,9 +24,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 
 	"github.com/cosmos/ethermint/app/ante"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
@@ -134,11 +132,8 @@ func NewEthermintApp(
 	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
 ) *EthermintApp {
 
-	cdc := codecstd.MakeCodec(ModuleBasics)
-	emintcrypto.RegisterCodec(cdc)
-	eminttypes.RegisterCodec(cdc)
-	cryptokeys.RegisterCodec(cdc) // temporary
-	appCodec := codecstd.NewAppCodec(cdc)
+	cdc := ethermintcodec.MakeCodec(ModuleBasics)
+	appCodec := ethermintcodec.NewAppCodec(cdc)
 
 	// use custom Ethermint transaction decoder
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)

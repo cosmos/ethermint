@@ -14,30 +14,17 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var _ exported.Account = (*Account)(nil)
-var _ exported.GenesisAccount = (*Account)(nil)
+var _ exported.Account = (*EthAccount)(nil)
+var _ exported.GenesisAccount = (*EthAccount)(nil)
 
 // ----------------------------------------------------------------------------
 // Main Ethermint account
 // ----------------------------------------------------------------------------
 
-// // Account implements the auth.Account interface and embeds an
-// // auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
-// type Account struct {
-// 	*auth.BaseAccount
-
-// 	// merkle root of the storage trie
-// 	//
-// 	// TODO: add back root if needed (marshalling is broken if not initializing)
-// 	// Root ethcmn.Hash
-
-// 	CodeHash []byte
-// }
-
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
 func ProtoAccount() exported.Account {
-	return &Account{
+	return &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
@@ -53,7 +40,7 @@ type ethermintAccountPretty struct {
 }
 
 // MarshalYAML returns the YAML representation of an account.
-func (acc Account) MarshalYAML() (interface{}, error) {
+func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
 		PubKey:        acc.PubKey,
@@ -70,8 +57,8 @@ func (acc Account) MarshalYAML() (interface{}, error) {
 	return string(bz), err
 }
 
-// MarshalJSON returns the JSON representation of an Account.
-func (acc Account) MarshalJSON() ([]byte, error) {
+// MarshalJSON returns the JSON representation of an EthAccount.
+func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
 		PubKey:        acc.PubKey,
@@ -83,8 +70,8 @@ func (acc Account) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias)
 }
 
-// UnmarshalJSON unmarshals raw JSON bytes into an Account.
-func (acc *Account) UnmarshalJSON(bz []byte) error {
+// UnmarshalJSON unmarshals raw JSON bytes into an EthAccount.
+func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	acc.BaseAccount = &authtypes.BaseAccount{}
 	var alias ethermintAccountPretty
 	if err := json.Unmarshal(bz, &alias); err != nil {

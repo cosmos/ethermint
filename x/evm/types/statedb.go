@@ -564,7 +564,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
-		emintAcc, ok := currAcc.(*emint.Account)
+		emintAcc, ok := currAcc.(*emint.EthAccount)
 		if ok {
 			balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
 			if so.Balance() != balance.Amount.BigInt() || so.Nonce() != emintAcc.GetSequence() {

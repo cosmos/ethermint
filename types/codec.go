@@ -12,11 +12,11 @@ func init() {
 
 const (
 	// Amino encoding name
-	EthermintAccountName = "ethermint/Account"
+	EthermintAccountName = "ethermint/EthAccount"
 )
 
 // RegisterCodec registers all the necessary types with amino for the given
 // codec.
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(&Account{}, EthermintAccountName, nil)
+	cdc.RegisterConcrete(&EthAccount{}, EthermintAccountName, nil)
 }

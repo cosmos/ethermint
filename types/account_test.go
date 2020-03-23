@@ -22,7 +22,7 @@ func TestEthermintAccountJSON(t *testing.T) {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
 	baseAcc := auth.NewBaseAccount(addr, pubkey, 10, 50)
-	ethAcc := Account{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
+	ethAcc := EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
 
 	bz, err := json.Marshal(ethAcc)
 	require.NoError(t, err)
@@ -31,7 +31,7 @@ func TestEthermintAccountJSON(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, string(bz1), string(bz))
 
-	var a Account
+	var a EthAccount
 	require.NoError(t, json.Unmarshal(bz, &a))
 	require.Equal(t, ethAcc.String(), a.String())
 	require.Equal(t, ethAcc.PubKey, a.PubKey)

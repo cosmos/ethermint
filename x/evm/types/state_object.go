@@ -59,7 +59,7 @@ type (
 		// by StateDB.Commit.
 		dbErr         error
 		stateDB       *CommitStateDB
-		account       *types.Account
+		account       *types.EthAccount
 		balance       *big.Int
 		originStorage types.Storage // Storage cache of original entries to dedup rewrites
 		dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
@@ -75,7 +75,7 @@ type (
 )
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	ethermintAccount, ok := accProto.(*types.Account)
+	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
