@@ -247,6 +247,20 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 	return out.Code, nil
 }
 
+// GetTxLogs returns the logs given a transaction hash.
+func (e *PublicEthAPI) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+	// do we need to use the block height somewhere?
+	ctx := e.cliCtx
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/txLogs/%s", types.ModuleName, txHash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out types.QueryETHLogs
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return out.Logs, nil
+}
+
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	// TODO: Change this functionality to find an unlocked account by address
