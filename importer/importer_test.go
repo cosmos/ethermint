@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,7 +21,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
+	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
@@ -35,6 +37,7 @@ import (
 	ethrlp "github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
+	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -67,14 +70,15 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() codec.Marshaler {
-	cdc := codec.New()
+func newTestCodec() *amino.Codec {
+	cdc := sdkcodec.New()
 
 	evmtypes.RegisterCodec(cdc)
 	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	codec.RegisterCrypto(cdc)
+	emintcrypto.RegisterCodec(cdc)
+	sdkcodec.RegisterCrypto(cdc)
 
 	return cdc
 }
@@ -149,7 +153,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	genAcc := ak.GetAccount(ctx, sdk.AccAddress(genInvestor.Bytes()))
 	require.NotNil(t, genAcc)
 	balance := bk.GetBalance(ctx, genAcc.GetAddress(), types.DenomDefault)
-	require.Equal(t, sdk.NewIntFromBigInt(b), balance)
+	require.Equal(t, sdk.NewIntFromBigInt(b), balance.Amount)
 }
 
 func TestImportBlocks(t *testing.T) {
@@ -169,23 +173,24 @@ func TestImportBlocks(t *testing.T) {
 	defer cleanup()
 	trapSignals()
 
-	// create logger, codec and root multi-store
 	cdc := newTestCodec()
+	appCodec := codec.NewAppCodec(cdc)
+
 	cms := store.NewCommitMultiStore(db)
 
 	// The ParamsKeeper handles parameter storage for the application
 	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(appCodec, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
-	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
-	bk := bank.NewBaseKeeper(cdc, bankKey, ak, bankSubspace, nil)
+	ak := auth.NewAccountKeeper(appCodec, accKey, authSubspace, types.ProtoAccount)
+	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
 	// mount stores
-	keys := []*sdk.KVStoreKey{accKey, storeKey, codeKey}
+	keys := []*sdk.KVStoreKey{accKey, bankKey, storeKey, codeKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
