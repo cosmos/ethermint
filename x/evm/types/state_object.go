@@ -88,6 +88,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	return &stateObject{
 		stateDB:       db,
 		account:       ethermintAccount,
+		balance:       zeroBalance,
 		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
@@ -155,7 +156,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	newBalance := new(big.Int).Add(so.balance, amount)
+	newBalance := new(big.Int).Add(so.Balance(), amount)
 	so.SetBalance(newBalance)
 }
 
@@ -195,6 +196,9 @@ func (so *stateObject) SetNonce(nonce uint64) {
 }
 
 func (so *stateObject) setNonce(nonce uint64) {
+	if so.account == nil {
+		panic("state object account is empty")
+	}
 	so.account.Sequence = nonce
 }
 
@@ -262,17 +266,23 @@ func (so *stateObject) Balance() *big.Int {
 
 // CodeHash returns the state object's code hash.
 func (so *stateObject) CodeHash() []byte {
+	if so.account == nil || len(so.account.CodeHash) == 0 {
+		return emptyCodeHash
+	}
 	return so.account.CodeHash
 }
 
 // Nonce returns the state object's current nonce (sequence number).
 func (so *stateObject) Nonce() uint64 {
+	if so.account == nil {
+		return 0
+	}
 	return so.account.Sequence
 }
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(_ ethstate.Database) []byte {
-	if so.code != nil {
+	if len(so.code) > 0 {
 		return so.code
 	}
 
@@ -285,10 +295,9 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	code := store.Get(so.CodeHash())
 
 	if len(code) == 0 {
-		so.setError(fmt.Errorf("failed to get code hash %x for address: %x", so.CodeHash(), so.Address()))
+		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
 	}
 
-	so.code = code
 	return code
 }
 
@@ -342,6 +351,7 @@ func (so *stateObject) ReturnGas(gas *big.Int) {}
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	newStateObj := newStateObject(db, so.account)
 
+	newStateObj.balance = so.balance
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()
@@ -354,7 +364,9 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	return so.account.Sequence == 0 &&
+	return so.account != nil &&
+		so.account.Sequence == 0 &&
+		so.balance != nil &&
 		so.Balance().Sign() == 0 &&
 		bytes.Equal(so.account.CodeHash, emptyCodeHash)
 }
