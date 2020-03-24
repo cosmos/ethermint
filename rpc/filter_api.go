@@ -35,7 +35,8 @@ func (e *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.
 		/*
 			Still need to add blockhash in prepare function for log entry
 		*/
-		filter = NewBlockFilter(*criteria.BlockHash, criteria.Addresses, criteria.Topics)
+		// TODO: add backend
+		filter = NewBlockFilter(nil, *criteria.BlockHash, criteria.Addresses, criteria.Topics)
 		results := e.getLogs()
 		logs := filterLogs(results, nil, nil, filter.addresses, filter.topics)
 		return logs, nil

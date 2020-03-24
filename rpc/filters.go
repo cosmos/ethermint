@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -12,30 +13,49 @@ import (
 	Used to set the criteria passed in from RPC params
 */
 
+// Backend implements the functionality needed to filter changes.
+// Implemented by PublicEthAPI.
+type Backend interface {
+	BlockNumber() (hexutil.Uint64, error)
+	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
+	PendingTransactions() ([]*Transaction, error)
+	GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error)
+}
+
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
-	addresses []common.Address
-	topics    [][]common.Hash
+	backend            Backend
+	fromBlock, toBlock *big.Int         // start and end block numbers
+	addresses          []common.Address // contract addresses to watch
+	topics             [][]common.Hash  // log topics to watch for
+	block              common.Hash      // Block hash if filtering a single block
+}
 
-	block common.Hash // Block hash if filtering a single block
+// NewFilter returns a new Filter
+func NewFilter(backend Backend, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) *Filter {
+	return &Filter{
+		backend:   backend,
+		fromBlock: fromBlock,
+		toBlock:   toBlock,
+		addresses: addresses,
+		topics:    topics,
+	}
 }
 
 // NewBlockFilter creates a new filter which directly inspects the contents of
 // a block to figure out whether it is interesting or not.
-func NewBlockFilter(block common.Hash, addresses []common.Address, topics [][]common.Hash) *Filter {
-	// Create a generic filter and convert it into a block filter
-	filter := newFilter(addresses, topics)
+func NewBlockFilter(backend Backend, block common.Hash, addresses []common.Address, topics [][]common.Hash) *Filter {
+	filter := NewFilter(backend, nil, nil, addresses, topics)
 	filter.block = block
 	return filter
 }
 
-// newFilter creates a generic filter that can either filter based on a block hash,
-// or based on range queries. The search criteria needs to be explicitly set.
-func newFilter(addresses []common.Address, topics [][]common.Hash) *Filter {
-	return &Filter{
-		addresses: addresses,
-		topics:    topics,
-	}
+// NewRangeFilter creates a new filter with a start and an end range.
+func NewRangeFilter(backend Backend, addresses []common.Address, topics [][]common.Hash, fromBlock, toBlock *big.Int) *Filter {
+	filter := NewFilter(backend, fromBlock, toBlock, addresses, topics)
+	filter.fromBlock = fromBlock
+	filter.toBlock = toBlock
+	return filter
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
