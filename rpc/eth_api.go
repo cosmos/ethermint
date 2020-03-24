@@ -237,7 +237,7 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 // GetCode returns the contract code at the given address and block number.
 func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/code/%s", types.ModuleName, address.Hex()), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 func (e *PublicEthAPI) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	// do we need to use the block height somewhere?
 	ctx := e.cliCtx
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/txLogs/%s", types.ModuleName, txHash.Hex()), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, txHash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
