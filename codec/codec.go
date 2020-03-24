@@ -3,7 +3,6 @@ package codec
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -80,10 +79,9 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	bm.RegisterCodec(cdc)
 	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	codec.RegisterCrypto(cdc)
 	emintcrypto.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
 	eminttypes.RegisterCodec(cdc)
-	cryptokeys.RegisterCodec(cdc) // temporary
 
 	return cdc
 }

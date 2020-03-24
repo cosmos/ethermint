@@ -254,6 +254,9 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
+	if so.balance == nil {
+		return zeroBalance
+	}
 	return so.balance
 }
 

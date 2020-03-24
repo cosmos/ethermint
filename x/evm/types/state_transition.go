@@ -82,7 +82,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Coinbase:    common.Address{}, // TODO: explain why this is empty
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
-		Difficulty:  big.NewInt(0x0), // unused. Only required in PoW context
+		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).BigInt(),
 	}

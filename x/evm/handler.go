@@ -19,7 +19,7 @@ func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return HandleEthTxMsg(ctx, k, msg)
+			return HandleMsgEthereumTx(ctx, k, msg)
 		case types.MsgEthermint:
 			return HandleMsgEthermint(ctx, k, msg)
 		default:
@@ -28,8 +28,8 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-// HandleEthTxMsg handles an Ethereum specific tx
-func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+// HandleMsgEthereumTx handles an Ethereum specific tx
+func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {

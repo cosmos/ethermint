@@ -69,7 +69,7 @@ func (suite *EvmTestSuite) TestHandler_Logs() {
 	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv)
 
-	result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
+	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
 	resultData, err := types.DecodeResultData(result.Data)
