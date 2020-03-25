@@ -3,13 +3,11 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm/types"
 
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -19,8 +17,7 @@ import (
 type PublicFilterAPI struct {
 	cliCtx  context.CLIContext
 	backend Backend
-	filters map[hexutil.Uint64]*Filter // ID to filter
-	nextID  hexutil.Uint64
+	filters map[rpc.ID]*Filter // ID to filter; TODO: change to sync.Map in case of concurrent writes
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
@@ -28,34 +25,33 @@ func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilte
 	return &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
-		filters: make(map[hexutil.Uint64]*Filter),
-		nextID:  0,
+		filters: make(map[rpc.ID]*Filter),
 	}
 }
 
 // NewFilter instantiates a new filter.
-func (e *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) hexutil.Uint64 {
-	e.filters[e.nextID] = NewFilter(e.backend, &criteria)
-	e.nextID++
-	return e.nextID
+func (e *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) rpc.ID {
+	id := rpc.NewID()
+	e.filters[id] = NewFilter(e.backend, &criteria)
+	return id
 }
 
 // NewBlockFilter instantiates a new block filter.
-func (e *PublicFilterAPI) NewBlockFilter() hexutil.Uint64 {
-	e.filters[e.nextID] = NewBlockFilter(e.backend)
-	e.nextID++
-	return e.nextID
+func (e *PublicFilterAPI) NewBlockFilter() rpc.ID {
+	id := rpc.NewID()
+	e.filters[id] = NewBlockFilter(e.backend)
+	return id
 }
 
 // NewPendingTransactionFilter instantiates a new pending transaction filter.
-func (e *PublicFilterAPI) NewPendingTransactionFilter() hexutil.Uint64 {
-	e.filters[e.nextID] = NewPendingTransactionFilter(e.backend)
-	e.nextID++
-	return e.nextID
+func (e *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+	id := rpc.NewID()
+	e.filters[id] = NewPendingTransactionFilter(e.backend)
+	return id
 }
 
 // UninstallFilter uninstalls a filter with the given ID.
-func (e *PublicFilterAPI) UninstallFilter(id hexutil.Uint64) bool {
+func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 	// TODO
 	e.filters[id].uninstallFilter()
 	delete(e.filters, id)
@@ -66,12 +62,12 @@ func (e *PublicFilterAPI) UninstallFilter(id hexutil.Uint64) bool {
 // If the filter is a log filter, it returns an array of Logs.
 // If the filter is a block filter, it returns an array of block hashes.
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
-func (e *PublicFilterAPI) GetFilterChanges(id hexutil.Uint64) interface{} {
+func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) interface{} {
 	return e.filters[id].getFilterChanges()
 }
 
 // GetFilterLogs returns an array of all logs matching filter with given id.
-func (e *PublicFilterAPI) GetFilterLogs(id hexutil.Uint64) []*ethtypes.Log {
+func (e *PublicFilterAPI) GetFilterLogs(id rpc.ID) []*ethtypes.Log {
 	return e.filters[id].getFilterLogs()
 }
 
