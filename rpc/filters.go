@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 )
@@ -13,16 +12,6 @@ import (
 	- Filter functions derived from go-ethereum
 	Used to set the criteria passed in from RPC params
 */
-
-// Backend implements the functionality needed to filter changes.
-// Implemented by PublicEthAPI.
-type Backend interface {
-	BlockNumber() (hexutil.Uint64, error)
-	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
-	PendingTransactions() ([]*Transaction, error)
-	GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error)
-	// Bloom methods
-}
 
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
@@ -70,12 +59,10 @@ func NewPendingTransactionFilter(backend Backend) *Filter {
 	return filter
 }
 
-//nolint
 func (f *Filter) uninstallFilter() {
 	// TODO
 }
 
-//nolint
 func (f *Filter) getFilterChanges() interface{} {
 	// TODO
 	// we might want to use an interface for Filters themselves because of this function, it may return an array of logs
@@ -84,7 +71,6 @@ func (f *Filter) getFilterChanges() interface{} {
 	return nil
 }
 
-//nolint
 func (f *Filter) getFilterLogs() []*ethtypes.Log {
 	// TODO
 	return nil

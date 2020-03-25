@@ -57,8 +57,9 @@ func (e *PublicFilterAPI) NewPendingTransactionFilter() hexutil.Uint64 {
 // UninstallFilter uninstalls a filter with the given ID.
 func (e *PublicFilterAPI) UninstallFilter(id hexutil.Uint64) bool {
 	// TODO
+	e.filters[id].uninstallFilter()
 	delete(e.filters, id)
-	return false
+	return true
 }
 
 // GetFilterChanges returns an array of changes since the last poll.
@@ -66,12 +67,12 @@ func (e *PublicFilterAPI) UninstallFilter(id hexutil.Uint64) bool {
 // If the filter is a block filter, it returns an array of block hashes.
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
 func (e *PublicFilterAPI) GetFilterChanges(id hexutil.Uint64) interface{} {
-	return nil
+	return e.filters[id].getFilterChanges()
 }
 
 // GetFilterLogs returns an array of all logs matching filter with given id.
 func (e *PublicFilterAPI) GetFilterLogs(id hexutil.Uint64) []*ethtypes.Log {
-	return nil
+	return e.filters[id].getFilterLogs()
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
