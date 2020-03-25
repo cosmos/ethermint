@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/eth/filters"
 )
 
 /*
@@ -29,41 +30,43 @@ type Filter struct {
 	fromBlock, toBlock *big.Int         // start and end block numbers
 	addresses          []common.Address // contract addresses to watch
 	topics             [][]common.Hash  // log topics to watch for
-	block              common.Hash      // Block hash if filtering a single block
+	blockHash          *common.Hash     // Block hash if filtering a single block
 }
 
 // NewFilter returns a new Filter
-func NewFilter(backend Backend, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) *Filter {
+func NewFilter(backend Backend, criteria *filters.FilterCriteria) *Filter {
 	return &Filter{
 		backend:   backend,
-		fromBlock: fromBlock,
-		toBlock:   toBlock,
-		addresses: addresses,
-		topics:    topics,
+		fromBlock: criteria.FromBlock,
+		toBlock:   criteria.ToBlock,
+		addresses: criteria.Addresses,
+		topics:    criteria.Topics,
 	}
 }
 
-// NewFilterWithBlockHash returns a new Filter with a blockHash. Used by eth_getLogs.
-func NewFilterWithBlockHash(backend Backend, fromBlock, toBlock *big.Int, block common.Hash, addresses []common.Address, topics [][]common.Hash) *Filter {
+// NewFilterWithBlockHash returns a new Filter with a blockHash.
+func NewFilterWithBlockHash(backend Backend, criteria *filters.FilterCriteria) *Filter {
 	return &Filter{
 		backend:   backend,
-		fromBlock: fromBlock,
-		toBlock:   toBlock,
-		block:     block,
-		addresses: addresses,
-		topics:    topics,
+		fromBlock: criteria.FromBlock,
+		toBlock:   criteria.ToBlock,
+		addresses: criteria.Addresses,
+		topics:    criteria.Topics,
+		blockHash: criteria.BlockHash,
 	}
 }
 
 // NewBlockFilter creates a new filter that notifies when a block arrives.
 func NewBlockFilter(backend Backend) *Filter {
-	filter := NewFilter(backend, nil, nil, nil, nil)
+	// TODO: finish
+	filter := NewFilter(backend, nil)
 	return filter
 }
 
 // NewPendingTransactionFilter creates a new filter that notifies when a pending transaction arrives.
 func NewPendingTransactionFilter(backend Backend) *Filter {
-	filter := NewFilter(backend, nil, nil, nil, nil)
+	// TODO: finish
+	filter := NewFilter(backend, nil)
 	return filter
 }
 
