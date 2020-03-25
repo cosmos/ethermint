@@ -9,6 +9,7 @@ import (
 
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -16,14 +17,61 @@ import (
 
 // PublicFilterAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicFilterAPI struct {
-	cliCtx context.CLIContext
+	cliCtx  context.CLIContext
+	backend Backend
+	filters map[uint64]*Filter // ID to filter
+	nextID  uint64
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicFilterAPI(cliCtx context.CLIContext) *PublicFilterAPI {
+func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilterAPI {
 	return &PublicFilterAPI{
-		cliCtx: cliCtx,
+		cliCtx:  cliCtx,
+		backend: backend,
+		filters: make(map[uint64]*Filter),
+		nextID:  0,
 	}
+}
+
+// NewFilter instantiates a new filter.
+func (e *PublicFilterAPI) NewFilter(fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) uint64 {
+	e.filters[e.nextID] = NewFilter(e.backend, fromBlock, toBlock, addresses, topics)
+	e.nextID += 1
+	return e.nextID
+}
+
+// NewBlockFilter instantiates a new block filter.
+func (e *PublicFilterAPI) NewBlockFilter() uint64 {
+	e.filters[e.nextID] = NewBlockFilter(e.backend)
+	e.nextID += 1
+	return e.nextID
+}
+
+// NewPendingTransactionFilter instantiates a new pending transaction filter.
+func (e *PublicFilterAPI) NewPendingTransactionFilter() uint64 {
+	e.filters[e.nextID] = NewPendingTransactionFilter(e.backend)
+	e.nextID += 1
+	return e.nextID
+}
+
+// UninstallFilter uninstalls a filter with the given ID.
+func (e *PublicFilterAPI) UninstallFilter(id uint64) bool {
+	// TODO
+	delete(e.filters, id)
+	return false
+}
+
+// GetFilterChanges returns an array of changes since the last poll.
+// If the filter is a log filter, it returns an array of Logs.
+// If the filter is a block filter, it returns an array of block hashes.
+// If the filter is a pending transaction filter, it returns an array of transaction hashes.
+func (e *PublicFilterAPI) GetFilterChanges(id uint64) interface{} {
+	return nil
+}
+
+// GetFilterLogs returns an array of all logs matching filter with given id.
+func (e *PublicFilterAPI) GetFilterLogs(id uint64) []*ethtypes.Log {
+	return nil
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
@@ -36,7 +84,7 @@ func (e *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.
 			Still need to add blockhash in prepare function for log entry
 		*/
 		// TODO: add backend
-		filter = NewBlockFilter(nil, *criteria.BlockHash, criteria.Addresses, criteria.Topics)
+		filter = NewFilterWithBlockHash(nil, nil, nil, *criteria.BlockHash, criteria.Addresses, criteria.Topics)
 		results := e.getLogs()
 		logs := filterLogs(results, nil, nil, filter.addresses, filter.topics)
 		return logs, nil

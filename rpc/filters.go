@@ -42,20 +42,45 @@ func NewFilter(backend Backend, fromBlock, toBlock *big.Int, addresses []common.
 	}
 }
 
-// NewBlockFilter creates a new filter which directly inspects the contents of
-// a block to figure out whether it is interesting or not.
-func NewBlockFilter(backend Backend, block common.Hash, addresses []common.Address, topics [][]common.Hash) *Filter {
-	filter := NewFilter(backend, nil, nil, addresses, topics)
-	filter.block = block
+// NewFilterWithBlockHash returns a new Filter with a blockHash. Used by eth_getLogs.
+func NewFilterWithBlockHash(backend Backend, fromBlock, toBlock *big.Int, block common.Hash, addresses []common.Address, topics [][]common.Hash) *Filter {
+	return &Filter{
+		backend:   backend,
+		fromBlock: fromBlock,
+		toBlock:   toBlock,
+		block:     block,
+		addresses: addresses,
+		topics:    topics,
+	}
+}
+
+// NewBlockFilter creates a new filter that notifies when a block arrives.
+func NewBlockFilter(backend Backend) *Filter {
+	filter := NewFilter(backend, nil, nil, nil, nil)
 	return filter
 }
 
-// NewRangeFilter creates a new filter with a start and an end range.
-func NewRangeFilter(backend Backend, addresses []common.Address, topics [][]common.Hash, fromBlock, toBlock *big.Int) *Filter {
-	filter := NewFilter(backend, fromBlock, toBlock, addresses, topics)
-	filter.fromBlock = fromBlock
-	filter.toBlock = toBlock
+// NewPendingTransactionFilter creates a new filter that notifies when a pending transaction arrives.
+func NewPendingTransactionFilter(backend Backend) *Filter {
+	filter := NewFilter(backend, nil, nil, nil, nil)
 	return filter
+}
+
+func (f *Filter) uninstallFilter() {
+	// TODO
+}
+
+func (f *Filter) getFilterChanges() interface{} {
+	// TODO
+	// we might want to use an interface for Filters themselves because of this function, it may return an array of logs
+	// or an array of hashes, depending of whether Filter is a log filter or a block/transaction filter.
+	// or, we can add a type field to Filter.
+	return nil
+}
+
+func (f *Filter) getFilterLogs() []*ethtypes.Log {
+	// TODO
+	return nil
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
