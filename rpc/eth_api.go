@@ -45,7 +45,6 @@ type PublicEthAPI struct {
 	key         emintcrypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
 	keybaseLock sync.Mutex
-	gasLimit    *int64
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
