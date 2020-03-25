@@ -20,6 +20,7 @@ type Backend interface {
 	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
 	PendingTransactions() ([]*Transaction, error)
 	GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error)
+	// Bloom methods
 }
 
 // Filter can be used to retrieve and filter logs.
