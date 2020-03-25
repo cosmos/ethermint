@@ -11,7 +11,7 @@ import (
 // GetRPCAPIs returns the list of all APIs
 func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
-	ethApi := NewPublicEthAPI(cliCtx, nonceLock, key)
+	ethAPI := NewPublicEthAPI(cliCtx, nonceLock, key)
 	return []rpc.API{
 		{
 			Namespace: "web3",
@@ -22,7 +22,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 		{
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   ethApi,
+			Service:   ethAPI,
 			Public:    true,
 		},
 		{
@@ -34,7 +34,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 		{
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   NewPublicFilterAPI(cliCtx, ethApi),
+			Service:   NewPublicFilterAPI(cliCtx, ethAPI),
 			Public:    true,
 		},
 		{

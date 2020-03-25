@@ -67,10 +67,12 @@ func NewPendingTransactionFilter(backend Backend) *Filter {
 	return filter
 }
 
+//nolint
 func (f *Filter) uninstallFilter() {
 	// TODO
 }
 
+//nolint
 func (f *Filter) getFilterChanges() interface{} {
 	// TODO
 	// we might want to use an interface for Filters themselves because of this function, it may return an array of logs
@@ -79,6 +81,7 @@ func (f *Filter) getFilterChanges() interface{} {
 	return nil
 }
 
+//nolint
 func (f *Filter) getFilterLogs() []*ethtypes.Log {
 	// TODO
 	return nil

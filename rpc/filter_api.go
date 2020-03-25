@@ -36,21 +36,21 @@ func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilte
 // NewFilter instantiates a new filter.
 func (e *PublicFilterAPI) NewFilter(fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) uint64 {
 	e.filters[e.nextID] = NewFilter(e.backend, fromBlock, toBlock, addresses, topics)
-	e.nextID += 1
+	e.nextID++
 	return e.nextID
 }
 
 // NewBlockFilter instantiates a new block filter.
 func (e *PublicFilterAPI) NewBlockFilter() uint64 {
 	e.filters[e.nextID] = NewBlockFilter(e.backend)
-	e.nextID += 1
+	e.nextID++
 	return e.nextID
 }
 
 // NewPendingTransactionFilter instantiates a new pending transaction filter.
 func (e *PublicFilterAPI) NewPendingTransactionFilter() uint64 {
 	e.filters[e.nextID] = NewPendingTransactionFilter(e.backend)
-	e.nextID += 1
+	e.nextID++
 	return e.nextID
 }
 
