@@ -15,7 +15,7 @@ import (
 )
 
 // Backend implements the functionality needed to filter changes.
-// Implemented by PublicEthAPI.
+// Implemented by EthermintBackend.
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
