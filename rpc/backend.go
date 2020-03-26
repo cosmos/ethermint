@@ -40,7 +40,7 @@ type EthermintBackend struct {
 func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
 	return &EthermintBackend{
 		cliCtx:   cliCtx,
-		gasLimit: -1,
+		gasLimit: int64(^uint32(0)),
 	}
 }
 
