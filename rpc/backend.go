@@ -32,19 +32,20 @@ type Backend interface {
 }
 
 // EmintBackend implements Backend
-type EmintBackend struct {
+type EthermintBackend struct {
 	cliCtx   context.CLIContext
-	gasLimit *int64
+	gasLimit int64
 }
 
-func NewEmintBackend(cliCtx context.CLIContext) *EmintBackend {
-	return &EmintBackend{
-		cliCtx: cliCtx,
+func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
+	return &EthermintBackend{
+		cliCtx:   cliCtx,
+		gasLimit: -1,
 	}
 }
 
 // BlockNumber returns the current block number.
-func (e *EmintBackend) BlockNumber() (hexutil.Uint64, error) {
+func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
 	if err != nil {
 		return hexutil.Uint64(0), err
@@ -56,12 +57,12 @@ func (e *EmintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *EmintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
-func (e *EmintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {
+func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {
 	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
 	var blkNumPtr *int64
 	if height != 0 {
@@ -113,10 +114,10 @@ func (e *EmintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[strin
 }
 
 // getGasLimit returns the gas limit per block set in genesis
-func (e *EmintBackend) getGasLimit() (int64, error) {
+func (e *EthermintBackend) getGasLimit() (int64, error) {
 	// Retrieve from gasLimit variable cache
-	if e.gasLimit != nil {
-		return *e.gasLimit, nil
+	if e.gasLimit != -1 {
+		return e.gasLimit, nil
 	}
 
 	// Query genesis block if hasn't been retrieved yet
@@ -133,12 +134,12 @@ func (e *EmintBackend) getGasLimit() (int64, error) {
 		// which errors certain javascript dev tooling which only supports up to 53 bits
 		gasLimit = int64(^uint32(0))
 	}
-	e.gasLimit = &gasLimit
+	e.gasLimit = gasLimit
 	return gasLimit, nil
 }
 
 // GetTxLogs returns the logs given a transaction hash.
-func (e *EmintBackend) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+func (e *EthermintBackend) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	// do we need to use the block height somewhere?
 	ctx := e.cliCtx
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, txHash.Hex()), nil)
@@ -153,7 +154,7 @@ func (e *EmintBackend) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (e *EmintBackend) PendingTransactions() ([]*Transaction, error) {
+func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	pendingTxs, err := e.cliCtx.Client.UnconfirmedTxs(100)
 	if err != nil {
 		return nil, err
