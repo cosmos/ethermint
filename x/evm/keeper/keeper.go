@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -20,7 +22,7 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc *codec.Codec
+	cdc codec.Marshaler
 	// Store key required to update the block bloom filter mappings needed for the
 	// Web3 API
 	blockKey      sdk.StoreKey
@@ -31,12 +33,13 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey, ak types.AccountKeeper,
+	cdc codec.Marshaler, blockKey, codeKey, storeKey sdk.StoreKey,
+	ak types.AccountKeeper, bk types.BankKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		blockKey:      blockKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak, bk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -49,21 +52,24 @@ func NewKeeper(
 
 // GetBlockHashMapping gets block height from block consensus hash
 func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error) {
-	var height int64
+	var height uint64
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
 	if len(bz) == 0 {
 		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
 
-	k.cdc.MustUnmarshalBinaryBare(bz, &height)
-	return height, nil
+	binary.BigEndian.PutUint64(bz, height)
+	return int64(height), nil
 }
 
 // SetBlockHashMapping sets the mapping from block consensus hash to block height
 func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	store.Set(hash, k.cdc.MustMarshalBinaryBare(height))
+	if !bytes.Equal(hash, []byte{}) {
+		bz := sdk.Uint64ToBigEndian(uint64(height))
+		store.Set(hash, bz)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -74,8 +80,8 @@ func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) 
 // GetBlockBloomMapping gets bloombits from block height
 func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryBare(height)
-	bz := store.Get(heightHash)
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	bz := store.Get(heightBz)
 	if len(bz) == 0 {
 		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
@@ -86,8 +92,8 @@ func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bl
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	heightHash := k.cdc.MustMarshalBinaryBare(height)
-	store.Set(heightHash, bloom.Bytes())
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(heightBz, bloom.Bytes())
 }
 
 // GetBlockLogs gets the logs for a transaction from the KVStore

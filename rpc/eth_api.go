@@ -1,13 +1,11 @@
 package rpc
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
-	"os"
 	"strconv"
 	"sync"
 
@@ -35,7 +33,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -127,7 +125,6 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		return addresses, err
 	}
 
-	keybase.CloseDB()
 	e.keybaseLock.Unlock()
 
 	for _, info := range infos {
@@ -296,7 +293,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -326,7 +323,7 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authutils.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -357,13 +354,12 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	txRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
-	fmt.Println(txRes)
 
-	data, err := types.DecodeResultData([]byte(txRes.Data))
+	data, err := types.DecodeResultData([]byte(simRes.Result.Data))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -389,14 +385,10 @@ type account struct {
 // estimated gas used on the operation or an error if fails.
 func (e *PublicEthAPI) doCall(
 	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
-) (*sdk.TxResponse, error) {
+) (*sdk.SimulationResponse, error) {
 
 	// Set height for historical queries
 	ctx := e.cliCtx
-
-	inBuf := bufio.NewReader(os.Stdin)
-	txEncoder := authutils.GetTxEncoder(ctx.Codec)
-	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithTxEncoder(txEncoder)
 
 	if blockNr.Int64() != 0 {
 		ctx = e.cliCtx.WithHeight(blockNr.Int64())
@@ -453,29 +445,40 @@ func (e *PublicEthAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
-	// var stdSig authtypes.StdSignature
-	// tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	var stdSig authtypes.StdSignature
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
 
-	ctx.Simulate = true // Enrich tx
-	txRes, err := emint.CompleteAndBroadcastTx(txBldr, ctx, []sdk.Msg{msg})
+	txEncoder := authclient.GetTxEncoder(ctx.Codec)
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &txRes, nil
+	// Transaction simulation through query
+	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var simResponse sdk.SimulationResponse
+	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+		return nil, err
+	}
+
+	return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
-	txRes, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
-	estimatedGas := uint64(txRes.GasUsed)
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
+	estimatedGas := uint64(simResponse.GasInfo.GasUsed)
 	gas := estimatedGas + 1000
 	return gas, nil
 }
@@ -933,7 +936,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		_, nonce, err = authtypes.NewAccountRetriever(e.cliCtx).GetAccountNumberSequence(from)
+		_, nonce, err = authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx).GetAccountNumberSequence(from)
 		if err != nil {
 			return types.MsgEthereumTx{}, err
 		}

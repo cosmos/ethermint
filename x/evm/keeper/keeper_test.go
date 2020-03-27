@@ -56,8 +56,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
-	err := suite.app.EvmKeeper.SetBlockBloomMapping(suite.ctx, testBloom, 4)
-	suite.Require().NoError(err, "failed to set block bloom mapping")
+	suite.app.EvmKeeper.SetBlockBloomMapping(suite.ctx, testBloom, 4)
 
 	// Get those state transitions
 	suite.Require().Equal(suite.app.EvmKeeper.GetBalance(suite.ctx, address).Cmp(big.NewInt(5)), 0)

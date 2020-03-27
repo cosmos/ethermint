@@ -18,7 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -52,7 +52,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 
 			toAddr, err := cosmosAddressFromArg(args[0])
 			if err != nil {
@@ -80,7 +80,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(authclient.Codec, cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -94,7 +94,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
@@ -109,7 +109,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 
 			payload := args[0]
 			if !strings.HasPrefix(payload, "0x") {
@@ -132,7 +132,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(authclient.Codec, cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -146,7 +146,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			if err = utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg}); err != nil {
+			if err = authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg}); err != nil {
 				return err
 			}
 

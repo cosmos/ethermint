@@ -1,10 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 
-	emintapp "github.com/cosmos/ethermint/app"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/cosmos/ethermint/app"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
@@ -16,20 +20,29 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func main() {
-	cobra.EnableCommandSorting = false
+var (
+	cdc      = codecstd.MakeCodec(app.ModuleBasics)
+	appCodec = codecstd.NewAppCodec(cdc)
+)
 
-	cdc := emintapp.MakeCodec()
+func init() {
+	authclient.Codec = appCodec
+}
+
+func main() {
+	// Configure cobra to sort commands
+	cobra.EnableCommandSorting = false
 
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
@@ -46,7 +59,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:   "emintcli",
-		Short: "Ethermint Client",
+		Short: "Command line interface for interacting with ethermintd",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
@@ -58,7 +71,7 @@ func main() {
 	// Construct Root Command
 	rootCmd.AddCommand(
 		clientrpc.StatusCommand(),
-		client.ConfigCmd(emintapp.DefaultCLIHome),
+		client.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
 		rpc.EmintServeCmd(cdc),
@@ -69,10 +82,12 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 	)
 
-	executor := cli.PrepareMainCmd(rootCmd, "EM", emintapp.DefaultCLIHome)
+	// Add flags and prefix all env exposed with EM
+	executor := cli.PrepareMainCmd(rootCmd, "EM", app.DefaultCLIHome)
+
 	err := executor.Execute()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed executing CLI command: %w", err))
 	}
 }
 
@@ -92,7 +107,7 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 	)
 
 	// add modules' query commands
-	emintapp.ModuleBasics.AddQueryCommands(queryCmd, cdc)
+	app.ModuleBasics.AddQueryCommands(queryCmd, cdc)
 
 	return queryCmd
 }
@@ -107,14 +122,27 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 		bankcmd.SendTxCmd(cdc),
 		flags.LineBreak,
 		authcmd.GetSignCommand(cdc),
+		authcmd.GetMultiSignCommand(cdc),
 		flags.LineBreak,
 		authcmd.GetBroadcastCommand(cdc),
 		authcmd.GetEncodeCommand(cdc),
+		authcmd.GetDecodeCommand(cdc),
 		flags.LineBreak,
 	)
 
 	// add modules' tx commands
-	emintapp.ModuleBasics.AddTxCommands(txCmd, cdc)
+	app.ModuleBasics.AddTxCommands(txCmd, cdc)
+
+	// remove auth and bank commands as they're mounted under the root tx command
+	var cmdsToRemove []*cobra.Command
+
+	for _, cmd := range txCmd.Commands() {
+		if cmd.Use == auth.ModuleName || cmd.Use == bank.ModuleName {
+			cmdsToRemove = append(cmdsToRemove, cmd)
+		}
+	}
+
+	txCmd.RemoveCommand(cmdsToRemove...)
 
 	return txCmd
 }

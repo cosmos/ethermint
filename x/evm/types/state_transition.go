@@ -79,12 +79,12 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		Origin:      st.Sender,
-		Coinbase:    common.Address{},
+		Coinbase:    common.Address{}, // TODO: explain why this is empty
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
-		Difficulty:  big.NewInt(0x30000), // unused
+		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
+		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).BigInt(),
 	}
 
 	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
@@ -104,17 +104,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		if err != nil {
-			return nil, err
-		}
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -142,6 +139,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Logs:    logs,
 		Ret:     ret,
 	}
+
 	resultData, err := EncodeResultData(res)
 	if err != nil {
 		return nil, err

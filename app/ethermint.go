@@ -6,7 +6,6 @@ import (
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -21,12 +20,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
+	paramproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 
 	"github.com/cosmos/ethermint/app/ante"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
@@ -82,19 +82,7 @@ var (
 	}
 )
 
-// MakeCodec generates the necessary codecs for Amino
-func MakeCodec() *codec.Codec {
-	var cdc = codec.New()
-
-	ModuleBasics.RegisterCodec(cdc)
-	cryptokeys.RegisterCodec(cdc) // temporary
-	sdk.RegisterCodec(cdc)
-	codec.RegisterCrypto(cdc)
-	emintcrypto.RegisterCodec(cdc)
-	eminttypes.RegisterCodec(cdc)
-
-	return cdc
-}
+var _ simapp.App = (*EthermintApp)(nil)
 
 // EthermintApp implements an extended ABCI application. It is an application
 // that may process transactions through Ethereum's EVM running atop of
@@ -143,14 +131,17 @@ func NewEthermintApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
 	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
 ) *EthermintApp {
-	appCodec := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(appCodec), baseAppOptions...)
+	cdc := ethermintcodec.MakeCodec(ModuleBasics)
+	appCodec := ethermintcodec.NewAppCodec(cdc)
+
+	// use custom Ethermint transaction decoder
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 
 	keys := sdk.NewKVStoreKeys(
-		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.CodeKey, evm.StoreKey,
 	)
@@ -160,7 +151,7 @@ func NewEthermintApp(
 
 	app := &EthermintApp{
 		BaseApp:        bApp,
-		cdc:            appCodec,
+		cdc:            cdc,
 		invCheckPeriod: invCheckPeriod,
 		keys:           keys,
 		tkeys:          tkeys,
@@ -179,25 +170,25 @@ func NewEthermintApp(
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
 	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
 
-	// add keepers
+	// use custom Ethermint account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
 		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], eminttypes.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
-		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+		appCodec, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
 	)
 	app.SupplyKeeper = supply.NewKeeper(
 		appCodec, keys[supply.StoreKey], app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 	stakingKeeper := staking.NewKeeper(
-		appCodec, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		appCodec, keys[staking.StoreKey], app.BankKeeper, app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.MintKeeper = mint.NewKeeper(
 		appCodec, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.DistrKeeper = distr.NewKeeper(
-		appCodec, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
+		appCodec, keys[distr.StoreKey], app.subspaces[distr.ModuleName], app.BankKeeper, &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
@@ -208,11 +199,12 @@ func NewEthermintApp(
 	)
 	app.EvmKeeper = evm.NewKeeper(
 		appCodec, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+		app.BankKeeper,
 	)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
-		app.cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
+		appCodec, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
 	)
 	evidenceRouter := evidence.NewRouter()
 	// TODO: Register evidence routes.
@@ -222,10 +214,10 @@ func NewEthermintApp(
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
-		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
+		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper))
 	app.GovKeeper = gov.NewKeeper(
-		app.cdc, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.SupplyKeeper,
+		appCodec, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.SupplyKeeper,
 		&stakingKeeper, govRouter,
 	)
 
@@ -239,15 +231,15 @@ func NewEthermintApp(
 	// must be passed by reference here.
 	app.mm = module.NewManager(
 		genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx),
-		auth.NewAppModule(app.AccountKeeper),
+		auth.NewAppModule(app.AccountKeeper, app.SupplyKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
-		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.SupplyKeeper),
-		mint.NewAppModule(app.MintKeeper),
-		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
-		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.SupplyKeeper, app.StakingKeeper),
-		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
+		supply.NewAppModule(app.SupplyKeeper, app.BankKeeper, app.AccountKeeper),
+		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
+		mint.NewAppModule(app.MintKeeper, app.SupplyKeeper),
+		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
+		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper),
 	)
@@ -279,14 +271,14 @@ func NewEthermintApp(
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
 	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(app.AccountKeeper),
+		auth.NewAppModule(app.AccountKeeper, app.SupplyKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
-		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.SupplyKeeper),
-		mint.NewAppModule(app.MintKeeper),
-		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
-		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.SupplyKeeper, app.StakingKeeper),
-		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
+		supply.NewAppModule(app.SupplyKeeper, app.BankKeeper, app.AccountKeeper),
+		gov.NewAppModule(app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
+		mint.NewAppModule(app.MintKeeper, app.SupplyKeeper),
+		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
+		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
+		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		params.NewAppModule(), // NOTE: only used for simulation to generate randomized param change proposals
 	)
 
@@ -303,7 +295,7 @@ func NewEthermintApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.BankKeeper, app.SupplyKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 
 	if loadLatest {
@@ -333,7 +325,7 @@ func (app *EthermintApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *EthermintApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-	return app.mm.InitGenesis(ctx, genesisState)
+	return app.mm.InitGenesis(ctx, app.cdc, genesisState)
 }
 
 // LoadHeight loads state at a particular height
