@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -52,24 +51,21 @@ func NewKeeper(
 
 // GetBlockHashMapping gets block height from block consensus hash
 func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error) {
-	var height uint64
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
 	if len(bz) == 0 {
 		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
 
-	binary.BigEndian.PutUint64(bz, height)
+	height := binary.BigEndian.Uint64(bz)
 	return int64(height), nil
 }
 
 // SetBlockHashMapping sets the mapping from block consensus hash to block height
 func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	if !bytes.Equal(hash, []byte{}) {
-		bz := sdk.Uint64ToBigEndian(uint64(height))
-		store.Set(hash, bz)
-	}
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(hash, bz)
 }
 
 // ----------------------------------------------------------------------------
