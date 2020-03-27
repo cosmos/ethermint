@@ -30,7 +30,7 @@ type Filter struct {
 
 	typ     filterType
 	hashes  []common.Hash   // filtered block or transaction hashes
-	logs    []*ethtypes.Log // filtered logs
+	logs    []*ethtypes.Log //nolint // filtered logs
 	stopped bool            // set to true once filter in uninstalled
 }
 
@@ -65,29 +65,28 @@ func NewBlockFilter(backend Backend) *Filter {
 	filter := NewFilter(backend, nil)
 	filter.typ = blockFilter
 
-	// TODO: check error
 	go filter.pollForBlocks()
 
 	return filter
 }
 
-func (f *Filter) pollForBlocks() error {
+func (f *Filter) pollForBlocks() {
 	prev := hexutil.Uint64(0)
 
 	for {
 		if f.stopped {
-			return nil
+			return
 		}
 
 		num, err := f.backend.BlockNumber()
 		if err != nil {
-			return err
+			return
 		}
 
 		if num != prev {
 			block, err := f.backend.GetBlockByNumber(BlockNumber(num), false)
 			if err != nil {
-				return err
+				return
 			}
 
 			hash := common.BytesToHash(block["hash"].([]byte))
