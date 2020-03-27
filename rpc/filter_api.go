@@ -52,7 +52,6 @@ func (e *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 
 // UninstallFilter uninstalls a filter with the given ID.
 func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
-	// TODO
 	e.filters[id].uninstallFilter()
 	delete(e.filters, id)
 	return true

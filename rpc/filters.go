@@ -28,9 +28,10 @@ type Filter struct {
 	topics             [][]common.Hash  // log topics to watch for
 	blockHash          *common.Hash     // Block hash if filtering a single block
 
-	typ    filterType
-	hashes []common.Hash   // filtered block or transaction hashes
-	logs   []*ethtypes.Log // filtered logs
+	typ     filterType
+	hashes  []common.Hash   // filtered block or transaction hashes
+	logs    []*ethtypes.Log // filtered logs
+	stopped bool            // set to true once filter in uninstalled
 }
 
 // NewFilter returns a new Filter
@@ -42,6 +43,7 @@ func NewFilter(backend Backend, criteria *filters.FilterCriteria) *Filter {
 		addresses: criteria.Addresses,
 		topics:    criteria.Topics,
 		typ:       logFilter,
+		stopped:   false,
 	}
 }
 
@@ -73,6 +75,10 @@ func (f *Filter) pollForBlocks() error {
 	prev := hexutil.Uint64(0)
 
 	for {
+		if f.stopped {
+			return nil
+		}
+
 		num, err := f.backend.BlockNumber()
 		if err != nil {
 			return err
@@ -103,14 +109,21 @@ func NewPendingTransactionFilter(backend Backend) *Filter {
 }
 
 func (f *Filter) uninstallFilter() {
-	// TODO
+	f.stopped = true
 }
 
 func (f *Filter) getFilterChanges() interface{} {
-	// TODO
-	// we might want to use an interface for Filters themselves because of this function, it may return an array of logs
-	// or an array of hashes, depending of whether Filter is a log filter or a block/transaction filter.
-	// or, we can add a type field to Filter.
+	switch f.typ {
+	case blockFilter:
+		blocks := f.hashes
+		f.hashes = []common.Hash{}
+		return blocks
+	case pendingTxFilter:
+		// TODO
+	case logFilter:
+		// TODO
+	}
+
 	return nil
 }
 
