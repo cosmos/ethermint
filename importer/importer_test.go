@@ -37,7 +37,6 @@ import (
 	ethrlp "github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -70,7 +69,7 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *amino.Codec {
+func newTestCodec() *sdkcodec.Codec {
 	cdc := sdkcodec.New()
 
 	evmtypes.RegisterCodec(cdc)

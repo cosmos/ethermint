@@ -9,11 +9,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
 	"github.com/tendermint/go-amino"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -43,9 +41,6 @@ func init() {
 func main() {
 	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
-
-	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	keyring.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc

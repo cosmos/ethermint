@@ -24,10 +24,8 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -43,9 +41,6 @@ func main() {
 
 	cdc := codecstd.MakeCodec(app.ModuleBasics)
 	appCodec := codecstd.NewAppCodec(cdc)
-
-	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	keyring.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
