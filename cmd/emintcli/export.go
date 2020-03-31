@@ -21,7 +21,7 @@ import (
 
 func unsafeExportEthKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "unsafe-export-eth-key <name>",
+		Use:   "unsafe-export-eth-key [name]",
 		Short: "**UNSAFE** Export an Ethereum private key",
 		Long:  `**UNSAFE** Export an Ethereum private key unencrypted to use in dev tooling`,
 		Args:  cobra.ExactArgs(1),
@@ -31,7 +31,6 @@ func unsafeExportEthKeyCommand() *cobra.Command {
 }
 
 func runExportCmd(cmd *cobra.Command, args []string) error {
-
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 
 	kb, err := keyring.NewKeyring(
@@ -41,7 +40,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 		inBuf,
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	decryptPassword := ""

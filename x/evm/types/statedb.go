@@ -304,7 +304,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 	logs, err := DecodeLogs(encLogs)
 	if err != nil {
-		return nil, err
+		return []*ethtypes.Log{}, err
 	}
 
 	return logs, nil
