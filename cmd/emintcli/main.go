@@ -21,7 +21,7 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -47,7 +47,7 @@ func main() {
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
-	cryptokeys.CryptoCdc = cdc
+	keyring.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc
 
 	// Read in the configuration file for the sdk

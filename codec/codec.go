@@ -3,7 +3,7 @@ package codec
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	_ auth.Codec     = (*Codec)(nil)
+	_ auth.Codec = (*Codec)(nil)
 )
 
 // Codec is a wrapper of the SDK standard Codec. It extends the Account interface
@@ -69,7 +69,7 @@ func (c *Codec) UnmarshalAccountJSON(bz []byte) (authexported.Account, error) {
 }
 
 // ----------------------------------------------------------------------------
-// MakeCodec registers the necessary types and interfaces for an sdk.App. This 
+// MakeCodec registers the necessary types and interfaces for an sdk.App. This
 // codec is provided to all the modules the application depends on.
 //
 // NOTE: This codec will be deprecated in favor of AppCodec once all modules are
@@ -83,7 +83,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	emintcrypto.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	eminttypes.RegisterCodec(cdc)
-	cryptokeys.RegisterCodec(cdc) // temporary
+	keyring.RegisterCodec(cdc) // temporary
 
 	return cdc
 }

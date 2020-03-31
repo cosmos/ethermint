@@ -105,7 +105,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	}
 
 	// set the events to the result
-	returnData.Result.Events = ctx.EventManager().Events()
+	returnData.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	return returnData.Result, nil
 }
 
@@ -164,6 +164,6 @@ func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	}
 
 	// set the events to the result
-	returnData.Result.Events = ctx.EventManager().Events()
+	returnData.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	return returnData.Result, nil
 }
