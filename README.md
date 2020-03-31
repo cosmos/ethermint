@@ -47,10 +47,16 @@ make build
 
 ### Starting a Ethermint daemon (node)
 
-First, create a key to use in signing the genesis transaction:
+The following config steps can be performed all at once by executing the `init.sh` file located in the root directory like this:
+```bash
+./init.sh
+```
+> This bash file removes previous blockchain data from `~/.emintd` and `~/.emintcli`. It uses the `keyring-backend` called `test` that should prevent you from needing to enter a passkey. The `keyring-backend` `test` is unsecured and should not be used in production.
+
+To initalize your chain manually, first create a key to use in signing the genesis transaction:
 
 ```bash
-emintcli keys add mykey
+emintcli keys add mykey --keyring-backend test
 ```
 
 > replace mykey with whatever you want to name the key
@@ -62,6 +68,7 @@ Then, run these commands to start up a node
 emintd init mymoniker --chain-id 8
 
 # Set up config for CLI
+emintcli config keyring-backend test
 emintcli config chain-id 8
 emintcli config output json
 emintcli config indent true
@@ -71,7 +78,7 @@ emintcli config trust-node true
 emintd add-genesis-account $(emintcli keys show mykey -a) 1000000000000000000photon,1000000000000000000stake
 
 # Sign genesis transaction
-emintd gentx --name mykey
+emintd gentx --name mykey --keyring-backend test
 
 # Collect genesis tx
 emintd collect-gentxs
@@ -113,7 +120,7 @@ To clear all data except key storage (if keyring backend chosen) and then you ca
 
 #### Keyring backend options
 
-Ethermint supports using a file or OS keyring backend for key storage. To create and use a file stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any relevant command and the password prompt will occur through the command line. This can also be saved as a CLI config option with:
+The instructions above include commands to use `test` as the `keyring-backend`. This is an unsecured keyring that doesn't require entering a password and should not be used in production. Otherwise, Ethermint supports using a file or OS keyring backend for key storage. To create and use a file stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any relevant command and the password prompt will occur through the command line. This can also be saved as a CLI config option with:
 
 ```bash
 emintcli config keyring-backend file
@@ -164,5 +171,5 @@ via the `--blockchain` flag. See `TestImportBlocks` for further documentation.
 
 The following chat channels and forums are a great spot to ask questions about Ethermint:
 
-- [Cosmos Riot Chat Channel](https://riot.im/app/#/group/+cosmos:matrix.org)
+- [Cosmos Discord](https://discord.gg/W8trcGV)
 - Cosmos Forum [![Discourse status](https://img.shields.io/discourse/https/forum.cosmos.network/status.svg)](https://forum.cosmos.network)
