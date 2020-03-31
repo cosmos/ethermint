@@ -25,7 +25,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
@@ -35,10 +34,6 @@ var (
 	cdc      = codec.MakeCodec(app.ModuleBasics)
 	appCodec = codec.NewAppCodec(cdc)
 )
-
-func init() {
-	authclient.Codec = appCodec
-}
 
 func main() {
 	// Configure cobra to sort commands
