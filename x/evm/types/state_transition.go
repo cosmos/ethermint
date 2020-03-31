@@ -160,7 +160,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
-		st.Csdb.Finalise(true) // Change to depend on config
+		// TODO: change to depend on config
+		if err := st.Csdb.Finalise(true); err != nil {
+			return nil, err
+		}
 	}
 
 	// Consume gas from evm execution

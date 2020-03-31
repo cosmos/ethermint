@@ -382,7 +382,9 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			}
 
 			// update the object in the KVStore
-			csdb.updateStateObject(so)
+			if err := csdb.updateStateObject(so); err != nil {
+				return ethcmn.Hash{}, err
+			}
 		}
 
 		delete(csdb.stateObjectsDirty, addr)
@@ -397,7 +399,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // Finalise finalizes the state objects (accounts) state by setting their state,
 // removing the csdb destructed objects and clearing the journal as well as the
 // refunds.
-func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
+func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 	for addr := range csdb.journal.dirties {
 		so, exist := csdb.stateObjects[addr]
 		if !exist {
@@ -419,7 +421,9 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 			// Set all the dirty state storage items for the state object in the
 			// KVStore and finally set the account in the account mapper.
 			so.commitState()
-			csdb.updateStateObject(so)
+			if err := csdb.updateStateObject(so); err != nil {
+				return err
+			}
 		}
 
 		csdb.stateObjectsDirty[addr] = struct{}{}
@@ -427,6 +431,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 
 	// invalidate journal because reverting across transactions is not allowed
 	csdb.clearJournalAndRefund()
+	return nil
 }
 
 // IntermediateRoot returns the current root hash of the state. It is called in
@@ -436,20 +441,22 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 // NOTE: The SDK has not concept or method of getting any intermediate merkle
 // root as commitment of the merkle-ized tree doesn't happen until the
 // BaseApps' EndBlocker.
-func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash {
-	csdb.Finalise(deleteEmptyObjects)
+func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Hash, error) {
+	if err := csdb.Finalise(deleteEmptyObjects); err != nil {
+		return ethcmn.Hash{}, err
+	}
 
-	return ethcmn.Hash{}
+	return ethcmn.Hash{}, nil
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject) {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if so.balance == nil {
-		return
+		return nil
 	}
 	newBalance := sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(so.balance))
-	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
+	return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 }
 
 // deleteStateObject removes the given state object from the state store.

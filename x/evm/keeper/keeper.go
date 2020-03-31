@@ -290,13 +290,17 @@ func (k *Keeper) Commit(ctx sdk.Context, deleteEmptyObjects bool) (root ethcmn.H
 }
 
 // Finalise calls CommitStateDB.Finalise using the passed in context
-func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) {
-	k.CommitStateDB.WithContext(ctx).Finalise(deleteEmptyObjects)
+func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) error {
+	return k.CommitStateDB.WithContext(ctx).Finalise(deleteEmptyObjects)
 }
 
 // IntermediateRoot calls CommitStateDB.IntermediateRoot using the passed in context
-func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) {
-	k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
+func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) error {
+	_, err := k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ----------------------------------------------------------------------------

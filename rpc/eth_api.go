@@ -357,7 +357,7 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *m
 		return []byte{}, err
 	}
 
-	data, err := types.DecodeResultData([]byte(simRes.Result.Data))
+	data, err := types.DecodeResultData(simRes.Result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -476,7 +476,7 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 	}
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
-	estimatedGas := uint64(simResponse.GasInfo.GasUsed)
+	estimatedGas := simResponse.GasInfo.GasUsed
 	gas := estimatedGas + 1000
 	return gas, nil
 }
