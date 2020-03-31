@@ -51,7 +51,7 @@ var (
 	// miner501    = ethcmn.HexToAddress("0x35e8e5dC5FBd97c5b421A80B596C030a2Be2A04D")
 	genInvestor = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0")
 
-	accKey   = sdk.NewKVStoreKey("acc")
+	accKey   = sdk.NewKVStoreKey(auth.StoreKey)
 	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
 	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
 	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
@@ -256,10 +256,11 @@ func TestImportBlocks(t *testing.T) {
 		for i, tx := range block.Transactions() {
 			stateDB.Prepare(tx.Hash(), block.Hash(), i)
 
-			_, _, err = applyTransaction(
+			receipt, gas, err := applyTransaction(
 				chainConfig, chainContext, nil, gp, stateDB, header, tx, usedGas, vmConfig,
 			)
-			require.NoError(t, err, "failed to apply tx at block %d; tx: %X", block.NumberU64(), tx.Hash())
+			require.NoError(t, err, "failed to apply tx at block %d; tx: %X; gas %d; receipt:%v", block.NumberU64(), tx.Hash(), gas, receipt)
+			require.NotNil(t, receipt)
 		}
 
 		// apply mining rewards
@@ -361,7 +362,7 @@ func applyTransaction(
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ethcore.ApplyMessage(vmenv, msg, gp)
 	if err != nil {
-		return nil, 0, err
+		return nil, gas, err
 	}
 
 	// Update the state with pending changes
@@ -373,7 +374,7 @@ func applyTransaction(
 	}
 
 	if err != nil {
-		return nil, 0, err
+		return nil, gas, err
 	}
 
 	root := intRoot.Bytes()
@@ -392,10 +393,6 @@ func applyTransaction(
 
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs, err = statedb.GetLogs(tx.Hash())
-	if err != nil {
-		return nil, 0, err
-	}
-
 	receipt.Bloom = ethtypes.CreateBloom(ethtypes.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
