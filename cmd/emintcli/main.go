@@ -9,16 +9,18 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/codec"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
 	"github.com/tendermint/go-amino"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
-	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -30,8 +32,8 @@ import (
 )
 
 var (
-	cdc      = codecstd.MakeCodec(app.ModuleBasics)
-	appCodec = codecstd.NewAppCodec(cdc)
+	cdc      = codec.MakeCodec(app.ModuleBasics)
+	appCodec = codec.NewAppCodec(cdc)
 )
 
 func init() {
@@ -41,6 +43,9 @@ func init() {
 func main() {
 	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
+
+	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	keyring.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc
@@ -54,7 +59,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:   "emintcli",
-		Short: "Command line interface for interacting with ethermintd",
+		Short: "Command line interface for interacting with emintd",
 	}
 
 	// Add --chain-id to persistent flags and mark it required

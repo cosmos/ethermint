@@ -75,6 +75,7 @@ func newTestCodec() *sdkcodec.Codec {
 	evmtypes.RegisterCodec(cdc)
 	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	emintcrypto.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)

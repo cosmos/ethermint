@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -24,8 +23,11 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/codec"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -39,8 +41,11 @@ var invCheckPeriod uint
 func main() {
 	cobra.EnableCommandSorting = false
 
-	cdc := codecstd.MakeCodec(app.ModuleBasics)
-	appCodec := codecstd.NewAppCodec(cdc)
+	cdc := codec.MakeCodec(app.ModuleBasics)
+	appCodec := codec.NewAppCodec(cdc)
+
+	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
 	keyring.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc

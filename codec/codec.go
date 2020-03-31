@@ -25,8 +25,7 @@ type Codec struct {
 }
 
 func NewAppCodec(amino *codec.Codec) *Codec {
-	cdc := Codec{codecstd.NewAppCodec(amino)}
-	return &cdc
+	return &Codec{codecstd.NewAppCodec(amino)}
 }
 
 // MarshalAccount marshals an Account interface. If the given type implements
@@ -83,7 +82,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	emintcrypto.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	eminttypes.RegisterCodec(cdc)
-	keyring.RegisterCodec(cdc) // temporary
+	keyring.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
 	return cdc
 }
