@@ -1,4 +1,4 @@
-package app
+package ante
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 				ante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
 				ante.NewValidateSigCountDecorator(ak),
 				ante.NewDeductFeeDecorator(ak, sk),
-				ante.NewSigGasConsumeDecorator(ak, consumeSigGas),
+				ante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				ante.NewSigVerificationDecorator(ak),
 				ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 			)
@@ -62,7 +62,9 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 	}
 }
 
-func consumeSigGas(
+// sigGasConsumer overrides the DefaultSigVerificationGasConsumer from the x/auth
+// module on the SDK. It doesn't allow ed25519 nor multisig thresholds.
+func sigGasConsumer(
 	meter sdk.GasMeter, sig []byte, pubkey tmcrypto.PubKey, params types.Params,
 ) error {
 	switch pubkey.(type) {
@@ -120,7 +122,9 @@ func ethAnteHandler(
 		if r := recover(); r != nil {
 			switch rType := r.(type) {
 			case sdk.ErrorOutOfGas:
-				log := fmt.Sprintf("out of gas in location: %v", rType.Descriptor)
+				log := fmt.Sprintf("out of gas in location: %v; gasUsed: %d",
+					rType.Descriptor, ctx.GasMeter().GasConsumed(),
+				)
 				err = sdk.ErrOutOfGas(log)
 			default:
 				panic(r)
@@ -139,9 +143,9 @@ func ethAnteHandler(
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
 
-		feeAmt := sdk.Coins{
+		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
-		}
+		)
 
 		err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 		if err != nil {
@@ -222,7 +226,7 @@ func validateIntrinsicGas(ethTxMsg *evmtypes.MsgEthereumTx) error {
 
 	if ethTxMsg.Data.GasLimit < gas {
 		return sdk.ErrInternal(
-			fmt.Sprintf("intrinsic gas too low; %d < %d", ethTxMsg.Data.GasLimit, gas),
+			fmt.Sprintf("intrinsic gas too low: %d < %d", ethTxMsg.Data.GasLimit, gas),
 		)
 	}
 
@@ -241,8 +245,9 @@ func validateAccount(
 	if ctx.BlockHeight() == 0 && acc.GetAccountNumber() != 0 {
 		return sdk.ErrInternal(
 			fmt.Sprintf(
-				"invalid account number for height zero; got %d, expected 0", acc.GetAccountNumber(),
-			))
+				"invalid account number for height zero (got %d)", acc.GetAccountNumber(),
+			),
+		)
 	}
 
 	// Validate nonce is correct
@@ -270,7 +275,8 @@ func checkNonce(
 	seq := acc.GetSequence()
 	if ethTxMsg.Data.AccountNonce != seq {
 		return sdk.ErrInvalidSequence(
-			fmt.Sprintf("invalid nonce; got %d, expected %d", ethTxMsg.Data.AccountNonce, seq))
+			fmt.Sprintf("invalid nonce; got %d, expected %d", ethTxMsg.Data.AccountNonce, seq),
+		)
 	}
 
 	return nil
@@ -297,7 +303,9 @@ func ensureSufficientMempoolFees(ctx sdk.Context, ethTxMsg *evmtypes.MsgEthereum
 	if !ctx.MinGasPrices().IsZero() && !allGTE {
 		// reject the transaction that does not meet the minimum fee
 		return sdk.ErrInsufficientFee(
-			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices()),
+			fmt.Sprintf(
+				"insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices(),
+			),
 		)
 	}
 
