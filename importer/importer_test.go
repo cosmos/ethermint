@@ -194,7 +194,6 @@ func TestImportBlocks(t *testing.T) {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
 
-	cms.MountStoreWithDB(blockKey, sdk.StoreTypeDB, nil)
 	cms.SetPruning(sdkstore.PruneNothing)
 
 	// load latest version (root)
