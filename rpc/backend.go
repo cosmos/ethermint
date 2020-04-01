@@ -20,6 +20,7 @@ type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
 	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
+	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
 	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
 	getGasLimit() (int64, error)
 
@@ -60,6 +61,18 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
 	return e.getEthBlockByNumber(value, fullTx)
+}
+
+// GetBlockByHash returns the block identified by hash.
+func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	if err != nil {
+		return nil, err
+	}
+
+	var out types.QueryResBlockNumber
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	return e.getEthBlockByNumber(out.Number, fullTx)
 }
 
 func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {

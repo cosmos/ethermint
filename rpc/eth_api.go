@@ -478,14 +478,7 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 
 // GetBlockByHash returns the block identified by hash.
 func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var out types.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return e.backend.getEthBlockByNumber(out.Number, fullTx)
+	return e.backend.GetBlockByHash(hash, fullTx)
 }
 
 // GetBlockByNumber returns the block identified by number.

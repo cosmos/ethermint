@@ -66,7 +66,7 @@ func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) interface{} {
 }
 
 // GetFilterLogs returns an array of all logs matching filter with given id.
-func (e *PublicFilterAPI) GetFilterLogs(id rpc.ID) []*ethtypes.Log {
+func (e *PublicFilterAPI) GetFilterLogs(id rpc.ID) ([]*ethtypes.Log, error) {
 	return e.filters[id].getFilterLogs()
 }
 

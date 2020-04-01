@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -36,7 +37,7 @@ type Filter struct {
 
 // NewFilter returns a new Filter
 func NewFilter(backend Backend, criteria *filters.FilterCriteria) *Filter {
-	return &Filter{
+	filter := &Filter{
 		backend:   backend,
 		fromBlock: criteria.FromBlock,
 		toBlock:   criteria.ToBlock,
@@ -45,6 +46,8 @@ func NewFilter(backend Backend, criteria *filters.FilterCriteria) *Filter {
 		typ:       logFilter,
 		stopped:   false,
 	}
+
+	return filter
 }
 
 // NewFilterWithBlockHash returns a new Filter with a blockHash.
@@ -126,9 +129,49 @@ func (f *Filter) getFilterChanges() interface{} {
 	return nil
 }
 
-func (f *Filter) getFilterLogs() []*ethtypes.Log {
+func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 	// TODO
-	return nil
+
+	ret := []*ethtypes.Log{}
+
+	// filter specific block only
+	if f.blockHash != nil {
+		block, err := f.backend.GetBlockByHash(*f.blockHash, true)
+		if err != nil {
+			return nil, err
+		}
+
+		// if the logsBloom == 0, there are no logs in that block
+		if bloom, ok := block["logsBloom"].([256]byte); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+			return ret, nil
+		} else if ok {
+			// TODO: bloom lookup for t.topics
+			// TODO: look through txs for matching contract addresses if len(f.addresses) != 0
+		} else {
+			return nil, errors.New("invalid logsBloom returned")
+		}
+	}
+
+	// filter range of blocks
+	// TODO: check if toBlock == LatestBlockNumber
+	for i := f.fromBlock; i.Cmp(f.toBlock) == 0; i.Add(i, big.NewInt(1)) {
+		block, err := f.backend.GetBlockByNumber(NewBlockNumber(i), true)
+		if err != nil {
+			return nil, err
+		}
+
+		// if the logsBloom == 0, there are no logs in that block
+		if bloom, ok := block["logsBloom"].([256]byte); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+			continue
+		} else if ok {
+			// TODO: bloom lookup for t.topics
+			// TODO: look through txs for matching contract addresses if len(f.addresses) != 0
+		} else {
+			return nil, errors.New("invalid logsBloom returned")
+		}
+	}
+
+	return ret, nil
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
