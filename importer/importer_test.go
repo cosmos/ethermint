@@ -47,13 +47,11 @@ var (
 	flagBlockchain string
 	flagCPUProfile string
 
-	// miner501    = ethcmn.HexToAddress("0x35e8e5dC5FBd97c5b421A80B596C030a2Be2A04D")
 	genInvestor = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0")
 
 	accKey   = sdk.NewKVStoreKey(auth.StoreKey)
 	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
 	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
-	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
 
 	logger = tmlog.NewNopLogger()
 

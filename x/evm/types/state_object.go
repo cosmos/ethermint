@@ -364,11 +364,12 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	return so.account != nil &&
-		so.account.Sequence == 0 &&
-		so.balance != nil &&
-		so.Balance().Sign() == 0 &&
-		bytes.Equal(so.account.CodeHash, emptyCodeHash)
+	return so.account == nil ||
+		(so.account != nil &&
+			so.account.Sequence == 0 &&
+			so.balance != nil &&
+			so.Balance().Sign() == 0 &&
+			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 
 // EncodeRLP implements rlp.Encoder.

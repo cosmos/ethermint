@@ -70,8 +70,8 @@ func main() {
 		withChainIDValidation(genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome)),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, bank.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(
-			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{},
-			bank.GenesisBalancesIterator{}, app.DefaultNodeHome, app.DefaultCLIHome,
+			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, bank.GenesisBalancesIterator{},
+			app.DefaultNodeHome, app.DefaultCLIHome,
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 

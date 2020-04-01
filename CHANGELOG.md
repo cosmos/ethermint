@@ -49,3 +49,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
   * Use expected keeper interface for `AccountKeeper`
   * Replaced `count` type in keeper with `int`
   * Add SDK events for transactions
+* [\#236](https://github.com/ChainSafe/ethermint/pull/236) Changes from upgrade [@fedekunze](https://github.com/fedekunze)
+  * (`app/ante`) Moved `AnteHandler` implementation to `app/ante`
+  * (keys) Marked `ExportEthKeyCommand` as **UNSAFE**
+  * (`x/evm`) Moved `BeginBlock` and `EndBlock` to `x/evm/abci.go`

@@ -33,6 +33,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -460,7 +461,7 @@ func (e *PublicEthAPI) doCall(
 
 	var simResponse sdk.SimulationResponse
 	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(err, "failed to unmarshal SimulationResponse")
 	}
 
 	return &simResponse, nil
@@ -587,7 +588,7 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i], err = newRPCTransaction(ethTx, blockHash, &height, uint64(i))
+		transactions[i], err = newRPCTransaction(*ethTx, blockHash, &height, uint64(i))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -614,19 +615,18 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (types.MsgEthereumTx, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
 	if err != nil {
-		return types.MsgEthereumTx{}, err
+		return nil, err
 	}
 
 	ethTx, ok := stdTx.(types.MsgEthereumTx)
 	if !ok {
-		return types.MsgEthereumTx{}, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
 	}
-
-	return ethTx, nil
+	return &ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -682,7 +682,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	}
 
 	height := uint64(tx.Height)
-	return newRPCTransaction(ethTx, blockHash, &height, uint64(tx.Index))
+	return newRPCTransaction(*ethTx, blockHash, &height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -720,7 +720,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	}
 
 	height := uint64(header.Height)
-	return newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
+	return newRPCTransaction(*ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
@@ -806,7 +806,7 @@ func (e *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
 		}
 
 		// * Should check signer and reference against accounts the node manages in future
-		rpcTx, err := newRPCTransaction(ethTx, common.Hash{}, nil, 0)
+		rpcTx, err := newRPCTransaction(*ethTx, common.Hash{}, nil, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -915,10 +915,11 @@ func (e *PublicEthAPI) getGasLimit() (int64, error) {
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEthereumTx, err error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEthereumTx, error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
+		err      error
 	)
 
 	amount := (*big.Int)(args.Value)
@@ -936,14 +937,14 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 		from := sdk.AccAddress(args.From.Bytes())
 		_, nonce, err = authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx).GetAccountNumberSequence(from)
 		if err != nil {
-			return types.MsgEthereumTx{}, err
+			return nil, err
 		}
 	} else {
 		nonce = (uint64)(*args.Nonce)
 	}
 
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
-		return types.MsgEthereumTx{}, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+		return nil, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
@@ -957,7 +958,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 	if args.To == nil {
 		// Contract creation
 		if len(input) == 0 {
-			return types.MsgEthereumTx{}, fmt.Errorf("contract creation without any data provided")
+			return nil, fmt.Errorf("contract creation without any data provided")
 		}
 	}
 
@@ -972,11 +973,12 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 		}
 		gasLimit, err = e.EstimateGas(callArgs)
 		if err != nil {
-			return types.MsgEthereumTx{}, err
+			return nil, err
 		}
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
+	msg := types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
-	return types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input), nil
+	return &msg, nil
 }
