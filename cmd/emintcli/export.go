@@ -41,11 +41,11 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 	conf := true
 	keyringBackend := viper.GetString(flags.FlagKeyringBackend)
 	switch keyringBackend {
-	case flags.BackendFile:
+	case flags.KeyringBackendFile:
 		decryptPassword, err = input.GetPassword(
 			"**WARNING this is an unsafe way to export your unencrypted private key**\nEnter key password:",
 			inBuf)
-	case flags.BackendOS:
+	case flags.KeyringBackendOS:
 		conf, err = input.GetConfirmation(
 			"**WARNING** this is an unsafe way to export your unencrypted private key, are you sure?",
 			inBuf)

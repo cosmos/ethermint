@@ -53,8 +53,8 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 
 			return stdAnte(ctx, tx, sim)
 
-		case *evmtypes.MsgEthereumTx:
-			return ethAnteHandler(ctx, ak, sk, castTx, sim)
+		case evmtypes.MsgEthereumTx:
+			return ethAnteHandler(ctx, ak, sk, &castTx, sim)
 
 		default:
 			return ctx, sdk.ErrInternal(fmt.Sprintf("transaction type invalid: %T", tx))
