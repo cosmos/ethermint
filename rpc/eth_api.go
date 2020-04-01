@@ -611,11 +611,11 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, e
 		return nil, err
 	}
 
-	ethTx, ok := stdTx.(*types.MsgEthereumTx)
+	ethTx, ok := stdTx.(types.MsgEthereumTx)
 	if !ok {
 		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
 	}
-	return ethTx, nil
+	return &ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
