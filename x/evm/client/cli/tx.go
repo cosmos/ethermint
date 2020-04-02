@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -34,7 +33,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	evmTxCmd.AddCommand(flags.PostCommands(
+	evmTxCmd.AddCommand(client.PostCommands(
 		GetCmdGenTx(cdc),
 		GetCmdGenCreateTx(cdc),
 	)...)
@@ -74,7 +73,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 				data, err = hexutil.Decode(payload)
 				if err != nil {
-					return err
+					fmt.Println(err)
 				}
 			}
 
@@ -118,7 +117,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 
 			data, err := hexutil.Decode(payload)
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			var amount int64
