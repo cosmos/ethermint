@@ -177,7 +177,7 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
 	if msg.Data.Price.Sign() != 1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Data.Price.String())
 	}
 
 	// Amount can be 0

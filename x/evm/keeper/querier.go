@@ -20,7 +20,7 @@ import (
 
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
-	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (bz []byte, err error) {
+	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
 		case types.QueryProtocolVersion:
 			return queryProtocolVersion(keeper)
@@ -144,7 +144,7 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshall block number: %s" + err.Error())
+		return nil, fmt.Errorf("could not unmarshal block number: %w", err)
 	}
 
 	bloom, err := keeper.GetBlockBloomMapping(ctx, num)

@@ -37,7 +37,6 @@ import (
 	ethrlp "github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -48,13 +47,11 @@ var (
 	flagBlockchain string
 	flagCPUProfile string
 
-	// miner501    = ethcmn.HexToAddress("0x35e8e5dC5FBd97c5b421A80B596C030a2Be2A04D")
 	genInvestor = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0")
 
-	accKey   = sdk.NewKVStoreKey("acc")
+	accKey   = sdk.NewKVStoreKey(auth.StoreKey)
 	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
 	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
-	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
 
 	logger = tmlog.NewNopLogger()
 
@@ -70,12 +67,13 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *amino.Codec {
+func newTestCodec() *sdkcodec.Codec {
 	cdc := sdkcodec.New()
 
 	evmtypes.RegisterCodec(cdc)
 	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	emintcrypto.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
@@ -103,6 +101,7 @@ func trapSignals() {
 	}()
 }
 
+// nolint: interfacer
 func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, bk bank.Keeper) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
@@ -195,7 +194,6 @@ func TestImportBlocks(t *testing.T) {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
 
-	cms.MountStoreWithDB(blockKey, sdk.StoreTypeDB, nil)
 	cms.SetPruning(sdkstore.PruneNothing)
 
 	// load latest version (root)
@@ -255,10 +253,11 @@ func TestImportBlocks(t *testing.T) {
 		for i, tx := range block.Transactions() {
 			stateDB.Prepare(tx.Hash(), block.Hash(), i)
 
-			_, _, err = applyTransaction(
+			receipt, gas, err := applyTransaction(
 				chainConfig, chainContext, nil, gp, stateDB, header, tx, usedGas, vmConfig,
 			)
-			require.NoError(t, err, "failed to apply tx at block %d; tx: %X", block.NumberU64(), tx.Hash())
+			require.NoError(t, err, "failed to apply tx at block %d; tx: %X; gas %d; receipt:%v", block.NumberU64(), tx.Hash(), gas, receipt)
+			require.NotNil(t, receipt)
 		}
 
 		// apply mining rewards
@@ -279,6 +278,7 @@ func TestImportBlocks(t *testing.T) {
 	}
 }
 
+// nolint: interfacer
 func createStateDB(ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper) *evmtypes.CommitStateDB {
 	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak, bk)
 }
@@ -339,28 +339,42 @@ func applyDAOHardFork(statedb *evmtypes.CommitStateDB) {
 // indicating the block was invalid.
 // Function is also pulled from go-ethereum 1.9 because of the incompatible usage
 // Ref: https://github.com/ethereum/go-ethereum/blob/52f2461774bcb8cdd310f86b4bc501df5b783852/core/state_processor.go#L88
-func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, author *ethcmn.Address, gp *ethcore.GasPool, statedb *evmtypes.CommitStateDB, header *ethtypes.Header, tx *ethtypes.Transaction, usedGas *uint64, cfg ethvm.Config) (*ethtypes.Receipt, uint64, error) {
+func applyTransaction(
+	config *ethparams.ChainConfig, bc ethcore.ChainContext, author *ethcmn.Address,
+	gp *ethcore.GasPool, statedb *evmtypes.CommitStateDB, header *ethtypes.Header,
+	tx *ethtypes.Transaction, usedGas *uint64, cfg ethvm.Config,
+) (*ethtypes.Receipt, uint64, error) {
 	msg, err := tx.AsMessage(ethtypes.MakeSigner(config, header.Number))
 	if err != nil {
 		return nil, 0, err
 	}
+
 	// Create a new context to be used in the EVM environment
 	context := ethcore.NewEVMContext(msg, header, bc, author)
+
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := ethvm.NewEVM(context, statedb, config, cfg)
+
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ethcore.ApplyMessage(vmenv, msg, gp)
 	if err != nil {
-		return nil, 0, err
+		return nil, gas, err
 	}
+
 	// Update the state with pending changes
-	var root []byte
+	var intRoot ethcmn.Hash
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(true)
+		err = statedb.Finalise(true)
 	} else {
-		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
+		intRoot, err = statedb.IntermediateRoot(config.IsEIP158(header.Number))
 	}
+
+	if err != nil {
+		return nil, gas, err
+	}
+
+	root := intRoot.Bytes()
 	*usedGas += gas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
@@ -368,15 +382,14 @@ func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, au
 	receipt := ethtypes.NewReceipt(root, failed, *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = gas
+
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = ethcrypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
+
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs, err = statedb.GetLogs(tx.Hash())
-	if err != nil {
-		return nil, 0, err
-	}
 	receipt.Bloom = ethtypes.CreateBloom(ethtypes.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number

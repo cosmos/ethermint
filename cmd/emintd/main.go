@@ -9,8 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -41,13 +41,13 @@ var invCheckPeriod uint
 func main() {
 	cobra.EnableCommandSorting = false
 
-	cdc := codecstd.MakeCodec(app.ModuleBasics)
-	appCodec := codecstd.NewAppCodec(cdc)
+	cdc := codec.MakeCodec(app.ModuleBasics)
+	appCodec := codec.NewAppCodec(cdc)
 
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
-	cryptokeys.CryptoCdc = cdc
+	keyring.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
 	genutiltypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
@@ -70,8 +70,8 @@ func main() {
 		withChainIDValidation(genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome)),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, bank.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(
-			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{},
-			bank.GenesisBalancesIterator{}, app.DefaultNodeHome, app.DefaultCLIHome,
+			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, bank.GenesisBalancesIterator{},
+			app.DefaultNodeHome, app.DefaultCLIHome,
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 
