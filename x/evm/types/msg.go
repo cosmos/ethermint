@@ -319,12 +319,14 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		var tx sdk.Tx
 
 		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "txBytes are empty")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
+		err := cdc.UnmarshalBinaryBare(txBytes, &tx)
 		if err != nil {
-			return nil, err
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		return tx, nil
