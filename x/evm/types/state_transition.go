@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -9,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	emint "github.com/cosmos/ethermint/types"
 )
 
@@ -45,7 +45,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
-		return nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
+		return nil, fmt.Errorf("invalid intrinsic gas for transaction: %s", err.Error())
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -79,10 +79,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		Origin:      st.Sender,
-		Coinbase:    common.Address{},
+		Coinbase:    common.Address{}, // TODO: explain why this is empty
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
-		Difficulty:  big.NewInt(0x30000), // unused
+		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
 		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).Int,
 	}
@@ -104,17 +104,14 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		if err != nil {
-			return nil, err
-		}
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -143,6 +140,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Ret:     ret,
 		TxHash:  *st.THash,
 	}
+
 	resultData, err := EncodeResultData(res)
 	if err != nil {
 		return nil, err
@@ -151,7 +149,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// handle errors
 	if err != nil {
 		if err == vm.ErrOutOfGas || err == vm.ErrCodeStoreOutOfGas {
-			return nil, sdkerrors.Wrap(err, "evm execution went out of gas")
+			return nil, fmt.Errorf("evm execution went out of gas: %s", err.Error())
 		}
 
 		// Consume gas before returning
@@ -163,7 +161,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
-		st.Csdb.Finalise(true) // Change to depend on config
+		// TODO: change to depend on config
+		if err := st.Csdb.Finalise(true); err != nil {
+			return nil, err
+		}
 	}
 
 	// Consume gas from evm execution
@@ -172,6 +173,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt
-	returnData.Result = &sdk.Result{Data: resultData}
+	returnData.Result = &sdk.Result{Data: resultData, GasUsed: gasConsumed}
 	return returnData, nil
 }

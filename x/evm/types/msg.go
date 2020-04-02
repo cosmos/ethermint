@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -126,14 +125,14 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
-func (msg MsgEthereumTx) ValidateBasic() error {
+func (msg MsgEthereumTx) ValidateBasic() sdk.Error {
 	if msg.Data.Price.Sign() != 1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
+		return types.ErrInvalidValue(fmt.Sprintf("price must be positive: %x", msg.Data.Price))
 	}
 
 	// Amount can be 0
 	if msg.Data.Amount.Sign() == -1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
+		return types.ErrInvalidValue(fmt.Sprintf("amount must be positive: %x", msg.Data.Amount))
 	}
 
 	return nil
@@ -315,16 +314,16 @@ func deriveChainID(v *big.Int) *big.Int {
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte) (sdk.Tx, sdk.Error) {
 		var tx sdk.Tx
 
 		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "txBytes are empty")
+			return nil, sdk.ErrTxDecode("txBytes are empty")
 		}
 
 		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 		if err != nil {
-			return nil, err
+			return nil, sdk.ErrTxDecode("failed to decode tx").TraceSDK(err.Error())
 		}
 
 		return tx, nil

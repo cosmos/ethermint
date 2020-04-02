@@ -189,7 +189,7 @@ func (so *stateObject) setBalance(amount sdk.Int) {
 	so.account.SetBalance(amount)
 }
 
-// SetNonce sets the state object's nonce (sequence number).
+// SetNonce sets the state object's nonce (i.e sequence number of the account).
 func (so *stateObject) SetNonce(nonce uint64) {
 	so.stateDB.journal.append(nonceChange{
 		account: &so.address,
@@ -200,6 +200,9 @@ func (so *stateObject) SetNonce(nonce uint64) {
 }
 
 func (so *stateObject) setNonce(nonce uint64) {
+	if so.account == nil {
+		panic("state object account is empty")
+	}
 	so.account.Sequence = nonce
 }
 
@@ -259,22 +262,32 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	return so.account.Balance().BigInt()
+	balance := so.account.Balance().BigInt()
+	if balance == nil {
+		return zeroBalance
+	}
+	return balance
 }
 
 // CodeHash returns the state object's code hash.
 func (so *stateObject) CodeHash() []byte {
+	if so.account == nil || len(so.account.CodeHash) == 0 {
+		return emptyCodeHash
+	}
 	return so.account.CodeHash
 }
 
 // Nonce returns the state object's current nonce (sequence number).
 func (so *stateObject) Nonce() uint64 {
+	if so.account == nil {
+		return 0
+	}
 	return so.account.Sequence
 }
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(_ ethstate.Database) []byte {
-	if so.code != nil {
+	if len(so.code) > 0 {
 		return so.code
 	}
 
@@ -287,10 +300,9 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	code := store.Get(so.CodeHash())
 
 	if len(code) == 0 {
-		so.setError(fmt.Errorf("failed to get code hash %x for address: %x", so.CodeHash(), so.Address()))
+		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
 	}
 
-	so.code = code
 	return code
 }
 
@@ -356,9 +368,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	return so.account.Sequence == 0 &&
-		so.account.Balance().Sign() == 0 &&
-		bytes.Equal(so.account.CodeHash, emptyCodeHash)
+	return so.account == nil ||
+		(so.account != nil &&
+			so.account.Sequence == 0 &&
+			so.account.Balance().Sign() == 0 &&
+			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 
 // EncodeRLP implements rlp.Encoder.

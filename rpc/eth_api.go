@@ -1,13 +1,11 @@
 package rpc
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
-	"os"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -32,7 +30,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -111,13 +109,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 	e.keybaseLock.Lock()
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
-
-	keybase, err := keys.NewKeyring(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		e.cliCtx.Input,
-	)
+	keybase, err := keys.NewKeyringFromHomeFlag(e.cliCtx.Input)
 	if err != nil {
 		return addresses, err
 	}
@@ -353,13 +345,12 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	txRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	result, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
-	fmt.Println(txRes)
 
-	data, err := types.DecodeResultData([]byte(txRes.Data))
+	data, err := types.DecodeResultData(result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -383,17 +374,9 @@ type account struct {
 
 // DoCall performs a simulated call operation through the evm. It returns the
 // estimated gas used on the operation or an error if fails.
-func (e *PublicEthAPI) doCall(
-	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
-) (*sdk.TxResponse, error) {
-
+func (e *PublicEthAPI) doCall(args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int) (*sdk.Result, error) {
 	// Set height for historical queries
 	ctx := e.cliCtx
-
-	inBuf := bufio.NewReader(os.Stdin)
-	txEncoder := authutils.GetTxEncoder(ctx.Codec)
-	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithTxEncoder(txEncoder)
-
 	if blockNr.Int64() != 0 {
 		ctx = e.cliCtx.WithHeight(blockNr.Int64())
 	}
@@ -449,31 +432,41 @@ func (e *PublicEthAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
-	// var stdSig authtypes.StdSignature
-	// tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	var stdSig authtypes.StdSignature
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
 
-	ctx.Simulate = true // Enrich tx
-	txRes, err := emint.CompleteAndBroadcastTx(txBldr, ctx, []sdk.Msg{msg})
+	// Encode transaction by default Tx encoder
+	txEncoder := authutils.GetTxEncoder(ctx.Codec)
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &txRes, nil
+	// Transaction simulation through query
+	res, _, err := ctx.QueryWithData("app/simulate", txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var simResult sdk.Result
+	if err = e.cliCtx.Codec.UnmarshalBinaryLengthPrefixed(res, &simResult); err != nil {
+		return nil, err
+	}
+
+	return &simResult, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
-func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
-	txRes, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
+	result, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
-	estimatedGas := uint64(txRes.GasUsed)
 
-	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
-	gas := estimatedGas + 1000
-	return gas, nil
+	// TODO: change 1000 buffer for more accurate buffer (must be at least 1 to not run OOG)
+	return hexutil.Uint64(result.GasUsed + 1000), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -523,7 +516,7 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i], err = newRPCTransaction(ethTx, blockHash, &height, uint64(i))
+		transactions[i], err = newRPCTransaction(*ethTx, blockHash, &height, uint64(i))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -550,19 +543,18 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (types.MsgEthereumTx, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
 	if err != nil {
-		return types.MsgEthereumTx{}, err
+		return nil, err
 	}
 
 	ethTx, ok := stdTx.(types.MsgEthereumTx)
 	if !ok {
-		return types.MsgEthereumTx{}, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
 	}
-
-	return ethTx, nil
+	return &ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -618,7 +610,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	}
 
 	height := uint64(tx.Height)
-	return newRPCTransaction(ethTx, blockHash, &height, uint64(tx.Index))
+	return newRPCTransaction(*ethTx, blockHash, &height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -656,7 +648,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	}
 
 	height := uint64(header.Height)
-	return newRPCTransaction(ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
+	return newRPCTransaction(*ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
@@ -805,10 +797,11 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEthereumTx, err error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEthereumTx, error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
+		err      error
 	)
 
 	amount := (*big.Int)(args.Value)
@@ -826,14 +819,14 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 		from := sdk.AccAddress(args.From.Bytes())
 		_, nonce, err = authtypes.NewAccountRetriever(e.cliCtx).GetAccountNumberSequence(from)
 		if err != nil {
-			return types.MsgEthereumTx{}, err
+			return nil, err
 		}
 	} else {
 		nonce = (uint64)(*args.Nonce)
 	}
 
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
-		return types.MsgEthereumTx{}, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+		return nil, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
@@ -847,7 +840,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 	if args.To == nil {
 		// Contract creation
 		if len(input) == 0 {
-			return types.MsgEthereumTx{}, fmt.Errorf("contract creation without any data provided")
+			return nil, fmt.Errorf("contract creation without any data provided")
 		}
 	}
 
@@ -860,13 +853,15 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (msg types.MsgEt
 			Value:    args.Value,
 			Data:     args.Data,
 		}
-		gasLimit, err = e.EstimateGas(callArgs)
+		g, err := e.EstimateGas(callArgs)
 		if err != nil {
-			return types.MsgEthereumTx{}, err
+			return nil, err
 		}
+		gasLimit = uint64(g)
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
+	msg := types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
-	return types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input), nil
+	return &msg, nil
 }
