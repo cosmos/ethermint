@@ -25,8 +25,7 @@ import (
 type EvmTestSuite struct {
 	suite.Suite
 
-	ctx sdk.Context
-
+	ctx     sdk.Context
 	handler sdk.Handler
 	querier sdk.Querier
 	app     *app.EthermintApp
@@ -77,8 +76,8 @@ func (suite *EvmTestSuite) TestHandler_Logs() {
 	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv)
 
-	result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
-	suite.Require().NoError(err, "failed to handle eth tx msg")
+	result := suite.handler(suite.ctx, tx)
+	suite.Require().True(result.IsOK())
 
 	resultData, err := types.DecodeResultData(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
@@ -108,8 +107,11 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv)
 
-	result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
-	suite.Require().NoError(err, "failed to handle eth tx msg")
+	// result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
+	// suite.Require().NoError(err, "failed to handle eth tx msg")
+
+	result := suite.handler(suite.ctx, tx)
+	suite.Require().True(result.IsOK())
 
 	resultData, err := types.DecodeResultData(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
