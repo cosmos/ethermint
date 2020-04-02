@@ -172,18 +172,17 @@ func TestImportBlocks(t *testing.T) {
 	// The ParamsKeeper handles parameter storage for the application
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
+	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoBaseAccount)
 
 	// mount stores
-	keys := []*sdk.KVStoreKey{accKey, storeKey, codeKey}
+	keys := []*sdk.KVStoreKey{accKey, storageKey, codeKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
 
-	cms.MountStoreWithDB(blockKey, sdk.StoreTypeDB, nil)
 	cms.SetPruning(sdkstore.PruneNothing)
 
 	// load latest version (root)
