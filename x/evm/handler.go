@@ -1,12 +1,12 @@
 package evm
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -16,37 +16,39 @@ import (
 
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return HandleEthTxMsg(ctx, k, msg)
+			return HandleMsgEthereumTx(ctx, k, msg)
 		case types.MsgEthermint:
 			return HandleMsgEthermint(ctx, k, msg)
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
+			errMsg := fmt.Sprintf("unrecognized ethermint msg type: %v", msg.Type())
+			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
 	}
 }
 
-// HandleEthTxMsg handles an Ethereum specific tx
-func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+// HandleMsgEthereumTx handles an Ethereum specific tx
+func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk.Result {
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
 	}
 
 	// Verify signature and retrieve sender address
 	sender, err := msg.VerifySig(intChainID)
 	if err != nil {
-		return nil, err
+		return sdk.ResultFromError(err)
 	}
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authutils.GetTxEncoder(types.ModuleCdc)
 	txBytes, err := txEncoder(msg)
 	if err != nil {
-		return nil, err
+		return sdk.ResultFromError(err)
 	}
 	txHash := tmtypes.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
@@ -71,7 +73,7 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	// TODO: move to keeper
 	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
-		return nil, err
+		return sdk.ResultFromError(err)
 	}
 
 	// update block bloom filter
@@ -80,7 +82,7 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
 	if err != nil {
-		return nil, err
+		return sdk.ResultFromError(err)
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -106,14 +108,16 @@ func HandleEthTxMsg(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Re
 
 	// set the events to the result
 	returnData.Result.Events = ctx.EventManager().Events()
-	return returnData.Result, nil
+	return *returnData.Result
 }
 
-func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+// HandleMsgEthermint handles a MsgEthermint
+func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) sdk.Result {
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+		return emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID())).Result()
 	}
 
 	st := types.StateTransition{
@@ -139,7 +143,7 @@ func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	returnData, err := st.TransitionCSDB(ctx)
 	if err != nil {
-		return nil, err
+		return sdk.ResultFromError(err)
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -165,5 +169,5 @@ func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	// set the events to the result
 	returnData.Result.Events = ctx.EventManager().Events()
-	return returnData.Result, nil
+	return *returnData.Result
 }

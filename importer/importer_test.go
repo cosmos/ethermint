@@ -44,13 +44,11 @@ var (
 	flagBlockchain string
 	flagCPUProfile string
 
-	// miner501    = ethcmn.HexToAddress("0x35e8e5dC5FBd97c5b421A80B596C030a2Be2A04D")
 	genInvestor = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0")
 
-	accKey   = sdk.NewKVStoreKey("acc")
-	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
-	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
-	blockKey = sdk.NewKVStoreKey(evmtypes.BlockKey)
+	accKey     = sdk.NewKVStoreKey("acc")
+	storageKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
+	codeKey    = sdk.NewKVStoreKey(evmtypes.CodeKey)
 
 	logger = tmlog.NewNopLogger()
 
@@ -103,7 +101,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 
-	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
+	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storageKey, ak)
 
 	// sort the addresses and insertion of key/value pairs matters
 	genAddrs := make([]string, len(genBlock.Alloc))
@@ -270,7 +268,8 @@ func TestImportBlocks(t *testing.T) {
 }
 
 func createStateDB(ctx sdk.Context, ak auth.AccountKeeper) *evmtypes.CommitStateDB {
-	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak)
+	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storageKey, ak)
+	return stateDB
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining
@@ -345,12 +344,18 @@ func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, au
 		return nil, 0, err
 	}
 	// Update the state with pending changes
-	var root []byte
+	var intRoot ethcmn.Hash
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(true)
+		err = statedb.Finalise(true)
 	} else {
-		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
+		intRoot, err = statedb.IntermediateRoot(config.IsEIP158(header.Number))
 	}
+
+	if err != nil {
+		return nil, gas, err
+	}
+
+	root := intRoot.Bytes()
 	*usedGas += gas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
@@ -364,9 +369,6 @@ func applyTransaction(config *ethparams.ChainConfig, bc ethcore.ChainContext, au
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs, err = statedb.GetLogs(tx.Hash())
-	if err != nil {
-		return nil, 0, err
-	}
 	receipt.Bloom = ethtypes.CreateBloom(ethtypes.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
