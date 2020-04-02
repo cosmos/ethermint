@@ -1,0 +1,95 @@
+syntax = "proto3";
+package ethermint.x.evm.v1;
+
+import "third_party/proto/cosmos-sdk/types/types.proto";
+import "third_party/proto/gogoproto/gogo.proto";
+
+option go_package = "github.com/cosmos/ethermint/x/evm/types";
+
+// MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
+message MsgEthereumTx {
+  option (gogoproto.goproto_getters) = false;
+
+  TxData data = 1 [
+    (gogoproto.nullable) = false
+  ];
+  // caches
+  bytes hash = 2 [
+    (gogoproto.casttype)   = "github.com/ethereum/go-ethereum/common.Hash",
+    (gogoproto.customname) = "hash"
+  ];
+  double size = 3 [
+    (gogoproto.customname) = "size"
+  ];
+  SigCache from = 4 [
+    (gogoproto.customname) = "from"
+  ];
+}
+
+// TxData implements the Ethereum transaction data structure. It is used
+// solely as intended in Ethereum abiding by the protocol.
+message TxData {
+  option (gogoproto.goproto_getters) = false;
+
+  uint64 nonce = 1 [
+    (gogoproto.customname) = "AccountNonce"
+  ];
+  bytes  price = 2;
+  uint64 gas   = 3 [
+    (gogoproto.customname) = "GasLimit"
+  ];
+  bytes to = 4 [
+    (gogoproto.customname) = "Recipient",
+    (gogoproto.moretags)   = "rlp:\"nil\""
+  ];
+  bytes value = 5 [
+    (gogoproto.customname) = "Amount"
+  ];
+  bytes input = 6 [
+    (gogoproto.customname) = "Payload"
+  ];
+  bytes v = 7;
+  bytes r = 8;
+  bytes s = 9;
+  // hash is only used when marshaling to JSON
+  bytes hash = 10 [
+    (gogoproto.moretags) = "rlp:\"-\""
+  ];
+}
+
+// SigCache is used to cache the derived sender and contains the signer used
+// to derive it.
+message SigCache {
+  bytes signer = 1 [
+    (gogoproto.customname) = "signer"
+  ];
+  bytes from = 2 [
+    (gogoproto.customname) = "from"
+  ];
+}
+
+// MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
+message MsgEthermint {
+  option (gogoproto.goproto_getters) = false;
+
+  uint64 nonce = 1;
+  bytes  price = 2;
+  uint64 gas   = 3 [
+    (gogoproto.customname) = "GasLimit"
+  ];
+  bytes to = 4 [
+    (gogoproto.casttype)   = "github.com/cosmos/cosmos-sdk/types.AccAddress",
+    (gogoproto.customname) = "Recipient",
+    (gogoproto.moretags)   = "rlp:\"nil\""
+  ];
+  cosmos_sdk.v1.IntProto value = 5 [
+    (gogoproto.customname) = "Amount"
+  ];
+  bytes input = 6 [
+    (gogoproto.customname) = "Payload"
+  ];
+  // From address (formerly derived from signature)
+  bytes from = 7 [
+    (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"
+  ];
+}

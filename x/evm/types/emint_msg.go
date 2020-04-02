@@ -17,19 +17,6 @@ const (
 	TypeMsgEthermint = "ethermint"
 )
 
-// MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
-type MsgEthermint struct {
-	AccountNonce uint64          `json:"nonce"`
-	Price        sdk.Int         `json:"gasPrice"`
-	GasLimit     uint64          `json:"gas"`
-	Recipient    *sdk.AccAddress `json:"to" rlp:"nil"` // nil means contract creation
-	Amount       sdk.Int         `json:"value"`
-	Payload      []byte          `json:"input"`
-
-	// From address (formerly derived from signature)
-	From sdk.AccAddress `json:"from"`
-}
-
 // NewMsgEthermint returns a reference to a new Ethermint transaction
 func NewMsgEthermint(
 	nonce uint64, to *sdk.AccAddress, amount sdk.Int,

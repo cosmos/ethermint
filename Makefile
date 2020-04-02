@@ -170,7 +170,7 @@ test-cli test-race test-unit test test-import
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-gen proto-lint proto-check-breaking
+proto-all: proto-gen proto-lint
 
 proto-gen:
 	@./scripts/protocgen.sh
@@ -188,15 +188,20 @@ GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosm
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 SDK_PROTO_URL 		= https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
 
-TM_KV_TYPES         = third_party/proto/tendermint/libs/kv
-TM_MERKLE_TYPES     = third_party/proto/tendermint/crypto/merkle
-TM_ABCI_TYPES       = third_party/proto/tendermint/abci/types
-GOGO_PROTO_TYPES    = third_party/proto/gogoproto
-COSMOS_PROTO_TYPES  = third_party/proto/cosmos-proto
-SDK_PROTO_TYPES     = third_party/proto/cosmos-sdk/types
-AUTH_PROTO_TYPES    = third_party/proto/cosmos-sdk/x/auth/types
-VESTING_PROTO_TYPES = third_party/proto/cosmos-sdk/x/auth/vesting/types
-SUPPLY_PROTO_TYPES  = third_party/proto/cosmos-sdk/x/supply/types
+TM_KV_TYPES         	= third_party/proto/tendermint/libs/kv
+TM_MERKLE_TYPES     	= third_party/proto/tendermint/crypto/merkle
+TM_ABCI_TYPES       	= third_party/proto/tendermint/abci/types
+GOGO_PROTO_TYPES    	= third_party/proto/gogoproto
+COSMOS_PROTO_TYPES  	= third_party/proto/cosmos-proto
+SDK_PROTO_TYPES     	= third_party/proto/cosmos-sdk/types
+AUTH_PROTO_TYPES    	= third_party/proto/cosmos-sdk/x/auth/types
+VESTING_PROTO_TYPES 	= third_party/proto/cosmos-sdk/x/auth/vesting/types
+BANK_PROTO_TYPES 			= third_party/proto/cosmos-sdk/x/bank/types
+DISTR_PROTO_TYPES			= third_party/proto/cosmos-sdk/x/distribution/types
+GOV_PROTO_TYPES 			= third_party/proto/cosmos-sdk/x/gov/types
+STAKING_PROTO_TYPES 	= third_party/proto/cosmos-sdk/x/staking/types
+SLASHING_PROTO_TYPES 	= third_party/proto/cosmos-sdk/x/slashing/types
+SUPPLY_PROTO_TYPES  	= third_party/proto/cosmos-sdk/x/supply/types
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
@@ -213,6 +218,21 @@ proto-update-deps:
 
 	@mkdir -p $(VESTING_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(BANK_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/bank/types/types.proto > $(BANK_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(DISTR_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/distribution/types/types.proto > $(DISTR_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(GOV_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/gov/types/types.proto > $(GOV_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(STAKING_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/staking/types/types.proto > $(STAKING_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(SLASHING_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/slashing/types/types.proto > $(SLASHING_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(SUPPLY_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto

@@ -2,6 +2,7 @@ syntax = "proto3";
 package ethermint.codec.v1;
 
 import "types/types.proto";
+import "x/evm/types/types.proto";
 import "third_party/proto/cosmos-proto/cosmos.proto";
 import "third_party/proto/cosmos-sdk/x/auth/types/types.proto";
 import "third_party/proto/cosmos-sdk/x/auth/vesting/types/types.proto";
@@ -19,7 +20,36 @@ message Account {
     cosmos_sdk.x.auth.vesting.v1.ContinuousVestingAccount continuous_vesting_account = 2;
     cosmos_sdk.x.auth.vesting.v1.DelayedVestingAccount    delayed_vesting_account    = 3;
     cosmos_sdk.x.auth.vesting.v1.PeriodicVestingAccount   periodic_vesting_account   = 4;
-    cosmos_sdk.x.supply.v1.ModuleAccount                  module_account  = 5;
-    ethermint.v1.EthAccount                               eth_account  = 6;
+    cosmos_sdk.x.supply.v1.ModuleAccount                  module_account             = 5;
+    ethermint.v1.EthAccount                               eth_account                = 6;
+  }
+}
+
+// Message defines the set of valid concrete message types that can be used to
+// construct a transaction.
+message Message {
+  option (cosmos_proto.interface_type) = "github.com/cosmos/cosmos-sdk/types.Msg";
+
+  // sum defines the set of all allowed valid messages defined in modules.
+  oneof sum {
+    // cosmos_sdk.x.bank.v1.MsgSend                                msg_send                          = 1;
+    // cosmos_sdk.x.bank.v1.MsgMultiSend                           msg_multi_send                    = 2;
+    // cosmos_sdk.x.crisis.v1.MsgVerifyInvariant                   msg_verify_invariant              = 3;
+    // cosmos_sdk.x.distribution.v1.MsgSetWithdrawAddress          msg_set_withdraw_address          = 4;
+    // cosmos_sdk.x.distribution.v1.MsgWithdrawDelegatorReward     msg_withdraw_delegator_reward     = 5;
+    // cosmos_sdk.x.distribution.v1.MsgWithdrawValidatorCommission msg_withdraw_validator_commission = 6;
+    // cosmos_sdk.x.distribution.v1.MsgFundCommunityPool           msg_fund_community_pool           = 7;
+    // cosmos_sdk.codec.std.v1.MsgSubmitEvidence                   msg_submit_evidence               = 8;
+    // cosmos_sdk.codec.std.v1.MsgSubmitProposal                   msg_submit_proposal               = 9;
+    // cosmos_sdk.x.gov.v1.MsgVote                                 msg_vote                          = 10;
+    // cosmos_sdk.x.gov.v1.MsgDeposit                              msg_deposit                       = 11;
+    // cosmos_sdk.x.slashing.v1.MsgUnjail                          msg_unjail                        = 12;
+    // cosmos_sdk.x.staking.v1.MsgCreateValidator                  msg_create_validator              = 13;
+    // cosmos_sdk.x.staking.v1.MsgEditValidator                    msg_edit_validator                = 14;
+    // cosmos_sdk.x.staking.v1.MsgDelegate                         msg_delegate                      = 15;
+    // cosmos_sdk.x.staking.v1.MsgBeginRedelegate                  msg_begin_redelegate              = 16;
+    // cosmos_sdk.x.staking.v1.MsgUndelegate                       msg_undelegate                    = 17;
+    // ethermint.x.evm.v1.MsgEthermint  msg_ethermint   = 18;
+    ethermint.x.evm.v1.MsgEthereumTx msg_ethereum_tx = 19;
   }
 }
