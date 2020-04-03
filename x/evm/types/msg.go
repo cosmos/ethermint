@@ -169,11 +169,11 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 
 // Hash hashes the RLP encoding of a transaction.
 func (msg *MsgEthereumTx) Hash() ethcmn.Hash {
-	if len(msg.hash.Bytes()) == 0 {
-		msg.hash = rlpHash(msg)
+	if len(msg.hash) == 0 {
+		msg.hash = rlpHash(msg).Bytes()
 	}
 
-	return msg.hash
+	return ethcmn.BytesToHash(msg.hash)
 }
 
 // Sign calculates a secp256k1 ECDSA signature and signs the transaction. It

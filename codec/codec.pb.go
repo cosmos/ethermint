@@ -9,6 +9,7 @@ import (
 	github_com_cosmos_cosmos_sdk_x_auth_exported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	types "github.com/cosmos/cosmos-sdk/x/auth/types"
 	types1 "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	types4 "github.com/cosmos/cosmos-sdk/x/bank/types"
 	types5 "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	types6 "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	types7 "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -22,7 +23,6 @@ import (
 	io "io"
 	math "math"
 	math_bits "math/bits"
-	types4 "third_party/proto/cosmos-sdk/x/bank/types"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

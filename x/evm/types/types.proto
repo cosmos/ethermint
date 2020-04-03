@@ -15,7 +15,6 @@ message MsgEthereumTx {
   ];
   // caches
   bytes hash = 2 [
-    (gogoproto.casttype)   = "github.com/ethereum/go-ethereum/common.Hash",
     (gogoproto.customname) = "hash"
   ];
   double size = 3 [

@@ -2,9 +2,10 @@ syntax = "proto3";
 
 package cosmos_sdk.x.bank.v1;
 
-import "third_party/proto/cosmos-sdk/types/types.proto";
+option go_package = "github.com/cosmos/cosmos-sdk/x/bank/types";
 
 import "third_party/proto/gogoproto/gogo.proto";
+import "third_party/proto/cosmos-sdk/types/types.proto";
 
 // MsgSend - high level transaction of the coin module
 message MsgSend {
