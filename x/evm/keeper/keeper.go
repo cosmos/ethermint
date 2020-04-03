@@ -22,7 +22,7 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc codec.Marshaler
+	cdc *codec.Codec
 	// Store key required to update the block bloom filter mappings needed for the
 	// Web3 API
 	blockKey      sdk.StoreKey
@@ -33,7 +33,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc codec.Marshaler, blockKey, codeKey, storeKey sdk.StoreKey,
+	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey,
 	ak types.AccountKeeper, bk types.BankKeeper,
 ) Keeper {
 	return Keeper{
@@ -104,7 +104,7 @@ func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.B
 	return ethtypes.BytesToBloom(bloom), nil
 }
 
-// SetBlockLogs sets the transaction's logs in the KVStore
+// SetTransactionLogs sets the transaction's logs in the KVStore
 func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
 	store := ctx.KVStore(k.blockKey)
 	encLogs, err := types.EncodeLogs(logs)
@@ -116,7 +116,7 @@ func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash 
 	return nil
 }
 
-// GetBlockLogs gets the logs for a transaction from the KVStore
+// GetTransactionLogs gets the logs for a transaction from the KVStore
 func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.blockKey)
 	encLogs := store.Get(types.LogsKey(hash))
