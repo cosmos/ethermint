@@ -3,7 +3,6 @@ package ante
 import (
 	"fmt"
 	"math/big"
-	"runtime/debug"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -130,10 +129,7 @@ func ethAnteHandler(
 					rType.Descriptor, ctx.GasMeter().GasConsumed(),
 				)
 			default:
-				err = sdkerrors.Wrapf(
-					sdkerrors.ErrPanic,
-					"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
-				)
+				panic(err)
 			}
 		}
 	}()

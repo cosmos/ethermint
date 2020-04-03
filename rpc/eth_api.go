@@ -7,8 +7,10 @@ import (
 	"log"
 	"math/big"
 	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
@@ -33,7 +35,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -460,8 +461,8 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-		return nil, sdkerrors.Wrap(err, "failed to unmarshal SimulationResponse")
+	if err := jsonpb.Unmarshal(strings.NewReader(string(bz)), &simResponse); err != nil {
+		return nil, err
 	}
 
 	return &simResponse, nil

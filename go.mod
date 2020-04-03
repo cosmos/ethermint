@@ -7,7 +7,7 @@ require (
 	github.com/aristanetworks/goarista v0.0.0-20181101003910-5bb443fba8e0 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190629003639-c26ffa870fd8 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20200331130442-fd2bb9aab6a2
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20200403200637-7f78e61b93a5
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/elastic/gosigar v0.10.3 // indirect
 	github.com/ethereum/go-ethereum v1.9.0
