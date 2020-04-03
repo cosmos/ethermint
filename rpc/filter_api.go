@@ -61,7 +61,7 @@ func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 // If the filter is a log filter, it returns an array of Logs.
 // If the filter is a block filter, it returns an array of block hashes.
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
-func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) interface{} {
+func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	return e.filters[id].getFilterChanges()
 }
 

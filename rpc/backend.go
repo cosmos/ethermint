@@ -3,7 +3,7 @@ package rpc
 import (
 	"fmt"
 	"math/big"
-	"strconv"
+	//"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm"
@@ -102,15 +102,18 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 		}
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
-	if err != nil {
-		return nil, err
-	}
+	// TODO: this causes a "failed to get block bloom mapping" error
+	// {"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"{\"codespace\":\"sdk\",\"code\":1,\"message\":\"failed to get block bloom mapping: block with bloombits [] not found\"}"}}
 
-	var out types.QueryBloomFilter
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	// res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
+	// var out types.QueryBloomFilter
+	// e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, ethtypes.Bloom{} /*out.Bloom*/), nil
 }
 
 // getGasLimit returns the gas limit per block set in genesis

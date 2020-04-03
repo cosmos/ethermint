@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -62,7 +63,7 @@ func NewFilterWithBlockHash(backend Backend, criteria *filters.FilterCriteria) *
 
 // NewBlockFilter creates a new filter that notifies when a block arrives.
 func NewBlockFilter(backend Backend) *Filter {
-	filter := NewFilter(backend, nil)
+	filter := NewFilter(backend, &filters.FilterCriteria{})
 	filter.typ = blockFilter
 
 	go func() {
@@ -97,7 +98,12 @@ func (f *Filter) pollForBlocks() error {
 			return err
 		}
 
-		hash := common.BytesToHash(block["hash"].([]byte))
+		hashBytes, ok := block["hash"].(hexutil.Bytes)
+		if !ok {
+			return errors.New("could not convert block hash to hexutil.Bytes")
+		}
+
+		hash := common.BytesToHash([]byte(hashBytes))
 		f.hashes = append(f.hashes, hash)
 
 		prev = num
@@ -118,19 +124,25 @@ func (f *Filter) uninstallFilter() {
 	f.stopped = true
 }
 
-func (f *Filter) getFilterChanges() interface{} {
+func (f *Filter) getFilterChanges() (interface{}, error) {
 	switch f.typ {
 	case blockFilter:
-		blocks := f.hashes
+		if f.err != nil {
+			return nil, f.err
+		}
+
+		blocks := make([]common.Hash, len(f.hashes))
+		copy(blocks, f.hashes)
 		f.hashes = []common.Hash{}
-		return blocks
+
+		return blocks, nil
 	case pendingTxFilter:
 		// TODO
 	case logFilter:
 		// TODO
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (f *Filter) getFilterLogs() []*ethtypes.Log {
