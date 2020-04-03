@@ -14,11 +14,9 @@ import (
 	Used to set the criteria passed in from RPC params
 */
 
-type filterType = string
-
-var blockFilter filterType = "block"
-var pendingTxFilter filterType = "pending"
-var logFilter filterType = "log"
+const blockFilter = "block"
+const pendingTxFilter = "pending"
+const logFilter = "log"
 
 // Filter can be used to retrieve and filter logs, blocks, or pending transactions.
 type Filter struct {
@@ -28,10 +26,12 @@ type Filter struct {
 	topics             [][]common.Hash  // log topics to watch for
 	blockHash          *common.Hash     // Block hash if filtering a single block
 
-	typ     filterType
+	typ     string
 	hashes  []common.Hash   // filtered block or transaction hashes
 	logs    []*ethtypes.Log //nolint // filtered logs
 	stopped bool            // set to true once filter in uninstalled
+
+	err error
 }
 
 // NewFilter returns a new Filter
@@ -65,35 +65,42 @@ func NewBlockFilter(backend Backend) *Filter {
 	filter := NewFilter(backend, nil)
 	filter.typ = blockFilter
 
-	go filter.pollForBlocks()
+	go func() {
+		err := filter.pollForBlocks()
+		if err != nil {
+			filter.err = err
+		}
+	}()
 
 	return filter
 }
 
-func (f *Filter) pollForBlocks() {
+func (f *Filter) pollForBlocks() error {
 	prev := hexutil.Uint64(0)
 
 	for {
 		if f.stopped {
-			return
+			return nil
 		}
 
 		num, err := f.backend.BlockNumber()
 		if err != nil {
-			return
+			return err
 		}
 
-		if num != prev {
-			block, err := f.backend.GetBlockByNumber(BlockNumber(num), false)
-			if err != nil {
-				return
-			}
-
-			hash := common.BytesToHash(block["hash"].([]byte))
-			f.hashes = append(f.hashes, hash)
-
-			prev = num
+		if num == prev {
+			continue
 		}
+
+		block, err := f.backend.GetBlockByNumber(BlockNumber(num), false)
+		if err != nil {
+			return err
+		}
+
+		hash := common.BytesToHash(block["hash"].([]byte))
+		f.hashes = append(f.hashes, hash)
+
+		prev = num
 
 		// TODO: should we add a delay?
 	}
