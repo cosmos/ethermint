@@ -161,17 +161,28 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		}
 
 		// if the logsBloom == 0, there are no logs in that block
-		if bloom, ok := block["logsBloom"].([256]byte); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
 			continue
 		} else if ok {
 			// TODO: bloom lookup for t.topics
 			// TODO: look through txs for matching contract addresses if len(f.addresses) != 0
+			// for _, topic := range f.topics {
+			// 	logExists := ethtypes.BloomLookup(bloom, topic)
+			// }
 		} else {
 			return nil, errors.New("invalid logsBloom returned")
 		}
 	}
 
 	return ret, nil
+}
+
+func topicsLookup(topics [][]common.Hash, bloom ethtypes.Bloom) {
+	for _, topic := range f.topics 
+		for _, field := range topic {
+			logExists := ethtypes.BloomLookup(bloom, field)
+		}
+	}
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
