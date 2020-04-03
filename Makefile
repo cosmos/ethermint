@@ -186,7 +186,7 @@ proto-check-breaking:
 TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.1
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL 		= https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+SDK_PROTO_URL		 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
 
 TM_KV_TYPES         	= third_party/proto/tendermint/libs/kv
 TM_MERKLE_TYPES     	= third_party/proto/tendermint/crypto/merkle
@@ -194,9 +194,11 @@ TM_ABCI_TYPES       	= third_party/proto/tendermint/abci/types
 GOGO_PROTO_TYPES    	= third_party/proto/gogoproto
 COSMOS_PROTO_TYPES  	= third_party/proto/cosmos-proto
 SDK_PROTO_TYPES     	= third_party/proto/cosmos-sdk/types
+# STD_CODEC_PROTO_TYPES = third_party/proto/cosmos-sdk/codec/std
 AUTH_PROTO_TYPES    	= third_party/proto/cosmos-sdk/x/auth/types
 VESTING_PROTO_TYPES 	= third_party/proto/cosmos-sdk/x/auth/vesting/types
 BANK_PROTO_TYPES 			= third_party/proto/cosmos-sdk/x/bank/types
+CRISIS_PROTO_TYPES 		= third_party/proto/cosmos-sdk/x/crisis/types
 DISTR_PROTO_TYPES			= third_party/proto/cosmos-sdk/x/distribution/types
 GOV_PROTO_TYPES 			= third_party/proto/cosmos-sdk/x/gov/types
 STAKING_PROTO_TYPES 	= third_party/proto/cosmos-sdk/x/staking/types
@@ -210,8 +212,22 @@ proto-update-deps:
 	@mkdir -p $(COSMOS_PROTO_TYPES)
 	@curl -sSL $(COSMOS_PROTO_URL)/cosmos.proto > $(COSMOS_PROTO_TYPES)/cosmos.proto
 
+	@mkdir -p $(TM_ABCI_TYPES)
+	@curl -sSL $(TM_URL)/abci/types/types.proto > $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '8 s|crypto/merkle/merkle.proto|third_party/proto/tendermint/crypto/merkle/merkle.proto|g' $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '9 s|libs/kv/types.proto|third_party/proto/tendermint/libs/kv/types.proto|g' $(TM_ABCI_TYPES)/types.proto
+
+	@mkdir -p $(TM_KV_TYPES)
+	@curl -sSL $(TM_URL)/libs/kv/types.proto > $(TM_KV_TYPES)/types.proto
+
+	@mkdir -p $(TM_MERKLE_TYPES)
+	@curl -sSL $(TM_URL)/crypto/merkle/merkle.proto > $(TM_MERKLE_TYPES)/merkle.proto
+
 	@mkdir -p $(SDK_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/types/types.proto > $(SDK_PROTO_TYPES)/types.proto
+
+	# @mkdir -p $(STD_CODEC_PROTO_TYPES)
+	# @curl -sSL $(SDK_PROTO_URL)/codec/std/codec.proto > $(STD_CODEC_PROTO_TYPES)/codec.proto
 
 	@mkdir -p $(AUTH_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/x/auth/types/types.proto > $(AUTH_PROTO_TYPES)/types.proto
@@ -221,6 +237,9 @@ proto-update-deps:
 
 	@mkdir -p $(BANK_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/bank/types/types.proto > $(BANK_PROTO_TYPES)/types.proto
+
+	@mkdir -p $(CRISIS_PROTO_TYPES)
+	curl -sSL $(SDK_PROTO_URL)/x/crisis/types/types.proto > $(CRISIS_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(DISTR_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/distribution/types/types.proto > $(DISTR_PROTO_TYPES)/types.proto

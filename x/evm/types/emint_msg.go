@@ -22,12 +22,16 @@ func NewMsgEthermint(
 	nonce uint64, to *sdk.AccAddress, amount sdk.Int,
 	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
 ) MsgEthermint {
+	recipient := sdk.AccAddress{}
+	if to != nil {
+		recipient = *to
+	}
 	return MsgEthermint{
 		AccountNonce: nonce,
-		Price:        gasPrice,
+		Price:        sdk.IntProto{Int: gasPrice},
 		GasLimit:     gasLimit,
-		Recipient:    to,
-		Amount:       amount,
+		Recipient:    recipient,
+		Amount:       sdk.IntProto{Int: amount},
 		Payload:      payload,
 		From:         from,
 	}
@@ -46,12 +50,12 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.Sign() != 1 {
+	if msg.Price.Int.Sign() != 1 {
 		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price.String())
 	}
 
 	// Amount can be 0
-	if msg.Amount.Sign() == -1 {
+	if msg.Amount.Int.Sign() == -1 {
 		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount.String())
 	}
 

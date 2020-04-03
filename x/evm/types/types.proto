@@ -72,9 +72,13 @@ message SigCache {
 message MsgEthermint {
   option (gogoproto.goproto_getters) = false;
 
-  uint64 nonce = 1;
-  bytes  price = 2;
-  uint64 gas   = 3 [
+  uint64 nonce = 1 [
+    (gogoproto.customname) = "AccountNonce"
+  ];
+  cosmos_sdk.v1.IntProto price = 2 [
+    (gogoproto.nullable) = false
+  ];
+  uint64 gas = 3 [
     (gogoproto.customname) = "GasLimit"
   ];
   bytes to = 4 [
@@ -83,7 +87,8 @@ message MsgEthermint {
     (gogoproto.moretags)   = "rlp:\"nil\""
   ];
   cosmos_sdk.v1.IntProto value = 5 [
-    (gogoproto.customname) = "Amount"
+    (gogoproto.customname) = "Amount",
+    (gogoproto.nullable)   = false
   ];
   bytes input = 6 [
     (gogoproto.customname) = "Payload"

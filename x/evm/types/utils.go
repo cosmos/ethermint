@@ -58,13 +58,13 @@ type ResultData struct {
 // EncodeReturnData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
 func EncodeResultData(data *ResultData) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
+	return ModuleCdc.MarshalBinaryBare(data)
 }
 
 // DecodeResultData decodes an amino-encoded byte slice into ReturnData
 func DecodeResultData(in []byte) (ResultData, error) {
 	data := new(ResultData)
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, data)
+	err := ModuleCdc.UnmarshalBinaryBare(in, data)
 	if err != nil {
 		return ResultData{}, err
 	}
@@ -73,13 +73,13 @@ func DecodeResultData(in []byte) (ResultData, error) {
 
 // EncodeLogs encodes an array of logs using amino
 func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(logs)
+	return ModuleCdc.MarshalBinaryBare(logs)
 }
 
 // DecodeLogs decodes an amino-encoded byte array into an array of logs
 func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &logs)
+	err := ModuleCdc.UnmarshalBinaryBare(in, &logs)
 	if err != nil {
 		return nil, err
 	}

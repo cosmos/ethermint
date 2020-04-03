@@ -43,21 +43,22 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(types.ModuleCdc)
+	txEncoder := authclient.GetTxEncoder(types.AminoCdc)
 	txBytes, err := txEncoder(msg)
 	if err != nil {
 		return nil, err
 	}
 	txHash := tmtypes.Tx(txBytes).Hash()
 	ethHash := common.BytesToHash(txHash)
+	recipient := common.BytesToAddress(msg.Data.Recipient)
 
 	st := types.StateTransition{
 		Sender:       sender,
 		AccountNonce: msg.Data.AccountNonce,
-		Price:        msg.Data.Price,
+		Price:        new(big.Int).SetBytes(msg.Data.Price),
 		GasLimit:     msg.Data.GasLimit,
-		Recipient:    msg.Data.Recipient,
-		Amount:       msg.Data.Amount,
+		Recipient:    &recipient,
+		Amount:       new(big.Int).SetBytes(msg.Data.Amount),
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
@@ -86,7 +87,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Data.Amount.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, new(big.Int).SetBytes(msg.Data.Amount).String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
@@ -99,7 +100,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeEthereumTx,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
+				sdk.NewAttribute(types.AttributeKeyRecipient, common.BytesToAddress(msg.Data.Recipient).String()),
 			),
 		)
 	}
@@ -119,9 +120,9 @@ func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	st := types.StateTransition{
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		AccountNonce: msg.AccountNonce,
-		Price:        msg.Price.BigInt(),
+		Price:        msg.Price.Int.BigInt(),
 		GasLimit:     msg.GasLimit,
-		Amount:       msg.Amount.BigInt(),
+		Amount:       msg.Amount.Int.BigInt(),
 		Payload:      msg.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
