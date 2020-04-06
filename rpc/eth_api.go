@@ -12,6 +12,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
+	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -300,8 +301,6 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// Broadcast transaction
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
-	// TODO: Remove res log
-	fmt.Println(res.RawLog)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -834,7 +833,10 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		_, nonce, err = authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx).GetAccountNumberSequence(from)
+		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
+		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+
+		_, nonce, err = accRet.GetAccountNumberSequence(from)
 		if err != nil {
 			return nil, err
 		}
@@ -854,11 +856,9 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 		input = *args.Data
 	}
 
-	if args.To == nil {
+	if args.To == nil && len(input) == 0 {
 		// Contract creation
-		if len(input) == 0 {
-			return nil, fmt.Errorf("contract creation without any data provided")
-		}
+		return nil, fmt.Errorf("contract creation without any data provided")
 	}
 
 	if args.Gas == nil {
