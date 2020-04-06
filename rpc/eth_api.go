@@ -330,10 +330,8 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	}
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
-	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
-	// TODO: Remove res log
-	fmt.Println(res.RawLog)
+	res, err := e.cliCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -461,7 +459,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err := jsonpb.Unmarshal(strings.NewReader(string(bz)), &simResponse); err != nil {
+	if err := jsonpb.Unmarshal(strings.NewReader(string(res)), &simResponse); err != nil {
 		return nil, err
 	}
 
