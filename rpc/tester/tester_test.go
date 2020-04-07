@@ -31,10 +31,10 @@ const (
 var addr = fmt.Sprintf("http://%s:%d", host, port)
 
 type Request struct {
-	Version string   `json:"jsonrpc"`
-	Method  string   `json:"method"`
+	Version string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
-	ID      int      `json:"id"`
+	ID      int         `json:"id"`
 }
 
 type RPCError struct {
