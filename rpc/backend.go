@@ -110,7 +110,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 	var out types.QueryBloomFilter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 
-	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, ethtypes.Bloom{} /*out.Bloom*/), nil
+	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
 }
 
 // getGasLimit returns the gas limit per block set in genesis
