@@ -453,10 +453,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	if so.balance == nil {
-		return nil
-	}
-	newBalance := sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(so.balance))
+	newBalance := sdk.NewCoin(emint.DenomDefault, so.balance)
 	return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 }
 
@@ -620,7 +617,7 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		newobj.setBalance(prevobj.Balance())
+		newobj.setBalance(prevobj.balance)
 	}
 }
 

@@ -60,7 +60,7 @@ type (
 		dbErr         error
 		stateDB       *CommitStateDB
 		account       *types.EthAccount
-		balance       *big.Int
+		balance       sdk.Int
 		originStorage types.Storage // Storage cache of original entries to dedup rewrites
 		dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
 		address       ethcmn.Address
@@ -88,7 +88,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	return &stateObject{
 		stateDB:       db,
 		account:       ethermintAccount,
-		balance:       zeroBalance,
+		balance:       sdk.ZeroInt(),
 		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
@@ -146,27 +146,29 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // AddBalance adds an amount to a state object's balance. It is used to add
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
+	amt := sdk.NewIntFromBigInt(amount)
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
-	if amount.Sign() == 0 {
-		if so.empty() {
-			so.touch()
+	if amt.IsZero() {
+		if !so.empty() {
+			return
 		}
-
-		return
+		so.touch()
 	}
 
-	newBalance := new(big.Int).Add(so.Balance(), amount)
-	so.SetBalance(newBalance)
+	newBalance := so.balance.Add(amt)
+	so.SetBalance(newBalance.BigInt())
 }
 
 // SubBalance removes an amount from the stateObject's balance. It is used to
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
-	if amount.Sign() == 0 {
+	amt := sdk.NewIntFromBigInt(amount)
+	if amt.IsZero() {
 		return
 	}
-	so.SetBalance(new(big.Int).Sub(so.Balance(), amount))
+	newBalance := so.balance.Sub(amt)
+	so.SetBalance(newBalance.BigInt())
 }
 
 // SetBalance sets the state object's balance.
@@ -178,10 +180,10 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 		prev:    amt,
 	})
 
-	so.setBalance(amount)
+	so.setBalance(amt)
 }
 
-func (so *stateObject) setBalance(amount *big.Int) {
+func (so *stateObject) setBalance(amount sdk.Int) {
 	so.balance = amount
 }
 
@@ -258,10 +260,11 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	if so.balance == nil {
+	balance := so.balance.BigInt()
+	if balance == nil {
 		return zeroBalance
 	}
-	return so.balance
+	return balance
 }
 
 // CodeHash returns the state object's code hash.
@@ -367,8 +370,7 @@ func (so *stateObject) empty() bool {
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&
-			so.balance != nil &&
-			so.Balance().Sign() == 0 &&
+			so.balance.IsZero() &&
 			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 

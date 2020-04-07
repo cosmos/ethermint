@@ -74,6 +74,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
+	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
+	if gasPrice.IsNil() {
+		panic("gas price cannot be nil")
+	}
+
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
@@ -84,7 +89,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).BigInt(),
+		GasPrice:    gasPrice.BigInt(),
 	}
 
 	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
