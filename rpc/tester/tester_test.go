@@ -18,6 +18,7 @@ import (
 
 	"github.com/cosmos/ethermint/version"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,10 +32,10 @@ const (
 var addr = fmt.Sprintf("http://%s:%d", host, port)
 
 type Request struct {
-	Version string   `json:"jsonrpc"`
-	Method  string   `json:"method"`
-	Params  []string `json:"params"`
-	ID      int      `json:"id"`
+	Version string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	ID      int         `json:"id"`
 }
 
 type RPCError struct {
@@ -49,7 +50,7 @@ type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
 }
 
-func createRequest(method string, params []string) Request {
+func createRequest(method string, params interface{}) Request {
 	return Request{
 		Version: "2.0",
 		Method:  method,
@@ -58,7 +59,7 @@ func createRequest(method string, params []string) Request {
 	}
 }
 
-func call(method string, params []string) (*Response, error) {
+func call(t *testing.T, method string, params interface{}) (*Response, error) {
 	req, err := json.Marshal(createRequest(method, params))
 	if err != nil {
 		return nil, err
@@ -67,23 +68,23 @@ func call(method string, params []string) (*Response, error) {
 	/* #nosec */
 	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
 	if err != nil {
-		return nil, err
+		t.Fatal(err)
 	}
 
 	decoder := json.NewDecoder(res.Body)
 	var rpcRes *Response
 	err = decoder.Decode(&rpcRes)
 	if err != nil {
-		return nil, err
+		t.Fatal(err)
 	}
 
 	if rpcRes.Error != nil {
-		return nil, errors.New(rpcRes.Error.Message)
+		t.Fatal(errors.New(rpcRes.Error.Message))
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		return nil, err
+		t.Fatal(err)
 	}
 
 	return rpcRes, nil
@@ -92,7 +93,7 @@ func call(method string, params []string) (*Response, error) {
 func TestEth_protocolVersion(t *testing.T) {
 	expectedRes := hexutil.Uint(version.ProtocolVersion)
 
-	rpcRes, err := call("eth_protocolVersion", []string{})
+	rpcRes, err := call(t, "eth_protocolVersion", []string{})
 	require.NoError(t, err)
 
 	var res hexutil.Uint
@@ -104,7 +105,7 @@ func TestEth_protocolVersion(t *testing.T) {
 }
 
 func TestEth_blockNumber(t *testing.T) {
-	rpcRes, err := call("eth_blockNumber", []string{})
+	rpcRes, err := call(t, "eth_blockNumber", []string{})
 	require.NoError(t, err)
 
 	var res hexutil.Uint64
@@ -115,7 +116,7 @@ func TestEth_blockNumber(t *testing.T) {
 }
 
 func TestEth_GetBalance(t *testing.T) {
-	rpcRes, err := call("eth_getBalance", []string{addrA, "0x0"})
+	rpcRes, err := call(t, "eth_getBalance", []string{addrA, "0x0"})
 	require.NoError(t, err)
 
 	var res hexutil.Big
@@ -132,7 +133,7 @@ func TestEth_GetBalance(t *testing.T) {
 
 func TestEth_GetStorageAt(t *testing.T) {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	rpcRes, err := call("eth_getStorageAt", []string{addrA, string(addrAStoreKey), "0x0"})
+	rpcRes, err := call(t, "eth_getStorageAt", []string{addrA, string(addrAStoreKey), "0x0"})
 	require.NoError(t, err)
 
 	var storage hexutil.Bytes
@@ -146,7 +147,7 @@ func TestEth_GetStorageAt(t *testing.T) {
 
 func TestEth_GetCode(t *testing.T) {
 	expectedRes := hexutil.Bytes{}
-	rpcRes, err := call("eth_getCode", []string{addrA, "0x0"})
+	rpcRes, err := call(t, "eth_getCode", []string{addrA, "0x0"})
 	require.NoError(t, err)
 
 	var code hexutil.Bytes
@@ -156,4 +157,78 @@ func TestEth_GetCode(t *testing.T) {
 
 	t.Logf("Got code [%X] for %s\n", code, addrA)
 	require.True(t, bytes.Equal(expectedRes, code), "expected: %X got: %X", expectedRes, code)
+}
+
+func TestEth_SendRawTransaction(t *testing.T) {
+	param := []string{"0xf8d001830f4240830186a08080b8806080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c2400292aa0a98182bfc5d8761c61d873635b22c2ef5ea39a641026eab92dbcebed000ecc6aa034d7e53a7f03c9109f14cc2b4ea296a9970656c2f0a8ba3cdf1e0db62d27bff8"}
+
+	rpcRes, err := call(t, "eth_sendRawTransaction", param)
+	require.NoError(t, err)
+
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+
+	t.Log(hash)
+}
+
+func TestEth_NewFilter(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{"0x0000000000000000000000000000000000000000000000000000000012341234"}
+	rpcRes, err := call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+}
+
+func TestEth_NewBlockFilter(t *testing.T) {
+	rpcRes, err := call(t, "eth_newBlockFilter", []string{})
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+}
+
+func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	rpcRes, err := call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+
+	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(changesRes.Result, &logs)
+	require.NoError(t, err)
+}
+
+func TestEth_GetFilterChanges_NoParams(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	rpcRes, err := call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+
+	// deploy contract, emitting some event
+
+	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(changesRes.Result, &logs)
+	require.NoError(t, err)
 }

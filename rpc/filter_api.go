@@ -61,7 +61,7 @@ func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 // If the filter is a log filter, it returns an array of Logs.
 // If the filter is a block filter, it returns an array of block hashes.
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
-func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) interface{} {
+func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	return e.filters[id].getFilterChanges()
 }
 
@@ -75,15 +75,17 @@ func (e *PublicFilterAPI) GetFilterLogs(id rpc.ID) ([]*ethtypes.Log, error) {
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getlogs
 func (e *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
 	var filter *Filter
+
 	if criteria.BlockHash != nil {
 		/*
 			Still need to add blockhash in prepare function for log entry
 		*/
 		filter = NewFilterWithBlockHash(e.backend, &criteria)
-		results := e.getLogs()
-		logs := filterLogs(results, nil, nil, filter.addresses, filter.topics)
-		return logs, nil
+		logs, err := filter.getFilterLogs()
+		//logs := filterLogs(results, nil, nil, filter.addresses, filter.topics)
+		return logs, err
 	}
+
 	// Convert the RPC block numbers into internal representations
 	begin := rpc.LatestBlockNumber.Int64()
 	if criteria.FromBlock != nil {
