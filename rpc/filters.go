@@ -33,6 +33,8 @@ type Filter struct {
 	hashes  []common.Hash   // filtered block or transaction hashes
 	logs    []*ethtypes.Log //nolint // filtered logs
 	stopped bool            // set to true once filter in uninstalled
+
+	err error
 }
 
 // NewFilter returns a new Filter
@@ -130,8 +132,6 @@ func (f *Filter) getFilterChanges() interface{} {
 }
 
 func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
-	// TODO
-
 	ret := []*ethtypes.Log{}
 
 	// filter specific block only
@@ -145,8 +145,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		if bloom, ok := block["logsBloom"].([256]byte); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
 			return ret, nil
 		} else if ok {
-			// TODO: bloom lookup for t.topics
-			// TODO: look through txs for matching contract addresses if len(f.addresses) != 0
+			return f.checkMatches(block)
 		} else {
 			return nil, errors.New("invalid logsBloom returned")
 		}
@@ -164,11 +163,13 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
 			continue
 		} else if ok {
-			// TODO: bloom lookup for t.topics
-			// TODO: look through txs for matching contract addresses if len(f.addresses) != 0
-			// for _, topic := range f.topics {
-			// 	logExists := ethtypes.BloomLookup(bloom, topic)
-			// }
+			logs, err := f.checkMatches(block)
+			if err != nil {
+				f.err = err // return or just keep for later?
+				continue
+			}
+
+			ret = append(ret, logs...)
 		} else {
 			return nil, errors.New("invalid logsBloom returned")
 		}
@@ -177,25 +178,32 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 	return ret, nil
 }
 
-func topicsLookup(topics [][]common.Hash, bloom ethtypes.Bloom) {
-	for _, topic := range f.topics 
-		for _, field := range topic {
-			logExists := ethtypes.BloomLookup(bloom, field)
-		}
-	}
-}
-
-func includes(addresses []common.Address, a common.Address) bool {
-	for _, addr := range addresses {
-		if addr == a {
-			return true
-		}
+func (f *Filter) checkMatches(block map[string]interface{}) ([]*ethtypes.Log, error) {
+	transactions, ok := block["transactions"].([]common.Hash)
+	if !ok {
+		return nil, errors.New("invalid block transactions")
 	}
 
-	return false
+	unfiltered := []*ethtypes.Log{}
+
+	for _, tx := range transactions {
+		logs, err := f.backend.GetTxLogs(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		unfiltered = append(unfiltered, logs...)
+	}
+
+	return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
 }
 
 // filterLogs creates a slice of logs matching the given criteria.
+// [] -> anything
+// [A] -> A in first position of log topics, anything after
+// [null, B] -> anything in first position, B in second position
+// [A, B] -> A in first position and B in second position
+// [[A, B], [A, B]] -> A or B in first position, A or B in second position
 func filterLogs(logs []*ethtypes.Log, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) []*ethtypes.Log {
 	var ret []*ethtypes.Log
 Logs:
@@ -228,4 +236,14 @@ Logs:
 		ret = append(ret, log)
 	}
 	return ret
+}
+
+func includes(addresses []common.Address, a common.Address) bool {
+	for _, addr := range addresses {
+		if addr == a {
+			return true
+		}
+	}
+
+	return false
 }
