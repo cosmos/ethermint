@@ -159,8 +159,27 @@ func TestEth_GetCode(t *testing.T) {
 	require.True(t, bytes.Equal(expectedRes, code), "expected: %X got: %X", expectedRes, code)
 }
 
-func TestEth_SendRawTransaction(t *testing.T) {
-	param := []string{"0xf8d001830f4240830186a08080b8806080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c2400292aa0a98182bfc5d8761c61d873635b22c2ef5ea39a641026eab92dbcebed000ecc6aa034d7e53a7f03c9109f14cc2b4ea296a9970656c2f0a8ba3cdf1e0db62d27bff8"}
+func getAddress(t *testing.T) []byte {
+	rpcRes, err := call(t, "eth_accounts", []string{})
+	require.NoError(t, err)
+
+	var res []hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &res)
+	require.NoError(t, err)
+
+	t.Logf("Account: %s", res[0])
+	return res[0]
+}
+
+func TestEth_SendTransaction(t *testing.T) {
+	from := getAddress(t)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	//param[0]["data"] = "0x608060405234801561001057600080fd5b5060c68061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806360fe47b11460375780636d4ce63c146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686088565b6040518082815260200191505060405180910390f35b8060008190555050565b6000805490509056fea265627a7a72315820c7a7e89d50fdaf002a82feadcf5da419024a5b015898cce54bbf573edcd279f064736f6c634300050b0032"
+
+	fmt.Println(param[0]["from"])
 
 	rpcRes, err := call(t, "eth_sendRawTransaction", param)
 	require.NoError(t, err)
