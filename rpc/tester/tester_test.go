@@ -65,6 +65,8 @@ func call(t *testing.T, method string, params interface{}) (*Response, error) {
 		return nil, err
 	}
 
+	fmt.Printf("%s", req)
+
 	/* #nosec */
 	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
 	if err != nil {
@@ -177,11 +179,9 @@ func TestEth_SendTransaction(t *testing.T) {
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-	//param[0]["data"] = "0x608060405234801561001057600080fd5b5060c68061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806360fe47b11460375780636d4ce63c146062575b600080fd5b606060048036036020811015604b57600080fd5b8101908080359060200190929190505050607e565b005b60686088565b6040518082815260200191505060405180910390f35b8060008190555050565b6000805490509056fea265627a7a72315820c7a7e89d50fdaf002a82feadcf5da419024a5b015898cce54bbf573edcd279f064736f6c634300050b0032"
+	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 
-	fmt.Println(param[0]["from"])
-
-	rpcRes, err := call(t, "eth_sendRawTransaction", param)
+	rpcRes, err := call(t, "eth_sendTransaction", param)
 	require.NoError(t, err)
 
 	var hash hexutil.Bytes
