@@ -155,13 +155,17 @@ func (e *EthermintBackend) getGasLimit() (int64, error) {
 func (e *EthermintBackend) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	// do we need to use the block height somewhere?
 	ctx := e.cliCtx
+
+	fmt.Println("GetTxLogs hash=", txHash.Hex())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, txHash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryETHLogs
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	fmt.Println("GetTxLogs", res)
+
+	out := new(types.QueryETHLogs)
+	e.cliCtx.Codec.MustUnmarshalJSON(res, out)
 	return out.Logs, nil
 }
 

@@ -39,9 +39,17 @@ type ReturnData struct {
 // TransitionCSDB performs an evm state transition from a transaction
 // TODO: update godoc, it doesn't explain what it does in depth.
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
+	fmt.Println("TransitionCSDB")
+
+	fmt.Println("simulate=", st.Simulate)
+
+	//st.Simulate = false
+
 	returnData := new(ReturnData)
 
 	contractCreation := st.Recipient == nil
+
+	fmt.Println("contractCreation=", contractCreation)
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
@@ -101,6 +109,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
 
+	fmt.Println("before TX")
+
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
@@ -109,6 +119,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
+
+	fmt.Println("after TX")
 
 	if err != nil {
 		return nil, err
@@ -123,11 +135,18 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	bloomInt := big.NewInt(0)
 	var bloomFilter ethtypes.Bloom
 	var logs []*ethtypes.Log
+
+	fmt.Println("transaction hash=", st.THash)
+
 	if st.THash != nil && !st.Simulate {
+		fmt.Println("before GetLogs")
+
 		logs, err = csdb.GetLogs(*st.THash)
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("after GetLogs", logs)
+
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
@@ -170,6 +189,9 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+
+	st.Csdb.SetLogs(*st.THash, logs)
+	fmt.Printf("StateTransition setting logs txhash=%s logs=%v\n", st.THash, logs)
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt

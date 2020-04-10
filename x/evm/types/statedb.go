@@ -288,9 +288,23 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 	return ethcmn.Hash{}
 }
 
+func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	enc, err := EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	store.Set(LogsKey(hash[:]), enc)
+	return nil
+}
+
 // GetLogs returns the current logs for a given hash in the state.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	fmt.Println("csdb.GetLogs")
+
 	if csdb.logs[hash] != nil {
+		fmt.Println(csdb.logs[hash])
 		return csdb.logs[hash], nil
 	}
 
@@ -298,6 +312,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
+		fmt.Println("no logs :(")
 		return []*ethtypes.Log{}, nil
 	}
 

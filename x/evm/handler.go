@@ -31,6 +31,8 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // HandleMsgEthereumTx handles an Ethereum specific tx
 func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk.Result {
+	fmt.Println("HandleMsgEthereumTx")
+
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
@@ -78,6 +80,8 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, returnData.Bloom)
+
+	fmt.Printf("HandleMsgEthereumTx txHash=%s logs=%v\n", txHash, returnData.Logs)
 
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)

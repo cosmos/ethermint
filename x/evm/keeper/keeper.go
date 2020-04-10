@@ -114,11 +114,15 @@ func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash 
 
 // GetBlockLogs gets the logs for a transaction from the KVStore
 func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
+	fmt.Println("keeper.GetTransactionLogs")
+
 	store := ctx.KVStore(k.blockKey)
 	encLogs := store.Get(types.LogsKey(hash))
 	if len(encLogs) == 0 {
 		return nil, errors.New("cannot get transaction logs")
 	}
+
+	fmt.Println(encLogs)
 
 	return types.DecodeLogs(encLogs)
 }

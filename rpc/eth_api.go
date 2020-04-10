@@ -709,7 +709,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"to":                ethTx.To(),
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
 		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil,
+		"contractAddress":   nil, // TODO??
 		"logs":              logs.Logs,
 		"logsBloom":         data.Bloom,
 		"status":            status,
