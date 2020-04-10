@@ -62,7 +62,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	k.CommitStateDB.Prepare(ethHash, common.BytesToHash(txHash), k.TxCount)
 	k.TxCount++
 
 	// TODO: move to keeper
@@ -74,7 +74,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, returnData.Bloom)
 
-	fmt.Printf("HandleMsgEthereumTx txHash=%s logs=%v\n", txHash, returnData.Logs)
+	fmt.Printf("HandleMsgEthereumTx txHash=%x logs=%v\n", txHash, returnData.Logs)
 
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)

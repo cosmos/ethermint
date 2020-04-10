@@ -279,24 +279,26 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log(recpt)
+
+	// TODO: why does this not return a receipt?
 }
 
 func TestEth_GetTxLogs(t *testing.T) {
-	deployTestContract(t)
+	hash := deployTestContract(t)
 
-	// time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 3)
 
-	// param := []string{hash.String()}
-	// rpcRes, err := call(t, "eth_getTxLogs", param)
-	// require.NoError(t, err)
+	param := []string{hash.String()}
+	rpcRes, err := call(t, "eth_getTxLogs", param)
+	require.NoError(t, err)
 
-	// t.Log(rpcRes.Result)
+	logs := new([]*ethtypes.Log)
+	err = json.Unmarshal(rpcRes.Result, logs)
+	require.NoError(t, err)
 
-	// logs := new([]*ethtypes.Log)
-	// err = json.Unmarshal(rpcRes.Result, logs)
-	// require.NoError(t, err)
+	t.Log((*logs)[0])
 
-	// t.Log(logs)
+	require.Equal(t, len(*logs), 1)
 }
 
 func TestEth_GetFilterChanges_NoParams(t *testing.T) {
@@ -323,8 +325,10 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	require.NoError(t, err)
 
 	// deploy contract, emitting some event
-	_ = deployTestContract(t)
-	time.Sleep(time.Second)
+	hash := deployTestContract(t)
+
+	t.Log(hash)
+	time.Sleep(time.Second * 3)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})

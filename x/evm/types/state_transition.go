@@ -109,8 +109,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
 
-	fmt.Println("before TX")
-
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
@@ -119,8 +117,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 	}
-
-	fmt.Println("after TX")
 
 	if err != nil {
 		return nil, err
@@ -139,13 +135,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	fmt.Println("transaction hash=", st.THash)
 
 	if st.THash != nil && !st.Simulate {
-		fmt.Println("before GetLogs")
-
 		logs, err = csdb.GetLogs(*st.THash)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("after GetLogs", logs)
 
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())

@@ -610,6 +610,7 @@ func (csdb *CommitStateDB) clearJournalAndRefund() {
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
 func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
+	fmt.Printf("csdb.Prepare txhash=%x bhash=%x\n", thash, bhash)
 	csdb.thash = thash
 	csdb.bhash = bhash
 	csdb.txIndex = txi

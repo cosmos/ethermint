@@ -161,7 +161,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		}
 
 		// if the logsBloom == 0, there are no logs in that block
-		if bloom, ok := block["logsBloom"].([256]byte); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
 			return ret, nil
 		} else if ok {
 			return f.checkMatches(block)
@@ -207,9 +207,9 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 
 		// if the logsBloom == 0, there are no logs in that block
 		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); !ok {
-			fmt.Printf("could not cast logsBloom")
+			fmt.Printf("could not cast logsBloom\n")
 			continue
-		} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+		} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
 			logs, err := f.checkMatches(block)
 			if err != nil {
 				f.err = err // return or just keep for later?
@@ -220,8 +220,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 			fmt.Printf("block %d logs=%v\n", block["number"], logs)
 			ret = append(ret, logs...)
 		} else {
-			fmt.Printf("err=invalid logsBloom\n")
-			return nil, errors.New("invalid logsBloom returned")
+			continue
 		}
 	}
 
@@ -239,18 +238,20 @@ func (f *Filter) checkMatches(block map[string]interface{}) ([]*ethtypes.Log, er
 	fmt.Println("searching block txs")
 
 	for _, tx := range transactions {
-		fmt.Println(tx)
-		logs, err := f.backend.GetTxLogs(tx)
+		fmt.Printf("txhash=%x\n", tx)
+
+		logs, err := f.backend.GetTxLogs(common.BytesToHash(tx[:]))
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Println(logs)
+		fmt.Println("logs len=", len(logs))
 
 		unfiltered = append(unfiltered, logs...)
 	}
 
-	return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
+	return unfiltered, nil
+	//return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
 }
 
 // filterLogs creates a slice of logs matching the given criteria.
