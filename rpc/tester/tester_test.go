@@ -66,13 +66,15 @@ func call(t *testing.T, method string, params interface{}) (*Response, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%s", req)
+	fmt.Printf("%s\n", req)
 
 	/* #nosec */
 	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	fmt.Println(res)
 
 	decoder := json.NewDecoder(res.Body)
 	var rpcRes *Response
@@ -242,7 +244,7 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
-func deployTestContract(t *testing.T) {
+func deployTestContract(t *testing.T) hexutil.Bytes {
 	from := getAddress(t)
 
 	param := make([]map[string]string, 1)
@@ -256,6 +258,41 @@ func deployTestContract(t *testing.T) {
 	var hash hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &hash)
 	require.NoError(t, err)
+
+	return hash
+}
+
+func TestEth_GetTransactionReceipt(t *testing.T) {
+	hash := deployTestContract(t)
+	time.Sleep(time.Second)
+
+	param := []string{hash.String()}
+	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
+	require.NoError(t, err)
+
+	t.Log(rpcRes.Result)
+
+	var recpt *ethtypes.Receipt
+	err = json.Unmarshal(rpcRes.Result, &recpt)
+	require.NoError(t, err)
+
+	t.Log(recpt)
+}
+
+func TestEth_GetTxLogs(t *testing.T) {
+	hash := deployTestContract(t)
+
+	param := []string{hash.String()}
+	rpcRes, err := call(t, "eth_getTxLogs", param)
+	require.NoError(t, err)
+
+	t.Log(rpcRes.Result)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+
+	t.Log(logs)
 }
 
 func TestEth_GetFilterChanges_NoParams(t *testing.T) {
@@ -282,7 +319,7 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	require.NoError(t, err)
 
 	// deploy contract, emitting some event
-	deployTestContract(t)
+	_ = deployTestContract(t)
 	time.Sleep(time.Second)
 
 	// get filter changes
