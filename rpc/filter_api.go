@@ -33,6 +33,7 @@ func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilte
 func (e *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) rpc.ID {
 	id := rpc.NewID()
 	e.filters[id] = NewFilter(e.backend, &criteria)
+	fmt.Printf("NewFilter id=%d\n", id)
 	return id
 }
 
@@ -62,6 +63,9 @@ func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 // If the filter is a block filter, it returns an array of block hashes.
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
 func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
+	if e.filters[id] == nil {
+		return nil, fmt.Errorf("invalid filter ID")
+	}
 	return e.filters[id].getFilterChanges()
 }
 

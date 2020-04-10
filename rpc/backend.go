@@ -95,7 +95,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 
 	var (
 		gasUsed      *big.Int
-		transactions []interface{}
+		transactions []common.Hash
 	)
 
 	if fullTx {
@@ -109,7 +109,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 	} else {
 		// TODO: Gas used not saved and cannot be calculated by hashes
 		// Return slice of transaction hashes
-		transactions = make([]interface{}, len(block.Block.Txs))
+		transactions = make([]common.Hash, len(block.Block.Txs))
 		for i, tx := range block.Block.Txs {
 			transactions[i] = common.BytesToHash(tx.Hash())
 		}

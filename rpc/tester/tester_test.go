@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/cosmos/ethermint/version"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -231,23 +232,66 @@ func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestEth_GetFilterChanges_WrongID(t *testing.T) {
+	changesRes, err := call(t, "eth_getFilterChanges", []string{"0x1122334400000077"})
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(changesRes.Result, &logs)
+	require.NotNil(t, err)
+}
+
+// deployTestContract deploys a contract that emits an event in the constructor
+func deployTestContract(t *testing.T) {
+	from := getAddress(t)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+
+	rpcRes, err := call(t, "eth_sendTransaction", param)
+	require.NoError(t, err)
+
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+}
+
 func TestEth_GetFilterChanges_NoParams(t *testing.T) {
-	param := make([]map[string][]string, 1)
-	param[0] = make(map[string][]string)
+	// rpcRes, err := call(t, "eth_blockNumber", []string{})
+	// require.NoError(t, err)
+
+	// var res hexutil.Uint64
+	// err = res.UnmarshalJSON(rpcRes.Result)
+	// require.NoError(t, err)
+
+	//t.Log(res)
+
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
+	param[0]["fromBlock"] = "0x1" //res.String()
 	rpcRes, err := call(t, "eth_newFilter", param)
 	require.NoError(t, err)
+
+	//fmt.Println(rpcRes.Result)
 
 	var ID hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
 	// deploy contract, emitting some event
+	deployTestContract(t)
+	time.Sleep(time.Second)
 
+	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
 	require.NoError(t, err)
 
 	var logs []*ethtypes.Log
 	err = json.Unmarshal(changesRes.Result, &logs)
 	require.NoError(t, err)
+
+	t.Log(logs)
 }

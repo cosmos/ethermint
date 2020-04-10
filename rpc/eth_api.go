@@ -481,7 +481,7 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[
 
 func formatBlock(
 	header tmtypes.Header, size int, gasLimit int64,
-	gasUsed *big.Int, transactions []interface{}, bloom ethtypes.Bloom,
+	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
@@ -500,13 +500,13 @@ func formatBlock(
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
-		"transactions":     transactions,
+		"transactions":     transactions.([]common.Hash),
 		"uncles":           nil,
 	}
 }
 
-func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int, error) {
-	transactions := make([]interface{}, len(txs))
+func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
+	transactions := make([]common.Hash, len(txs))
 	gasUsed := big.NewInt(0)
 
 	for i, tx := range txs {
@@ -516,7 +516,11 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i], err = newRPCTransaction(*ethTx, blockHash, &height, uint64(i))
+		tx, err := newRPCTransaction(*ethTx, blockHash, &height, uint64(i))
+		if err != nil {
+			return nil, nil, err
+		}
+		transactions[i] = tx.Hash
 		if err != nil {
 			return nil, nil, err
 		}
