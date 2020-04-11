@@ -67,15 +67,11 @@ func call(t *testing.T, method string, params interface{}) (*Response, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%s\n", req)
-
 	/* #nosec */
 	res, err := http.Post(addr, "application/json", bytes.NewBuffer(req))
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	fmt.Println(res)
 
 	decoder := json.NewDecoder(res.Body)
 	var rpcRes *Response
@@ -190,8 +186,6 @@ func TestEth_SendTransaction(t *testing.T) {
 	var hash hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &hash)
 	require.NoError(t, err)
-
-	t.Log(hash)
 }
 
 func TestEth_NewFilter(t *testing.T) {
@@ -251,7 +245,6 @@ func sendTestTransaction(t *testing.T) hexutil.Bytes {
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["to"] = "0x1122334455667788990011223344556677889900"
-	//param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 
 	rpcRes, err := call(t, "eth_sendTransaction", param)
 	require.NoError(t, err)
@@ -284,6 +277,7 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 
 func TestEth_GetTransactionReceipt(t *testing.T) {
 	hash := deployTestContract(t)
+
 	time.Sleep(time.Second*3)
 
 	t.Log(hash)
@@ -320,7 +314,7 @@ func TestEth_GetTxLogs(t *testing.T) {
 	t.Log((*logs)[0])
 }
 
-func TestEth_GetFilterChanges_NoParams(t *testing.T) {
+func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	rpcRes, err := call(t, "eth_blockNumber", []string{})
 	require.NoError(t, err)
 
@@ -331,15 +325,12 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
-	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = "0x0"
+	param[0]["fromBlock"] = (res-1).String()
+	param[0]["toBlock"] = "0x0" // latest
 
 	// deploy contract, emitting some event
 	hash := deployTestContract(t)
-
 	t.Logf("%s", hash)
-
-	time.Sleep(time.Second*3)
 
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
@@ -348,9 +339,7 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	sendTestTransaction(t)
-	sendTestTransaction(t)
-	sendTestTransaction(t)
+	time.Sleep(time.Second*3)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -361,7 +350,90 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, len(logs), 1)
-	//t.Log(logs[0])
 
+	//t.Log(logs[0])
 	//require.Equal(t, logs[0].TxHash, common.BytesToHash(hash))
 }
+
+func TestEth_GetFilterChanges_Addresses(t *testing.T) {
+	// TODO: need transaction receipts to determine contract deployment address
+}
+
+func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
+	// pragma solidity ^0.5.1;
+
+	// contract Test {
+	//     event Hello(uint256 indexed world);
+	//     event Test(uint256 indexed a, uint256 indexed b);
+	    
+	//     constructor() public {
+	//         emit Hello(17);
+	//     }
+	    
+	//     function test(uint256 a, uint256 b) public {
+	//         emit Test(a, b);
+	//     }
+	// }
+
+	bytecode := "0x608060405234801561001057600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a260c98061004d6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b80827f91916a5e2c96453ddf6b585497262675140eb9f7a774095fb003d93e6dc6921660405160405180910390a3505056fea265627a7a72315820ef746422e676b3ed22147cd771a6f689e7c33ef17bf5cd91921793b5dd01e3e064736f6c63430005110032"
+
+	from := getAddress(t)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["data"] = bytecode
+
+	rpcRes, err := call(t, "eth_sendTransaction", param)
+	require.NoError(t, err)
+
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+
+	return hash
+}
+
+func TestEth_GetFilterChanges_Topics(t *testing.T) {
+	rpcRes, err := call(t, "eth_blockNumber", []string{})
+	require.NoError(t, err)
+
+	var res hexutil.Uint64
+	err = res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+
+	// hash of Hello event
+	hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
+	// world parameter in Hello event
+	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
+
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []string{hello, world}
+	param[0]["fromBlock"] = (res-2).String()
+	param[0]["toBlock"] = "0x0" // latest
+
+	deployTestContractWithFunction(t)
+
+	time.Sleep(time.Second*2)
+
+	rpcRes, err = call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second*2)
+
+	// get filter changes
+	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(changesRes.Result, &logs)
+	require.NoError(t, err)
+
+	require.Equal(t, len(logs), 1)
+}
+

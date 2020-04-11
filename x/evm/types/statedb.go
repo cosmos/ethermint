@@ -157,6 +157,18 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	}
 }
 
+// SetLogs sets the logs for a transaction in the KVStore.
+func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	enc, err := EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	store.Set(LogsKey(hash[:]), enc)
+	return nil
+}
+
 // AddLog adds a new log to the state and sets the log metadata from the state.
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	csdb.journal.append(addLogChange{txhash: csdb.thash})
@@ -288,23 +300,9 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 	return ethcmn.Hash{}
 }
 
-func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	enc, err := EncodeLogs(logs)
-	if err != nil {
-		return err
-	}
-
-	store.Set(LogsKey(hash[:]), enc)
-	return nil
-}
-
-// GetLogs returns the current logs for a given hash in the state.
+// GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	fmt.Println("csdb.GetLogs")
-
 	if csdb.logs[hash] != nil {
-		fmt.Println(csdb.logs[hash])
 		return csdb.logs[hash], nil
 	}
 
@@ -312,7 +310,6 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
-		fmt.Println("no logs :(")
 		return []*ethtypes.Log{}, nil
 	}
 
@@ -610,7 +607,6 @@ func (csdb *CommitStateDB) clearJournalAndRefund() {
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
 func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
-	fmt.Printf("csdb.Prepare txhash=%x bhash=%x\n", thash, bhash)
 	csdb.thash = thash
 	csdb.bhash = bhash
 	csdb.txIndex = txi
