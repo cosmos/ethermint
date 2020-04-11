@@ -1,8 +1,6 @@
 package evm_test
 
 import (
-	"bytes"
-	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"testing"
@@ -77,13 +75,6 @@ func (suite *EvmTestSuite) TestHandler_Logs() {
 	bytecode := common.FromHex("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
 	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv)
-
-	buf := bytes.NewBuffer([]byte{})
-	err = tx.EncodeRLP(buf)
-	b := buf.Bytes()
-	fmt.Printf("%x\n", b)
-	pub := priv.Public().(*ecdsa.PublicKey)
-	fmt.Printf("%x\n", crypto.PubkeyToAddress(*pub))
 
 	result := suite.handler(suite.ctx, tx)
 	suite.Require().True(result.IsOK())

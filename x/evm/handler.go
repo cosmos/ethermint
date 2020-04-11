@@ -45,8 +45,10 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		return sdk.ResultFromError(err)
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
+	fmt.Println("msghash=%x", msg.Hash())
+
+	txHash := msg.Hash()//tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := txHash//common.BytesToHash(txHash)
 
 	st := types.StateTransition{
 		Sender:       sender,
@@ -62,7 +64,8 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.BytesToHash(txHash), k.TxCount)
+	//k.CommitStateDB.Prepare(ethHash, common.BytesToHash(txHash), k.TxCount)
+	k.CommitStateDB.Prepare(ethHash, txHash, k.TxCount)
 	k.TxCount++
 
 	// TODO: move to keeper
@@ -77,7 +80,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 	fmt.Printf("HandleMsgEthereumTx txHash=%x logs=%v\n", txHash, returnData.Logs)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
+	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash[:])
 	if err != nil {
 		return sdk.ResultFromError(err)
 	}

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/cosmos/ethermint/version"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -172,7 +173,6 @@ func getAddress(t *testing.T) []byte {
 	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 
-	t.Logf("Account: %s", res[0])
 	return res[0]
 }
 
@@ -243,6 +243,26 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 	require.NotNil(t, err)
 }
 
+// sendTestTransaction sends a dummy transaction
+func sendTestTransaction(t *testing.T) hexutil.Bytes {
+	from := getAddress(t)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	//param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+
+	rpcRes, err := call(t, "eth_sendTransaction", param)
+	require.NoError(t, err)
+
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+
+	return hash
+}
+
 // deployTestContract deploys a contract that emits an event in the constructor
 func deployTestContract(t *testing.T) hexutil.Bytes {
 	from := getAddress(t)
@@ -264,7 +284,7 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 
 func TestEth_GetTransactionReceipt(t *testing.T) {
 	hash := deployTestContract(t)
-	time.Sleep(time.Second)
+	time.Sleep(time.Second*3)
 
 	t.Log(hash)
 
@@ -296,27 +316,25 @@ func TestEth_GetTxLogs(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, logs)
 	require.NoError(t, err)
 
-	t.Log((*logs)[0])
-
 	require.Equal(t, len(*logs), 1)
+	t.Log((*logs)[0])
 }
 
 func TestEth_GetFilterChanges_NoParams(t *testing.T) {
-	// rpcRes, err := call(t, "eth_blockNumber", []string{})
-	// require.NoError(t, err)
+	rpcRes, err := call(t, "eth_blockNumber", []string{})
+	require.NoError(t, err)
 
-	// var res hexutil.Uint64
-	// err = res.UnmarshalJSON(rpcRes.Result)
-	// require.NoError(t, err)
+	var res hexutil.Uint64
+	err = res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
 
-	//t.Log(res)
+	t.Log(res)
 
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
-	param[0]["fromBlock"] = "0x1" //res.String()
-	rpcRes, err := call(t, "eth_newFilter", param)
-	require.NoError(t, err)
+	param[0]["fromBlock"] = res.String()
+	//param[0]["toBlock"] = "latest"
 
 	//fmt.Println(rpcRes.Result)
 
@@ -327,8 +345,14 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	// deploy contract, emitting some event
 	hash := deployTestContract(t)
 
-	t.Log(hash)
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
+
+	rpcRes, err = call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+	
+	sendTestTransaction(t)
+	sendTestTransaction(t)
+	sendTestTransaction(t)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -338,5 +362,8 @@ func TestEth_GetFilterChanges_NoParams(t *testing.T) {
 	err = json.Unmarshal(changesRes.Result, &logs)
 	require.NoError(t, err)
 
-	t.Log(logs)
+	require.Equal(t, len(logs), 1)
+	t.Log(logs[0])
+
+	require.Equal(t, logs[0].TxHash, common.BytesToHash(hash))
 }

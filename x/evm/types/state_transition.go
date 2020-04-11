@@ -82,6 +82,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
+	//csdb.thash = *st.THash
+
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
