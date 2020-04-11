@@ -177,11 +177,13 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		return nil, err
 	}
 
-	if f.fromBlock == nil {
+	// if f.fromBlock is set to 0, set it to the latest block number
+	if f.fromBlock.Cmp(big.NewInt(0)) == 0 {
 		f.fromBlock = big.NewInt(int64(num))
 	}
 
-	if f.toBlock == nil {
+	// if f.toBlock is set to 0, set it to the latest block number
+	if f.toBlock.Cmp(big.NewInt(0)) == 0 {
 		f.toBlock = big.NewInt(int64(num))
 	}
 
@@ -250,8 +252,8 @@ func (f *Filter) checkMatches(block map[string]interface{}) ([]*ethtypes.Log, er
 		unfiltered = append(unfiltered, logs...)
 	}
 
-	return unfiltered, nil
-	//return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
+	//return unfiltered, nil
+	return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
 }
 
 // filterLogs creates a slice of logs matching the given criteria.
