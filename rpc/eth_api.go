@@ -35,6 +35,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -561,9 +562,9 @@ type Transaction struct {
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
-	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
+	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	ethTx, ok := stdTx.(types.MsgEthereumTx)

@@ -183,10 +183,10 @@ proto-check-breaking:
 	@buf check breaking --against-input '.git#branch=development'
 
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.1
+TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL 		= https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+SDK_PROTO_URL 	 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
 
 TM_KV_TYPES         = third_party/proto/tendermint/libs/kv
 TM_MERKLE_TYPES     = third_party/proto/tendermint/crypto/merkle
@@ -204,6 +204,17 @@ proto-update-deps:
 
 	@mkdir -p $(COSMOS_PROTO_TYPES)
 	@curl -sSL $(COSMOS_PROTO_URL)/cosmos.proto > $(COSMOS_PROTO_TYPES)/cosmos.proto
+
+	@mkdir -p $(TM_ABCI_TYPES)
+	@curl -sSL $(TM_URL)/abci/types/types.proto > $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '8 s|crypto/merkle/merkle.proto|third_party/proto/tendermint/crypto/merkle/merkle.proto|g' $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '9 s|libs/kv/types.proto|third_party/proto/tendermint/libs/kv/types.proto|g' $(TM_ABCI_TYPES)/types.proto
+
+	@mkdir -p $(TM_KV_TYPES)
+	@curl -sSL $(TM_URL)/libs/kv/types.proto > $(TM_KV_TYPES)/types.proto
+
+	@mkdir -p $(TM_MERKLE_TYPES)
+	@curl -sSL $(TM_URL)/crypto/merkle/merkle.proto > $(TM_MERKLE_TYPES)/merkle.proto
 
 	@mkdir -p $(SDK_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/types/types.proto > $(SDK_PROTO_TYPES)/types.proto
