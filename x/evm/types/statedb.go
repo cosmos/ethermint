@@ -316,8 +316,8 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 		encLogs = store.Get(LogsKey(hash[:]))
 	case store.Has(LogsKey(ethHash)):
 		encLogs = store.Get(LogsKey(ethHash))
-	default:
-		return nil, errors.New("cannot get transaction logs")
+	// default:
+	// 	return nil, errors.New("cannot get transaction logs")
 	}
 
 	if len(encLogs) == 0 {
