@@ -49,11 +49,11 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
-	Address ethcmn.Address
-	Bloom   ethtypes.Bloom
-	Logs    []*ethtypes.Log
-	Ret     []byte
-	TxHash  ethcmn.Hash
+	Address ethcmn.Address  `json:"address"`
+	Bloom   ethtypes.Bloom  `json:"bloom"`
+	Logs    []*ethtypes.Log `json:"logs"`
+	Ret     []byte          `json:"ret"`
+	TxHash  ethcmn.Hash     `json:"tx_hash"`
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution

@@ -243,12 +243,7 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
 func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return logs, nil
+	return k.CommitStateDB.WithContext(ctx).GetLogs(hash)
 }
 
 // AllLogs calls CommitStateDB.AllLogs using the passed in context
@@ -293,10 +288,7 @@ func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) error {
 // IntermediateRoot calls CommitStateDB.IntermediateRoot using the passed in context
 func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) error {
 	_, err := k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // ----------------------------------------------------------------------------
