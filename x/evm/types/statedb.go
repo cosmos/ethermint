@@ -313,7 +313,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	if len(encLogs) == 0 {
 		ethHash, err := csdb.GetTendermintHashToEthereumHash(hash[:])
 		if err != nil {
-			return nil, err
+			return nil, nil
 		}
 
 		encLogs = store.Get(LogsKey(ethHash))
