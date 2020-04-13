@@ -153,7 +153,7 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 
 func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	txHash := ethcmn.HexToHash(path[1])
-	logs, err := keeper.GetLogs(ctx, txHash)
+	logs, err := keeper.GetTransactionLogs(ctx, txHash[:])
 	if err != nil {
 		return nil, err
 	}
