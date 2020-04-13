@@ -41,8 +41,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		return nil, err
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
+	txHash := msg.Hash()
 
 	st := types.StateTransition{
 		Sender:       sender,
@@ -54,11 +53,12 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
-		THash:        &ethHash,
+		THash:        &txHash,
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	// TODO: block hash
+	k.CommitStateDB.Prepare(txHash, txHash, k.TxCount)
 	k.TxCount++
 
 	// TODO: move to keeper
@@ -71,7 +71,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	k.Bloom.Or(k.Bloom, returnData.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash)
+	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash[:])
 	if err != nil {
 		return nil, err
 	}
