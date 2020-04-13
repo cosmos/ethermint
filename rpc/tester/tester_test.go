@@ -343,6 +343,12 @@ func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
 	// TODO: need transaction receipts to determine tx block
 }
 
+// hash of Hello event
+var helloTopic = "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
+
+// world parameter in Hello event
+var worldTopic = "0x0000000000000000000000000000000000000000000000000000000000000011"
+
 func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 	// pragma solidity ^0.5.1;
 
@@ -387,14 +393,9 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
 
-	// hash of Hello event
-	hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
-	// world parameter in Hello event
-	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
-
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
-	param[0]["topics"] = []string{hello, world}
+	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = zeroString // latest
 
@@ -430,12 +431,9 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
 
-	// world parameter in Hello event
-	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
-
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
-	param[0]["topics"] = []interface{}{nil, world}
+	param[0]["topics"] = []interface{}{nil, worldTopic}
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = "0x0" // latest
 
@@ -483,14 +481,9 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
 
-	// hash of Hello event
-	hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
-	// world parameter in Hello event
-	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
-
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
-	param[0]["topics"] = []string{hello, world}
+	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = zeroString // latest
 
