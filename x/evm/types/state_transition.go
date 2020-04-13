@@ -15,17 +15,18 @@ import (
 
 // StateTransition defines data to transitionDB in evm
 type StateTransition struct {
-	Payload      []byte
-	Recipient    *common.Address
-	AccountNonce uint64
-	GasLimit     uint64
-	Price        *big.Int
-	Amount       *big.Int
-	ChainID      *big.Int
-	Csdb         *CommitStateDB
-	THash        *common.Hash
-	Sender       common.Address
-	Simulate     bool
+	Payload        []byte
+	Recipient      *common.Address
+	AccountNonce   uint64
+	GasLimit       uint64
+	Price          *big.Int
+	Amount         *big.Int
+	ChainID        *big.Int
+	Csdb           *CommitStateDB
+	THash          *common.Hash
+	TendermintHash []byte
+	Sender         common.Address
+	Simulate       bool
 }
 
 // ReturnData represents what's returned from a transition
@@ -176,6 +177,8 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	st.Csdb.SetTendermintHashToEthereumHash(st.TendermintHash, (*st.THash)[:])
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt

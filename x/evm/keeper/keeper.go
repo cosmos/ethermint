@@ -117,7 +117,16 @@ func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.L
 	store := ctx.KVStore(k.blockKey)
 	encLogs := store.Get(types.LogsKey(hash))
 	if len(encLogs) == 0 {
-		return nil, errors.New("cannot get transaction logs")
+
+		ethHash, err := k.CommitStateDB.GetTendermintHashToEthereumHash(hash)
+		if err != nil {
+			return nil, err
+		}
+
+		encLogs = store.Get(types.LogsKey(ethHash))
+		if len(encLogs) == 0 {
+			return nil, errors.New("cannot get transaction logs")
+		}
 	}
 
 	return types.DecodeLogs(encLogs)

@@ -359,6 +359,24 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 	return nil
 }
 
+// SetTendermintHashToEthereumHash sets the tendermint hash to ethereum hash mapping
+func (csdb *CommitStateDB) SetTendermintHashToEthereumHash(tmhash []byte, ethhash []byte) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	store.Set(tmhash, ethhash)
+}
+
+// GetTendermintHashToEthereumHash retrieves the ethereum hash given the tendermint hash
+func (csdb *CommitStateDB) GetTendermintHashToEthereumHash(tmhash []byte) ([]byte, error) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+
+	ethhash := store.Get(tmhash)
+	if len(ethhash) == 0 {
+		return nil, fmt.Errorf("cannot get ethereum hash from tendermint hash %x", tmhash)
+	}
+
+	return ethhash, nil
+}
+
 // ----------------------------------------------------------------------------
 // Persistence
 // ----------------------------------------------------------------------------

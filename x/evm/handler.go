@@ -43,21 +43,24 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		return sdk.ResultFromError(err)
 	}
 
+	tmhash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	txHash := msg.Hash()
 
 	st := types.StateTransition{
-		Sender:       sender,
-		AccountNonce: msg.Data.AccountNonce,
-		Price:        msg.Data.Price,
-		GasLimit:     msg.Data.GasLimit,
-		Recipient:    msg.Data.Recipient,
-		Amount:       msg.Data.Amount,
-		Payload:      msg.Data.Payload,
-		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
-		THash:        &txHash,
-		Simulate:     ctx.IsCheckTx(),
+		Sender:         sender,
+		AccountNonce:   msg.Data.AccountNonce,
+		Price:          msg.Data.Price,
+		GasLimit:       msg.Data.GasLimit,
+		Recipient:      msg.Data.Recipient,
+		Amount:         msg.Data.Amount,
+		Payload:        msg.Data.Payload,
+		Csdb:           k.CommitStateDB.WithContext(ctx),
+		ChainID:        intChainID,
+		THash:          &txHash,
+		TendermintHash: tmhash,
+		Simulate:       ctx.IsCheckTx(),
 	}
+
 	// Prepare db for logs
 	// TODO: block hash
 	k.CommitStateDB.Prepare(txHash, txHash, k.TxCount)
