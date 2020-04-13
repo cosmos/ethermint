@@ -142,7 +142,6 @@ func (f *Filter) getFilterChanges() (interface{}, error) {
 	case pendingTxFilter:
 		// TODO
 	case logFilter:
-		fmt.Println("getFilterLogs logFilter")
 		return f.getFilterLogs()
 	}
 

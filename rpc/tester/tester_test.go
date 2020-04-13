@@ -487,3 +487,11 @@ func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
 func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
 	// TODO
 }
+
+func TestEth_GetLogs_NoLogs(t *testing.T) {
+	// TODO
+}
+
+func TestEth_GetLogs_Topics_AB(t *testing.T) {
+	// TODO
+}
