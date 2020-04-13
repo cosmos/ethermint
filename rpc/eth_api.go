@@ -519,9 +519,6 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 			return nil, nil, err
 		}
 		transactions[i] = tx.Hash
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 
 	return transactions, gasUsed, nil
@@ -707,7 +704,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"to":                ethTx.To(),
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
 		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil, // TODO??
+		"contractAddress":   nil, // TODO ?
 		"logs":              logs.Logs,
 		"logsBloom":         data.Bloom,
 		"status":            status,

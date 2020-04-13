@@ -167,7 +167,6 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 	}
 
 	// filter range of blocks
-	// TODO: check if toBlock or fromBlock is "latest", "pending", or "earliest"
 	num, err := f.backend.BlockNumber()
 	if err != nil {
 		return nil, err
