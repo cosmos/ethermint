@@ -115,18 +115,7 @@ func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash 
 // GetTransactionLogs gets the logs for a transaction from the KVStore
 func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.blockKey)
-	encLogs := []byte{}
-	ethHash := k.CommitStateDB.GetTendermintHashToEthereumHash(hash)
-
-	switch {
-	case store.Has(types.LogsKey(hash)):
-		encLogs = store.Get(types.LogsKey(hash))
-	case store.Has(types.LogsKey(ethHash)):
-		encLogs = store.Get(types.LogsKey(ethHash))
-	default:
-		return nil, errors.New("cannot get transaction logs")
-	}
-
+	encLogs := store.Get(types.LogsKey(hash))
 	if len(encLogs) == 0 {
 		return nil, errors.New("cannot get transaction logs")
 	}

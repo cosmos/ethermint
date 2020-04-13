@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -310,26 +309,17 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	}
 
 	store := csdb.ctx.KVStore(csdb.storeKey)
-	ethHash := csdb.GetTendermintHashToEthereumHash(hash[:])
 
-	encLogs := []byte{}
-	switch {
-	case store.Has(LogsKey(hash[:])):
-		encLogs = store.Get(LogsKey(hash[:]))
-	case store.Has(LogsKey(ethHash)):
-		encLogs = store.Get(LogsKey(ethHash))
-	default:
-		return nil, errors.New("cannot get transaction logs")
-	}
-
+	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
-		return nil, errors.New("cannot get transaction logs")
+		// return nil if logs are not found
+		return nil, nil
 	}
 
 	return DecodeLogs(encLogs)
 }
 
-// Logs returns all the current logs in the state.
+// AllLogs returns all the current logs in the state.
 func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	// nolint: prealloc
 	var logs []*ethtypes.Log
@@ -365,19 +355,6 @@ func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
 // storage trie.
 func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 	return nil
-}
-
-// SetTendermintHashToEthereumHash sets the tendermint hash to ethereum hash mapping
-func (csdb *CommitStateDB) SetTendermintHashToEthereumHash(tmhash []byte, ethhash []byte) {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	store.Set(tmhash, ethhash)
-}
-
-// GetTendermintHashToEthereumHash retrieves the ethereum hash given the tendermint hash
-func (csdb *CommitStateDB) GetTendermintHashToEthereumHash(tmhash []byte) []byte {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-
-	return store.Get(tmhash)
 }
 
 // ----------------------------------------------------------------------------
