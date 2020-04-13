@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -310,7 +311,15 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
-		return []*ethtypes.Log{}, nil
+		ethHash, err := csdb.GetTendermintHashToEthereumHash(hash[:])
+		if err != nil {
+			return nil, err
+		}
+
+		encLogs = store.Get(LogsKey(ethHash))
+		if len(encLogs) == 0 {
+			return nil, errors.New("cannot get transaction logs")
+		}
 	}
 
 	logs, err := DecodeLogs(encLogs)
