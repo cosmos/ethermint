@@ -129,7 +129,7 @@ func ethAnteHandler(
 					rType.Descriptor, ctx.GasMeter().GasConsumed(),
 				)
 			default:
-				panic(err)
+				panic(r)
 			}
 		}
 	}()
