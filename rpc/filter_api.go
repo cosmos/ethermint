@@ -33,7 +33,6 @@ func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilte
 func (e *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) rpc.ID {
 	id := rpc.NewID()
 	e.filters[id] = NewFilter(e.backend, &criteria)
-	fmt.Printf("NewFilter id=%d\n", id)
 	return id
 }
 

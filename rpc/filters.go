@@ -154,7 +154,6 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 
 	// filter specific block only
 	if f.blockHash != nil {
-		fmt.Println("getFilterLogs filtering by blockhash")
 		block, err := f.backend.GetBlockByHash(*f.blockHash, true)
 		if err != nil {
 			return nil, err
@@ -178,12 +177,12 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 	}
 
 	// if f.fromBlock is set to 0, set it to the latest block number
-	if f.fromBlock.Cmp(big.NewInt(0)) == 0 {
+	if f.fromBlock == nil || f.fromBlock.Cmp(big.NewInt(0)) == 0 {
 		f.fromBlock = big.NewInt(int64(num))
 	}
 
 	// if f.toBlock is set to 0, set it to the latest block number
-	if f.toBlock.Cmp(big.NewInt(0)) == 0 {
+	if f.toBlock == nil || f.toBlock.Cmp(big.NewInt(0)) == 0 {
 		f.toBlock = big.NewInt(int64(num))
 	}
 
@@ -207,11 +206,14 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 
 		fmt.Printf("got block=%v\n", block)
 
+		// TODO: block logsBloom is often set in the wrong block
 		// if the logsBloom == 0, there are no logs in that block
-		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); !ok {
-			fmt.Printf("could not cast logsBloom\n")
+		//if bloom, ok := block["logsBloom"].(ethtypes.Bloom); !ok {
+		if txs, ok := block["transactions"].([]common.Hash); !ok {
+			fmt.Printf("could not cast transactions\n")
 			continue
-		} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
+		//} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
+		} else if len(txs) != 0 {
 			logs, err := f.checkMatches(block)
 			if err != nil {
 				f.err = err // return or just keep for later?

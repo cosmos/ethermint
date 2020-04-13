@@ -81,7 +81,7 @@ func call(t *testing.T, method string, params interface{}) (*Response, error) {
 	}
 
 	if rpcRes.Error != nil {
-		t.Fatal(errors.New(rpcRes.Error.Message))
+		return nil, errors.New(rpcRes.Error.Message)
 	}
 
 	err = res.Body.Close()
@@ -229,11 +229,7 @@ func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 }
 
 func TestEth_GetFilterChanges_WrongID(t *testing.T) {
-	changesRes, err := call(t, "eth_getFilterChanges", []string{"0x1122334400000077"})
-	require.NoError(t, err)
-
-	var logs []*ethtypes.Log
-	err = json.Unmarshal(changesRes.Result, &logs)
+	_, err := call(t, "eth_getFilterChanges", []string{"0x1122334400000077"})
 	require.NotNil(t, err)
 }
 
@@ -278,9 +274,7 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 func TestEth_GetTransactionReceipt(t *testing.T) {
 	hash := deployTestContract(t)
 
-	time.Sleep(time.Second*3)
-
-	t.Log(hash)
+	time.Sleep(time.Second*2)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
@@ -300,11 +294,15 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 func TestEth_GetTxLogs(t *testing.T) {
 	hash := deployTestContract(t)
 
+	t.Log(hash)
+	
 	time.Sleep(time.Second * 3)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTxLogs", param)
 	require.NoError(t, err)
+
+	t.Log(rpcRes.Result)
 
 	logs := new([]*ethtypes.Log)
 	err = json.Unmarshal(rpcRes.Result, logs)
@@ -325,7 +323,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
-	param[0]["fromBlock"] = (res-1).String()
+	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = "0x0" // latest
 
 	// deploy contract, emitting some event
@@ -352,6 +350,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	require.Equal(t, len(logs), 1)
 
 	//t.Log(logs[0])
+	// TODO: why is the tx hash in the log not the same as the tx hash of the transaction?
 	//require.Equal(t, logs[0].TxHash, common.BytesToHash(hash))
 }
 
@@ -410,7 +409,7 @@ func TestEth_GetFilterChanges_Topics(t *testing.T) {
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{hello, world}
-	param[0]["fromBlock"] = (res-2).String()
+	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = "0x0" // latest
 
 	deployTestContractWithFunction(t)
