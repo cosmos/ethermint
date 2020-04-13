@@ -45,10 +45,10 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		return sdk.ResultFromError(err)
 	}
 
-	fmt.Println("msghash=%x", msg.Hash())
+	fmt.Printf("msghash=%x\n", msg.Hash())
 
-	txHash := msg.Hash()//tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := txHash//common.BytesToHash(txHash)
+	txHash := msg.Hash() //tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := txHash    //common.BytesToHash(txHash)
 
 	st := types.StateTransition{
 		Sender:       sender,

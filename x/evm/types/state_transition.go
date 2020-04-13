@@ -134,7 +134,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	var bloomFilter ethtypes.Bloom
 	var logs []*ethtypes.Log
 
-	fmt.Println("transaction hash=", st.THash)
+	fmt.Printf("transaction hash=%x\n", st.THash)
 
 	if st.THash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.THash)
@@ -186,7 +186,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	st.Csdb.SetLogs(*st.THash, logs)
-	fmt.Printf("StateTransition setting logs txhash=%s logs=%v\n", st.THash, logs)
+	fmt.Printf("StateTransition setting logs txhash=%x logs=%v\n", st.THash, logs)
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt

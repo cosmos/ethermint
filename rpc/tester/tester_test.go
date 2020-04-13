@@ -274,7 +274,7 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 func TestEth_GetTransactionReceipt(t *testing.T) {
 	hash := deployTestContract(t)
 
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
@@ -295,7 +295,7 @@ func TestEth_GetTxLogs(t *testing.T) {
 	hash := deployTestContract(t)
 
 	t.Log(hash)
-	
+
 	time.Sleep(time.Second * 3)
 
 	param := []string{hash.String()}
@@ -337,7 +337,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second*3)
+	time.Sleep(time.Second)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -364,11 +364,11 @@ func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 	// contract Test {
 	//     event Hello(uint256 indexed world);
 	//     event Test(uint256 indexed a, uint256 indexed b);
-	    
+
 	//     constructor() public {
 	//         emit Hello(17);
 	//     }
-	    
+
 	//     function test(uint256 a, uint256 b) public {
 	//         emit Test(a, b);
 	//     }
@@ -393,7 +393,8 @@ func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 	return hash
 }
 
-func TestEth_GetFilterChanges_Topics(t *testing.T) {
+// Tests topics case where there are topics in first two positions
+func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	rpcRes, err := call(t, "eth_blockNumber", []string{})
 	require.NoError(t, err)
 
@@ -414,7 +415,7 @@ func TestEth_GetFilterChanges_Topics(t *testing.T) {
 
 	deployTestContractWithFunction(t)
 
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
@@ -423,7 +424,7 @@ func TestEth_GetFilterChanges_Topics(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -436,3 +437,53 @@ func TestEth_GetFilterChanges_Topics(t *testing.T) {
 	require.Equal(t, len(logs), 1)
 }
 
+func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
+	rpcRes, err := call(t, "eth_blockNumber", []string{})
+	require.NoError(t, err)
+
+	var res hexutil.Uint64
+	err = res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+
+	// hash of Hello event
+	//hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
+	// world parameter in Hello event
+	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
+
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []interface{}{nil, world}
+	param[0]["fromBlock"] = res.String()
+	param[0]["toBlock"] = "0x0" // latest
+
+	deployTestContractWithFunction(t)
+
+	time.Sleep(time.Second * 2)
+
+	rpcRes, err = call(t, "eth_newFilter", param)
+	require.NoError(t, err)
+
+	var ID hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 2)
+
+	// get filter changes
+	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(changesRes.Result, &logs)
+	require.NoError(t, err)
+
+	require.Equal(t, len(logs), 1)
+}
+
+func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
+	// TODO: call test function, need tx receipts to determine contract address
+}
+
+func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
+	// TODO
+}

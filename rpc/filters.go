@@ -212,7 +212,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		if txs, ok := block["transactions"].([]common.Hash); !ok {
 			fmt.Printf("could not cast transactions\n")
 			continue
-		//} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
+			//} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
 		} else if len(txs) != 0 {
 			logs, err := f.checkMatches(block)
 			if err != nil {
