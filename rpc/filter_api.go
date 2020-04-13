@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 
@@ -60,7 +60,7 @@ func (e *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 // If the filter is a pending transaction filter, it returns an array of transaction hashes.
 func (e *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	if e.filters[id] == nil {
-		return nil, fmt.Errorf("invalid filter ID")
+		return nil, errors.New("invalid filter ID")
 	}
 	return e.filters[id].getFilterChanges()
 }

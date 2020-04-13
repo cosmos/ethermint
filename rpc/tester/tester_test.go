@@ -262,35 +262,25 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log(rpcRes.Result)
-
-	recpt := new(ethtypes.Receipt)
-	err = json.Unmarshal(rpcRes.Result, recpt)
-	require.NoError(t, err)
-
-	t.Log(recpt)
-
 	// TODO: why does this not return a receipt?
 }
 
 func TestEth_GetTxLogs(t *testing.T) {
 	hash := deployTestContract(t)
 
-	t.Log(hash)
-
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 5)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTxLogs", param)
 	require.NoError(t, err)
 
-	t.Log(rpcRes.Result)
-
 	logs := new([]*ethtypes.Log)
 	err = json.Unmarshal(rpcRes.Result, logs)
 	require.NoError(t, err)
 
-	require.Equal(t, len(*logs), 1)
+	require.Equal(t, 1, len(*logs))
 	t.Log((*logs)[0])
+	time.Sleep(time.Second)
 }
 
 func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
@@ -308,8 +298,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	param[0]["toBlock"] = zeroString // latest
 
 	// deploy contract, emitting some event
-	hash := deployTestContract(t)
-	t.Logf("%s", hash)
+	deployTestContract(t)
 
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
@@ -328,7 +317,8 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	err = json.Unmarshal(changesRes.Result, &logs)
 	require.NoError(t, err)
 
-	require.Equal(t, len(logs), 1)
+	require.Equal(t, 1, len(logs))
+	time.Sleep(time.Second)
 
 	//t.Log(logs[0])
 	// TODO: why is the tx hash in the log not the same as the tx hash of the transaction?
@@ -386,6 +376,8 @@ func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 
 // Tests topics case where there are topics in first two positions
 func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
+	time.Sleep(time.Second)
+
 	rpcRes, err := call(t, "eth_blockNumber", []string{})
 	require.NoError(t, err)
 
@@ -400,8 +392,6 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param[0]["toBlock"] = zeroString // latest
 
 	deployTestContractWithFunction(t)
-
-	time.Sleep(time.Second * 2)
 
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
@@ -420,7 +410,8 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	err = json.Unmarshal(changesRes.Result, &logs)
 	require.NoError(t, err)
 
-	require.Equal(t, len(logs), 1)
+	require.Equal(t, 1, len(logs))
+	time.Sleep(time.Second * 2)
 }
 
 func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
@@ -439,8 +430,6 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 
 	deployTestContractWithFunction(t)
 
-	time.Sleep(time.Second * 2)
-
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
 
@@ -458,7 +447,8 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	err = json.Unmarshal(changesRes.Result, &logs)
 	require.NoError(t, err)
 
-	require.Equal(t, len(logs), 1)
+	require.Equal(t, 1, len(logs))
+	time.Sleep(time.Second)
 }
 
 func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
@@ -489,8 +479,6 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 
 	deployTestContractWithFunction(t)
 
-	time.Sleep(time.Second * 3)
-
 	rpcRes, err = call(t, "eth_getLogs", param)
 	require.NoError(t, err)
 
@@ -498,5 +486,5 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &logs)
 	require.NoError(t, err)
 
-	require.Equal(t, len(logs), 1)
+	require.Equal(t, 1, len(logs))
 }

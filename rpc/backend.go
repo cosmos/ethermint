@@ -71,7 +71,10 @@ func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 	}
 
 	var out types.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return nil, err
+	}
+
 	return e.getEthBlockByNumber(out.Number, fullTx)
 }
 
@@ -162,7 +165,10 @@ func (e *EthermintBackend) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error
 	}
 
 	out := new(types.QueryETHLogs)
-	e.cliCtx.Codec.MustUnmarshalJSON(res, out)
+	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return nil, err
+	}
+
 	return out.Logs, nil
 }
 

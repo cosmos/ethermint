@@ -193,7 +193,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		if err != nil {
 			f.err = err
 			log.Debug("[ethAPI] Cannot get block", "block", block["number"], "error", err)
-			continue
+			break
 		}
 
 		log.Debug("[ethAPI] filtering", "block", block)
@@ -207,7 +207,7 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 			logs, err := f.checkMatches(block)
 			if err != nil {
 				f.err = err
-				continue
+				break
 			}
 
 			ret = append(ret, logs...)
