@@ -339,6 +339,10 @@ func TestEth_GetFilterChanges_Addresses(t *testing.T) {
 	// TODO: need transaction receipts to determine contract deployment address
 }
 
+func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
+	// TODO: need transaction receipts to determine tx block
+}
+
 func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 	// pragma solidity ^0.5.1;
 
@@ -463,14 +467,43 @@ func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
 	// TODO: call test function, need tx receipts to determine contract address
 }
 
-func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
-	// TODO
-}
-
 func TestEth_GetLogs_NoLogs(t *testing.T) {
-	// TODO
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	_, err := call(t, "eth_getLogs", param)
+	require.NoError(t, err)
 }
 
 func TestEth_GetLogs_Topics_AB(t *testing.T) {
-	// TODO
+	rpcRes, err := call(t, "eth_blockNumber", []string{})
+	require.NoError(t, err)
+
+	var res hexutil.Uint64
+	err = res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+
+	// hash of Hello event
+	hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
+	// world parameter in Hello event
+	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
+
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []string{hello, world}
+	param[0]["fromBlock"] = res.String()
+	param[0]["toBlock"] = zeroString // latest
+
+	deployTestContractWithFunction(t)
+
+	time.Sleep(time.Second * 3)
+
+	rpcRes, err = call(t, "eth_getLogs", param)
+	require.NoError(t, err)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+
+	require.Equal(t, len(logs), 1)
 }
