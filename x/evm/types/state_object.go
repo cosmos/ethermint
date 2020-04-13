@@ -150,10 +150,10 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 	if amt.IsZero() {
-		if !so.empty() {
-			return
+		if so.empty() {
+			so.touch()
 		}
-		so.touch()
+		return
 	}
 
 	newBalance := so.balance.Add(amt)

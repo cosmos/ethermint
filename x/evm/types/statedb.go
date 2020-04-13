@@ -313,7 +313,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
 		// return nil if logs are not found
-		return nil, nil
+		return []*ethtypes.Log{}, nil
 	}
 
 	return DecodeLogs(encLogs)

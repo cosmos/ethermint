@@ -39,7 +39,6 @@ type ReturnData struct {
 // TransitionCSDB performs an evm state transition from a transaction
 // TODO: update godoc, it doesn't explain what it does in depth.
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
-	returnData := new(ReturnData)
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
@@ -182,8 +181,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		return nil, err
 	}
 
-	returnData.Logs = logs
-	returnData.Bloom = bloomInt
-	returnData.Result = &sdk.Result{Data: resultData}
+	returnData := &ReturnData{
+		Logs:   logs,
+		Bloom:  bloomInt,
+		Result: &sdk.Result{Data: resultData},
+	}
+
 	return returnData, nil
 }
