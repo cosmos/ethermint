@@ -291,14 +291,14 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Broadcast transaction
-	_, err = e.cliCtx.BroadcastTx(txBytes)
+	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	// Return transaction hash
-	return tx.Hash(), nil
+	return common.HexToHash(res.TxHash), nil
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
@@ -704,7 +704,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"to":                ethTx.To(),
 		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
 		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil, // TODO ?
+		"contractAddress":   nil,
 		"logs":              logs.Logs,
 		"logsBloom":         data.Bloom,
 		"status":            status,
