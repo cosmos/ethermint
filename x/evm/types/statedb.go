@@ -310,7 +310,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	ethHash := csdb.GetTendermintHashToEthereumHash(hash[:])
 
-	encLogs := []byte{}
+	var encLogs []byte
 	switch {
 	case store.Has(LogsKey(hash[:])):
 		encLogs = store.Get(LogsKey(hash[:]))
