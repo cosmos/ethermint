@@ -30,8 +30,6 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // HandleMsgEthereumTx handles an Ethereum specific tx
 func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk.Result {
-	fmt.Println("HandleMsgEthereumTx")
-
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
@@ -45,10 +43,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		return sdk.ResultFromError(err)
 	}
 
-	fmt.Printf("msghash=%x\n", msg.Hash())
-
-	txHash := msg.Hash() //tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := txHash    //common.BytesToHash(txHash)
+	txHash := msg.Hash()
 
 	st := types.StateTransition{
 		Sender:       sender,
@@ -60,12 +55,12 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
-		THash:        &ethHash,
+		THash:        &txHash,
 		Simulate:     ctx.IsCheckTx(),
 	}
 	// Prepare db for logs
-	//k.CommitStateDB.Prepare(ethHash, common.BytesToHash(txHash), k.TxCount)
-	k.CommitStateDB.Prepare(ethHash, txHash, k.TxCount)
+	// TODO: block hash
+	k.CommitStateDB.Prepare(txHash, txHash, k.TxCount)
 	k.TxCount++
 
 	// TODO: move to keeper
@@ -76,8 +71,6 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, returnData.Bloom)
-
-	fmt.Printf("HandleMsgEthereumTx txHash=%x logs=%v\n", txHash, returnData.Logs)
 
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, returnData.Logs, txHash[:])

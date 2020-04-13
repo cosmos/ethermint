@@ -157,9 +157,6 @@ func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Err
 		return nil, sdk.ErrInternal(err.Error())
 	}
 
-	fmt.Printf("queryTxLogs txhash=%x\n", txHash)
-	fmt.Println("logs len", len(logs))
-
 	res := types.QueryETHLogs{Logs: logs}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {

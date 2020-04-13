@@ -39,17 +39,8 @@ type ReturnData struct {
 // TransitionCSDB performs an evm state transition from a transaction
 // TODO: update godoc, it doesn't explain what it does in depth.
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
-	fmt.Println("TransitionCSDB")
-
-	fmt.Println("simulate=", st.Simulate)
-
-	//st.Simulate = false
-
 	returnData := new(ReturnData)
-
 	contractCreation := st.Recipient == nil
-
-	fmt.Println("contractCreation=", contractCreation)
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
 	if err != nil {
@@ -81,8 +72,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
-
-	//csdb.thash = *st.THash
 
 	// Create context for evm
 	context := vm.Context{
@@ -134,8 +123,6 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	var bloomFilter ethtypes.Bloom
 	var logs []*ethtypes.Log
 
-	fmt.Printf("transaction hash=%x\n", st.THash)
-
 	if st.THash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.THash)
 		if err != nil {
@@ -185,8 +172,10 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
-	st.Csdb.SetLogs(*st.THash, logs)
-	fmt.Printf("StateTransition setting logs txhash=%x logs=%v\n", st.THash, logs)
+	err = st.Csdb.SetLogs(*st.THash, logs)
+	if err != nil {
+		return nil, err
+	}
 
 	returnData.Logs = logs
 	returnData.Bloom = bloomInt

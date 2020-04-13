@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/cosmos/ethermint/version"
-	//"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -32,6 +31,7 @@ const (
 )
 
 var addr = fmt.Sprintf("http://%s:%d", host, port)
+var zeroString = "0x0"
 
 type Request struct {
 	Version string      `json:"jsonrpc"`
@@ -118,7 +118,7 @@ func TestEth_blockNumber(t *testing.T) {
 }
 
 func TestEth_GetBalance(t *testing.T) {
-	rpcRes, err := call(t, "eth_getBalance", []string{addrA, "0x0"})
+	rpcRes, err := call(t, "eth_getBalance", []string{addrA, zeroString})
 	require.NoError(t, err)
 
 	var res hexutil.Big
@@ -135,7 +135,7 @@ func TestEth_GetBalance(t *testing.T) {
 
 func TestEth_GetStorageAt(t *testing.T) {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	rpcRes, err := call(t, "eth_getStorageAt", []string{addrA, string(addrAStoreKey), "0x0"})
+	rpcRes, err := call(t, "eth_getStorageAt", []string{addrA, string(addrAStoreKey), zeroString})
 	require.NoError(t, err)
 
 	var storage hexutil.Bytes
@@ -149,7 +149,7 @@ func TestEth_GetStorageAt(t *testing.T) {
 
 func TestEth_GetCode(t *testing.T) {
 	expectedRes := hexutil.Bytes{}
-	rpcRes, err := call(t, "eth_getCode", []string{addrA, "0x0"})
+	rpcRes, err := call(t, "eth_getCode", []string{addrA, zeroString})
 	require.NoError(t, err)
 
 	var code hexutil.Bytes
@@ -233,25 +233,6 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-// sendTestTransaction sends a dummy transaction
-func sendTestTransaction(t *testing.T) hexutil.Bytes {
-	from := getAddress(t)
-
-	param := make([]map[string]string, 1)
-	param[0] = make(map[string]string)
-	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-	param[0]["to"] = "0x1122334455667788990011223344556677889900"
-
-	rpcRes, err := call(t, "eth_sendTransaction", param)
-	require.NoError(t, err)
-
-	var hash hexutil.Bytes
-	err = json.Unmarshal(rpcRes.Result, &hash)
-	require.NoError(t, err)
-
-	return hash
-}
-
 // deployTestContract deploys a contract that emits an event in the constructor
 func deployTestContract(t *testing.T) hexutil.Bytes {
 	from := getAddress(t)
@@ -324,7 +305,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = "0x0" // latest
+	param[0]["toBlock"] = zeroString // latest
 
 	// deploy contract, emitting some event
 	hash := deployTestContract(t)
@@ -411,7 +392,7 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{hello, world}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = "0x0" // latest
+	param[0]["toBlock"] = zeroString // latest
 
 	deployTestContractWithFunction(t)
 
@@ -445,8 +426,6 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
 
-	// hash of Hello event
-	//hello := "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
 	// world parameter in Hello event
 	world := "0x0000000000000000000000000000000000000000000000000000000000000011"
 

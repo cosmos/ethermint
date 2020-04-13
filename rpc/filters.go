@@ -2,13 +2,13 @@ package rpc
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 /*
@@ -159,12 +159,10 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		}
 
 		// if the logsBloom == 0, there are no logs in that block
-		if bloom, ok := block["logsBloom"].(ethtypes.Bloom); ok && big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) == 0 {
+		if txs, ok := block["transactions"].([]common.Hash); !ok {
 			return ret, nil
-		} else if ok {
+		} else if len(txs) != 0 {
 			return f.checkMatches(block)
-		} else {
-			return nil, errors.New("invalid logsBloom returned")
 		}
 	}
 
@@ -185,45 +183,35 @@ func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
 		f.toBlock = big.NewInt(int64(num))
 	}
 
-	fmt.Printf("fromBlock=%d\n", f.fromBlock)
-	fmt.Printf("toBlock=%d\n", f.toBlock)
-	fmt.Printf("topics=%v\n", f.topics)
-	fmt.Printf("addresses=%v\n", f.addresses)
+	log.Debug("[ethAPI] Retrieving filter logs", "fromBlock", f.fromBlock, "toBlock", f.toBlock,
+		"topics", f.topics, "addresses", f.addresses)
 
 	from := f.fromBlock.Int64()
 	to := f.toBlock.Int64()
 
 	for i := from; i <= to; i++ {
-		fmt.Printf("i=%d\n", i)
-
 		block, err := f.backend.GetBlockByNumber(NewBlockNumber(big.NewInt(i)), true)
 		if err != nil {
 			f.err = err
-			fmt.Printf("cannot get block %d err=%s\n", block["number"], err)
+			log.Debug("[ethAPI] Cannot get block", "block", block["number"], "error", err)
 			continue
 		}
 
-		fmt.Printf("got block=%v\n", block)
+		log.Debug("[ethAPI] filtering", "block", block)
 
 		// TODO: block logsBloom is often set in the wrong block
 		// if the logsBloom == 0, there are no logs in that block
-		//if bloom, ok := block["logsBloom"].(ethtypes.Bloom); !ok {
+
 		if txs, ok := block["transactions"].([]common.Hash); !ok {
-			fmt.Printf("could not cast transactions\n")
 			continue
-			//} else if big.NewInt(0).SetBytes(bloom[:]).Cmp(big.NewInt(0)) != 0 {
 		} else if len(txs) != 0 {
 			logs, err := f.checkMatches(block)
 			if err != nil {
-				f.err = err // return or just keep for later?
-				fmt.Printf("checkMatches err=%s\n", err)
+				f.err = err
 				continue
 			}
 
-			fmt.Printf("block %d logs=%v\n", block["number"], logs)
 			ret = append(ret, logs...)
-		} else {
-			continue
 		}
 	}
 
@@ -238,22 +226,15 @@ func (f *Filter) checkMatches(block map[string]interface{}) ([]*ethtypes.Log, er
 
 	unfiltered := []*ethtypes.Log{}
 
-	fmt.Println("searching block txs")
-
 	for _, tx := range transactions {
-		fmt.Printf("txhash=%x\n", tx)
-
 		logs, err := f.backend.GetTxLogs(common.BytesToHash(tx[:]))
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Println("logs len=", len(logs))
-
 		unfiltered = append(unfiltered, logs...)
 	}
 
-	//return unfiltered, nil
 	return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
 }
 
