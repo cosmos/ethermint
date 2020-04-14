@@ -3,6 +3,7 @@ package rpc
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -112,11 +113,38 @@ func (f *Filter) pollForBlocks() error {
 	}
 }
 
+func (f *Filter) pollForTransactions() error {
+	for {
+		if f.stopped {
+			return nil
+		}
+
+		txs, err := f.backend.PendingTransactions()
+		if err != nil {
+			return err
+		}
+
+		for _, tx := range txs {
+			f.hashes = append(f.hashes, tx.Hash)
+		}
+
+		<-time.After(5 * time.Second)
+
+	}
+}
+
 // NewPendingTransactionFilter creates a new filter that notifies when a pending transaction arrives.
 func NewPendingTransactionFilter(backend Backend) *Filter {
-	// TODO: finish
-	filter := NewFilter(backend, nil)
+	filter := NewFilter(backend, &filters.FilterCriteria{})
 	filter.typ = pendingTxFilter
+
+	go func() {
+		err := filter.pollForTransactions()
+		if err != nil {
+			filter.err = err
+		}
+	}()
+
 	return filter
 }
 
