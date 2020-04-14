@@ -104,7 +104,7 @@ func (f *Filter) pollForBlocks() error {
 			return errors.New("could not convert block hash to hexutil.Bytes")
 		}
 
-		hash := common.BytesToHash([]byte(hashBytes))
+		hash := common.BytesToHash(hashBytes)
 		f.hashes = append(f.hashes, hash)
 
 		prev = num
@@ -165,7 +165,14 @@ func (f *Filter) getFilterChanges() (interface{}, error) {
 
 		return blocks, nil
 	case pendingTxFilter:
-		// TODO
+		if f.err != nil {
+			return nil, f.err
+		}
+
+		txs := make([]common.Hash, len(f.hashes))
+		copy(txs, f.hashes)
+		f.hashes = []common.Hash{}
+		return txs, nil
 	case logFilter:
 		// TODO
 	}
