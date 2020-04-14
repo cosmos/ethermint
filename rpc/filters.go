@@ -128,7 +128,7 @@ func (f *Filter) pollForTransactions() error {
 			f.hashes = append(f.hashes, tx.Hash)
 		}
 
-		<-time.After(5 * time.Second)
+		<-time.After(1 * time.Second)
 
 	}
 }
