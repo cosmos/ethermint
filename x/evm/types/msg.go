@@ -283,6 +283,23 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 	return deriveChainID(msg.Data.V)
 }
 
+// From loads the ethereum sender address from the sigcache and returns an
+// sdk.AccAddress from its bytes
+func (msg *MsgEthereumTx) From() sdk.AccAddress {
+	sc := msg.from.Load()
+	if sc == nil {
+		return nil
+	}
+
+	sigCache := sc.(sigCache)
+
+	if len(sigCache.from.Bytes()) == 0 {
+		return nil
+	}
+
+	return sdk.AccAddress(sigCache.from.Bytes())
+}
+
 // deriveChainID derives the chain id from the given v parameter
 func deriveChainID(v *big.Int) *big.Int {
 	if v.BitLen() <= 64 {
