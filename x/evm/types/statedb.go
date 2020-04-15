@@ -167,6 +167,10 @@ func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error
 		return err
 	}
 
+	if len(enc) == 0 {
+		return nil
+	}
+
 	store.Set(LogsKey(hash[:]), enc)
 	return nil
 }
