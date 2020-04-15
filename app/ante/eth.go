@@ -77,19 +77,19 @@ func NewEthMempoolFeeDecorator() EthMempoolFeeDecorator {
 // Ethereum transaction that meet the minimum threshold set by the block
 // proposer.
 //
-// NOTE: This should only be ran during a CheckTx mode.
+// NOTE: This should only be run during a CheckTx mode.
 func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if !ctx.IsCheckTx() {
 		return next(ctx, tx, simulate)
 	}
 
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
 	// fee = GP * GL
-	fee := sdk.NewInt64DecCoin(emint.DenomDefault, ethTxMsg.Fee().Int64())
+	fee := sdk.NewInt64DecCoin(emint.DenomDefault, msgEthTx.Fee().Int64())
 
 	minGasPrices := ctx.MinGasPrices()
 
@@ -113,45 +113,6 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	return next(ctx, tx, simulate)
 }
 
-// EthIntrinsicGasDecorator validates enough intrinsic gas for the transaction.
-type EthIntrinsicGasDecorator struct{}
-
-// NewEthIntrinsicGasDecorator creates a new EthIntrinsicGasDecorator
-func NewEthIntrinsicGasDecorator() EthIntrinsicGasDecorator {
-	return EthIntrinsicGasDecorator{}
-}
-
-// AnteHandle validates that the Ethereum tx message has enough to
-// cover intrinsic gas. Intrinsic gas for a transaction is the amount of gas
-// that the transaction uses before the transaction is executed. The gas is a
-// constant value of 21000 plus any cost inccured by additional bytes of data
-// supplied with the transaction.
-//
-// NOTE: This should only be ran during a CheckTx mode.
-func (eigd EthIntrinsicGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	if !ctx.IsCheckTx() {
-		return next(ctx, tx, simulate)
-	}
-
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
-	}
-
-	gas, err := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
-	if err != nil {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("failed to compute intrinsic gas cost: %s", err))
-	}
-
-	if ethTxMsg.Data.GasLimit < gas {
-		return ctx, sdk.ErrInternal(
-			fmt.Sprintf("intrinsic gas too low: %d < %d", ethTxMsg.Data.GasLimit, gas),
-		)
-	}
-
-	return next(ctx, tx, simulate)
-}
-
 // EthSigVerificationDecorator validates an ethereum signature
 type EthSigVerificationDecorator struct{}
 
@@ -162,7 +123,7 @@ func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
 
 // AnteHandle validates the signature and returns sender address
 func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
@@ -175,12 +136,12 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	// validate sender/signature
 	// NOTE: signer is retrieved from the transaction on the next AnteDecorator
-	_, err = ethTxMsg.VerifySig(chainID)
+	_, err = msgEthTx.VerifySig(chainID)
 	if err != nil {
 		return ctx, sdk.ErrUnauthorized(fmt.Sprintf("signature verification failed: %s", err))
 	}
 
-	return next(ctx, ethTxMsg, simulate)
+	return next(ctx, msgEthTx, simulate)
 }
 
 // AccountVerificationDecorator validates an account balance checks
@@ -201,13 +162,13 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return next(ctx, tx, simulate)
 	}
 
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
 	// sender address should be in the tx cache
-	address := ethTxMsg.From()
+	address := msgEthTx.From()
 	if address == nil {
 		panic("sender address is nil")
 	}
@@ -228,9 +189,9 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	// validate sender has enough funds
 	balance := acc.GetCoins().AmountOf(emint.DenomDefault)
-	if balance.BigInt().Cmp(ethTxMsg.Cost()) < 0 {
+	if balance.BigInt().Cmp(msgEthTx.Cost()) < 0 {
 		return ctx, sdk.ErrInsufficientFunds(
-			fmt.Sprintf("insufficient funds: %s < %s", balance, ethTxMsg.Cost()),
+			fmt.Sprintf("insufficient funds: %s < %s", balance, msgEthTx.Cost()),
 		)
 	}
 
@@ -252,13 +213,13 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecor
 // AnteHandle validates that the transaction nonce is valid (equivalent to the sender account’s
 // current nonce).
 func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
 	// sender address should be in the tx cache
-	address := ethTxMsg.From()
+	address := msgEthTx.From()
 	if address == nil {
 		panic("sender address is nil")
 	}
@@ -269,16 +230,17 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	seq := acc.GetSequence()
-	if ethTxMsg.Data.AccountNonce != seq {
+	if msgEthTx.Data.AccountNonce != seq {
 		return ctx, sdk.ErrInvalidSequence(
-			fmt.Sprintf("invalid nonce; got %d, expected %d", ethTxMsg.Data.AccountNonce, seq),
+			fmt.Sprintf("invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq),
 		)
 	}
 
 	return next(ctx, tx, simulate)
 }
 
-// EthGasConsumeDecorator
+// EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
+// gas consumption.
 type EthGasConsumeDecorator struct {
 	ak auth.AccountKeeper
 	sk types.SupplyKeeper
@@ -292,14 +254,21 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) Eth
 	}
 }
 
+// AnteHandle validates that the Ethereum tx message has enough to cover intrinsic gas
+// (during CheckTx only) and that the sender has enough balance to pay for the gas cost.
+//
+// Intrinsic gas for a transaction is the amount of gas
+// that the transaction uses before the transaction is executed. The gas is a
+// constant value of 21000 plus any cost inccured by additional bytes of data
+// supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
 	// sender address should be in the tx cache
-	address := ethTxMsg.From()
+	address := msgEthTx.From()
 	if address == nil {
 		panic("sender address is nil")
 	}
@@ -314,11 +283,23 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdk.ErrInternal(fmt.Sprintf("sender account %s is nil", address))
 	}
 
-	gasLimit := ethTxMsg.GetGas()
+	gasLimit := msgEthTx.GetGas()
+	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, msgEthTx.To() == nil, true)
+	if err != nil {
+		return ctx, err
+	}
+
+	// intrinsic gas verification during CheckTx
+	if ctx.IsCheckTx() && gasLimit < gas {
+		return ctx, sdk.ErrInternal(
+			fmt.Sprintf("intrinsic gas too low: %d < %d", gasLimit, gas),
+		)
+	}
+
 	// Charge sender for gas up to limit
 	if gasLimit != 0 {
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(gasLimit))
+		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
@@ -332,12 +313,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-
-	gas, err := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
-	if err != nil {
-		return newCtx, err
-	}
-
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
 
 	return next(newCtx, tx, simulate)
@@ -366,18 +341,22 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 		return next(ctx, tx, simulate)
 	}
 
-	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
+	// get and set account must be called with an infinite gas meter in order to prevent
+	// additional gas from being deducted.
+	oldCtx := ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
 	// increment sequence of all signers
-	for _, addr := range ethTxMsg.GetSigners() {
-		acc := issd.ak.GetAccount(ctx, addr)
+	for _, addr := range msgEthTx.GetSigners() {
+		acc := issd.ak.GetAccount(oldCtx, addr)
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 			panic(err)
 		}
-		issd.ak.SetAccount(ctx, acc)
+		issd.ak.SetAccount(oldCtx, acc)
 	}
 
 	return next(ctx, tx, simulate)
