@@ -5,7 +5,9 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	emint "github.com/cosmos/ethermint/types"
@@ -14,6 +16,12 @@ import (
 	ethcore "github.com/ethereum/go-ethereum/core"
 )
 
+// EthSetupContextDecorator sets the infinite GasMeter in the Context and wraps
+// the next AnteHandler with a defer clause to recover from any downstream
+// OutOfGas panics in the AnteHandler chain to return an error with information
+// on gas provided and gas used.
+// CONTRACT: Must be first decorator in the chain
+// CONTRACT: Tx must implement GasTx interface
 type EthSetupContextDecorator struct{}
 
 // NewEthSetupContextDecorator creates a new EthSetupContextDecorator
@@ -21,14 +29,37 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 	return EthSetupContextDecorator{}
 }
 
-// AnteHandle verifies that enough fees have been provided by the
-// Ethereum transaction that meet the minimum threshold set by the block
-// proposer.
-//
-// NOTE: This should only be ran during a CheckTx mode.
+// AnteHandle sets the infinite gas meter to done to ignore costs in AnteHandler checks.
+// This is undone at the EthGasConsumeDecorator, where the context is set with the
+// ethereum tx GasLimit.
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	// This is done to ignore costs in Ante handler checks
 	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+
+	// all transactions must implement GasTx
+	gasTx, ok := tx.(authante.GasTx)
+	if !ok {
+		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
+	}
+
+	// Decorator will catch an OutOfGasPanic caused in the next antehandler
+	// AnteHandlers must have their own defer/recover in order for the BaseApp
+	// to know how much gas was used! This is because the GasMeter is created in
+	// the AnteHandler, but if it panics the context won't be set properly in
+	// runTx's recover call.
+	defer func() {
+		if r := recover(); r != nil {
+			switch rType := r.(type) {
+			case sdk.ErrorOutOfGas:
+				log := fmt.Sprintf(
+					"out of gas in location: %v; gasLimit: %d, gasUsed: %d",
+					rType.Descriptor, gasTx.GetGas(), ctx.GasMeter().GasConsumed(),
+				)
+				err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, log)
+			default:
+				panic(r)
+			}
+		}
+	}()
 
 	return next(ctx, tx, simulate)
 }
@@ -283,10 +314,11 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdk.ErrInternal(fmt.Sprintf("sender account %s is nil", address))
 	}
 
+	gasLimit := ethTxMsg.GetGas()
 	// Charge sender for gas up to limit
-	if ethTxMsg.Data.GasLimit != 0 {
+	if gasLimit != 0 {
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(ethTxMsg.Data.GasLimit))
+		cost := new(big.Int).Mul(ethTxMsg.Data.Price, new(big.Int).SetUint64(gasLimit))
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(cost)),
@@ -299,7 +331,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(simulate, ctx, ethTxMsg.Data.GasLimit)
+	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
 
 	gas, err := ethcore.IntrinsicGas(ethTxMsg.Data.Payload, ethTxMsg.To() == nil, true)
 	if err != nil {
@@ -311,7 +343,11 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	return next(newCtx, tx, simulate)
 }
 
-// IncrementSenderSequenceDecorator handles incrementing the sequence of the sender.
+// IncrementSenderSequenceDecorator increments the sequence of the signers. The
+// main difference with the SDK's IncrementSequenceDecorator is that the MsgEthereumTx
+// doesn't implement the SigVerifiableTx interface.
+//
+// CONTRACT: must be called after msg.VerifySig in order to cache the sender address.
 type IncrementSenderSequenceDecorator struct {
 	ak auth.AccountKeeper
 }
@@ -323,33 +359,26 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 	}
 }
 
+// AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	// no need to increment sequence on RecheckTx
+	if ctx.IsReCheckTx() && !simulate {
+		return next(ctx, tx, simulate)
+	}
+
 	ethTxMsg, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
 	}
 
-	// sender address should be in the tx cache
-	address := ethTxMsg.From()
-	if address == nil {
-		panic("sender address is nil")
+	// increment sequence of all signers
+	for _, addr := range ethTxMsg.GetSigners() {
+		acc := issd.ak.GetAccount(ctx, addr)
+		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+			panic(err)
+		}
+		issd.ak.SetAccount(ctx, acc)
 	}
-
-	// Fetch sender account from signature
-	senderAcc, err := auth.GetSignerAcc(ctx, issd.ak, address)
-	if err != nil {
-		return ctx, err
-	}
-
-	if senderAcc == nil {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("sender account %s is nil", address))
-	}
-
-	// Increment sequence of sender
-	if err := senderAcc.SetSequence(senderAcc.GetSequence() + 1); err != nil {
-		panic(err)
-	}
-	issd.ak.SetAccount(ctx, senderAcc)
 
 	return next(ctx, tx, simulate)
 }

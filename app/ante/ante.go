@@ -30,22 +30,6 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
-
-		// Recover and catch out of gas error
-		defer func() {
-			if r := recover(); r != nil {
-				switch rType := r.(type) {
-				case sdk.ErrorOutOfGas:
-					log := fmt.Sprintf("out of gas in location: %v; gasUsed: %d",
-						rType.Descriptor, ctx.GasMeter().GasConsumed(),
-					)
-					err = sdk.ErrOutOfGas(log)
-				default:
-					panic(r)
-				}
-			}
-		}()
-
 		var anteHandler sdk.AnteHandler
 		switch tx.(type) {
 		case auth.StdTx:
@@ -65,14 +49,14 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 
 		case evmtypes.MsgEthereumTx:
 			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(),
+				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
 				NewEthMempoolFeeDecorator(),
 				NewEthIntrinsicGasDecorator(),
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak),
 				NewNonceVerificationDecorator(ak),
 				NewEthGasConsumeDecorator(ak, sk),
-				NewIncrementSenderSequenceDecorator(ak),
+				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
 		default:
 			return ctx, sdk.ErrInternal(fmt.Sprintf("transaction type invalid: %T", tx))
