@@ -85,7 +85,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// fee = GP * GL
@@ -103,10 +103,9 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	// it is assumed that the minimum fees will only include the single valid denom
 	if !ctx.MinGasPrices().IsZero() && !allGTE {
 		// reject the transaction that does not meet the minimum fee
-		return ctx, sdk.ErrInsufficientFee(
-			fmt.Sprintf(
-				"insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices(),
-			),
+		return ctx, sdkerrors.Wrap(
+			sdkerrors.ErrInsufficientFee,
+			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices()),
 		)
 	}
 
@@ -125,20 +124,20 @@ func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
 func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// parse the chainID from a string to a base-10 integer
 	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return ctx, emint.ErrInvalidChainID(fmt.Sprintf("invalid chainID: %s", ctx.ChainID()))
+		return ctx, sdkerrors.Wrap(emint.ErrInvalidChainID(""), ctx.ChainID())
 	}
 
 	// validate sender/signature
 	// NOTE: signer is retrieved from the transaction on the next AnteDecorator
 	_, err = msgEthTx.VerifySig(chainID)
 	if err != nil {
-		return ctx, sdk.ErrUnauthorized(fmt.Sprintf("signature verification failed: %s", err))
+		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, fmt.Sprintf("signature verification failed"))
 	}
 
 	return next(ctx, msgEthTx, simulate)
@@ -164,7 +163,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// sender address should be in the tx cache
@@ -175,23 +174,23 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	acc := avd.ak.GetAccount(ctx, address)
 	if acc == nil {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("account %s is nil", address))
+		return ctx, fmt.Errorf("account %s is nil", address)
 	}
 
 	// on InitChain make sure account number == 0
 	if ctx.BlockHeight() == 0 && acc.GetAccountNumber() != 0 {
-		return ctx, sdk.ErrInternal(
-			fmt.Sprintf(
-				"invalid account number for height zero (got %d)", acc.GetAccountNumber(),
-			),
+		return ctx, sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidSequence,
+			"invalid account number for height zero (got %d)", acc.GetAccountNumber(),
 		)
 	}
 
 	// validate sender has enough funds
 	balance := acc.GetCoins().AmountOf(emint.DenomDefault)
 	if balance.BigInt().Cmp(msgEthTx.Cost()) < 0 {
-		return ctx, sdk.ErrInsufficientFunds(
-			fmt.Sprintf("insufficient funds: %s < %s", balance, msgEthTx.Cost()),
+		return ctx, sdkerrors.Wrapf(
+			sdkerrors.ErrInsufficientFunds,
+			"%s < %s%s", balance.String(), msgEthTx.Cost().String(), emint.DenomDefault,
 		)
 	}
 
@@ -215,7 +214,7 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecor
 func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// sender address should be in the tx cache
@@ -226,12 +225,13 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 
 	acc := nvd.ak.GetAccount(ctx, address)
 	if acc == nil {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("account %s is nil", address))
+		return ctx, fmt.Errorf("account %s is nil", address)
 	}
 
 	seq := acc.GetSequence()
 	if msgEthTx.Data.AccountNonce != seq {
-		return ctx, sdk.ErrInvalidSequence(
+		return ctx, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidSequence,
 			fmt.Sprintf("invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq),
 		)
 	}
@@ -264,7 +264,7 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) Eth
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// sender address should be in the tx cache
@@ -280,20 +280,18 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	if senderAcc == nil {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("sender account %s is nil", address))
+		return ctx, fmt.Errorf("sender account %s is nil", address)
 	}
 
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, msgEthTx.To() == nil, true)
 	if err != nil {
-		return ctx, err
+		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
 
 	// intrinsic gas verification during CheckTx
 	if ctx.IsCheckTx() && gasLimit < gas {
-		return ctx, sdk.ErrInternal(
-			fmt.Sprintf("intrinsic gas too low: %d < %d", gasLimit, gas),
-		)
+		return ctx, fmt.Errorf("intrinsic gas too low: %d < %d", gasLimit, gas)
 	}
 
 	// Charge sender for gas up to limit
@@ -347,7 +345,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return ctx, sdk.ErrInternal(fmt.Sprintf("invalid tx type %T", tx))
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	// increment sequence of all signers
