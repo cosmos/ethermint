@@ -177,7 +177,7 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    amt,
+		prev:    so.balance,
 	})
 
 	so.setBalance(amt)
@@ -370,7 +370,7 @@ func (so *stateObject) empty() bool {
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&
-			so.balance.IsZero() &&
+			(so.balance.BigInt() == nil || so.balance.IsZero()) &&
 			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 
