@@ -499,4 +499,23 @@ func TestEth_NewPendingTransactionFilter(t *testing.T) {
 	var code hexutil.Bytes
 	err = code.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
+	require.NotNil(t, code)
+
+	for i := 0; i < 5; i++ {
+		deployTestContractWithFunction(t)
+	}
+
+	time.Sleep(10 * time.Second)
+
+	// get filter changes
+	changesRes, err := call(t, "eth_getFilterChanges", []string{code.String()})
+	require.NoError(t, err)
+	require.NotNil(t, changesRes)
+
+	var txs []*hexutil.Bytes
+	err = json.Unmarshal(changesRes.Result, &txs)
+	require.NoError(t, err, string(changesRes.Result))
+
+	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
+
 }
