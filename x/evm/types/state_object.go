@@ -149,7 +149,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
-	if amt.IsZero() {
+	if amount == nil || amt.IsZero() {
 		if so.empty() {
 			so.touch()
 		}
@@ -164,7 +164,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
-	if amt.IsZero() {
+	if amount == nil || amt.IsZero() {
 		return
 	}
 	newBalance := so.balance.Sub(amt)
