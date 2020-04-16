@@ -128,12 +128,24 @@ func (f *Filter) pollForTransactions() error {
 		}
 
 		for _, tx := range txs {
-			f.hashes = append(f.hashes, tx.Hash)
+			if !contains(f.hashes, tx.Hash) {
+				f.hashes = append(f.hashes, tx.Hash)
+			}
 		}
 
 		<-time.After(1 * time.Second)
 
 	}
+}
+
+func contains(slice []common.Hash, item common.Hash) bool {
+	set := make(map[common.Hash]struct{}, len(slice))
+	for _, s := range slice {
+		set[s] = struct{}{}
+	}
+
+	_, ok := set[item]
+	return ok
 }
 
 // NewPendingTransactionFilter creates a new filter that notifies when a pending transaction arrives.
