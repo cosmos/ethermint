@@ -130,7 +130,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	// parse the chainID from a string to a base-10 integer
 	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		return ctx, sdkerrors.Wrap(emint.ErrInvalidChainID(""), ctx.ChainID())
+		return ctx, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
 
 	// validate sender/signature

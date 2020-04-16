@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -32,17 +32,17 @@ func NewAnteHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.AnteHandle
 		switch tx.(type) {
 		case auth.StdTx:
 			anteHandler = sdk.ChainAnteDecorators(
-				ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				ante.NewMempoolFeeDecorator(),
-				ante.NewValidateBasicDecorator(),
-				ante.NewValidateMemoDecorator(ak),
-				ante.NewConsumeGasForTxSizeDecorator(ak),
-				ante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				ante.NewValidateSigCountDecorator(ak),
-				ante.NewDeductFeeDecorator(ak, sk),
-				ante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				ante.NewSigVerificationDecorator(ak),
-				ante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+				authante.NewMempoolFeeDecorator(),
+				authante.NewValidateBasicDecorator(),
+				authante.NewValidateMemoDecorator(ak),
+				authante.NewConsumeGasForTxSizeDecorator(ak),
+				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+				authante.NewValidateSigCountDecorator(ak),
+				authante.NewDeductFeeDecorator(ak, sk),
+				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+				authante.NewSigVerificationDecorator(ak),
+				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 			)
 
 		case evmtypes.MsgEthereumTx:
