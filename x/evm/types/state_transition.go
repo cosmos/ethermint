@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -74,7 +75,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 
 	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
 	if gasPrice.IsNil() {
-		panic("gas price cannot be nil")
+		return nil, errors.New("gas price cannot be nil")
 	}
 
 	// Create context for evm

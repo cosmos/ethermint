@@ -17,4 +17,6 @@ func RegisterCodec(cdc *codec.Codec) {
 
 func init() {
 	RegisterCodec(ModuleCdc)
+	codec.RegisterCrypto(ModuleCdc)
+	ModuleCdc.Seal()
 }

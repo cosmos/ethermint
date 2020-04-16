@@ -23,7 +23,7 @@ func NewHandler(k Keeper) sdk.Handler {
 		case types.MsgEthermint:
 			return HandleMsgEthermint(ctx, k, msg)
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ethermint message type: %T", msg)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 	}
 }
