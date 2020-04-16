@@ -585,14 +585,18 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		emintAcc, ok := currAcc.(*emint.EthAccount)
-		if ok {
-			balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
-			if so.Balance() != balance.Amount.BigInt() || so.Nonce() != emintAcc.GetSequence() {
-				// If queried account's balance or nonce are invalid, update the account pointer
-				so.account = emintAcc
-			}
+		if !ok {
+			return
 		}
 
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+		if so.Balance() != balance.Amount.BigInt() && balance.IsValid() {
+			so.balance = balance.Amount
+		}
+
+		if so.Nonce() > emintAcc.GetSequence() {
+			so.account = emintAcc
+		}
 	}
 }
 
