@@ -671,7 +671,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, err
 	}
 
-	from, _ := ethTx.VerifySig(ethTx.ChainID())
+	from, err := ethTx.VerifySig(ethTx.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	// Set status codes based on tx result
 	var status hexutil.Uint
