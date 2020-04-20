@@ -16,5 +16,4 @@ matrix:
         - make test-race
     - name: Golang-ci Linter
       script:
-        - make update-tools
         - make lint

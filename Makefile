@@ -44,82 +44,12 @@ clean:
 	@rm -rf ./build ./vendor
 
 update-tools:
-	@echo "--> Updating vendor dependencies"
-	${GO_MOD} go get -u -v $(GOLINT) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
-	${GO_MOD} go get -u -v $(GOCILINT)
+	@echo "--> Installing golangci-lint..."
+	@wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s latest
 
 verify:
 	@echo "--> Verifying dependencies have not been modified"
 	${GO_MOD} go mod verify
-
-
-############################
-### Tools / Dependencies ###
-############################
-
-##########################################################
-### TODO: Move tool depedencies to a separate makefile ###
-##########################################################
-
-GOLINT = github.com/tendermint/lint/golint
-GOCILINT = github.com/golangci/golangci-lint/cmd/golangci-lint
-UNCONVERT = github.com/mdempsky/unconvert
-INEFFASSIGN = github.com/gordonklaus/ineffassign
-MISSPELL = github.com/client9/misspell/cmd/misspell
-ERRCHECK = github.com/kisielk/errcheck
-UNPARAM = mvdan.cc/unparam
-
-GOLINT_CHECK := $(shell command -v golint 2> /dev/null)
-GOCILINT_CHECK := $(shell command -v golangci-lint 2> /dev/null)
-UNCONVERT_CHECK := $(shell command -v unconvert 2> /dev/null)
-INEFFASSIGN_CHECK := $(shell command -v ineffassign 2> /dev/null)
-MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
-ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
-UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
-
-tools:
-ifdef GOLINT_CHECK
-	@echo "Golint is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing golint"
-	${GO_MOD} go get -v $(GOLINT)
-endif
-ifdef GOCILINT_CHECK
-	@echo "golangci-lint is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing golangci-lint"
-	${GO_MOD} go get -v $(GOCILINT)
-endif
-ifdef UNCONVERT_CHECK
-	@echo "Unconvert is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing unconvert"
-	${GO_MOD} go get -v $(UNCONVERT)
-endif
-ifdef INEFFASSIGN_CHECK
-	@echo "Ineffassign is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing ineffassign"
-	${GO_MOD} go get -v $(INEFFASSIGN)
-endif
-ifdef MISSPELL_CHECK
-	@echo "misspell is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing misspell"
-	${GO_MOD} go get -v $(MISSPELL)
-endif
-ifdef ERRCHECK_CHECK
-	@echo "errcheck is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing errcheck"
-	${GO_MOD} go get -v $(ERRCHECK)
-endif
-ifdef UNPARAM_CHECK
-	@echo "unparam is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing unparam"
-	${GO_MOD} go get -v $(UNPARAM)
-endif
 
 
 #######################
@@ -137,9 +67,9 @@ test-race:
 test-cli:
 	@echo "NO CLI TESTS"
 
-lint:
+lint: update-tools
 	@echo "--> Running golangci-lint..."
-	@${GO_MOD} golangci-lint run ./... -c .golangci.yml --deadline=5m
+	@golangci-lint run -c .golangci.yml --deadline=5m
 
 test-import:
 	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
