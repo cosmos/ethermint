@@ -69,7 +69,7 @@ test-cli:
 
 lint: update-tools
 	@echo "--> Running golangci-lint..."
-	@golangci-lint run -c .golangci.yml --deadline=5m
+	./bin/golangci-lint run -c .golangci.yml --deadline=5m
 
 test-import:
 	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
