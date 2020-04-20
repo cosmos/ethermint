@@ -116,6 +116,6 @@ func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.L
 	}
 
 	var logs []*ethtypes.Log
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, logs)
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &logs)
 	return logs, nil
 }

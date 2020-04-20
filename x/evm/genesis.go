@@ -51,7 +51,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			Address: addr,
 			Balance: k.GetBalance(ctx, addr),
 			Code:    k.GetCode(ctx, addr),
-			Storage: storage
+			Storage: storage,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
