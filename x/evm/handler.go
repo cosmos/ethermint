@@ -76,10 +76,7 @@ func HandleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) sdk
 	k.Bloom.Or(k.Bloom, returnData.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, txHash[:], returnData.Logs)
-	if err != nil {
-		return sdk.ResultFromError(err)
-	}
+	k.SetTransactionLogs(ctx, txHash[:], returnData.Logs)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -144,6 +141,12 @@ func HandleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) sdk.R
 	if err != nil {
 		return sdk.ResultFromError(err)
 	}
+
+	// update block bloom filter
+	k.Bloom.Or(k.Bloom, returnData.Bloom)
+
+	// update transaction logs in KVStore
+	k.SetTransactionLogs(ctx, txHash[:], returnData.Logs)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(

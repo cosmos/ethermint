@@ -86,7 +86,7 @@ func (suite *EvmTestSuite) TestHandler_Logs() {
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	err = suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, resultData.Logs, hash)
+	suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, hash, resultData.Logs)
 	suite.Require().NoError(err, "failed to set logs")
 
 	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)

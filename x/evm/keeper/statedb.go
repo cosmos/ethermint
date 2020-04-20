@@ -5,26 +5,12 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 )
-
-// ----------------------------------------------------------------------------
-// Genesis
-// ----------------------------------------------------------------------------
-
-// CreateGenesisAccount initializes an account and its balance, code, and storage
-func (k *Keeper) CreateGenesisAccount(ctx sdk.Context, account types.GenesisAccount) {
-	csdb := k.CommitStateDB.WithContext(ctx)
-	csdb.SetBalance(account.Address, account.Balance)
-	csdb.SetCode(account.Address, account.Code)
-	for _, key := range account.Storage {
-		csdb.SetState(account.Address, key, account.Storage[key])
-	}
-
-}
 
 // ----------------------------------------------------------------------------
 // Setters

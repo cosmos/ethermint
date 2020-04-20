@@ -7,10 +7,11 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"math/big"
@@ -90,33 +91,31 @@ func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, hei
 func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
-	if len(bz) == 0 {
+	bloom := store.Get(types.BloomKey(bz))
+	if len(bloom) == 0 {
 		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
 	}
 
-	bloom := store.Get(types.BloomKey(bz))
 	return ethtypes.BytesToBloom(bloom), nil
 }
 
 // SetTransactionLogs sets the transaction's logs in the KVStore
-func (k *Keeper) SetTransactionLogs(ctx sdk.Context, hash []byte, logs []*ethtypes.Log) error {
+func (k *Keeper) SetTransactionLogs(ctx sdk.Context, hash []byte, logs []*ethtypes.Log) {
 	store := ctx.KVStore(k.blockKey)
-	encLogs, err := types.EncodeLogs(logs)
-	if err != nil {
-		return err
-	}
-	store.Set(types.LogsKey(hash), encLogs)
 
-	return nil
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(logs)
+	store.Set(types.LogsKey(hash), bz)
 }
 
 // GetTransactionLogs gets the logs for a transaction from the KVStore
 func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.blockKey)
-	encLogs := store.Get(types.LogsKey(hash))
-	if len(encLogs) == 0 {
+	bz := store.Get(types.LogsKey(hash))
+	if len(bz) == 0 {
 		return nil, errors.New("cannot get transaction logs")
 	}
 
-	return types.DecodeLogs(encLogs)
+	var logs []*ethtypes.Log
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, logs)
+	return logs, nil
 }
