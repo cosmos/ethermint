@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.13.x
+
+cache:
+  directories:
+    - "$HOME/.cache/go-build"
+    - "$GOPATH/pkg/mod"
+
+matrix:
+  include:
+    - name: Tests
+      script:
+        - make test-unit
+        - make test-race
+    - name: Golang-ci Linter
+      script:
+        - make update-tools
+        - make lint
