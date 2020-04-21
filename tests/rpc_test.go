@@ -59,7 +59,7 @@ type Response struct {
 
 func TestMain(m *testing.M) {
 	if ETHERMINT_INTEGRATION_TEST_MODE != "stable" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test, ETHERMINT_INTEGRATION_TEST_MODE")
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test")
 		return
 	}
 
@@ -89,35 +89,31 @@ func call(t *testing.T, method string, params interface{}) (*Response, error) {
 	}
 
 	var rpcRes *Response
-	for i := 0; i < 10; i++ {
-		time.Sleep(1 * time.Second)
-		/* #nosec */
-		res, err := http.Post(ETHERMINT_NODE_HOST, "application/json", bytes.NewBuffer(req))
-		if err != nil {
-			t.Log("could not http.Post, ", "err", err)
-			continue
-		}
+	time.Sleep(1 * time.Second)
+	/* #nosec */
+	res, err := http.Post(ETHERMINT_NODE_HOST, "application/json", bytes.NewBuffer(req))
+	if err != nil {
+		t.Log("could not http.Post, ", "err", err)
+		return nil, err
+	}
 
-		decoder := json.NewDecoder(res.Body)
-		rpcRes = new(Response)
-		err = decoder.Decode(&rpcRes)
-		if err != nil {
-			t.Log("could not decoder.Decode, ", "err", err)
-			continue
-		}
+	decoder := json.NewDecoder(res.Body)
+	rpcRes = new(Response)
+	err = decoder.Decode(&rpcRes)
+	if err != nil {
+		t.Log("could not decoder.Decode, ", "err", err)
+		return nil, err
+	}
 
-		err = res.Body.Close()
-		if err != nil {
-			t.Log("could not Body.Close, ", "err", err)
-			continue
-		}
+	err = res.Body.Close()
+	if err != nil {
+		t.Log("could not Body.Close, ", "err", err)
+		return nil, err
+	}
 
-		if rpcRes.Error != nil {
-			t.Log("could not rpcRes.Error, ", "err", err)
-			return nil, errors.New(rpcRes.Error.Message)
-		}
-
-		return rpcRes, nil
+	if rpcRes.Error != nil {
+		t.Log("could not rpcRes.Error, ", "err", err)
+		return nil, errors.New(rpcRes.Error.Message)
 	}
 
 	return rpcRes, nil

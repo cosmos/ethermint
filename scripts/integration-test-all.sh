@@ -90,7 +90,7 @@ init_func() {
   "$PWD"/build/emintd gentx --name $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --home-client "$DATA_CLI_DIR$i"
   echo "prepare genesis: Collect genesis tx"
   "$PWD"/build/emintd collect-gentxs --home "$DATA_DIR$i"
-  echo "prepare genesis: Run this to ensure everything worked and that the genesis file is setup correctly"
+  echo "prepare genesis: Run validate-genesis to ensure everything worked and that the genesis file is setup correctly"
   "$PWD"/build/emintd validate-genesis --home "$DATA_DIR$i"
 }
 
