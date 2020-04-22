@@ -74,7 +74,7 @@ type (
 	}
 )
 
-func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -88,7 +88,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	return &stateObject{
 		stateDB:       db,
 		account:       ethermintAccount,
-		balance:       sdk.ZeroInt(),
+		balance:       balance,
 		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
@@ -354,9 +354,8 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newStateObject(db, so.account)
+	newStateObj := newStateObject(db, so.account, so.balance)
 
-	newStateObj.balance = so.balance
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()

@@ -746,7 +746,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, sdk.ZeroInt())
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -785,8 +785,10 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return nil
 	}
 
+	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), emint.DenomDefault)
+
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
+	so := newStateObject(csdb, acc, balance.Amount)
 	csdb.setStateObject(so)
 
 	return so
