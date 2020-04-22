@@ -77,7 +77,7 @@ func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) 
 func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
 	heightBz := sdk.Uint64ToBigEndian(uint64(height))
-	bz := store.Get(heightBz)
+	bz := store.Get(types.BloomKey(heightBz))
 	if len(bz) == 0 {
 		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
@@ -89,7 +89,7 @@ func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bl
 func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
 	store := ctx.KVStore(k.blockKey)
 	heightBz := sdk.Uint64ToBigEndian(uint64(height))
-	store.Set(heightBz, bloom.Bytes())
+	store.Set(types.BloomKey(heightBz), bloom.Bytes())
 }
 
 // SetTransactionLogs sets the transaction's logs in the KVStore
