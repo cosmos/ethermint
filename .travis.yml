@@ -13,7 +13,9 @@ matrix:
     - name: Tests
       script:
         - make test-unit
+        - make test-import
         - make test-race
-    - name: Golang-ci Linter
+    - name: Verify deps & Lint
       script:
+        - make verify build
         - make lint
