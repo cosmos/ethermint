@@ -220,20 +220,6 @@ func (msg MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
-// Protected returns whether the transaction is protected from replay protection.
-func (msg *MsgEthereumTx) Protected() bool {
-	return isProtectedV(msg.Data.V)
-}
-
-func isProtectedV(v *big.Int) bool {
-	if v.BitLen() <= 8 {
-		value := v.Uint64()
-		return value != 27 && value != 28
-	}
-	// anything not 27 or 28 is considered protected
-	return true
-}
-
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
 func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
