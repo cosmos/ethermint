@@ -188,6 +188,12 @@ func (msg MsgEthereumTx) ValidateBasic() error {
 	return nil
 }
 
+// To returns the recipient address of the transaction. It returns nil if the
+// transaction is a contract creation.
+func (msg MsgEthereumTx) To() *ethcmn.Address {
+	return msg.Data.Recipient
+}
+
 // GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
 func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
@@ -212,11 +218,6 @@ func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
 // to sign over. Use 'RLPSignBytes' instead.
 func (msg MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
-}
-
-// ChainID returns which chain id this transaction was signed for (if at all)
-func (msg *MsgEthereumTx) ChainID() *big.Int {
-	return deriveChainID(msg.Data.V)
 }
 
 // Protected returns whether the transaction is protected from replay protection.
@@ -254,7 +255,11 @@ func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 
 // DecodeRLP implements the rlp.Decoder interface.
 func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
-	_, size, _ := s.Kind()
+	_, size, err := s.Kind()
+	if err != nil {
+		// return error if stream is too large
+		return err
+	}
 
 	if err := s.Decode(&msg.Data); err != nil {
 		return err
@@ -262,12 +267,6 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 
 	msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
 	return nil
-}
-
-// To returns the recipient address of the transaction. It returns nil if the
-// transaction is a contract creation.
-func (msg MsgEthereumTx) To() *ethcmn.Address {
-	return msg.Data.Recipient
 }
 
 // Sign calculates a secp256k1 ECDSA signature and signs the transaction. It
@@ -339,9 +338,19 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	return sender, nil
 }
 
+// GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
+func (msg MsgEthereumTx) GetGas() uint64 {
+	return msg.Data.GasLimit
+}
+
 // Fee returns gasprice * gaslimit.
 func (msg MsgEthereumTx) Fee() *big.Int {
 	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
+}
+
+// ChainID returns which chain id this transaction was signed for (if at all)
+func (msg *MsgEthereumTx) ChainID() *big.Int {
+	return deriveChainID(msg.Data.V)
 }
 
 // Cost returns amount + gasprice * gaslimit.
@@ -349,24 +358,12 @@ func (msg MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
 	total.Add(total, msg.Data.Amount)
 	return total
-}
-
-// GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
-func (msg MsgEthereumTx) GetGas() uint64 {
-	return msg.Data.GasLimit
 }
 
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
 func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 	return msg.Data.V, msg.Data.R, msg.Data.S
-}
-
-// Cost returns amount + gasprice * gaslimit.
-func (msg MsgEthereumTx) Cost() *big.Int {
-	total := msg.Fee()
-	total.Add(total, msg.Data.Amount)
-	return total
 }
 
 // From loads the ethereum sender address from the sigcache and returns an
