@@ -149,7 +149,9 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
-	if amount == nil || amt.IsZero() {
+
+	// NOTE: this will panic if amount is nil
+	if amt.IsZero() {
 		if so.empty() {
 			so.touch()
 		}
