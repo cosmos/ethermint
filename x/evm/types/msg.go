@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/ethermint/types"
@@ -77,12 +78,12 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
 	if msg.Price.Sign() != 1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "price must be positive")
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price)
 	}
 
 	// Amount can be 0
 	if msg.Amount.Sign() == -1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount)
 	}
 
 	return nil
@@ -177,12 +178,12 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
 	if msg.Data.Price.Sign() != 1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Data.Price.String())
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Data.Price)
 	}
 
 	// Amount can be 0
 	if msg.Data.Amount.Sign() == -1 {
-		return sdkerrors.Wrap(types.ErrInvalidValue, "amount cannot be negative")
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Data.Amount)
 	}
 
 	return nil
@@ -196,10 +197,13 @@ func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
 // GetSigners returns the expected signers for an Ethereum transaction message.
 // For such a message, there should exist only a single 'signer'.
 //
-// NOTE: This method cannot be used as a chain ID is needed to recover the signer
-// from the signature. Use 'VerifySig' instead.
+// NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
-	panic("must use 'VerifySig' with a chain ID to get the signer")
+	sender := msg.From()
+	if sender.Empty() {
+		panic("must use 'VerifySig' with a chain ID to get the signer")
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // GetSignBytes returns the Amino bytes of an Ethereum transaction message used
@@ -265,18 +269,6 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 // transaction is a contract creation.
 func (msg MsgEthereumTx) To() *ethcmn.Address {
 	return msg.Data.Recipient
-}
-
-// Hash hashes the RLP encoding of a transaction.
-func (msg *MsgEthereumTx) Hash() ethcmn.Hash {
-	if hash := msg.hash.Load(); hash != nil {
-		return hash.(ethcmn.Hash)
-	}
-
-	v := rlpHash(msg)
-	msg.hash.Store(v)
-
-	return v
 }
 
 // Sign calculates a secp256k1 ECDSA signature and signs the transaction. It
@@ -360,10 +352,39 @@ func (msg MsgEthereumTx) Cost() *big.Int {
 	return total
 }
 
+// GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
+func (msg MsgEthereumTx) GetGas() uint64 {
+	return msg.Data.GasLimit
+}
+
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
 func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 	return msg.Data.V, msg.Data.R, msg.Data.S
+}
+
+// Cost returns amount + gasprice * gaslimit.
+func (msg MsgEthereumTx) Cost() *big.Int {
+	total := msg.Fee()
+	total.Add(total, msg.Data.Amount)
+	return total
+}
+
+// From loads the ethereum sender address from the sigcache and returns an
+// sdk.AccAddress from its bytes
+func (msg *MsgEthereumTx) From() sdk.AccAddress {
+	sc := msg.from.Load()
+	if sc == nil {
+		return nil
+	}
+
+	sigCache := sc.(sigCache)
+
+	if len(sigCache.from.Bytes()) == 0 {
+		return nil
+	}
+
+	return sdk.AccAddress(sigCache.from.Bytes())
 }
 
 // deriveChainID derives the chain id from the given v parameter
@@ -377,4 +398,67 @@ func deriveChainID(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
+}
+
+// ----------------------------------------------------------------------------
+// Auxiliary
+
+// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
+// MsgEthereumTx transactions.
+func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+	return func(txBytes []byte) (sdk.Tx, error) {
+		var tx sdk.Tx
+
+		if len(txBytes) == 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+		}
+
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
+		err := cdc.UnmarshalBinaryBare(txBytes, &tx)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		return tx, nil
+	}
+}
+
+// recoverEthSig recovers a signature according to the Ethereum specification and
+// returns the sender or an error.
+//
+// Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
+// nolint: gocritic
+func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
+	if Vb.BitLen() > 8 {
+		return ethcmn.Address{}, errors.New("invalid signature")
+	}
+
+	V := byte(Vb.Uint64() - 27)
+	if !ethcrypto.ValidateSignatureValues(V, R, S, true) {
+		return ethcmn.Address{}, errors.New("invalid signature")
+	}
+
+	// encode the signature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, 65)
+
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+
+	// recover the public key from the signature
+	pub, err := ethcrypto.Ecrecover(sigHash[:], sig)
+	if err != nil {
+		return ethcmn.Address{}, err
+	}
+
+	if len(pub) == 0 || pub[0] != 4 {
+		return ethcmn.Address{}, errors.New("invalid public key")
+	}
+
+	var addr ethcmn.Address
+	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
+
+	return addr, nil
 }

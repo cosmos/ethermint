@@ -8,11 +8,20 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
+
+	ethcdc "github.com/cosmos/ethermint/codec"
 )
+
+// NewDefaultGenesisState generates the default state for the application.
+func NewDefaultGenesisState() simapp.GenesisState {
+	cdc := ethcdc.MakeCodec(ModuleBasics)
+	return ModuleBasics.DefaultGenesis(cdc)
+}
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
 // file.

@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
+	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -41,18 +43,19 @@ import (
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
+	backend     Backend
 	key         emintcrypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
 	keybaseLock sync.Mutex
-	gasLimit    *int64
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext, nonceLock *AddrLocker,
+func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
 	key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
 
 	return &PublicEthAPI{
 		cliCtx:    cliCtx,
+		backend:   backend,
 		key:       key,
 		nonceLock: nonceLock,
 	}
@@ -138,14 +141,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 // BlockNumber returns the current block number.
 func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
-	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
-	if err != nil {
-		return hexutil.Uint64(0), err
-	}
-
-	var out types.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return hexutil.Uint64(out.Number), nil
+	return e.backend.BlockNumber()
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
@@ -235,7 +231,7 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 // GetCode returns the contract code at the given address and block number.
 func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/code/%s", types.ModuleName, address.Hex()), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +239,11 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 	var out types.QueryResCode
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Code, nil
+}
+
+// GetTxLogs returns the logs given a transaction hash.
+func (e *PublicEthAPI) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+	return e.backend.GetTxLogs(txHash)
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
@@ -303,8 +304,6 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// Broadcast transaction
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
-	// TODO: Remove res log
-	fmt.Println(res.RawLog)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -331,10 +330,8 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	}
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
-	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
-	// TODO: Remove res log
-	fmt.Println(res.RawLog)
+	res, err := e.cliCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -462,8 +459,8 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err = e.cliCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-		return nil, sdkerrors.Wrap(err, "failed to unmarshal SimulationResponse")
+	if err := jsonpb.Unmarshal(strings.NewReader(string(res)), &simResponse); err != nil {
+		return nil, err
 	}
 
 	return &simResponse, nil
@@ -486,76 +483,17 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 
 // GetBlockByHash returns the block identified by hash.
 func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var out types.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return e.getEthBlockByNumber(out.Number, fullTx)
+	return e.backend.GetBlockByHash(hash, fullTx)
 }
 
 // GetBlockByNumber returns the block identified by number.
 func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	value := blockNum.Int64()
-	return e.getEthBlockByNumber(value, fullTx)
-}
-
-func (e *PublicEthAPI) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {
-	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
-	var blkNumPtr *int64
-	if height != 0 {
-		blkNumPtr = &height
-	}
-
-	block, err := e.cliCtx.Client.Block(blkNumPtr)
-	if err != nil {
-		return nil, err
-	}
-	header := block.Block.Header
-
-	gasLimit, err := e.getGasLimit()
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		gasUsed      *big.Int
-		transactions []interface{}
-	)
-
-	if fullTx {
-		// Populate full transaction data
-		transactions, gasUsed, err = convertTransactionsToRPC(
-			e.cliCtx, block.Block.Txs, common.BytesToHash(header.Hash()), uint64(header.Height),
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// TODO: Gas used not saved and cannot be calculated by hashes
-		// Return slice of transaction hashes
-		transactions = make([]interface{}, len(block.Block.Txs))
-		for i, tx := range block.Block.Txs {
-			transactions[i] = common.BytesToHash(tx.Hash())
-		}
-	}
-
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
-	if err != nil {
-		return nil, err
-	}
-
-	var out types.QueryBloomFilter
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-
-	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
+	return e.backend.GetBlockByNumber(blockNum, fullTx)
 }
 
 func formatBlock(
 	header tmtypes.Header, size int, gasLimit int64,
-	gasUsed *big.Int, transactions []interface{}, bloom ethtypes.Bloom,
+	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
@@ -574,13 +512,13 @@ func formatBlock(
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
-		"transactions":     transactions,
+		"transactions":     transactions.([]common.Hash),
 		"uncles":           nil,
 	}
 }
 
-func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]interface{}, *big.Int, error) {
-	transactions := make([]interface{}, len(txs))
+func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
+	transactions := make([]common.Hash, len(txs))
 	gasUsed := big.NewInt(0)
 
 	for i, tx := range txs {
@@ -590,10 +528,11 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
-		transactions[i], err = newRPCTransaction(*ethTx, blockHash, &height, uint64(i))
+		tx, err := newRPCTransaction(*ethTx, common.BytesToHash(tx.Hash()), blockHash, &height, uint64(i))
 		if err != nil {
 			return nil, nil, err
 		}
+		transactions[i] = tx.Hash
 	}
 
 	return transactions, gasUsed, nil
@@ -619,9 +558,9 @@ type Transaction struct {
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
-	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
+	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	ethTx, ok := stdTx.(types.MsgEthereumTx)
@@ -633,7 +572,7 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, e
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx types.MsgEthereumTx, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
+func newRPCTransaction(tx types.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
 	from, err := tx.VerifySig(tx.ChainID())
 	if err != nil {
@@ -644,7 +583,7 @@ func newRPCTransaction(tx types.MsgEthereumTx, blockHash common.Hash, blockNumbe
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
 		GasPrice: (*hexutil.Big)(tx.Data.Price),
-		Hash:     tx.Hash(),
+		Hash:     txHash,
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
 		To:       tx.To(),
@@ -684,7 +623,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 	}
 
 	height := uint64(tx.Height)
-	return newRPCTransaction(*ethTx, blockHash, &height, uint64(tx.Index))
+	return newRPCTransaction(*ethTx, common.BytesToHash(tx.Tx.Hash()), blockHash, &height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -722,7 +661,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	}
 
 	height := uint64(header.Height)
-	return newRPCTransaction(*ethTx, common.BytesToHash(header.Hash()), &height, uint64(idx))
+	return newRPCTransaction(*ethTx, common.BytesToHash(txs[idx].Hash()), common.BytesToHash(header.Hash()), &height, uint64(idx))
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
@@ -746,7 +685,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, err
 	}
 
-	from, _ := ethTx.VerifySig(ethTx.ChainID())
+	from, err := ethTx.VerifySig(ethTx.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	// Set status codes based on tx result
 	var status hexutil.Uint
@@ -795,28 +737,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (e *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
-	pendingTxs, err := e.cliCtx.Client.UnconfirmedTxs(100)
-	if err != nil {
-		return nil, err
-	}
-
-	transactions := make([]*Transaction, 0, 100)
-	for _, tx := range pendingTxs.Txs {
-		ethTx, err := bytesToEthTx(e.cliCtx, tx)
-		if err != nil {
-			return nil, err
-		}
-
-		// * Should check signer and reference against accounts the node manages in future
-		rpcTx, err := newRPCTransaction(*ethTx, common.Hash{}, nil, 0)
-		if err != nil {
-			return nil, err
-		}
-
-		transactions = append(transactions, rpcTx)
-	}
-
-	return transactions, nil
+	return e.backend.PendingTransactions()
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
@@ -891,31 +812,6 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 	}, nil
 }
 
-// getGasLimit returns the gas limit per block set in genesis
-func (e *PublicEthAPI) getGasLimit() (int64, error) {
-	// Retrieve from gasLimit variable cache
-	if e.gasLimit != nil {
-		return *e.gasLimit, nil
-	}
-
-	// Query genesis block if hasn't been retrieved yet
-	genesis, err := e.cliCtx.Client.Genesis()
-	if err != nil {
-		return 0, err
-	}
-
-	// Save value to gasLimit cached value
-	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
-	if gasLimit == -1 {
-		// Sets gas limit to max uint32 to not error with javascript dev tooling
-		// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
-		// which errors certain javascript dev tooling which only supports up to 53 bits
-		gasLimit = int64(^uint32(0))
-	}
-	e.gasLimit = &gasLimit
-	return gasLimit, nil
-}
-
 // generateFromArgs populates tx message with args (used in RPC API)
 func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEthereumTx, error) {
 	var (
@@ -937,7 +833,10 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		_, nonce, err = authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx).GetAccountNumberSequence(from)
+		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
+		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+
+		_, nonce, err = accRet.GetAccountNumberSequence(from)
 		if err != nil {
 			return nil, err
 		}
@@ -957,11 +856,9 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 		input = *args.Data
 	}
 
-	if args.To == nil {
+	if args.To == nil && len(input) == 0 {
 		// Contract creation
-		if len(input) == 0 {
-			return nil, fmt.Errorf("contract creation without any data provided")
-		}
+		return nil, fmt.Errorf("contract creation without any data provided")
 	}
 
 	if args.Gas == nil {

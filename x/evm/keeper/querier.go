@@ -149,7 +149,7 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 
 	bloom, err := keeper.GetBlockBloomMapping(ctx, num)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get block bloom mapping: %w", err)
 	}
 
 	res := types.QueryBloomFilter{Bloom: bloom}

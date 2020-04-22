@@ -149,6 +149,9 @@ test-import:
 test-rpc:
 	@${GO_MOD} go test -v --vet=off ./rpc/tester
 
+it-tests:
+	./scripts/integration-test-all.sh -q 1 -z 1 -s 10
+
 godocs:
 	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
 	godoc -http=:6060
@@ -162,6 +165,7 @@ format:
 	@echo "--> Formatting go files"
 	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -w -s
 	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs misspell -w
+
 
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
@@ -183,10 +187,10 @@ proto-check-breaking:
 	@buf check breaking --against-input '.git#branch=development'
 
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.1
+TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL 		= https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+SDK_PROTO_URL 	 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
 
 TM_KV_TYPES         = third_party/proto/tendermint/libs/kv
 TM_MERKLE_TYPES     = third_party/proto/tendermint/crypto/merkle
@@ -205,17 +209,33 @@ proto-update-deps:
 	@mkdir -p $(COSMOS_PROTO_TYPES)
 	@curl -sSL $(COSMOS_PROTO_URL)/cosmos.proto > $(COSMOS_PROTO_TYPES)/cosmos.proto
 
+	@mkdir -p $(TM_ABCI_TYPES)
+	@curl -sSL $(TM_URL)/abci/types/types.proto > $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '8 s|crypto/merkle/merkle.proto|third_party/proto/tendermint/crypto/merkle/merkle.proto|g' $(TM_ABCI_TYPES)/types.proto
+	@sed -i '' '9 s|libs/kv/types.proto|third_party/proto/tendermint/libs/kv/types.proto|g' $(TM_ABCI_TYPES)/types.proto
+
+	@mkdir -p $(TM_KV_TYPES)
+	@curl -sSL $(TM_URL)/libs/kv/types.proto > $(TM_KV_TYPES)/types.proto
+
+	@mkdir -p $(TM_MERKLE_TYPES)
+	@curl -sSL $(TM_URL)/crypto/merkle/merkle.proto > $(TM_MERKLE_TYPES)/merkle.proto
+
 	@mkdir -p $(SDK_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/types/types.proto > $(SDK_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(AUTH_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/x/auth/types/types.proto > $(AUTH_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(AUTH_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(VESTING_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
+	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(SUPPLY_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
+	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
 
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	emint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -158,6 +159,22 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	}
 }
 
+// SetLogs sets the logs for a transaction in the KVStore.
+func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	enc, err := EncodeLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	if len(enc) == 0 {
+		return nil
+	}
+
+	store.Set(LogsKey(hash[:]), enc)
+	return nil
+}
+
 // AddLog adds a new log to the state and sets the log metadata from the state.
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	csdb.journal.append(addLogChange{txhash: csdb.thash})
@@ -289,7 +306,7 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 	return ethcmn.Hash{}
 }
 
-// GetLogs returns the current logs for a given hash in the state.
+// GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	if csdb.logs[hash] != nil {
 		return csdb.logs[hash], nil
@@ -299,18 +316,14 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 	encLogs := store.Get(LogsKey(hash[:]))
 	if len(encLogs) == 0 {
+		// return nil if logs are not found
 		return []*ethtypes.Log{}, nil
 	}
 
-	logs, err := DecodeLogs(encLogs)
-	if err != nil {
-		return []*ethtypes.Log{}, err
-	}
-
-	return logs, nil
+	return DecodeLogs(encLogs)
 }
 
-// Logs returns all the current logs in the state.
+// AllLogs returns all the current logs in the state.
 func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	// nolint: prealloc
 	var logs []*ethtypes.Log
@@ -452,10 +465,11 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	if so.balance == nil {
-		return nil
+	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
+	newBalance := sdk.Coin{Denom: emint.DenomDefault, Amount: sdk.NewIntFromBigInt(so.Balance())}
+	if !newBalance.IsValid() {
+		return fmt.Errorf("invalid balance %s", newBalance)
 	}
-	newBalance := sdk.NewCoin(emint.DenomDefault, sdk.NewIntFromBigInt(so.balance))
 	return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 }
 
@@ -575,14 +589,18 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		emintAcc, ok := currAcc.(*emint.EthAccount)
-		if ok {
-			balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
-			if so.Balance() != balance.Amount.BigInt() || so.Nonce() != emintAcc.GetSequence() {
-				// If queried account's balance or nonce are invalid, update the account pointer
-				so.account = emintAcc
-			}
+		if !ok {
+			return
 		}
 
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+		if so.Balance() != balance.Amount.BigInt() && balance.IsValid() {
+			so.balance = balance.Amount
+		}
+
+		if so.Nonce() != emintAcc.GetSequence() {
+			so.account = emintAcc
+		}
 	}
 }
 
@@ -732,7 +750,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, sdk.ZeroInt())
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -771,8 +789,10 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return nil
 	}
 
+	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), emint.DenomDefault)
+
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
+	so := newStateObject(csdb, acc, balance.Amount)
 	csdb.setStateObject(so)
 
 	return so

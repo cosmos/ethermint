@@ -198,7 +198,7 @@ func NewEthermintApp(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.EvmKeeper = evm.NewKeeper(
-		appCodec, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+		app.cdc, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
 		app.BankKeeper,
 	)
 

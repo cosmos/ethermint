@@ -37,14 +37,14 @@ func (c *Codec) MarshalAccount(accI authexported.Account) ([]byte, error) {
 		return nil, err
 	}
 
-	return c.Marshaler.MarshalBinaryLengthPrefixed(acc)
+	return c.Marshaler.MarshalBinaryBare(acc)
 }
 
 // UnmarshalAccount returns an Account interface from raw encoded account bytes
 // of a Proto-based Account type. An error is returned upon decoding failure.
 func (c *Codec) UnmarshalAccount(bz []byte) (authexported.Account, error) {
 	acc := &Account{}
-	if err := c.Marshaler.UnmarshalBinaryLengthPrefixed(bz, acc); err != nil {
+	if err := c.Marshaler.UnmarshalBinaryBare(bz, acc); err != nil {
 		return nil, err
 	}
 

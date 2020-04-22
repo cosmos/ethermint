@@ -19,7 +19,7 @@ message Account {
     cosmos_sdk.x.auth.vesting.v1.ContinuousVestingAccount continuous_vesting_account = 2;
     cosmos_sdk.x.auth.vesting.v1.DelayedVestingAccount    delayed_vesting_account    = 3;
     cosmos_sdk.x.auth.vesting.v1.PeriodicVestingAccount   periodic_vesting_account   = 4;
-    cosmos_sdk.x.supply.v1.ModuleAccount                  module_account  = 5;
-    ethermint.v1.EthAccount                               eth_account  = 6;
+    cosmos_sdk.x.supply.v1.ModuleAccount                  module_account             = 5;
+    ethermint.v1.EthAccount                               eth_account                = 6;
   }
 }

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -39,8 +40,6 @@ type ReturnData struct {
 // TransitionCSDB performs an evm state transition from a transaction
 // TODO: update godoc, it doesn't explain what it does in depth.
 func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
-	returnData := new(ReturnData)
-
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true)
@@ -74,6 +73,11 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
+	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
+	if gasPrice.IsNil() {
+		return nil, errors.New("gas price cannot be nil")
+	}
+
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
@@ -84,7 +88,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    ctx.MinGasPrices().AmountOf(emint.DenomDefault).BigInt(),
+		GasPrice:    gasPrice.BigInt(),
 	}
 
 	evm := vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
@@ -123,11 +127,13 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	bloomInt := big.NewInt(0)
 	var bloomFilter ethtypes.Bloom
 	var logs []*ethtypes.Log
+
 	if st.THash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.THash)
 		if err != nil {
 			return nil, err
 		}
+
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
@@ -138,6 +144,7 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 		Bloom:   bloomFilter,
 		Logs:    logs,
 		Ret:     ret,
+		TxHash:  *st.THash,
 	}
 
 	resultData, err := EncodeResultData(res)
@@ -170,8 +177,16 @@ func (st StateTransition) TransitionCSDB(ctx sdk.Context) (*ReturnData, error) {
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
-	returnData.Logs = logs
-	returnData.Bloom = bloomInt
-	returnData.Result = &sdk.Result{Data: resultData}
+	err = st.Csdb.SetLogs(*st.THash, logs)
+	if err != nil {
+		return nil, err
+	}
+
+	returnData := &ReturnData{
+		Logs:   logs,
+		Bloom:  bloomInt,
+		Result: &sdk.Result{Data: resultData},
+	}
+
 	return returnData, nil
 }
