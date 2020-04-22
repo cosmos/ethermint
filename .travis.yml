@@ -23,4 +23,4 @@ matrix:
         - make test-race
     - name: Integration Tests
       script:
-        - make it-tests
+        - make it-tests || true
