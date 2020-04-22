@@ -182,7 +182,7 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 		prev:    so.balance,
 	})
 
-	so.setBalance(amount)
+	so.setBalance(amt)
 }
 
 func (so *stateObject) setBalance(amount sdk.Int) {
@@ -266,7 +266,7 @@ func (so *stateObject) Balance() *big.Int {
 	if balance == nil {
 		return zeroBalance
 	}
-	return so.balance
+	return balance
 }
 
 // CodeHash returns the state object's code hash.
@@ -356,7 +356,6 @@ func (so *stateObject) ReturnGas(gas *big.Int) {}
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	newStateObj := newStateObject(db, so.account, so.balance)
 
-	newStateObj.balance = so.balance
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()

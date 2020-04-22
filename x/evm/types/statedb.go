@@ -637,7 +637,7 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		newobj.setBalance(prevobj.Balance())
+		newobj.setBalance(sdk.NewIntFromBigInt(prevobj.Balance()))
 	}
 }
 

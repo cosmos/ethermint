@@ -101,12 +101,14 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		var tx sdk.Tx
 
 		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "txBytes are empty")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
 		err := cdc.UnmarshalBinaryBare(txBytes, &tx)
 		if err != nil {
-			return nil, err
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		return tx, nil
@@ -117,7 +119,6 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 // returns the sender or an error.
 //
 // Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
-//
 // nolint: gocritic
 func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
 	if Vb.BitLen() > 8 {

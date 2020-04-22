@@ -12,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/utils"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -183,6 +184,60 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
+}
+
+func TestMsgEthereumTxAmino(t *testing.T) {
+	addr := GenerateEthAddress()
+	msg := NewMsgEthereumTx(5, &addr, big.NewInt(1), 100000, big.NewInt(3), []byte("test"))
+
+	msg.Data.V = big.NewInt(1)
+	msg.Data.R = big.NewInt(2)
+	msg.Data.S = big.NewInt(3)
+
+	raw, err := ModuleCdc.MarshalBinaryBare(msg)
+	require.NoError(t, err)
+
+	var msg2 MsgEthereumTx
+
+	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
+	require.NoError(t, err)
+	require.Equal(t, msg.Data, msg2.Data)
+}
+
+func TestMarshalAndUnmarshalInt(t *testing.T) {
+	i := big.NewInt(3)
+	m := utils.MarshalBigInt(i)
+	i2, err := utils.UnmarshalBigInt(m)
+	require.NoError(t, err)
+
+	require.Equal(t, i, i2)
+}
+
+func TestMarshalAndUnmarshalData(t *testing.T) {
+	addr := GenerateEthAddress()
+	hash := ethcmn.BigToHash(big.NewInt(2))
+	e := TxData{
+		AccountNonce: 2,
+		Price:        utils.MarshalBigInt(big.NewInt(3)),
+		GasLimit:     1,
+		Recipient:    &addr,
+		Amount:       utils.MarshalBigInt(big.NewInt(4)),
+		Payload:      []byte("test"),
+
+		V: utils.MarshalBigInt(big.NewInt(5)),
+		R: utils.MarshalBigInt(big.NewInt(6)),
+		S: utils.MarshalBigInt(big.NewInt(7)),
+
+		Hash: &hash,
+	}
+	str, err := marshalAmino(e)
+	require.NoError(t, err)
+
+	e2 := new(TxData)
+
+	err = unmarshalAmino(e2, str)
+	require.NoError(t, err)
+	require.Equal(t, e, *e2)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {

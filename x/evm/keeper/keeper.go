@@ -21,7 +21,7 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc codec.Marshaler
+	cdc *codec.Codec
 	// Store key required to update the block bloom filter mappings needed for the
 	// Web3 API
 	blockKey      sdk.StoreKey
