@@ -45,7 +45,7 @@ clean:
 
 update-tools:
 	@echo "--> Installing golangci-lint..."
-	@wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s latest
+	@wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b ./bin v1.23.8
 
 verify:
 	@echo "--> Verifying dependencies have not been modified"
