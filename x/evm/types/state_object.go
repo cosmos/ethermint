@@ -166,7 +166,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
-	if amount == nil || amt.IsZero() {
+	if amt.IsZero() {
 		return
 	}
 	newBalance := so.balance.Sub(amt)
