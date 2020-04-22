@@ -196,14 +196,18 @@ func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 
 // DecodeRLP implements the rlp.Decoder interface.
 func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
-	_, size, _ := s.Kind()
-
-	err := s.Decode(&msg.Data)
-	if err == nil {
-		msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
+	_, size, err := s.Kind()
+	if err != nil {
+		// return an error if the stream is too large
+		return err
 	}
 
-	return err
+	err = s.Decode(&msg.Data)
+	if err != nil {
+		return err
+	}
+	msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
+	return nil
 }
 
 // Hash hashes the RLP encoding of a transaction.
