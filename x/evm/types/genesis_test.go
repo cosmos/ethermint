@@ -12,13 +12,6 @@ func TestValidateGenesis(t *testing.T) {
 		genstate GenesisState
 		expPass  bool
 	}{
-		// {
-		// 	msg: "pass",
-		// 	genstate: GenesisState{
-		// 		Accounts: []GenesisAccount{{Address: ethcmn.Add}},
-		// 	},
-		// 	expPass: true,
-		// },
 		{
 			msg:      "pass with defaultState ",
 			genstate: DefaultGenesisState(),
