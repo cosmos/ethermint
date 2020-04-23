@@ -67,9 +67,9 @@ test-race:
 test-cli:
 	@echo "NO CLI TESTS"
 
-lint: update-tools
-	@echo "--> Running golangci-lint..."
-	./bin/golangci-lint run -c .golangci.yml --deadline=5m
+lint:
+	@echo "--> Running ci lint..."
+	GOBIN=$(PWD)/bin go run scripts/ci.go lint
 
 test-import:
 	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
