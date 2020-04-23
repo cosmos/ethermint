@@ -12,6 +12,7 @@ matrix:
   include:
     - name: Verify deps & Lint
       script:
+        - rm -rf $HOME/.cache/golangci-lint || true
         - make verify build
         - make lint
     - name: Unit Tests
