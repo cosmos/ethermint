@@ -41,13 +41,13 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis is the validation check of the Genesis
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	var data types.GenesisState
-	err := types.ModuleCdc.UnmarshalJSON(bz, &data)
+	var genesisState types.GenesisState
+	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
 	if err != nil {
 		return err
 	}
-	// Once json successfully marshalled, passes along to genesis.go
-	return types.ValidateGenesis(data)
+
+	return genesisState.Validate()
 }
 
 // RegisterRESTRoutes Registers rest routes
