@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -33,12 +32,12 @@ type Keeper struct {
 // NewKeeper generates new evm module keeper
 func NewKeeper(
 	cdc *codec.Codec, blockKey, codeKey, storeKey sdk.StoreKey,
-	ak types.AccountKeeper,
+	ak types.AccountKeeper, bk types.BankKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		blockKey:      blockKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, codeKey, storeKey, ak, bk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -49,25 +48,23 @@ func NewKeeper(
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockHashMapping sets the mapping from block consensus hash to block height
-func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
-	store := ctx.KVStore(k.blockKey)
-	if !bytes.Equal(hash, []byte{}) {
-		bz := sdk.Uint64ToBigEndian(uint64(height))
-		store.Set(hash, bz)
-	}
-}
-
 // GetBlockHashMapping gets block height from block consensus hash
-func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64) {
+func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error) {
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
-	if bytes.Equal(bz, []byte{}) {
-		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
+	if len(bz) == 0 {
+		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
 
-	height = int64(binary.BigEndian.Uint64(bz))
-	return height
+	height := binary.BigEndian.Uint64(bz)
+	return int64(height), nil
+}
+
+// SetBlockHashMapping sets the mapping from block consensus hash to block height
+func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
+	store := ctx.KVStore(k.blockKey)
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(hash, bz)
 }
 
 // ----------------------------------------------------------------------------
@@ -75,28 +72,23 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
+// GetBlockBloomMapping gets bloombits from block height
+func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	bz := store.Get(types.BloomKey(heightBz))
 	if len(bz) == 0 {
-		return fmt.Errorf("block with bloombits %v not found", bloom)
+		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
 
-	store.Set(types.BloomKey(bz), bloom.Bytes())
-	return nil
+	return ethtypes.BytesToBloom(bz), nil
 }
 
-// GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
+// SetBlockBloomMapping sets the mapping from block height to bloom bits
+func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
 	store := ctx.KVStore(k.blockKey)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
-	bloom := store.Get(types.BloomKey(bz))
-	if len(bloom) == 0 {
-		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
-	}
-
-	return ethtypes.BytesToBloom(bloom), nil
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(types.BloomKey(heightBz), bloom.Bytes())
 }
 
 // SetTransactionLogs sets the transaction's logs in the KVStore
