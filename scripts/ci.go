@@ -54,11 +54,11 @@ func lint() {
 		cmd.Args = append(cmd.Args, "-v")
 	}
 
-	fmt.Println("Lint Gossamer", strings.Join(cmd.Args, " \\\n"))
+	fmt.Println("Lint Ethermint", strings.Join(cmd.Args, " \\\n"))
 	cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
 
 	if err := cmd.Run(); err != nil {
-		log.Fatal("Error: Could not Lint Gossamer. ", "error: ", err, ", cmd: ", cmd)
+		log.Fatal("Error: Could not Lint Ethermint. ", "error: ", err, ", cmd: ", cmd)
 	}
 }
 
