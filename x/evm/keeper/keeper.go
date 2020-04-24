@@ -92,13 +92,11 @@ func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, heig
 }
 
 // SetTransactionLogs sets the transaction's logs in the KVStore
-func (k *Keeper) SetTransactionLogs(ctx sdk.Context, hash []byte, logs []*ethtypes.Log) {
+func (k *Keeper) SetTransactionLogs(ctx sdk.Context, hash []byte, logs []*ethtypes.Log) error {
 	store := ctx.KVStore(k.blockKey)
-	if logs == nil || len(logs) == 0 {
-		panic("cannot set empty or nil logs")
-	}
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(logs)
 	store.Set(types.LogsKey(hash), bz)
+	return nil
 }
 
 // GetTransactionLogs gets the logs for a transaction from the KVStore
