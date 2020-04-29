@@ -20,6 +20,9 @@ DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = emintd
 ETHERMINT_CLI_BINARY = emintcli
 GO_MOD=GO111MODULE=on
+BINDIR ?= $(GOPATH)/bin
+SIMAPP = github.com/cosmos/ethermint/app
+RUNSIM = $(BINDIR)/runsim
 
 all: tools verify install
 
@@ -44,12 +47,92 @@ clean:
 	@rm -rf ./build ./vendor
 
 update-tools:
-	@echo "--> Installing golangci-lint..."
-	@wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b ./bin v1.23.8
+	@echo "--> Updating vendor dependencies"
+	${GO_MOD} go get -u -v $(GOLINT) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
+	${GO_MOD} go get -u -v $(GOCILINT)
 
 verify:
 	@echo "--> Verifying dependencies have not been modified"
 	${GO_MOD} go mod verify
+
+
+############################
+### Tools / Dependencies ###
+############################
+
+##########################################################
+### TODO: Move tool depedencies to a separate makefile ###
+##########################################################
+
+GOLINT = github.com/tendermint/lint/golint
+GOCILINT = github.com/golangci/golangci-lint/cmd/golangci-lint
+UNCONVERT = github.com/mdempsky/unconvert
+INEFFASSIGN = github.com/gordonklaus/ineffassign
+MISSPELL = github.com/client9/misspell/cmd/misspell
+ERRCHECK = github.com/kisielk/errcheck
+UNPARAM = mvdan.cc/unparam
+
+GOLINT_CHECK := $(shell command -v golint 2> /dev/null)
+GOCILINT_CHECK := $(shell command -v golangci-lint 2> /dev/null)
+UNCONVERT_CHECK := $(shell command -v unconvert 2> /dev/null)
+INEFFASSIGN_CHECK := $(shell command -v ineffassign 2> /dev/null)
+MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
+ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
+UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
+
+
+# Install the runsim binary with a temporary workaround of entering an outside
+# directory as the "go get" command ignores the -mod option and will polute the
+# go.{mod, sum} files.
+#
+# ref: https://github.com/golang/go/issues/30515
+$(RUNSIM):
+	@echo "Installing runsim..."
+	@(cd /tmp && go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+
+tools: $(RUNSIM)
+ifdef GOLINT_CHECK
+	@echo "Golint is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing golint"
+	${GO_MOD} go get -v $(GOLINT)
+endif
+ifdef GOCILINT_CHECK
+	@echo "golangci-lint is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing golangci-lint"
+	${GO_MOD} go get -v $(GOCILINT)
+endif
+ifdef UNCONVERT_CHECK
+	@echo "Unconvert is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing unconvert"
+	${GO_MOD} go get -v $(UNCONVERT)
+endif
+ifdef INEFFASSIGN_CHECK
+	@echo "Ineffassign is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing ineffassign"
+	${GO_MOD} go get -v $(INEFFASSIGN)
+endif
+ifdef MISSPELL_CHECK
+	@echo "misspell is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing misspell"
+	${GO_MOD} go get -v $(MISSPELL)
+endif
+ifdef ERRCHECK_CHECK
+	@echo "errcheck is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing errcheck"
+	${GO_MOD} go get -v $(ERRCHECK)
+endif
+ifdef UNPARAM_CHECK
+	@echo "unparam is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing unparam"
+	${GO_MOD} go get -v $(UNPARAM)
+endif
 
 
 #######################
@@ -169,3 +252,42 @@ proto-update-deps:
 
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
+
+#######################
+### Simulations     ###
+#######################
+
+test-sim-nondeterminism:
+	@echo "Running non-determinism test..."
+	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
+
+test-sim-custom-genesis-fast:
+	@echo "Running custom genesis simulation..."
+	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.emintd/config/genesis.json \
+		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
+
+test-sim-import-export: runsim
+	@echo "Running Ethermint import/export simulation. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
+
+test-sim-after-import: runsim
+	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
+
+test-sim-custom-genesis-multi-seed: runsim
+	@echo "Running multi-seed custom genesis simulation..."
+	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.emintd/config/genesis.json 400 5 TestFullAppSimulation
+
+test-sim-multi-seed-long: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
+
+test-sim-multi-seed-short: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
+
+.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
+	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed \
