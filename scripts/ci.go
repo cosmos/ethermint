@@ -23,6 +23,8 @@ func main() {
 
 	if _, err := os.Stat(filepath.Join("scripts", "ci.go")); os.IsNotExist(err) {
 		log.Fatal("should run build from root dir")
+	} else if err != nil {
+		panic(err)
 	}
 	if len(os.Args) < 2 {
 		log.Fatal("cmd required, eg: install")
