@@ -156,7 +156,7 @@ lint:
 
 test-import:
 	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
-	--blockchain blockchain --timeout=5m
+	--blockchain blockchain --timeout=10m
 	# TODO: remove tmp directory after test run to avoid subsequent errors
 
 test-rpc:
