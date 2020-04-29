@@ -2,11 +2,12 @@ package evm_test
 
 import (
 	"fmt"
-	"github.com/status-im/keycard-go/hexutils"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/status-im/keycard-go/hexutils"
 
 	"github.com/stretchr/testify/suite"
 
