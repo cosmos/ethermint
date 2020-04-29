@@ -2,7 +2,9 @@ package evm_test
 
 import (
 	"fmt"
+	"github.com/status-im/keycard-go/hexutils"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -139,4 +141,117 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
 	resultData.Logs[0].Data = []byte{}
 	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
+}
+
+func (suite *EvmTestSuite) TestDeployAndCallContract() {
+	// Test contract:
+	//http://remix.ethereum.org/#optimize=false&evmVersion=istanbul&version=soljson-v0.5.15+commit.6a57276f.js
+	//2_Owner.sol
+	//
+	//pragma solidity >=0.4.22 <0.7.0;
+	//
+	///**
+	// * @title Owner
+	// * @dev Set & change owner
+	// */
+	//contract Owner {
+	//
+	//	address private owner;
+	//
+	//	// event for EVM logging
+	//	event OwnerSet(address indexed oldOwner, address indexed newOwner);
+	//
+	//	// modifier to check if caller is owner
+	//	modifier isOwner() {
+	//	// If the first argument of 'require' evaluates to 'false', execution terminates and all
+	//	// changes to the state and to Ether balances are reverted.
+	//	// This used to consume all gas in old EVM versions, but not anymore.
+	//	// It is often a good idea to use 'require' to check if functions are called correctly.
+	//	// As a second argument, you can also provide an explanation about what went wrong.
+	//	require(msg.sender == owner, "Caller is not owner");
+	//	_;
+	//}
+	//
+	//	/**
+	//	 * @dev Set contract deployer as owner
+	//	 */
+	//	constructor() public {
+	//	owner = msg.sender; // 'msg.sender' is sender of current call, contract deployer for a constructor
+	//	emit OwnerSet(address(0), owner);
+	//}
+	//
+	//	/**
+	//	 * @dev Change owner
+	//	 * @param newOwner address of new owner
+	//	 */
+	//	function changeOwner(address newOwner) public isOwner {
+	//	emit OwnerSet(owner, newOwner);
+	//	owner = newOwner;
+	//}
+	//
+	//	/**
+	//	 * @dev Return owner address
+	//	 * @return address of owner
+	//	 */
+	//	function getOwner() external view returns (address) {
+	//	return owner;
+	//}
+	//}
+	// ByteCode
+	//{
+	//	"linkReferences": {},
+	//	"object": "608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032",
+	//	"opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP CALLER PUSH1 0x0 DUP1 PUSH2 0x100 EXP DUP2 SLOAD DUP2 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF MUL NOT AND SWAP1 DUP4 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND MUL OR SWAP1 SSTORE POP PUSH1 0x0 DUP1 SWAP1 SLOAD SWAP1 PUSH2 0x100 EXP SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH1 0x0 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH32 0x342827C97908E5E2F71151C08502A66D44B6F758E3AC2F1DE95F02EB95F0A735 PUSH1 0x40 MLOAD PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 LOG3 PUSH2 0x2C4 DUP1 PUSH2 0xDC PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH2 0x53 JUMPI PUSH1 0x0 CALLDATALOAD PUSH29 0x100000000000000000000000000000000000000000000000000000000 SWAP1 DIV DUP1 PUSH4 0x893D20E8 EQ PUSH2 0x58 JUMPI DUP1 PUSH4 0xA6F9DAE1 EQ PUSH2 0xA2 JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH2 0x60 PUSH2 0xE6 JUMP JUMPDEST PUSH1 0x40 MLOAD DUP1 DUP3 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND DUP2 MSTORE PUSH1 0x20 ADD SWAP2 POP POP PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 RETURN JUMPDEST PUSH2 0xE4 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH2 0xB8 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 CALLDATALOAD PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP1 PUSH1 0x20 ADD SWAP1 SWAP3 SWAP2 SWAP1 POP POP POP PUSH2 0x10F JUMP JUMPDEST STOP JUMPDEST PUSH1 0x0 DUP1 PUSH1 0x0 SWAP1 SLOAD SWAP1 PUSH2 0x100 EXP SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP1 POP SWAP1 JUMP JUMPDEST PUSH1 0x0 DUP1 SWAP1 SLOAD SWAP1 PUSH2 0x100 EXP SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND CALLER PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND EQ PUSH2 0x1D1 JUMPI PUSH1 0x40 MLOAD PUSH32 0x8C379A000000000000000000000000000000000000000000000000000000000 DUP2 MSTORE PUSH1 0x4 ADD DUP1 DUP1 PUSH1 0x20 ADD DUP3 DUP2 SUB DUP3 MSTORE PUSH1 0x13 DUP2 MSTORE PUSH1 0x20 ADD DUP1 PUSH32 0x43616C6C6572206973206E6F74206F776E657200000000000000000000000000 DUP2 MSTORE POP PUSH1 0x20 ADD SWAP2 POP POP PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 REVERT JUMPDEST DUP1 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH1 0x0 DUP1 SWAP1 SLOAD SWAP1 PUSH2 0x100 EXP SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND PUSH32 0x342827C97908E5E2F71151C08502A66D44B6F758E3AC2F1DE95F02EB95F0A735 PUSH1 0x40 MLOAD PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 LOG3 DUP1 PUSH1 0x0 DUP1 PUSH2 0x100 EXP DUP2 SLOAD DUP2 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF MUL NOT AND SWAP1 DUP4 PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND MUL OR SWAP1 SSTORE POP POP JUMP INVALID LOG2 PUSH6 0x627A7A723158 KECCAK256 RETURN SWAP8 CALLCODE PUSH20 0x3A89198BC7FED0764083694C5B828791F39EBCBC SWAP15 COINBASE 0x4B 0xCC 0xEF EQ 0xB4 DUP1 PUSH5 0x736F6C6343 STOP SDIV LT STOP ORIGIN ",
+	//	"sourceMap": "85:1368:0:-;;;887:177;8:9:-1;5:2;;;30:1;27;20:12;5:2;887:177:0;926:10;918:5;;:18;;;;;;;;;;;;;;;;;;1051:5;;;;;;;;;;;1030:27;;1047:1;1030:27;;;;;;;;;;;;85:1368;;;;;;"
+	//}
+
+	// Deploy contract - Owner.sol
+	gasLimit := uint64(100000000)
+	gasPrice := big.NewInt(10000)
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err, "failed to create key")
+
+	bytecode := common.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
+	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx.Sign(big.NewInt(3), priv)
+	suite.Require().NoError(err)
+
+	result, err := suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err, "failed to handle eth tx msg")
+
+	resultData, err := types.DecodeResultData(result.Data)
+	suite.Require().NoError(err, "failed to decode result data")
+
+	// store - changeOwner
+	gasLimit = uint64(100000000000)
+	gasPrice = big.NewInt(100)
+	receiver := common.HexToAddress(resultData.Address.String())
+
+	storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
+	bytecode = common.FromHex(storeAddr)
+	tx = types.NewMsgEthereumTx(2, &receiver, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx.Sign(big.NewInt(3), priv)
+	suite.Require().NoError(err)
+
+	result, err = suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err, "failed to handle eth tx msg")
+
+	resultData, err = types.DecodeResultData(result.Data)
+	suite.Require().NoError(err, "failed to decode result data")
+
+	// query - getOwner
+	bytecode = common.FromHex("0x893d20e8")
+	tx = types.NewMsgEthereumTx(2, &receiver, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx.Sign(big.NewInt(3), priv)
+	suite.Require().NoError(err)
+
+	result, err = suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err, "failed to handle eth tx msg")
+
+	resultData, err = types.DecodeResultData(result.Data)
+	suite.Require().NoError(err, "failed to decode result data")
+
+	getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
+	suite.Require().Equal(true, strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
 }
