@@ -716,7 +716,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, err
 	}
 
-	fmt.Printf("%v", data)
+	fmt.Println(data.String())
 
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,

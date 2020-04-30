@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -58,6 +59,17 @@ type ResultData struct {
 	Logs    []*ethtypes.Log `json:"logs"`
 	Ret     []byte          `json:"ret"`
 	TxHash  ethcmn.Hash     `json:"tx_hash"`
+}
+
+// String implements fmt.Stringer interface.
+func (rd ResultData) String() string {
+	return strings.TrimSpace(fmt.Sprintf(`ResultData:
+	Address: %s
+	Bloom: %s
+	Logs: %v
+	Ret: %v
+	TxHash: %s
+`, rd.Address.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution
