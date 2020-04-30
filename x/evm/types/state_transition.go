@@ -29,7 +29,7 @@ type StateTransition struct {
 	Csdb     *CommitStateDB
 	TxHash   *common.Hash
 	Sender   common.Address
-	Simulate bool
+	Simulate bool // i.e CheckTx execution
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
