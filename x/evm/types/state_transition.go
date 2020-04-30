@@ -110,11 +110,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.BigInt())
 
 	var (
-		ret          []byte
-		leftOverGas  uint64
-		addr         common.Address
-		recipientLog string
-		senderRef    = vm.AccountRef(st.Sender)
+		ret             []byte
+		leftOverGas     uint64
+		contractAddress common.Address
+		recipientLog    string
+		senderRef       = vm.AccountRef(st.Sender)
 	)
 
 	// Get nonce of account outside of the EVM
@@ -125,8 +125,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	// create contract or execute call
 	switch contractCreation {
 	case true:
-		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", addr.String())
+		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
@@ -173,11 +173,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 
 	// Encode all necessary data into slice of bytes to return in sdk result
 	resultData := ResultData{
-		Address: addr,
-		Bloom:   bloomFilter,
-		Logs:    logs,
-		Ret:     ret,
-		TxHash:  *st.TxHash,
+		Bloom:  bloomFilter,
+		Logs:   logs,
+		Ret:    ret,
+		TxHash: *st.TxHash,
+	}
+
+	if contractCreation {
+		resultData.ContractAddress = contractAddress
 	}
 
 	resBz, err := EncodeResultData(resultData)

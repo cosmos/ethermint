@@ -54,22 +54,22 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
-	Address ethcmn.Address  `json:"address"`
-	Bloom   ethtypes.Bloom  `json:"bloom"`
-	Logs    []*ethtypes.Log `json:"logs"`
-	Ret     []byte          `json:"ret"`
-	TxHash  ethcmn.Hash     `json:"tx_hash"`
+	ContractAddress ethcmn.Address  `json:"address"`
+	Bloom           ethtypes.Bloom  `json:"bloom"`
+	Logs            []*ethtypes.Log `json:"logs"`
+	Ret             []byte          `json:"ret"`
+	TxHash          ethcmn.Hash     `json:"tx_hash"`
 }
 
 // String implements fmt.Stringer interface.
 func (rd ResultData) String() string {
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
-	Address: %s
+	ContractAddress: %s
 	Bloom: %s
 	Logs: %v
 	Ret: %v
 	TxHash: %s
-`, rd.Address.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
+`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution

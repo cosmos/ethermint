@@ -700,14 +700,6 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = hexutil.Uint(0)
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, hash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var logs types.QueryETHLogs
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
-
 	txData := tx.TxResult.GetData()
 	fmt.Println(tx.TxResult.GetLog())
 
@@ -718,23 +710,29 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 	fmt.Println(data.String())
 
+	// TODO: consider changing to geth's Receipt struct
 	fields := map[string]interface{}{
-		"blockHash":         blockHash,
-		"blockNumber":       hexutil.Uint64(tx.Height),
-		"transactionHash":   hash,
-		"transactionIndex":  hexutil.Uint64(tx.Index),
-		"from":              from,
-		"to":                ethTx.To(),
-		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
-		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil,
-		"logs":              logs.Logs,
-		"logsBloom":         data.Bloom,
+		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            status,
-	}
+		"cumulativeGasUsed": nil, // ignore until needed
+		"logsBloom":         data.Bloom,
+		"logs":              data.Logs,
 
-	if data.Address != (common.Address{}) {
-		fields["contractAddress"] = data.Address
+		// Implementation fields: These fields are added by geth when processing a transaction.
+		// They are stored in the chain database.
+		"transactionHash": hash,
+		"contractAddress": data.ContractAddress,
+		"gasUsed":         hexutil.Uint64(tx.TxResult.GasUsed),
+
+		// Inclusion information: These fields provide information about the inclusion of the
+		// transaction corresponding to this receipt.
+		"blockHash":        blockHash,
+		"blockNumber":      hexutil.Uint64(tx.Height),
+		"transactionIndex": hexutil.Uint64(tx.Index),
+
+		// ???
+		"from": from,
+		"to":   ethTx.To(),
 	}
 
 	return fields, nil
