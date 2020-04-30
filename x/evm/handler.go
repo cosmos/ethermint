@@ -79,7 +79,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		return nil, err
 	}
 
-	// log succesful execution
+	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -155,7 +155,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		return nil, err
 	}
 
-	// log succesful execution
+	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
