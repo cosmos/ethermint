@@ -13,7 +13,7 @@ func TestEvmDataEncoding(t *testing.T) {
 	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 	ret := []byte{0x5, 0x8}
 
-	data := &ResultData{
+	data := ResultData{
 		Address: addr,
 		Bloom:   bloom,
 		Logs: []*ethtypes.Log{{

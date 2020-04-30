@@ -301,12 +301,14 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 		return common.Hash{}, err
 	}
 
-	// Broadcast transaction
+	// Broadcast transaction in sync mode (default)
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
 	if err != nil {
 		return common.Hash{}, err
 	}
+
+	fmt.Println(res)
 
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
@@ -707,10 +709,14 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	txData := tx.TxResult.GetData()
+	fmt.Println(tx.TxResult.GetLog())
+
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("%v", data)
 
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,

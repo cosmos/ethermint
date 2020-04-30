@@ -126,12 +126,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	switch contractCreation {
 	case true:
 		ret, addr, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", addr)
+		recipientLog = fmt.Sprintf("contract address %s", addr.String())
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient)
+		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -172,7 +172,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := &ResultData{
+	resultData := ResultData{
 		Address: addr,
 		Bloom:   bloomFilter,
 		Logs:    logs,
@@ -186,7 +186,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	}
 
 	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.Sender, recipientLog,
+		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
 	executionResult := &ExecutionResult{
