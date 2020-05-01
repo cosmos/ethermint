@@ -33,7 +33,7 @@ const (
 
 var (
 	ETHERMINT_INTEGRATION_TEST_MODE = os.Getenv("ETHERMINT_INTEGRATION_TEST_MODE")
-	ETHERMINT_NODE_HOST             = os.Getenv("ETHERMINT_NODE_HOST")
+	ETHERMINT_NODE_HOST             = "http://localhost:8545" //os.Getenv("ETHERMINT_NODE_HOST")
 
 	zeroString = "0x0"
 )
@@ -57,21 +57,21 @@ type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
 }
 
-func TestMain(m *testing.M) {
-	if ETHERMINT_INTEGRATION_TEST_MODE != "stable" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test")
-		return
-	}
+// func TestMain(m *testing.M) {
+// 	if ETHERMINT_INTEGRATION_TEST_MODE != "stable" {
+// 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test")
+// 		return
+// 	}
 
-	if ETHERMINT_NODE_HOST == "" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test, ETHERMINT_NODE_HOST is not defined")
-		return
-	}
+// 	if ETHERMINT_NODE_HOST == "" {
+// 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test, ETHERMINT_NODE_HOST is not defined")
+// 		return
+// 	}
 
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
-}
+// 	// Start all tests
+// 	code := m.Run()
+// 	os.Exit(code)
+// }
 
 func createRequest(method string, params interface{}) Request {
 	return Request{
@@ -261,6 +261,34 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 	require.NotNil(t, err)
 }
 
+// sendTestTransaction sends a dummy transaction
+func sendTestTransaction(t *testing.T) hexutil.Bytes {
+	from := getAddress(t)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	rpcRes, err := call(t, "eth_sendTransaction", param)
+	require.NoError(t, err)
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+	return hash
+}
+
+func TestEth_GetTransactionReceipt(t *testing.T) {
+	hash := deployTestContract(t)
+
+	time.Sleep(time.Second * 5)
+
+	param := []string{hash.String()}
+	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
+	require.NoError(t, err)
+
+	t.Log(rpcRes.Result)
+	// TODO: why does this not return a receipt?
+}
+
 // deployTestContract deploys a contract that emits an event in the constructor
 func deployTestContract(t *testing.T) hexutil.Bytes {
 	from := getAddress(t)
@@ -268,7 +296,8 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+	param[0]["data"] = "0x60806040526000805534801561001457600080fd5b5060d2806100236000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80634f2be91f1460415780636deebae31460495780638ada066e146051575b600080fd5b6047606d565b005b604f6080565b005b60576094565b6040518082815260200191505060405180910390f35b6000808154809291906001019190505550565b600080815480929190600190039190505550565b6000805490509056fea265627a7a723158207b1aaa18c3100d8aa67f26a53f3cb83d2c69342d17327bd11e1b17c248957bfa64736f6c634300050c0032"
+	param[0]["gasLimit"] = "200000"
 
 	rpcRes, err := call(t, "eth_sendTransaction", param)
 	require.NoError(t, err)
@@ -280,10 +309,10 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 	return hash
 }
 
-func TestEth_GetTransactionReceipt(t *testing.T) {
+func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 	hash := deployTestContract(t)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 5)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)

@@ -665,7 +665,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
-func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
+func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (*ethtypes.Receipt, error) {
 	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found
@@ -679,23 +679,12 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	}
 	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
-	// Convert tx bytes to eth transaction
-	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
-	if err != nil {
-		return nil, err
-	}
-
-	from, err := ethTx.VerifySig(ethTx.ChainID())
-	if err != nil {
-		return nil, err
-	}
-
 	// Set status codes based on tx result
-	var status hexutil.Uint
+	var status uint64
 	if tx.TxResult.IsOK() {
-		status = hexutil.Uint(1)
+		status = 1
 	} else {
-		status = hexutil.Uint(0)
+		status = 0
 	}
 
 	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, hash.Hex()))
@@ -707,31 +696,34 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	txData := tx.TxResult.GetData()
+	fmt.Println(txData)
+
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
 		return nil, err
 	}
 
-	fields := map[string]interface{}{
-		"blockHash":         blockHash,
-		"blockNumber":       hexutil.Uint64(tx.Height),
-		"transactionHash":   hash,
-		"transactionIndex":  hexutil.Uint64(tx.Index),
-		"from":              from,
-		"to":                ethTx.To(),
-		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
-		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil,
-		"logs":              logs.Logs,
-		"logsBloom":         data.Bloom,
-		"status":            status,
+	fmt.Println(data)
+
+	receipt := &ethtypes.Receipt{
+		Status:            status,
+		CumulativeGasUsed: uint64(tx.TxResult.GasUsed),
+		Bloom:             data.Bloom,
+		Logs:              logs.Logs,
+		TxHash:            hash,
+		GasUsed:           uint64(tx.TxResult.GasUsed),
+		BlockHash:         blockHash,
+		BlockNumber:       big.NewInt(tx.Height),
+		TransactionIndex:  uint(tx.Index),
 	}
 
 	if data.Address != (common.Address{}) {
-		fields["contractAddress"] = data.Address
+		receipt.ContractAddress = data.Address
 	}
 
-	return fields, nil
+	fmt.Println(receipt)
+
+	return receipt, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
