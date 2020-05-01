@@ -707,7 +707,6 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
 
 	txData := tx.TxResult.GetData()
-	fmt.Println(txData)
 
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
