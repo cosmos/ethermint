@@ -34,7 +34,7 @@ const (
 
 var (
 	ETHERMINT_INTEGRATION_TEST_MODE = os.Getenv("ETHERMINT_INTEGRATION_TEST_MODE")
-	ETHERMINT_NODE_HOST             = "http://localhost:8545" //os.Getenv("ETHERMINT_NODE_HOST")
+	ETHERMINT_NODE_HOST             = os.Getenv("ETHERMINT_NODE_HOST")
 
 	zeroString = "0x0"
 )
@@ -58,21 +58,21 @@ type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
 }
 
-// func TestMain(m *testing.M) {
-// 	if ETHERMINT_INTEGRATION_TEST_MODE != "stable" {
-// 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test")
-// 		return
-// 	}
+func TestMain(m *testing.M) {
+	if ETHERMINT_INTEGRATION_TEST_MODE != "stable" {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test")
+		return
+	}
 
-// 	if ETHERMINT_NODE_HOST == "" {
-// 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test, ETHERMINT_NODE_HOST is not defined")
-// 		return
-// 	}
+	if ETHERMINT_NODE_HOST == "" {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stable test, ETHERMINT_NODE_HOST is not defined")
+		return
+	}
 
-// 	// Start all tests
-// 	code := m.Run()
-// 	os.Exit(code)
-// }
+	// Start all tests
+	code := m.Run()
+	os.Exit(code)
+}
 
 func createRequest(method string, params interface{}) Request {
 	return Request{
