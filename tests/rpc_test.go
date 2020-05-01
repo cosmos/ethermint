@@ -278,7 +278,7 @@ func sendTestTransaction(t *testing.T) hexutil.Bytes {
 }
 
 func TestEth_GetTransactionReceipt(t *testing.T) {
-	hash := deployTestContract(t)
+	hash := sendTestTransaction(t)
 
 	time.Sleep(time.Second * 5)
 
