@@ -710,7 +710,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (*ethtypes.Receip
 	receipt := &ethtypes.Receipt{
 		PostState:         postState[:],
 		Status:            status,
-		CumulativeGasUsed: uint64(tx.TxResult.GasUsed),
+		CumulativeGasUsed: uint64(tx.TxResult.GasUsed), // TODO: update this to include gasUsed from other txs
 		Bloom:             data.Bloom,
 		Logs:              []*ethtypes.Log{},
 		TxHash:            hash,

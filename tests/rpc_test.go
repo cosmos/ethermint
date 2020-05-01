@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cosmos/ethermint/version"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -324,6 +325,7 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 	err = receipt.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), receipt.Status)
+	require.NotEqual(t, common.Address{}, receipt.ContractAddress)
 	// TODO: assert logs exist
 }
 
