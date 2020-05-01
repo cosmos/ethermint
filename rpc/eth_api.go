@@ -703,13 +703,16 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (*ethtypes.Receip
 		return nil, err
 	}
 
-	fmt.Println(data)
+	fmt.Println(data.Logs)
+
+	postState := [32]byte{}
 
 	receipt := &ethtypes.Receipt{
+		PostState:         postState[:],
 		Status:            status,
 		CumulativeGasUsed: uint64(tx.TxResult.GasUsed),
 		Bloom:             data.Bloom,
-		Logs:              logs.Logs,
+		Logs:              []*ethtypes.Log{},
 		TxHash:            hash,
 		GasUsed:           uint64(tx.TxResult.GasUsed),
 		BlockHash:         blockHash,

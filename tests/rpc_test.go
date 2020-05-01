@@ -285,8 +285,10 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
 	require.NoError(t, err)
 
-	t.Log(rpcRes.Result)
-	// TODO: why does this not return a receipt?
+	receipt := new(ethtypes.Receipt)
+	err = receipt.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), receipt.Status)
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
@@ -297,7 +299,7 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["data"] = "0x60806040526000805534801561001457600080fd5b5060d2806100236000396000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80634f2be91f1460415780636deebae31460495780638ada066e146051575b600080fd5b6047606d565b005b604f6080565b005b60576094565b6040518082815260200191505060405180910390f35b6000808154809291906001019190505550565b600080815480929190600190039190505550565b6000805490509056fea265627a7a723158207b1aaa18c3100d8aa67f26a53f3cb83d2c69342d17327bd11e1b17c248957bfa64736f6c634300050c0032"
-	param[0]["gasLimit"] = "200000"
+	param[0]["gas"] = "0x200000"
 
 	rpcRes, err := call(t, "eth_sendTransaction", param)
 	require.NoError(t, err)
@@ -318,8 +320,11 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
 	require.NoError(t, err)
 
-	t.Log(rpcRes.Result)
-	// TODO: why does this not return a receipt?
+	receipt := new(ethtypes.Receipt)
+	err = receipt.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), receipt.Status)
+	// TODO: assert logs exist
 }
 
 func TestEth_GetTxLogs(t *testing.T) {
