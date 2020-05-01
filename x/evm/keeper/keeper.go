@@ -27,8 +27,11 @@ type Keeper struct {
 	// Web3 API
 	blockKey      sdk.StoreKey
 	CommitStateDB *types.CommitStateDB
-	TxCount       int
-	Bloom         *big.Int
+	// Transaction counter in a block. Used on StateSB's Prepare function.
+	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
+	// on the KVStore or adding it as a field on the EVM genesis state.
+	TxCount int
+	Bloom   *big.Int
 }
 
 // NewKeeper generates new evm module keeper

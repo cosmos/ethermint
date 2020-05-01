@@ -16,8 +16,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 		csdb := k.CommitStateDB.WithContext(ctx)
 		csdb.SetBalance(account.Address, account.Balance)
 		csdb.SetCode(account.Address, account.Code)
-		for _, key := range account.Storage {
-			csdb.SetState(account.Address, key, account.Storage[key])
+		for _, storage := range account.Storage {
+			csdb.SetState(account.Address, storage.Key, storage.Value)
 		}
 	}
 	return []abci.ValidatorUpdate{}
@@ -25,7 +25,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 
 // ExportGenesis exports genesis state
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
-	var ethGenAccounts []types.GenesisAccount
+	var ethGenAccounts []GenesisAccount
 
 	accounts := ak.GetAllAccounts(ctx)
 
@@ -38,16 +38,16 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := common.BytesToAddress(ethAccount.GetAddress().Bytes())
 
-		var storage emint.Storage
+		var storage []GenesisStorage
 		err = k.CommitStateDB.ForEachStorage(addr, func(key, value common.Hash) bool {
-			storage[key] = value
+			storage = append(storage, NewGenesisStorage(key, value))
 			return false
 		})
 		if err != nil {
 			panic(err)
 		}
 
-		genAccount := types.GenesisAccount{
+		genAccount := GenesisAccount{
 			Address: addr,
 			Balance: k.GetBalance(ctx, addr),
 			Code:    k.GetCode(ctx, addr),
