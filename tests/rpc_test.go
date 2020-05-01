@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/cosmos/ethermint/version"
-	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -286,10 +286,10 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
 	require.NoError(t, err)
 
-	receipt := new(ethtypes.Receipt)
-	err = receipt.UnmarshalJSON(rpcRes.Result)
+	receipt := make(map[string]interface{})
+	err = json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), receipt.Status)
+	require.Equal(t, "0x1", receipt["status"].(string))
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
@@ -321,11 +321,12 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 	rpcRes, err := call(t, "eth_getTransactionReceipt", param)
 	require.NoError(t, err)
 
-	receipt := new(ethtypes.Receipt)
-	err = receipt.UnmarshalJSON(rpcRes.Result)
+	receipt := make(map[string]interface{})
+	err = json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), receipt.Status)
-	require.NotEqual(t, common.Address{}, receipt.ContractAddress)
+	require.Equal(t, "0x1", receipt["status"].(string))
+
+	require.NotEqual(t, ethcmn.Address{}.String(), receipt["contractAddress"].(string))
 	// TODO: assert logs exist
 }
 
