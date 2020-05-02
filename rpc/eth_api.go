@@ -308,8 +308,6 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 		return common.Hash{}, err
 	}
 
-	fmt.Println(res)
-
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
 }
@@ -701,17 +699,14 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	}
 
 	txData := tx.TxResult.GetData()
-	fmt.Println(tx.TxResult.GetLog())
 
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
-		return nil, err
+		status = 0 // transaction failed
 	}
 
-	fmt.Println(data.String())
-
 	// TODO: consider changing to geth's Receipt struct
-	fields := map[string]interface{}{
+	receipt := map[string]interface{}{
 		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            status,
 		"cumulativeGasUsed": nil, // ignore until needed
@@ -735,7 +730,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"to":   ethTx.To(),
 	}
 
-	return fields, nil
+	return receipt, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
