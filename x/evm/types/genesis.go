@@ -43,7 +43,7 @@ func NewGenesisStorage(key, value ethcmn.Hash) GenesisStorage {
 	}
 }
 
-// DefaultGenesisState sets default evm genesis config
+// DefaultGenesisState sets default evm genesis state with empty accounts.
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Accounts: []GenesisAccount{},
