@@ -54,7 +54,7 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
-	ContractAddress ethcmn.Address  `json:"address"`
+	ContractAddress ethcmn.Address  `json:"contract_address"`
 	Bloom           ethtypes.Bloom  `json:"bloom"`
 	Logs            []*ethtypes.Log `json:"logs"`
 	Ret             []byte          `json:"ret"`

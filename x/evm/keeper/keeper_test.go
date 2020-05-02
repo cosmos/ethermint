@@ -63,10 +63,6 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 
 	logs = suite.app.EvmKeeper.AllLogs(suite.ctx)
 	suite.Require().Equal(expLogs, logs)
-
-	logs, err = suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
-	suite.Require().NoError(err)
-	suite.Require().Equal(expLogs, logs)
 }
 
 func (suite *KeeperTestSuite) TestDBStorage() {
