@@ -705,7 +705,6 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = 0 // transaction failed
 	}
 
-	// TODO: consider changing to geth's Receipt struct
 	receipt := map[string]interface{}{
 		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            status,
@@ -725,7 +724,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		"blockNumber":      hexutil.Uint64(tx.Height),
 		"transactionIndex": hexutil.Uint64(tx.Index),
 
-		// ???
+		// sender and receiver (contract or EOA) addreses
 		"from": from,
 		"to":   ethTx.To(),
 	}

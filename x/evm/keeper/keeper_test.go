@@ -46,13 +46,12 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) TestTransactionLogs() {
-	expLogs := []*ethtypes.Log{
-		&ethtypes.Log{
-			Address:     address,
-			Data:        []byte("log"),
-			BlockNumber: 10,
-		},
+	log := &ethtypes.Log{
+		Address:     address,
+		Data:        []byte("log"),
+		BlockNumber: 10,
 	}
+	expLogs := []*ethtypes.Log{log}
 
 	err := suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, expLogs, hash)
 	suite.Require().NoError(err)
