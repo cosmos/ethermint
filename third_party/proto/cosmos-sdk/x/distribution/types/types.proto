@@ -5,7 +5,7 @@ option go_package            = "github.com/cosmos/cosmos-sdk/x/distribution/type
 option (gogoproto.equal_all) = true;
 
 import "third_party/proto/gogoproto/gogo.proto";
-import "third_party/proto/cosmos-sdk/types/types.proto";
+import "types/types.proto";
 
 // msg struct for changing the withdraw address for a delegator (or validator self-delegation)
 message MsgSetWithdrawAddress {
@@ -155,8 +155,8 @@ message CommunityPoolSpendProposal {
   option (gogoproto.goproto_getters)  = false;
   string   title                      = 1;
   string   description                = 2;
-  bytes    recipient                  = 3 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-  repeated cosmos_sdk.v1.Coin amount  = 4 [
+  bytes    recipient = 3 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  repeated cosmos_sdk.v1.Coin amount = 4 [
     (gogoproto.nullable)     = false,
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"
   ];

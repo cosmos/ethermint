@@ -20,6 +20,9 @@ DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = emintd
 ETHERMINT_CLI_BINARY = emintcli
 GO_MOD=GO111MODULE=on
+BINDIR ?= $(GOPATH)/bin
+SIMAPP = github.com/cosmos/ethermint/app
+RUNSIM = $(BINDIR)/runsim
 
 all: tools verify install
 
@@ -77,7 +80,17 @@ MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
 
-tools:
+
+# Install the runsim binary with a temporary workaround of entering an outside
+# directory as the "go get" command ignores the -mod option and will polute the
+# go.{mod, sum} files.
+#
+# ref: https://github.com/golang/go/issues/30515
+$(RUNSIM):
+	@echo "Installing runsim..."
+	@(cd /tmp && go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+
+tools: $(RUNSIM)
 ifdef GOLINT_CHECK
 	@echo "Golint is already installed. Run 'make update-tools' to update."
 else
@@ -138,16 +151,19 @@ test-cli:
 	@echo "NO CLI TESTS"
 
 lint:
-	@echo "--> Running golangci-lint..."
-	@${GO_MOD} golangci-lint run ./... -c .golangci.yml --deadline=5m
+	@echo "--> Running ci lint..."
+	GOBIN=$(PWD)/bin go run scripts/ci.go lint
 
 test-import:
 	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
-	--blockchain blockchain --timeout=5m
+	--blockchain blockchain --timeout=10m
 	# TODO: remove tmp directory after test run to avoid subsequent errors
 
 test-rpc:
 	@${GO_MOD} go test -v --vet=off ./rpc/tester
+
+it-tests:
+	./scripts/integration-test-all.sh -q 1 -z 1 -s 10
 
 godocs:
 	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
@@ -163,6 +179,7 @@ format:
 	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -w -s
 	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs misspell -w
 
+
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
 
@@ -170,7 +187,7 @@ test-cli test-race test-unit test test-import
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-gen proto-lint
+proto-all: proto-gen proto-lint proto-check-breaking
 
 proto-gen:
 	@./scripts/protocgen.sh
@@ -183,7 +200,7 @@ proto-check-breaking:
 	@buf check breaking --against-input '.git#branch=development'
 
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.1
+TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 SDK_PROTO_URL		 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
@@ -231,9 +248,12 @@ proto-update-deps:
 
 	@mkdir -p $(AUTH_PROTO_TYPES)
 	@curl -sSL $(SDK_PROTO_URL)/x/auth/types/types.proto > $(AUTH_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(AUTH_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(VESTING_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
+	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(BANK_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/bank/types/types.proto > $(BANK_PROTO_TYPES)/types.proto
@@ -255,6 +275,47 @@ proto-update-deps:
 
 	@mkdir -p $(SUPPLY_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto
+	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
+	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
 
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
+
+#######################
+### Simulations     ###
+#######################
+
+test-sim-nondeterminism:
+	@echo "Running non-determinism test..."
+	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
+
+test-sim-custom-genesis-fast:
+	@echo "Running custom genesis simulation..."
+	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.emintd/config/genesis.json \
+		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
+
+test-sim-import-export: runsim
+	@echo "Running Ethermint import/export simulation. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
+
+test-sim-after-import: runsim
+	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
+
+test-sim-custom-genesis-multi-seed: runsim
+	@echo "Running multi-seed custom genesis simulation..."
+	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.emintd/config/genesis.json 400 5 TestFullAppSimulation
+
+test-sim-multi-seed-long: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
+
+test-sim-multi-seed-short: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
+
+.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
+	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed

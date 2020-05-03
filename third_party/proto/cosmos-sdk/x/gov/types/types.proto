@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cosmos_sdk.x.gov.v1;
 
-import "third_party/proto/cosmos-sdk/types/types.proto";
+import "types/types.proto";
 import "third_party/proto/gogoproto/gogo.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -86,8 +86,8 @@ message TextProposal {
 message Deposit {
   option (gogoproto.equal) = true;
 
-  uint64   proposal_id               = 1 [(gogoproto.customname) = "ProposalID", (gogoproto.moretags) = "yaml:\"proposal_id\""];
-  bytes    depositor                 = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  uint64   proposal_id = 1 [(gogoproto.customname) = "ProposalID", (gogoproto.moretags) = "yaml:\"proposal_id\""];
+  bytes    depositor   = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
   repeated cosmos_sdk.v1.Coin amount = 3
       [(gogoproto.nullable) = false, (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"];
 }
@@ -144,9 +144,9 @@ enum ProposalStatus {
 message TallyResult {
   option (gogoproto.equal) = true;
 
-  string yes          = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
-  string abstain      = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
-  string no           = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
+  string yes     = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
+  string abstain = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
+  string no      = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
   string no_with_veto = 4 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.nullable)   = false,

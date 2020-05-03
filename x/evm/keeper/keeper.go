@@ -1,10 +1,11 @@
 package keeper
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -45,30 +46,33 @@ func NewKeeper(
 	}
 }
 
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
 // ----------------------------------------------------------------------------
 // Block hash mapping functions
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockHashMapping sets the mapping from block consensus hash to block height
-func (k *Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
-	store := ctx.KVStore(k.blockKey)
-	if !bytes.Equal(hash, []byte{}) {
-		bz := sdk.Uint64ToBigEndian(uint64(height))
-		store.Set(hash, bz)
-	}
-}
-
 // GetBlockHashMapping gets block height from block consensus hash
-func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64) {
+func (k Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (int64, error) {
 	store := ctx.KVStore(k.blockKey)
 	bz := store.Get(hash)
-	if bytes.Equal(bz, []byte{}) {
-		panic(fmt.Errorf("block with hash %s not found", ethcmn.BytesToHash(hash)))
+	if len(bz) == 0 {
+		return 0, fmt.Errorf("block with hash '%s' not found", ethcmn.BytesToHash(hash))
 	}
 
-	height = int64(binary.BigEndian.Uint64(bz))
-	return height
+	height := binary.BigEndian.Uint64(bz)
+	return int64(height), nil
+}
+
+// SetBlockHashMapping sets the mapping from block consensus hash to block height
+func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) {
+	store := ctx.KVStore(k.blockKey)
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(hash, bz)
 }
 
 // ----------------------------------------------------------------------------
@@ -76,47 +80,38 @@ func (k *Keeper) GetBlockHashMapping(ctx sdk.Context, hash []byte) (height int64
 // May be removed when using only as module (only required by rpc api)
 // ----------------------------------------------------------------------------
 
-// SetBlockBloomMapping sets the mapping from block height to bloom bits
-func (k *Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) error {
-	store := ctx.KVStore(k.blockKey)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
-	if len(bz) == 0 {
-		return fmt.Errorf("block with bloombits %v not found", bloom)
-	}
-
-	store.Set(types.BloomKey(bz), bloom.Bytes())
-	return nil
-}
-
 // GetBlockBloomMapping gets bloombits from block height
-func (k *Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
+func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
 	store := ctx.KVStore(k.blockKey)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	bz := store.Get(types.BloomKey(heightBz))
 	if len(bz) == 0 {
-		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with height %d not found", height)
+		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
 	}
 
-	bloom := store.Get(types.BloomKey(bz))
-	if len(bloom) == 0 {
-		return ethtypes.BytesToBloom([]byte{}), fmt.Errorf("block with bloombits %v not found", bloom)
-	}
-
-	return ethtypes.BytesToBloom(bloom), nil
+	return ethtypes.BytesToBloom(bz), nil
 }
 
-// SetBlockLogs sets the transaction's logs in the KVStore
+// SetBlockBloomMapping sets the mapping from block height to bloom bits
+func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
+	store := ctx.KVStore(k.blockKey)
+	heightBz := sdk.Uint64ToBigEndian(uint64(height))
+	store.Set(types.BloomKey(heightBz), bloom.Bytes())
+}
+
+// SetTransactionLogs sets the transaction's logs in the KVStore
 func (k *Keeper) SetTransactionLogs(ctx sdk.Context, logs []*ethtypes.Log, hash []byte) error {
 	store := ctx.KVStore(k.blockKey)
 	encLogs, err := types.EncodeLogs(logs)
 	if err != nil {
 		return err
 	}
-	store.Set(types.LogsKey(hash), encLogs)
 
+	store.Set(types.LogsKey(hash), encLogs)
 	return nil
 }
 
-// GetBlockLogs gets the logs for a transaction from the KVStore
+// GetTransactionLogs gets the logs for a transaction from the KVStore
 func (k *Keeper) GetTransactionLogs(ctx sdk.Context, hash []byte) ([]*ethtypes.Log, error) {
 	store := ctx.KVStore(k.blockKey)
 	encLogs := store.Get(types.LogsKey(hash))
@@ -139,7 +134,6 @@ func (k *Keeper) CreateGenesisAccount(ctx sdk.Context, account types.GenesisAcco
 	for _, key := range account.Storage {
 		csdb.SetState(account.Address, key, account.Storage[key])
 	}
-
 }
 
 // ----------------------------------------------------------------------------
@@ -247,12 +241,7 @@ func (k *Keeper) GetCommittedState(ctx sdk.Context, addr ethcmn.Address, hash et
 
 // GetLogs calls CommitStateDB.GetLogs using the passed in context
 func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	logs, err := k.CommitStateDB.WithContext(ctx).GetLogs(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return logs, nil
+	return k.CommitStateDB.WithContext(ctx).GetLogs(hash)
 }
 
 // AllLogs calls CommitStateDB.AllLogs using the passed in context
@@ -297,10 +286,7 @@ func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) error {
 // IntermediateRoot calls CommitStateDB.IntermediateRoot using the passed in context
 func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) error {
 	_, err := k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // ----------------------------------------------------------------------------

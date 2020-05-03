@@ -20,6 +20,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 )
@@ -35,15 +37,15 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	evmTxCmd.AddCommand(flags.PostCommands(
-		GetCmdGenTx(cdc),
+		GetCmdSendTx(cdc),
 		GetCmdGenCreateTx(cdc),
 	)...)
 
 	return evmTxCmd
 }
 
-// GetCmdGenTx generates an Emint transaction (excludes create operations)
-func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
+// GetCmdSendTx generates an Ethermint transaction (excludes create operations)
+func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "send [to_address] [amount (in photons)] [<data>]",
 		Short: "send transaction to address (call operations included)",
@@ -80,6 +82,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
+			authclient.Codec = ethermintcodec.NewAppCodec(cdc)
 			_, seq, err := authtypes.NewAccountRetriever(authclient.Codec, cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
@@ -99,7 +102,7 @@ func GetCmdGenTx(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// GetCmdGenTx generates an Emint transaction (excludes create operations)
+// GetCmdGenCreateTx generates an Ethermint transaction (excludes create operations)
 func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "create [contract bytecode] [<amount (in photons)>]",
@@ -132,6 +135,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
+			authclient.Codec = ethermintcodec.NewAppCodec(cdc)
 			_, seq, err := authtypes.NewAccountRetriever(authclient.Codec, cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
