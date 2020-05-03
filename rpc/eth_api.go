@@ -439,7 +439,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Create new call message
-	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := types.NewMsgEthermint(0, toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
@@ -579,18 +579,20 @@ func newRPCTransaction(tx types.MsgEthereumTx, txHash, blockHash common.Hash, bl
 		return nil, err
 	}
 
+	v, r, s := tx.RawSignatureValues()
+
 	result := Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
-		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		GasPrice: (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Price)),
 		Hash:     txHash,
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
 		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Data.Amount),
-		V:        (*hexutil.Big)(tx.Data.V),
-		R:        (*hexutil.Big)(tx.Data.R),
-		S:        (*hexutil.Big)(tx.Data.S),
+		Value:    (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Amount)),
+		V:        (*hexutil.Big)(v),
+		R:        (*hexutil.Big)(r),
+		S:        (*hexutil.Big)(s),
 	}
 
 	if blockHash != (common.Hash{}) {

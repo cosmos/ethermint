@@ -24,7 +24,7 @@ func TestMsgEthermint(t *testing.T) {
 	addr := newSdkAddress()
 	fromAddr := newSdkAddress()
 
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
+	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 	require.NotNil(t, msg)
 	require.Equal(t, msg.Recipient, &addr)
 
@@ -35,7 +35,7 @@ func TestMsgEthermint(t *testing.T) {
 func TestMsgEthermintValidation(t *testing.T) {
 	testCases := []struct {
 		nonce      uint64
-		to         *sdk.AccAddress
+		to         sdk.AccAddress
 		amount     sdk.Int
 		gasLimit   uint64
 		gasPrice   sdk.Int
@@ -64,9 +64,9 @@ func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
 	addr := newSdkAddress()
 	fromAddr := newSdkAddress()
 
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
+	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 
-	raw, err := ModuleCdc.MarshalBinaryBare(msg)
+	raw, err := ModuleCdc.MarshalBinaryBare(&msg)
 	require.NoError(t, err)
 
 	var msg2 MsgEthermint
@@ -92,7 +92,7 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, *msg.Data.Recipient, addr)
+	require.Equal(t, msg.Data.Recipient, addr)
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())

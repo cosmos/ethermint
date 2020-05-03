@@ -88,8 +88,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
 
-			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
+			msg := types.NewMsgEthermint(seq, toAddr, sdk.NewInt(amount), txBldr.Gas(),
 				sdk.NewInt(emint.DefaultGasPrice), data, from)
 
 			err = msg.ValidateBasic()

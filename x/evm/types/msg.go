@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"sync/atomic"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -36,15 +35,15 @@ const (
 
 // NewMsgEthermint returns a reference to a new Ethermint transaction
 func NewMsgEthermint(
-	nonce uint64, to *sdk.AccAddress, amount sdk.Int,
+	nonce uint64, to sdk.AccAddress, amount sdk.Int,
 	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
 ) MsgEthermint {
 	return MsgEthermint{
 		AccountNonce: nonce,
-		Price:        gasPrice,
+		Price:        sdk.IntProto{Int: gasPrice},
 		GasLimit:     gasLimit,
 		Recipient:    to,
-		Amount:       amount,
+		Amount:       sdk.IntProto{Int: amount},
 		Payload:      payload,
 		From:         from,
 	}
@@ -63,13 +62,14 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.Sign() != 1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price)
+
+	if msg.Price.Int.Sign() != 1 {
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price.Int)
 	}
 
 	// Amount can be 0
-	if msg.Amount.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount)
+	if msg.Amount.Int.Sign() == -1 {
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount.Int)
 	}
 
 	return nil
@@ -89,15 +89,6 @@ func (msg MsgEthermint) To() *ethcmn.Address {
 
 	addr := ethcmn.BytesToAddress(msg.Recipient.Bytes())
 	return &addr
-}
-
-// MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
-type MsgEthereumTx struct {
-	Data TxData
-
-	// caches
-	size atomic.Value
-	from atomic.Value
 }
 
 // sigCache is used to cache the derived sender and contains the signer used
@@ -341,14 +332,14 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 // Cost returns amount + gasprice * gaslimit.
 func (msg MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
-	total.Add(total, msg.Data.Amount)
+	total.Add(total, new(big.Int).SetBytes(msg.Data.Amount))
 	return total
 }
 
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
 func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
-	return msg.Data.V, msg.Data.R, msg.Data.S
+	return new(big.Int).SetBytes(msg.Data.V), new(big.Int).SetBytes(msg.Data.R), new(big.Int).SetBytes(msg.Data.S)
 }
 
 // From loads the ethereum sender address from the sigcache and returns an
