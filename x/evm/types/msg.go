@@ -62,7 +62,6 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
-
 	if msg.Price.Int.Sign() != 1 {
 		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price.Int)
 	}
@@ -135,10 +134,10 @@ func newMsgEthereumTx(
 	}
 
 	if amount != nil {
-		txData.Amount = new(big.Int).Set(amount).Bytes()
+		txData.Amount = amount.Bytes()
 	}
 	if gasPrice != nil {
-		txData.Price = new(big.Int).Set(gasPrice).Bytes()
+		txData.Price = gasPrice.Bytes()
 	}
 
 	return MsgEthereumTx{Data: txData}
@@ -233,7 +232,7 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	msg.size.Store(ethcmn.StorageSize(rlp.ListSize(size)))
+	msg.size = float64(ethcmn.StorageSize(rlp.ListSize(size)))
 	return nil
 }
 
@@ -286,8 +285,9 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	if msg.from != nil {
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
-		// TODO: signer bytes -> Signer
-		if signer.Equal(msg.from.Getsigner()) {
+		fromSigner := ethtypes.NewEIP155Signer(new(big.Int).SetBytes(msg.from.signer.chainId))
+
+		if signer.Equal(fromSigner) {
 			return ethcmn.BytesToAddress(msg.from.Getfrom()), nil
 		}
 	}
@@ -308,7 +308,13 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 		return ethcmn.Address{}, err
 	}
 
-	msg.from = &SigCache{signer: signer, from: sender.Bytes()}
+	msg.from = &SigCache{
+		signer: &EIP155Signer{
+			chainId:    chainID.Bytes(),
+			chainIdMul: new(big.Int).Mul(chainID, big.NewInt(2)).Bytes(),
+		},
+		from: sender.Bytes(),
+	}
 	return sender, nil
 }
 
@@ -345,18 +351,15 @@ func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 // From loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
 func (msg *MsgEthereumTx) From() sdk.AccAddress {
-	sc := msg.from.Load()
-	if sc == nil {
+	if msg.from == nil {
 		return nil
 	}
 
-	sigCache := sc.(sigCache)
-
-	if len(sigCache.from.Bytes()) == 0 {
+	if len(msg.from.Getfrom()) == 0 {
 		return nil
 	}
 
-	return sdk.AccAddress(sigCache.from.Bytes())
+	return sdk.AccAddress(msg.from.Getfrom())
 }
 
 // deriveChainID derives the chain id from the given v parameter

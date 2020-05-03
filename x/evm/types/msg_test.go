@@ -75,9 +75,9 @@ func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
 
 	require.Equal(t, msg.AccountNonce, msg2.AccountNonce)
 	require.Equal(t, msg.Recipient, msg2.Recipient)
-	require.Equal(t, msg.Amount, msg2.Amount)
+	require.Equal(t, msg.Amount.Int, msg2.Amount.Int)
 	require.Equal(t, msg.GasLimit, msg2.GasLimit)
-	require.Equal(t, msg.Price, msg2.Price)
+	require.Equal(t, msg.Price.Int, msg2.Price.Int)
 	require.Equal(t, msg.Payload, msg2.Payload)
 	require.Equal(t, msg.From, msg2.From)
 }
@@ -92,17 +92,15 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, msg.Data.Recipient, addr)
+	require.Equal(t, msg.To(), addr)
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
-	require.NotNil(t, msg.To())
 	require.Equal(t, msg.GetMsgs(), []sdk.Msg{msg})
 	require.Panics(t, func() { msg.GetSigners() })
 	require.Panics(t, func() { msg.GetSignBytes() })
 
 	msg = NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Nil(t, msg.Data.Recipient)
 	require.Nil(t, msg.To())
 }
 

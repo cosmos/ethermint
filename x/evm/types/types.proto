@@ -14,13 +14,10 @@ message MsgEthereumTx {
     (gogoproto.nullable) = false
   ];
   // caches
-  bytes hash = 2 [
-    (gogoproto.customname) = "hash"
-  ];
-  double size = 3 [
+  double size = 2 [
     (gogoproto.customname) = "size"
   ];
-  SigCache from = 4 [
+  SigCache from = 3 [
     (gogoproto.customname) = "from"
   ];
 }
@@ -59,11 +56,21 @@ message TxData {
 // SigCache is used to cache the derived sender and contains the signer used
 // to derive it.
 message SigCache {
-  bytes signer = 1 [
+  EIP155Signer signer = 1 [
     (gogoproto.customname) = "signer"
   ];
   bytes from = 2 [
     (gogoproto.customname) = "from"
+  ];
+}
+
+// EIP155Transaction implements Signer using the EIP155 rules.
+message EIP155Signer {
+  bytes chain_id = 1 [
+    (gogoproto.customname) = "chainId"
+  ];
+  bytes chain_id_mul = 2 [
+    (gogoproto.customname) = "chainIdMul"
   ];
 }
 

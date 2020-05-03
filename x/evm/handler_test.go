@@ -154,7 +154,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"passed",
 			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				tx = types.NewMsgEthermint(0, to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
 			true,
@@ -162,7 +162,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"invalid state transition",
 			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				tx = types.NewMsgEthermint(0, to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 			},
 			false,
 		},

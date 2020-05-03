@@ -203,7 +203,7 @@ proto-check-breaking:
 TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL		 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+SDK_PROTO_URL		 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/7f78e61b93a5
 
 TM_KV_TYPES         	= third_party/proto/tendermint/libs/kv
 TM_MERKLE_TYPES     	= third_party/proto/tendermint/crypto/merkle
@@ -257,18 +257,22 @@ proto-update-deps:
 
 	@mkdir -p $(BANK_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/bank/types/types.proto > $(BANK_PROTO_TYPES)/types.proto
+		@sed -i '' '8 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(BANK_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(CRISIS_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/crisis/types/types.proto > $(CRISIS_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(DISTR_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/distribution/types/types.proto > $(DISTR_PROTO_TYPES)/types.proto
+	@sed -i '' '8 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(DISTR_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(GOV_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/gov/types/types.proto > $(GOV_PROTO_TYPES)/types.proto
+	@sed -i '' '4 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(GOV_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(STAKING_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/staking/types/types.proto > $(STAKING_PROTO_TYPES)/types.proto
+	@sed -i '' '8 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(STAKING_PROTO_TYPES)/types.proto
 
 	@mkdir -p $(SLASHING_PROTO_TYPES)
 	curl -sSL $(SDK_PROTO_URL)/x/slashing/types/types.proto > $(SLASHING_PROTO_TYPES)/types.proto
