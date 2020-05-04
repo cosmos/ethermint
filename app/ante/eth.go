@@ -141,7 +141,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, fmt.Sprintf("signature verification failed: %s", err.Error()))
 	}
 
-	// NOTE: when signature verification suceeds, a non-empty signer address can be
+	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
 
 	return next(ctx, msgEthTx, simulate)
