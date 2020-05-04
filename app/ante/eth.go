@@ -317,32 +317,8 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-
-	fmt.Println("gaslimit", gasLimit, "gas consumed", gas)
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	fmt.Println("gas consumed ctx", ctx.GasMeter().GasConsumed())
 	newCtx.GasMeter().ConsumeGas(gas, "eth intrinsic gas")
-	fmt.Println("gas after consumed newCtx", newCtx.GasMeter().GasConsumed())
-
-	// Decorator will catch an OutOfGasPanic caused in the next antehandler
-	// AnteHandlers must have their own defer/recover in order for the BaseApp
-	// to know how much gas was used! This is because the GasMeter is created in
-	// the AnteHandler, but if it panics the context won't be set properly in
-	// runTx's recover call.
-	defer func() {
-		if r := recover(); r != nil {
-			switch rType := r.(type) {
-			case sdk.ErrorOutOfGas:
-				log := fmt.Sprintf(
-					"out of gas in location: %v; gasLimit: %d, gasUsed: %d",
-					rType.Descriptor, gasLimit, newCtx.GasMeter().GasConsumed(),
-				)
-				err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, log)
-			default:
-				panic(r)
-			}
-		}
-	}()
 
 	return next(newCtx, tx, simulate)
 }
@@ -368,18 +344,17 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
 	gasMeter := ctx.GasMeter()
-	fmt.Println(gasMeter)
-	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
 	// no need to increment sequence on RecheckTx mode
 	if ctx.IsReCheckTx() && !simulate {
-		ctx = ctx.WithBlockGasMeter(gasMeter)
+		ctx = ctx.WithGasMeter(gasMeter)
 		return next(ctx, tx, simulate)
 	}
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		ctx = ctx.WithBlockGasMeter(gasMeter)
+		ctx = ctx.WithGasMeter(gasMeter)
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
@@ -392,8 +367,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 		issd.ak.SetAccount(ctx, acc)
 	}
 
-	ctx = ctx.WithBlockGasMeter(gasMeter)
-	fmt.Println("gas consumed final", ctx.GasMeter().GasConsumed())
-
+	// set the original gas meter
+	ctx = ctx.WithGasMeter(gasMeter)
 	return next(ctx, tx, simulate)
 }
