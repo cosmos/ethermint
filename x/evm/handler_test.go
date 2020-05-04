@@ -280,7 +280,7 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	suite.Require().Equal(logs, resultData.Logs)
 
 	// query tx logs
-	path := []string{"txLogs", fmt.Sprintf("0x%x", hash)}
+	path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
 	res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
 	suite.Require().NoError(err, "failed to query txLogs")
 
@@ -290,4 +290,6 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
 	resultData.Logs[0].Data = []byte{}
 	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
+
+	fmt.Println(txLogs.Logs)
 }
