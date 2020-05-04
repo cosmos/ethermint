@@ -70,9 +70,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		return nil, err
 	}
 
-	// refund gas to sender
-	k.AddBalance(ctx, sender, big.NewInt(int64(executionResult.GasInfo.GasRefunded)))
-
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
@@ -149,9 +146,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	if err != nil {
 		return nil, err
 	}
-
-	// refund gas to sender
-	k.AddBalance(ctx, sender, big.NewInt(int64(executionResult.GasInfo.GasRefunded)))
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)

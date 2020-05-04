@@ -26,7 +26,7 @@ type StateTransition struct {
 	Payload      []byte
 
 	ChainID  *big.Int
-	Csdb     *CommitStateDB
+	Csdb     *CommitStateDB // state
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
@@ -63,6 +63,26 @@ func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit 
 	}
 
 	return vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
+}
+
+func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) {
+	// Apply refund counter, capped to half of the used gas.
+	refund := gasInfo.GasConsumed / 2
+	if refund > st.Csdb.GetRefund() {
+		refund = st.Csdb.GetRefund()
+	}
+
+	// st.gas += refund
+
+	fmt.Println(refund)
+
+	// Return ETH for remaining gas, exchanged at the original rate.
+	remaining := new(big.Int).Mul(new(big.Int).SetUint64(refund), st.Price)
+	st.Csdb.AddBalance(st.Sender, remaining)
+
+	// Also return remaining gas to the block gas counter so it is
+	// available for the next transaction.
+	// st.gp.AddGas(st.gas)
 }
 
 // TransitionDb will transition the state by applying the current transaction and
@@ -196,6 +216,15 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
+	gasInfo := GasInfo{
+		GasConsumed: gasConsumed,
+		GasLimit:    gasLimit,
+		GasRefunded: leftOverGas,
+	}
+
+	// refund gas to sender
+	st.refundGas(ctx, gasInfo)
+
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -203,11 +232,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 			Data: resBz,
 			Log:  resultLog,
 		},
-		GasInfo: GasInfo{
-			GasConsumed: gasConsumed,
-			GasLimit:    gasLimit,
-			GasRefunded: leftOverGas,
-		},
+		GasInfo: gasInfo,
 	}
 
 	return executionResult, nil
