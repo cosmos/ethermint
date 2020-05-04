@@ -289,7 +289,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
-func deployTestContract(t *testing.T) hexutil.Bytes {
+func deployTestContract(t *testing.T) (hexutil.Bytes, map[string]interface{}) {
 	from := getAddress(t)
 
 	param := make([]map[string]string, 1)
@@ -305,11 +305,15 @@ func deployTestContract(t *testing.T) hexutil.Bytes {
 	err = json.Unmarshal(rpcRes.Result, &hash)
 	require.NoError(t, err)
 
-	return hash
+	receipt := waitForReceipt(t, hash)
+	require.NotNil(t, receipt, "transaction failed")
+	require.Equal(t, "0x1", receipt["status"].(string))
+
+	return hash, receipt
 }
 
 func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
-	hash := deployTestContract(t)
+	hash, _ := deployTestContract(t)
 
 	time.Sleep(time.Second * 5)
 
@@ -323,7 +327,8 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 	require.Equal(t, "0x1", receipt["status"].(string))
 
 	require.NotEqual(t, ethcmn.Address{}.String(), receipt["contractAddress"].(string))
-	// TODO: assert logs exist
+	require.NotNil(t, receipt["logs"])
+
 }
 
 func getTransactionReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
@@ -334,15 +339,14 @@ func getTransactionReceipt(t *testing.T, hash hexutil.Bytes) map[string]interfac
 	receipt := make(map[string]interface{})
 	err = json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
-	//require.Equal(t, "0x1", receipt["status"].(string))
 
 	return receipt
 }
 
 func waitForReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 12; i++ {
 		receipt := getTransactionReceipt(t, hash)
-		if receipt != nil && receipt["status"].(string) == "0x1" {
+		if receipt != nil {
 			return receipt
 		}
 
@@ -352,9 +356,7 @@ func waitForReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
 	return nil
 }
 func TestEth_GetTransactionLogs(t *testing.T) {
-	hash := deployTestContract(t)
-
-	time.Sleep(time.Second * 5)
+	hash, _ := deployTestContract(t)
 
 	param := []string{hash.String()}
 	rpcRes, err := call(t, "eth_getTransactionLogs", param)
@@ -381,17 +383,15 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = zeroString // latest
 
-	// deploy contract, emitting some event
-	hash := deployTestContract(t)
-
+	// instantiate new filter
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
-
-	waitForReceipt(t, hash)
-
 	var ID hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
+
+	// deploy contract, emitting some event
+	deployTestContract(t)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -404,10 +404,12 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 }
 
 func TestEth_GetFilterChanges_Addresses(t *testing.T) {
+	t.Skip()
 	// TODO: need transaction receipts to determine contract deployment address
 }
 
 func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
+	t.Skip()
 	// TODO: need transaction receipts to determine tx block
 }
 
@@ -450,6 +452,10 @@ func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 	err = json.Unmarshal(rpcRes.Result, &hash)
 	require.NoError(t, err)
 
+	receipt := waitForReceipt(t, hash)
+	require.NotNil(t, receipt, "transaction failed")
+	require.Equal(t, "0x1", receipt["status"].(string))
+
 	return hash
 }
 
@@ -470,16 +476,14 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = zeroString // latest
 
-	hash := deployTestContractWithFunction(t)
-
+	// instantiate new filter
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
-
 	var ID hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	waitForReceipt(t, hash)
+	deployTestContractWithFunction(t)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -506,16 +510,14 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	param[0]["fromBlock"] = res.String()
 	param[0]["toBlock"] = "0x0" // latest
 
-	hash := deployTestContractWithFunction(t)
-
+	// instantiate new filter
 	rpcRes, err = call(t, "eth_newFilter", param)
 	require.NoError(t, err)
-
 	var ID hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	waitForReceipt(t, hash)
+	deployTestContractWithFunction(t)
 
 	// get filter changes
 	changesRes, err := call(t, "eth_getFilterChanges", []string{ID.String()})
@@ -568,7 +570,7 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	require.Equal(t, 1, len(logs))
 }
 
-func TestEth_NewPendingTransactionFilter(t *testing.T) {
+func TestEth_PendingTransactionFilter(t *testing.T) {
 	rpcRes, err := call(t, "eth_newPendingTransactionFilter", []string{})
 	require.NoError(t, err)
 
