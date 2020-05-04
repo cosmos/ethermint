@@ -166,7 +166,6 @@ func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 
 	logs, err := keeper.GetLogs(ctx, txHash)
 	if err != nil {
-		fmt.Println("queryTransactionLogs", logs)
 		return nil, err
 	}
 

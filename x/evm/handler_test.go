@@ -290,6 +290,4 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
 	resultData.Logs[0].Data = []byte{}
 	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
-
-	fmt.Println(txLogs.Logs)
 }
