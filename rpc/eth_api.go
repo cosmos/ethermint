@@ -290,7 +290,9 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Sign transaction
-	tx.Sign(intChainID, e.key.ToECDSA())
+	if err := tx.Sign(intChainID, e.key.ToECDSA()); err != nil {
+		return common.Hash{}, err
+	}
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
@@ -299,7 +301,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 		return common.Hash{}, err
 	}
 
-	// Broadcast transaction
+	// Broadcast transaction in sync mode (default)
 	res, err := e.cliCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
 	if err != nil {
@@ -696,40 +698,38 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		status = hexutil.Uint(0)
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTxLogs, hash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var logs types.QueryETHLogs
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &logs)
-
 	txData := tx.TxResult.GetData()
+
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
-		return nil, err
+		status = 0 // transaction failed
 	}
 
-	fields := map[string]interface{}{
-		"blockHash":         blockHash,
-		"blockNumber":       hexutil.Uint64(tx.Height),
-		"transactionHash":   hash,
-		"transactionIndex":  hexutil.Uint64(tx.Index),
-		"from":              from,
-		"to":                ethTx.To(),
-		"gasUsed":           hexutil.Uint64(tx.TxResult.GasUsed),
-		"cumulativeGasUsed": nil, // ignore until needed
-		"contractAddress":   nil,
-		"logs":              logs.Logs,
-		"logsBloom":         data.Bloom,
+	receipt := map[string]interface{}{
+		// Consensus fields: These fields are defined by the Yellow Paper
 		"status":            status,
+		"cumulativeGasUsed": nil, // ignore until needed
+		"logsBloom":         data.Bloom,
+		"logs":              data.Logs,
+
+		// Implementation fields: These fields are added by geth when processing a transaction.
+		// They are stored in the chain database.
+		"transactionHash": hash,
+		"contractAddress": data.ContractAddress,
+		"gasUsed":         hexutil.Uint64(tx.TxResult.GasUsed),
+
+		// Inclusion information: These fields provide information about the inclusion of the
+		// transaction corresponding to this receipt.
+		"blockHash":        blockHash,
+		"blockNumber":      hexutil.Uint64(tx.Height),
+		"transactionIndex": hexutil.Uint64(tx.Index),
+
+		// sender and receiver (contract or EOA) addreses
+		"from": from,
+		"to":   ethTx.To(),
 	}
 
-	if data.Address != (common.Address{}) {
-		fields["contractAddress"] = data.Address
-	}
-
-	return fields, nil
+	return receipt, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
