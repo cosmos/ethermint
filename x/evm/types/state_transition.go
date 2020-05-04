@@ -192,6 +192,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
+	// Consume gas from evm execution
+	// Out of gas check does not need to be done here since it is done within the EVM execution
+	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -205,12 +209,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 			GasRefunded: leftOverGas,
 		},
 	}
-
-	// TODO: Refund unused gas here, if intended in future
-
-	// Consume gas from evm execution
-	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
 }

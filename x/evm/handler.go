@@ -70,6 +70,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		return nil, err
 	}
 
+	// refund gas to sender
+	k.AddBalance(ctx, sender, big.NewInt(int64(executionResult.GasInfo.GasRefunded)))
+
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
@@ -118,9 +121,10 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
+	sender := common.BytesToAddress(msg.From.Bytes())
 
 	st := types.StateTransition{
-		Sender:       common.BytesToAddress(msg.From.Bytes()),
+		Sender:       sender,
 		AccountNonce: msg.AccountNonce,
 		Price:        msg.Price.BigInt(),
 		GasLimit:     msg.GasLimit,
@@ -145,6 +149,9 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	if err != nil {
 		return nil, err
 	}
+
+	// refund gas to sender
+	k.AddBalance(ctx, sender, big.NewInt(int64(executionResult.GasInfo.GasRefunded)))
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
