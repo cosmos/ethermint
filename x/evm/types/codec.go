@@ -4,19 +4,19 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-// ModuleCdc defines the codec to be used by evm module
+// ModuleCdc defines the evm module's codec
 var ModuleCdc = codec.New()
 
-func init() {
-	cdc := codec.New()
-
-	codec.RegisterCrypto(cdc)
-
-	ModuleCdc = cdc.Seal()
+// RegisterCodec registers all the necessary types and interfaces for the
+// evm module
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(MsgEthereumTx{}, "ethermint/MsgEthereumTx", nil)
+	cdc.RegisterConcrete(MsgEthermint{}, "ethermint/MsgEthermint", nil)
+	cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
 }
 
-// RegisterCodec registers concrete types and interfaces on the given codec.
-func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(&EthereumTxMsg{}, "ethermint/MsgEthereumTx", nil)
-	cdc.RegisterConcrete(&EmintMsg{}, "ethermint/MsgEmint", nil)
+func init() {
+	RegisterCodec(ModuleCdc)
+	codec.RegisterCrypto(ModuleCdc)
+	ModuleCdc.Seal()
 }

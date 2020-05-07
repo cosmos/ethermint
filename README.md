@@ -5,6 +5,8 @@
 
 __**WARNING:**__ Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
 
+**Note**: Requires [Go 1.13+](https://golang.org/dl/)
+
 ## What is it?
 
 `ethermint` will be an implementation of the EVM that runs on top of [`tendermint`](https://github.com/tendermint/tendermint) consensus, a Proof of Stake system. This project has as its primary goals:
@@ -37,27 +39,36 @@ To build, execute the following commands:
 
 ```bash
 # To build the project and install it in $GOBIN
-$ make install
+make install
 
 # To build the binary and put the resulting binary in ./build
-$ make build
+make build
 ```
 
 ### Starting a Ethermint daemon (node)
 
-First, create a key to use in signing the genesis transaction:
+The following config steps can be performed all at once by executing the `init.sh` file located in the root directory like this:
+```bash
+./init.sh
+```
+> This bash file removes previous blockchain data from `~/.emintd` and `~/.emintcli`. It uses the `keyring-backend` called `test` that should prevent you from needing to enter a passkey. The `keyring-backend` `test` is unsecured and should not be used in production.
+
+To initalize your chain manually, first create a key to use in signing the genesis transaction:
 
 ```bash
-emintcli keys add mykey
+emintcli keys add mykey --keyring-backend test
 ```
+
 > replace mykey with whatever you want to name the key
 
 Then, run these commands to start up a node
+
 ```bash
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 emintd init mymoniker --chain-id 8
 
 # Set up config for CLI
+emintcli config keyring-backend test
 emintcli config chain-id 8
 emintcli config output json
 emintcli config indent true
@@ -67,7 +78,7 @@ emintcli config trust-node true
 emintd add-genesis-account $(emintcli keys show mykey -a) 1000000000000000000photon,1000000000000000000stake
 
 # Sign genesis transaction
-emintd gentx --name mykey
+emintd gentx --name mykey --keyring-backend test
 
 # Collect genesis tx
 emintd collect-gentxs
@@ -78,6 +89,7 @@ emintd validate-genesis
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 emintd start --pruning=nothing
 ```
+
 > Note: If you used `make build` instead of make install, and replace all `emintcli` and `emintd` references to `./build/emintcli` and `./build/emintd` respectively
 
 ### Starting Ethermint Web3 RPC API
@@ -90,7 +102,7 @@ emintcli rest-server --laddr "tcp://localhost:8545" --unlock-key mykey
 
 and to make sure the server has started correctly, try querying the current block number:
 
-```
+```bash
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 ```
 
@@ -108,7 +120,7 @@ To clear all data except key storage (if keyring backend chosen) and then you ca
 
 #### Keyring backend options
 
-Ethermint supports using a file or OS keyring backend for key storage. To create and use a file stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any relevant command and the password prompt will occur through the command line. This can also be saved as a CLI config option with:
+The instructions above include commands to use `test` as the `keyring-backend`. This is an unsecured keyring that doesn't require entering a password and should not be used in production. Otherwise, Ethermint supports using a file or OS keyring backend for key storage. To create and use a file stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any relevant command and the password prompt will occur through the command line. This can also be saved as a CLI config option with:
 
 ```bash
 emintcli config keyring-backend file
@@ -119,7 +131,7 @@ emintcli config keyring-backend file
 To export the private key from Ethermint to something like Metamask, run:
 
 ```bash
-emintcli keys export-eth-key mykey
+emintcli keys unsafe-export-eth-key mykey
 ```
 
 Import account through private key, and to verify that the Ethereum address is correct with:
@@ -133,13 +145,13 @@ emintcli keys parse $(emintcli keys show mykey -a)
 Integration tests are invoked via:
 
 ```bash
-$ make test
+make test
 ```
 
 To run CLI tests, execute:
 
 ```bash
-$ make test-cli
+make test-cli
 ```
 
 #### Ethereum Mainnet Import
@@ -149,7 +161,7 @@ that includes blocks up to height `97638`. To execute and test a full import of
 these blocks using the EVM module, execute:
 
 ```bash
-$ make test-import
+make test-import
 ```
 
 You may also provide a custom blockchain export file to test importing more blocks
@@ -159,5 +171,5 @@ via the `--blockchain` flag. See `TestImportBlocks` for further documentation.
 
 The following chat channels and forums are a great spot to ask questions about Ethermint:
 
-- [Cosmos Riot Chat Channel](https://riot.im/app/#/group/+cosmos:matrix.org)
+- [Cosmos Discord](https://discord.gg/W8trcGV)
 - Cosmos Forum [![Discourse status](https://img.shields.io/discourse/https/forum.cosmos.network/status.svg)](https://forum.cosmos.network)

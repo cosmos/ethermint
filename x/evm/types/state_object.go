@@ -51,22 +51,19 @@ type (
 	// Account values can be accessed and modified through the object.
 	// Finally, call CommitTrie to write the modified storage trie into a database.
 	stateObject struct {
-		address ethcmn.Address
-		stateDB *CommitStateDB
-		account *types.Account
-
+		code types.Code // contract bytecode, which gets set when code is loaded
 		// DB error.
 		// State objects are used by the consensus core and VM which are
 		// unable to deal with database-level errors. Any error that occurs
 		// during a database read is memoized here and will eventually be returned
 		// by StateDB.Commit.
-		dbErr error
-
-		code types.Code // contract bytecode, which gets set when code is loaded
-
+		dbErr         error
+		stateDB       *CommitStateDB
+		account       *types.EthAccount
+		balance       sdk.Int
 		originStorage types.Storage // Storage cache of original entries to dedup rewrites
 		dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
-
+		address       ethcmn.Address
 		// cache flags
 		//
 		// When an object is marked suicided it will be delete from the trie during
@@ -77,20 +74,22 @@ type (
 	}
 )
 
-func newObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	acc, ok := accProto.(*types.Account)
+func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
+	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
-	if acc.CodeHash == nil {
-		acc.CodeHash = emptyCodeHash
+	// set empty code hash
+	if ethermintAccount.CodeHash == nil {
+		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
 	return &stateObject{
 		stateDB:       db,
-		account:       acc,
-		address:       ethcmn.BytesToAddress(acc.Address.Bytes()),
+		account:       ethermintAccount,
+		balance:       balance,
+		address:       ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
 		originStorage: make(types.Storage),
 		dirtyStorage:  make(types.Storage),
 	}
@@ -148,18 +147,18 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
-
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
-	if amt.Sign() == 0 {
+
+	// NOTE: this will panic if amount is nil
+	if amt.IsZero() {
 		if so.empty() {
 			so.touch()
 		}
-
 		return
 	}
 
-	newBalance := so.account.Balance().Add(amt)
+	newBalance := so.balance.Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -167,12 +166,10 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
-
-	if amt.Sign() == 0 {
+	if amt.IsZero() {
 		return
 	}
-
-	newBalance := so.account.Balance().Sub(amt)
+	newBalance := so.balance.Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -182,17 +179,17 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.Balance(),
+		prev:    so.balance,
 	})
 
 	so.setBalance(amt)
 }
 
 func (so *stateObject) setBalance(amount sdk.Int) {
-	so.account.SetBalance(amount)
+	so.balance = amount
 }
 
-// SetNonce sets the state object's nonce (sequence number).
+// SetNonce sets the state object's nonce (i.e sequence number of the account).
 func (so *stateObject) SetNonce(nonce uint64) {
 	so.stateDB.journal.append(nonceChange{
 		account: &so.address,
@@ -203,6 +200,9 @@ func (so *stateObject) SetNonce(nonce uint64) {
 }
 
 func (so *stateObject) setNonce(nonce uint64) {
+	if so.account == nil {
+		panic("state object account is empty")
+	}
 	so.account.Sequence = nonce
 }
 
@@ -220,7 +220,7 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 
 	for key, value := range so.dirtyStorage {
 		delete(so.dirtyStorage, key)
@@ -262,22 +262,32 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	return so.account.Balance().BigInt()
+	balance := so.balance.BigInt()
+	if balance == nil {
+		return zeroBalance
+	}
+	return balance
 }
 
 // CodeHash returns the state object's code hash.
 func (so *stateObject) CodeHash() []byte {
+	if so.account == nil || len(so.account.CodeHash) == 0 {
+		return emptyCodeHash
+	}
 	return so.account.CodeHash
 }
 
 // Nonce returns the state object's current nonce (sequence number).
 func (so *stateObject) Nonce() uint64 {
+	if so.account == nil {
+		return 0
+	}
 	return so.account.Sequence
 }
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(_ ethstate.Database) []byte {
-	if so.code != nil {
+	if len(so.code) > 0 {
 		return so.code
 	}
 
@@ -290,10 +300,9 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	code := store.Get(so.CodeHash())
 
 	if len(code) == 0 {
-		so.setError(fmt.Errorf("failed to get code hash %x for address: %x", so.CodeHash(), so.Address()))
+		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
 	}
 
-	so.code = code
 	return code
 }
 
@@ -325,7 +334,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 
 	// otherwise load the value from the KVStore
 	ctx := so.stateDB.ctx
-	store := ctx.KVStore(so.stateDB.storageKey)
+	store := ctx.KVStore(so.stateDB.storeKey)
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
@@ -345,7 +354,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newObject(db, so.account)
+	newStateObj := newStateObject(db, so.account, so.balance)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
@@ -359,9 +368,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	return so.account.Sequence == 0 &&
-		so.account.Balance().Sign() == 0 &&
-		bytes.Equal(so.account.CodeHash, emptyCodeHash)
+	return so.account == nil ||
+		(so.account != nil &&
+			so.account.Sequence == 0 &&
+			(so.balance.BigInt() == nil || so.balance.IsZero()) &&
+			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 
 // EncodeRLP implements rlp.Encoder.
