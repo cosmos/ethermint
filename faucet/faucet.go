@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/tendermint/tendermint/libs/log"
 
 	sdkcdc "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -20,30 +23,45 @@ import (
 	"github.com/cosmos/ethermint/codec"
 )
 
-// Faucet represents the necessary data for connecting to and indentifying a Faucet and its counterparites
+// Faucet for sending tokens upon request during testnets.
 type Faucet struct {
+	// TODO: config
+	config string
+	// faucet keyring for signing transfers
 	keyring keyring.Keybase
-	// addresses can send requests every <timeout> duration
-	timeout time.Duration
-	// stores faucet addresses that have been used reciently
-	faucetAddrs map[string]time.Time
+	// addresses can send requests every <defaultTimeout> duration
+	defaultTimeout time.Duration
+	// max amount
+	capAmount sdk.Int
+	// history of users and their funding timeouts
+	timeouts map[string]time.Time
 
-	// ethermint codecs
+	// Ethermint codecs
 	amino *sdkcdc.Codec
 	cdc   *codec.Codec
+
+	logger log.Logger
 }
 
 // New creates a new Faucet instance
-func New(timeout time.Duration) Faucet {
-	cdc := codec.MakeCodec(app.ModuleBasics)
-	appCodec := codec.NewAppCodec(cdc)
+func New(keyname string, timeout time.Duration, maxAmount sdk.Int) (Faucet, error) {
+	keyring, err := keyring.NewKeyring("ethermint", "test", keysDir(homePath, src.ChainID), nil)
+	if err != nil {
+		return Faucet{}, err
+	}
+
+	amino := codec.MakeCodec(app.ModuleBasics)
+	appCodec := codec.NewAppCodec(amino)
 
 	return Faucet{
-		timeout:     timeout,
-		faucetAddrs: make(map[string]time.Time),
-		amino:       cdc,
-		cdc:         appCodec,
-	}
+		keyring: keyring,
+		defaultTimeout: timeout,
+		capAmount:      maxAmount,
+		timeouts:       make(map[string]time.Time),
+		amino:          amino,
+		cdc:            appCodec,
+		logger:         log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+	}, nil
 }
 
 // Handler listens for addresses
@@ -87,24 +105,23 @@ func (f Faucet) Handler(from sdk.AccAddress, amount sdk.Coin) func(w http.Respon
 // - cap amount sent to address
 func (f Faucet) rateLimit(address string) error {
 	// first time requester, can send request
-	lastRequest, ok := f.faucetAddrs[address]
+	lastRequest, ok := f.timeouts[address]
 	if !ok {
-		f.faucetAddrs[address] = time.Now().UTC()
+		f.timeouts[address] = time.Now().UTC()
 		return nil
 	}
 
 	sinceLastRequest := time.Since(lastRequest)
-	if f.timeout > sinceLastRequest {
-		wait := f.timeout - sinceLastRequest
+	if f.defaultTimeout > sinceLastRequest {
+		wait := f.defaultTimeout - sinceLastRequest
 		return fmt.Errorf("%s has requested funds within the last %s, wait %s before trying again", address, f.timeout.String(), wait.String())
 	}
 
 	// user able to send funds since they have waited for period
-	f.faucetAddrs[address] = time.Now().UTC()
+	f.timeouts[address] = time.Now().UTC()
 	return nil
 }
 
-// TODO: prob use an sdk.Int instead of coins.
 func (f Faucet) transfer(from, to sdk.AccAddress, amount sdk.Coin) (int, error) {
 	_, err := f.keyring.GetByAddress(from)
 	if err != nil {
@@ -128,10 +145,10 @@ func (f Faucet) buildAndSignTxWithKey(msgs []sdk.Msg, keyName string) ([]byte, e
 		return nil, err
 	}
 
-	// acc, err := auth.NewAccountRetriever(f.Cdc, f).GetAccount(info.GetAddress())
-	// if err != nil {
-	// 	return nil, err
-	// }
+	acc, err := auth.NewAccountRetriever(f.cdc, f).GetAccount(info.GetAddress())
+	if err != nil {
+		return nil, err
+	}
 
 	memo := "faucet transfer"
 
@@ -139,7 +156,7 @@ func (f Faucet) buildAndSignTxWithKey(msgs []sdk.Msg, keyName string) ([]byte, e
 		auth.DefaultTxEncoder(f.amino),
 		acc.GetAccountNumber(),
 		acc.GetSequence(), f.Gas, f.GasAdjustment, false, f.ChainID,
-		memo, f.getGasPrices()).WithKeybase(f.Keybase).
+		memo, f.getGasPrices()).WithKeybase(f.keyring).
 		BuildAndSign(info.GetName(), ckeys.DefaultKeyPass, msgs)
 }
 
@@ -160,10 +177,6 @@ func (r Request) GetAddress() (sdk.AccAddress, error) {
 
 // Validate validates a request fields
 func (r Request) Validate() error {
-	// if strings.TrimSpace(r.ChainID) == "" {
-	// 	return errors.New("chain-id cannot be blank")
-	// }
-
 	_, err := r.GetAddress()
 	return err
 }
