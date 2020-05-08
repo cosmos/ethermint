@@ -395,10 +395,10 @@ func (e *PublicEthAPI) doCall(
 	// Set sender address or use a default if none specified
 	var addr common.Address
 	//if args.From == nil {
-	if e.key != nil {
-		addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
-	}
-	// No error handled here intentionally to match geth behaviour
+		if e.key != nil {
+			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
+		}
+		// No error handled here intentionally to match geth behaviour
 	// } else {
 	// 	addr = *args.From
 	// }
@@ -706,8 +706,8 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	txData := tx.TxResult.GetData()
 
 	data, err := types.DecodeResultData(txData)
-	if err != nil && ethTx.To() == nil {
-		status = 0 // contract deployment failed
+	if err != nil {
+		status = 0 // transaction failed
 	}
 
 	if data.Logs == nil {
