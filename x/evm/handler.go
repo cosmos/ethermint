@@ -121,7 +121,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	ethHash := common.BytesToHash(txHash)
 
 	st := types.StateTransition{
-		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		AccountNonce: msg.AccountNonce,
 		Price:        msg.Price.Int.BigInt(),
 		GasLimit:     msg.GasLimit,
@@ -130,6 +129,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
 		TxHash:       &ethHash,
+		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
 	}
 
