@@ -394,14 +394,14 @@ func (e *PublicEthAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
-	//if args.From == nil {
+	if args.From == nil {
 		if e.key != nil {
 			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
 		}
 		// No error handled here intentionally to match geth behaviour
-	// } else {
-	// 	addr = *args.From
-	// }
+	} else {
+		addr = *args.From
+	}
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
