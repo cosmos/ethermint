@@ -394,14 +394,14 @@ func (e *PublicEthAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
-	if args.From == nil {
-		if e.key != nil {
-			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
-		}
-		// No error handled here intentionally to match geth behaviour
-	} else {
-		addr = *args.From
+	//if args.From == nil {
+	if e.key != nil {
+		addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
 	}
+	// No error handled here intentionally to match geth behaviour
+	// } else {
+	// 	addr = *args.From
+	// }
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
@@ -437,6 +437,11 @@ func (e *PublicEthAPI) doCall(
 	if args.To != nil {
 		toAddr = sdk.AccAddress(args.To.Bytes())
 	}
+
+	fmt.Println("doCall")
+	//fmt.Println(sdk.AccAddress(addr.Bytes()))
+	fmt.Println(addr.Hex())
+	fmt.Printf("%x\n", *args.From)
 
 	// Create new call message
 	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
@@ -701,8 +706,12 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	txData := tx.TxResult.GetData()
 
 	data, err := types.DecodeResultData(txData)
-	if err != nil {
-		status = 0 // transaction failed
+	if err != nil && ethTx.To() == nil {
+		status = 0 // contract deployment failed
+	}
+
+	if data.Logs == nil {
+		data.Logs = []*ethtypes.Log{}
 	}
 
 	receipt := map[string]interface{}{
