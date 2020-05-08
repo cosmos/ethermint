@@ -437,12 +437,7 @@ func (e *PublicEthAPI) doCall(
 	if args.To != nil {
 		toAddr = sdk.AccAddress(args.To.Bytes())
 	}
-
-	fmt.Println("doCall")
-	//fmt.Println(sdk.AccAddress(addr.Bytes()))
-	fmt.Println(addr.Hex())
-	fmt.Printf("%x\n", *args.From)
-
+	
 	// Create new call message
 	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
