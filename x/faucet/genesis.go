@@ -1,6 +1,8 @@
 package faucet
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/x/faucet/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -8,6 +10,10 @@ import (
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, data types.GenesisState) []abci.ValidatorUpdate {
+	if acc := k.GetFaucetAccount(ctx); acc == nil {
+		panic(fmt.Sprintf("%s module account has not been set", ModuleName))
+	}
+
 	k.SetEnabled(ctx, data.EnableFaucet)
 	k.SetTimout(ctx, data.Timeout)
 	k.SetCap(ctx, data.FaucetCap)

@@ -25,6 +25,9 @@ var (
 	_ module.AppModuleBasic = AppModuleBasic{}
 )
 
+// AppModuleBasic defines the basic application module used by the faucet module.
+type AppModuleBasic struct{}
+
 // Name returns the faucet module's name.
 func (AppModuleBasic) Name() string {
 	return types.ModuleName
@@ -121,4 +124,14 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data j
 func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
 	return cdc.MustMarshalJSON(gs)
+}
+
+// BeginBlock returns the begin blocker for the faucet module.
+func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+}
+
+// EndBlock returns the end blocker for the faucet module. It returns no validator
+// updates.
+func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+	return []abci.ValidatorUpdate{}
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
@@ -37,6 +38,11 @@ func NewKeeper(
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+// GetFaucetAccount returns the faucet ModuleAccount
+func (k Keeper) GetFaucetAccount(ctx sdk.Context) supplyexported.ModuleAccountI {
+	return k.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 }
 
 // Fund checks for timeout and max thresholds and then mints coins and transfers
