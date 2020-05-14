@@ -11,7 +11,7 @@ const (
 	RouterKey = ModuleName
 
 	// QuerierRoute uses module name for query routing
-	RouterKey = ModuleName
+	QuerierRoute = ModuleName
 )
 
 var (
