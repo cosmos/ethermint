@@ -17,7 +17,7 @@ import (
 )
 
 // GetTxCmd return faucet sub-command for tx
-func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	faucetTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "faucet transaction subcommands",

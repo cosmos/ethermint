@@ -7,7 +7,10 @@ const (
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName
 
-	// RouterKey uses module name for routing
+	// RouterKey uses module name for tx routing
+	RouterKey = ModuleName
+
+	// QuerierRoute uses module name for query routing
 	RouterKey = ModuleName
 )
 

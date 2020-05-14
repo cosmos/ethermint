@@ -14,7 +14,7 @@ import (
 )
 
 // RegisterRoutes register REST endpoints for the faucet module
-func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) {
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/faucet/fund", fundHandlerFn(cliCtx)).Methods("POST")
 }
 

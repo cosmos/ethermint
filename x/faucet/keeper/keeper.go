@@ -51,7 +51,23 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 		totalRequested = totalRequested.Add(coin.Amount)
 	}
 
-	// TODO: check max caps
+	maxPerReq := sdk.NewInt(k.GetMaxPerRequest(ctx))
+
+	if totalRequested.GT(maxPerReq) {
+		return fmt.Errorf("canot fund more than %s per request. requested %s", maxPerReq, totalRequested)
+	}
+
+	funded := k.GetFunded(ctx)
+	totalFunded := sdk.ZeroInt()
+	for _, coin := range funded {
+		totalFunded = totalFunded.Add(coin.Amount)
+	}
+
+	cap := sdk.NewInt(k.GetCap(ctx))
+
+	if totalFunded.Add(totalRequested).GT(cap) {
+		return fmt.Errorf("maximum cap of %s reached. Cannot continue funding", cap)
+	}
 
 	if err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, amount); err != nil {
 		return err
@@ -78,7 +94,85 @@ func (k Keeper) GetTimeout(ctx sdk.Context) time.Duration {
 	return timeout
 }
 
-func (k Keeper) SetTimout(ctx sdk.Context, timout time.Duration) {
+func (k Keeper) SetTimout(ctx sdk.Context, timeout time.Duration) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(timeout)
+	store.Set(types.TimeoutKey, bz)
+}
+
+func (k Keeper) IsEnabled(ctx sdk.Context) bool {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.EnableFaucetKey)
+	if len(bz) == 0 {
+		return false
+	}
+
+	var enabled bool
+	k.cdc.MustUnmarshalBinaryBare(bz, &enabled)
+	return enabled
+}
+
+func (k Keeper) SetEnabled(ctx sdk.Context, enabled bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(enabled)
+	store.Set(types.EnableFaucetKey, bz)
+}
+
+func (k Keeper) GetCap(ctx sdk.Context) int64 {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.CapKey)
+	if len(bz) == 0 {
+		return 0
+	}
+
+	var cap int64
+	k.cdc.MustUnmarshalBinaryBare(bz, &cap)
+
+	return cap
+}
+
+func (k Keeper) SetCap(ctx sdk.Context, cap int64) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(cap)
+	store.Set(types.CapKey, bz)
+}
+
+func (k Keeper) GetMaxPerRequest(ctx sdk.Context) int64 {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.MaxPerRequestKey)
+	if len(bz) == 0 {
+		return 0
+	}
+
+	var cap int64
+	k.cdc.MustUnmarshalBinaryBare(bz, &cap)
+
+	return cap
+}
+
+func (k Keeper) SetMaxPerRequest(ctx sdk.Context, cap int64) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(cap)
+	store.Set(types.MaxPerRequestKey, bz)
+}
+
+func (k Keeper) GetFunded(ctx sdk.Context) sdk.Coins {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.FundedKey)
+	if len(bz) == 0 {
+		return nil
+	}
+
+	var funded sdk.Coins
+	k.cdc.MustUnmarshalBinaryBare(bz, &funded)
+
+	return funded
+}
+
+func (k Keeper) SetFunded(ctx sdk.Context, funded sdk.Coins) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(funded)
+	store.Set(types.FundedKey, bz)
 }
 
 func (k Keeper) rateLimit(ctx sdk.Context, address string) error {
