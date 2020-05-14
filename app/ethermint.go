@@ -81,8 +81,7 @@ var (
 
 	// module accounts that are allowed to receive tokens
 	allowedReceivingModAcc = map[string]bool{
-		distr.ModuleName:  true,
-		faucet.ModuleName: true,
+		distr.ModuleName: true,
 	}
 )
 
