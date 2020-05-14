@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -73,7 +72,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
-	k.SetBlockBloomMapping(ctx, ethtypes.BytesToBloom(k.Bloom.Bytes()), ctx.BlockHeight())
 
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
@@ -150,7 +148,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
-	k.SetBlockBloomMapping(ctx, ethtypes.BytesToBloom(k.Bloom.Bytes()), ctx.BlockHeight())
 
 	// update transaction logs in KVStore
 	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
