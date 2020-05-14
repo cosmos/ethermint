@@ -437,7 +437,7 @@ func (e *PublicEthAPI) doCall(
 	if args.To != nil {
 		toAddr = sdk.AccAddress(args.To.Bytes())
 	}
-	
+
 	// Create new call message
 	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
@@ -699,11 +699,10 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	}
 
 	txData := tx.TxResult.GetData()
-	fmt.Println(txData)
 
 	data, err := types.DecodeResultData(txData)
 	if err != nil {
-		//status = 0 // transaction failed
+		status = 0 // transaction failed
 	}
 
 	if data.Logs == nil {

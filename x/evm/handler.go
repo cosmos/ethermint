@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -68,11 +67,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	// TODO: move to keeper
 	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
-		fmt.Println("handler: transition error", err)
 		return nil, err
 	}
-
-	fmt.Println(executionResult.Result.Data)
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -147,11 +143,8 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
-		fmt.Println("handler: transition error", err)
 		return nil, err
 	}
-
-	fmt.Println(executionResult.Result)
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
