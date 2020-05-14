@@ -473,6 +473,7 @@ func (e *PublicEthAPI) doCall(
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
+	fmt.Println("eth_estimateGas")
 	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err

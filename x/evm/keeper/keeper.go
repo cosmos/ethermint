@@ -86,7 +86,7 @@ func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bl
 	heightBz := sdk.Uint64ToBigEndian(uint64(height))
 	bz := store.Get(types.BloomKey(heightBz))
 	if len(bz) == 0 {
-		return ethtypes.Bloom{}, fmt.Errorf("block at height %d not found", height)
+		return ethtypes.Bloom{}, nil//fmt.Errorf("block at height %d not found", height)
 	}
 
 	return ethtypes.BytesToBloom(bz), nil

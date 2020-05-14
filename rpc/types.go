@@ -44,9 +44,9 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 		*bn = LatestBlockNumber
 		return nil
 	case "pending":
-		return fmt.Errorf("pending queries not implemented")
-		// *bn = PendingBlockNumber
-		// return nil
+		//return fmt.Errorf("pending queries not implemented")
+		*bn = LatestBlockNumber
+		return nil
 	}
 
 	blckNum, err := hexutil.DecodeUint64(input)
