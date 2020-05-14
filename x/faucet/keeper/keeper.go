@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -48,6 +49,10 @@ func (k Keeper) GetFaucetAccount(ctx sdk.Context) supplyexported.ModuleAccountI 
 // Fund checks for timeout and max thresholds and then mints coins and transfers
 // coins to the recipient.
 func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress) error {
+	if !k.IsEnabled(ctx) {
+		return errors.New("faucet is not enabled. Restart the application and set faucet's 'enable_faucet' genesis field to true")
+	}
+
 	if err := k.rateLimit(ctx, recipient.String()); err != nil {
 		return err
 	}
@@ -57,8 +62,7 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 		totalRequested = totalRequested.Add(coin.Amount)
 	}
 
-	maxPerReq := sdk.NewInt(k.GetMaxPerRequest(ctx))
-
+	maxPerReq := k.GetMaxPerRequest(ctx)
 	if totalRequested.GT(maxPerReq) {
 		return fmt.Errorf("canot fund more than %s per request. requested %s", maxPerReq, totalRequested)
 	}
@@ -69,8 +73,7 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 		totalFunded = totalFunded.Add(coin.Amount)
 	}
 
-	cap := sdk.NewInt(k.GetCap(ctx))
-
+	cap := k.GetCap(ctx)
 	if totalFunded.Add(totalRequested).GT(cap) {
 		return fmt.Errorf("maximum cap of %s reached. Cannot continue funding", cap)
 	}
@@ -124,41 +127,41 @@ func (k Keeper) SetEnabled(ctx sdk.Context, enabled bool) {
 	store.Set(types.EnableFaucetKey, bz)
 }
 
-func (k Keeper) GetCap(ctx sdk.Context) int64 {
+func (k Keeper) GetCap(ctx sdk.Context) sdk.Int {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.CapKey)
 	if len(bz) == 0 {
-		return 0
+		return sdk.ZeroInt()
 	}
 
-	var cap int64
+	var cap sdk.Int
 	k.cdc.MustUnmarshalBinaryBare(bz, &cap)
 
 	return cap
 }
 
-func (k Keeper) SetCap(ctx sdk.Context, cap int64) {
+func (k Keeper) SetCap(ctx sdk.Context, cap sdk.Int) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(cap)
 	store.Set(types.CapKey, bz)
 }
 
-func (k Keeper) GetMaxPerRequest(ctx sdk.Context) int64 {
+func (k Keeper) GetMaxPerRequest(ctx sdk.Context) sdk.Int {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.MaxPerRequestKey)
 	if len(bz) == 0 {
-		return 0
+		return sdk.ZeroInt()
 	}
 
-	var cap int64
-	k.cdc.MustUnmarshalBinaryBare(bz, &cap)
+	var maxPerReq sdk.Int
+	k.cdc.MustUnmarshalBinaryBare(bz, &maxPerReq)
 
-	return cap
+	return maxPerReq
 }
 
-func (k Keeper) SetMaxPerRequest(ctx sdk.Context, cap int64) {
+func (k Keeper) SetMaxPerRequest(ctx sdk.Context, maxPerReq sdk.Int) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinaryBare(cap)
+	bz := k.cdc.MustMarshalBinaryBare(maxPerReq)
 	store.Set(types.MaxPerRequestKey, bz)
 }
 
