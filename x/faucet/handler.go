@@ -15,14 +15,14 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		case types.MsgFund:
 			return handleMsgFund(ctx, keeper, msg)
 		default:
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 	}
 }
 
-// Handle a message to Mint
+// handleMsgFund handles a message to fund an address
 func handleMsgFund(ctx sdk.Context, keeper Keeper, msg types.MsgFund) (*sdk.Result, error) {
-	err := keeper.MintAndSend(ctx, msg.Minter, msg.Time)
+	err := keeper.Fund(ctx, msg.Amount, msg.Recipient)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func handleMsgFund(ctx sdk.Context, keeper Keeper, msg types.MsgFund) (*sdk.Resu
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 			sdk.NewAttribute(types.AttributeRecipient, msg.Recipient.String()),
 		),

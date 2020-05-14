@@ -18,8 +18,8 @@ type GenesisState struct {
 	MaxAmountPerRequest int64 `json:"max_amount_per_request" yaml:"max_amount_per_request"`
 }
 
-// ValidateGenesis validates faucet genesis files
-func (gs GenesisState) Validate error {
+// Validate performs a basic validation of the GenesisState fields.
+func (gs GenesisState) Validate() error {
 	if gs.Timeout < 0 {
 		return fmt.Errorf("timeout cannot be negative: %s", gs.Timeout)
 	}
@@ -35,9 +35,9 @@ func (gs GenesisState) Validate error {
 // DefaultGenesisState sets default evm genesis config
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		EnableFaucet: false,
-		Timeout:      time.Hour,
-		FaucetCap:    10 ^ 9, // 1B max amount to be funded by the faucet
+		EnableFaucet:        false,
+		Timeout:             time.Hour,
+		FaucetCap:           10 ^ 9, // 1B max amount to be funded by the faucet
 		MaxAmountPerRequest: 1000,
 	}
 }

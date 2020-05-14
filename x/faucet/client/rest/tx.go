@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
@@ -46,9 +46,9 @@ func fundHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		var recipient sdk.AccAddress
 		if req.Recipient == "" {
-			receipient = sender
+			recipient = sender
 		} else {
-			receipient, err := sdk.AccAddressFromBech32(req.Recipient)
+			recipient, err = sdk.AccAddressFromBech32(req.Recipient)
 		}
 
 		if err != nil {
@@ -56,19 +56,13 @@ func fundHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		amount, err := sdk.ParseCoins(req.Amount)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		msg := types.NewMsgFund(amount, sender, receipient)
+		msg := types.NewMsgFund(req.Amount, sender, recipient)
 		err = msg.ValidateBasic()
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
 	}
 }

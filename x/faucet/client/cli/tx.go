@@ -2,21 +2,16 @@ package cli
 
 import (
 	"bufio"
-	"errors"
-	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
@@ -47,9 +42,7 @@ func GetCmdFund(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 
 			amount, err := sdk.ParseCoins(args[0])
 			if err != nil {
@@ -60,22 +53,19 @@ func GetCmdFund(cdc *codec.Codec) *cobra.Command {
 			if len(args) == 1 {
 				recipient = cliCtx.GetFromAddress()
 			} else {
-				recipient, err := sdk.AccAddressFromBech32(args[1])
+				recipient, err = sdk.AccAddressFromBech32(args[1])
 			}
 
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgFund(cliCtx.GetFromAddress(), recipient, time.Now().Unix()
-			err := msg.ValidateBasic()
-			if err != nil {
+			msg := types.NewMsgFund(amount, cliCtx.GetFromAddress(), recipient)
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
-
-
