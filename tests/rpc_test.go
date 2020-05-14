@@ -90,8 +90,6 @@ func call(t *testing.T, method string, params interface{}) *Response {
 	req, err := json.Marshal(createRequest(method, params))
 	require.NoError(t, err)
 
-	t.Logf("%s", req)
-
 	var rpcRes *Response
 	time.Sleep(1 * time.Second)
 	/* #nosec */
@@ -108,6 +106,14 @@ func call(t *testing.T, method string, params interface{}) *Response {
 	require.Nil(t, rpcRes.Error)
 
 	return rpcRes
+}
+
+// turns a 0x prefixed hex string to a big.Int
+func hexToBigInt(t *testing.T, in string) *big.Int {
+	s := in[2:]
+	b, err := hex.DecodeString(s)
+	require.NoError(t, err)
+	return big.NewInt(0).SetBytes(b)
 }
 
 func TestEth_protocolVersion(t *testing.T) {
@@ -627,12 +633,4 @@ func TestBlockBloom_Hash(t *testing.T) {
 
 	lb := hexToBigInt(t, block["logsBloom"].(string))
 	require.NotEqual(t, big.NewInt(0), lb)
-}
-
-// turns a 0x prefixed hex string to a big.Int
-func hexToBigInt(t *testing.T, in string) *big.Int {
-	s := in[2:]
-	b, err := hex.DecodeString(s)
-	require.NoError(t, err)
-	return big.NewInt(0).SetBytes(b)
 }

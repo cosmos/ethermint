@@ -82,8 +82,6 @@ func (k Keeper) SetBlockHashMapping(ctx sdk.Context, hash []byte, height int64) 
 
 // GetBlockBloomMapping gets bloombits from block height
 func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bloom, error) {
-	fmt.Println("GetBlockBloomMapping", height)
-	fmt.Println("GetBlockBloomMapping", k.blockKey)
 	store := ctx.KVStore(k.blockKey)
 	heightBz := sdk.Uint64ToBigEndian(uint64(height))
 	bz := store.Get(types.BloomKey(heightBz))
@@ -96,8 +94,6 @@ func (k Keeper) GetBlockBloomMapping(ctx sdk.Context, height int64) (ethtypes.Bl
 
 // SetBlockBloomMapping sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloomMapping(ctx sdk.Context, bloom ethtypes.Bloom, height int64) {
-	fmt.Println("SetBlockBloomMapping", height)
-	fmt.Println("SetBlockBloomMapping", k.blockKey)
 	store := ctx.KVStore(k.blockKey)
 	heightBz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(types.BloomKey(heightBz), bloom.Bytes())
