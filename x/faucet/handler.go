@@ -27,17 +27,15 @@ func handleMsgFund(ctx sdk.Context, keeper Keeper, msg types.MsgFund) (*sdk.Resu
 		return nil, err
 	}
 
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			"fund",
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-		),
+	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+			sdk.NewAttribute(types.AttributeRecipient, msg.Recipient.String()),
 		),
-	})
+	)
 
 	return &sdk.Result{
 		Events: ctx.EventManager().ABCIEvents(),

@@ -44,7 +44,13 @@ func fundHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		receipient, err := sdk.AccAddressFromBech32(req.Recipient)
+		var recipient sdk.AccAddress
+		if req.Recipient == "" {
+			receipient = sender
+		} else {
+			receipient, err := sdk.AccAddressFromBech32(req.Recipient)
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

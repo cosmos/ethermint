@@ -16,11 +16,11 @@ import (
 type Keeper struct {
 	cdc *codec.Codec
 
-	SupplyKeeper  types.SupplyKeeper
-	StakingKeeper types.StakingKeeper
+	supplyKeeper  types.SupplyKeeper
+	stakingKeeper types.StakingKeeper
 
-	// TODO: move to genesis
-	Limit time.Duration // rate limiting for mint, etc 24 * time.Hours
+	// history of users and their funding timeouts
+	timeouts map[string]time.Time
 }
 
 // NewKeeper creates a new faucet Keeper instance.
@@ -30,8 +30,9 @@ func NewKeeper(
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
-		SupplyKeeper:  supplyKeeper,
-		StakingKeeper: stakingKeeper,
+		supplyKeeper:  supplyKeeper,
+		stakingKeeper: stakingKeeper,
+		timeouts:      make(map[string]time.Time),
 	}
 }
 
@@ -70,6 +71,14 @@ func (k Keeper) MintAndSend(ctx sdk.Context, minter sdk.AccAddress, mintTime int
 	return nil
 }
 
+// TODO:
+func (k Keeper) GetTimout(ctx sdk.Context) time.Duration {
+	return time.Second
+}
+
+func (k Keeper) SetTimout(ctx sdk.Context, timout time.Duration) {
+}
+
 func (k Keeper) getMining(ctx sdk.Context, minter sdk.AccAddress) types.Mining {
 	store := ctx.KVStore(k.storeKey)
 	if !k.isPresent(ctx, minter) {
@@ -93,27 +102,23 @@ func (k Keeper) setMining(ctx sdk.Context, minter sdk.AccAddress, mining types.M
 	store.Set(minter.Bytes(), k.cdc.MustMarshalBinaryBare(mining))
 }
 
-// IsPresent check if the name is present in the store or not
-func (k Keeper) isPresent(ctx sdk.Context, minter sdk.AccAddress) bool {
-	store := ctx.KVStore(k.storeKey)
-	return store.Has(minter.Bytes())
+func (k Keeper) rateLimit(address string) error {
+	// first time requester, can send request
+	lastRequest, ok := k.timeouts[address]
+	if !ok {
+		k.timeouts[address] = time.Now().UTC()
+		return nil
+	}
+
+	defaultTimeout := k.GetTimeout(ctx)
+	sinceLastRequest := time.Since(lastRequest)
+
+	if defaultTimeout > sinceLastRequest {
+		wait := defaultTimeout - sinceLastRequest
+		return fmt.Errorf("%s has requested funds within the last %s, wait %s before trying again", address, k.timeout.String(), wait.String())
+	}
+
+	// user able to send funds since they have waited for period
+	k.timeouts[address] = time.Now().UTC()
+	return nil
 }
-
-// func (k Keeper) GetFaucetKey(ctx sdk.Context) types.FaucetKey {
-// 	store := ctx.KVStore(k.storeKey)
-// 	bz := store.Get([]byte(FaucetStoreKey))
-// 	var faucet types.FaucetKey
-// 	k.cdc.MustUnmarshalBinaryBare(bz, &faucet)
-// 	return faucet
-// }
-
-// func (k Keeper) SetFaucetKey(ctx sdk.Context, armor string) {
-// 	store := ctx.KVStore(k.storeKey)
-// 	faucet := types.NewFaucetKey(armor)
-// 	store.Set([]byte(FaucetStoreKey), k.cdc.MustMarshalBinaryBare(faucet))
-// }
-
-// func (k Keeper) HasFaucetKey(ctx sdk.Context) bool {
-// 	store := ctx.KVStore(k.storeKey)
-// 	return store.Has([]byte(FaucetStoreKey))
-// }

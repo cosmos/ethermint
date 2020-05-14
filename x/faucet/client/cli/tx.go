@@ -32,20 +32,17 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	faucetTxCmd.AddCommand(flags.PostCommands(
-		GetCmdMint(cdc),
-		GetCmdMintFor(cdc),
-		GetCmdInitial(cdc),
-		GetPublishKey(cdc),
+		GetCmdFund(cdc),
 	)...)
 
 	return faucetTxCmd
 }
 
-// GetCmdFund is the CLI command to fund an address with a given coin
+// GetCmdFund is the CLI command to fund an address with the requested coins
 func GetCmdFund(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fund [amount] [[address]]",
-		Short: "mint coin for new address",
+		Short: "fund an address with the requested coins",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -59,18 +56,18 @@ func GetCmdFund(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var address sdk.AccAddress
+			var recipient sdk.AccAddress
 			if len(args) == 1 {
-				address = cliCtx.GetFromAddress()
+				recipient = cliCtx.GetFromAddress()
 			} else {
-				address, err := sdk.AccAddressFromBech32(args[1])
+				recipient, err := sdk.AccAddressFromBech32(args[1])
 			}
 
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgFund(cliCtx.GetFromAddress(), address, time.Now().Unix()
+			msg := types.NewMsgFund(cliCtx.GetFromAddress(), recipient, time.Now().Unix()
 			err := msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -81,75 +78,4 @@ func GetCmdFund(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-func GetPublishKey(cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "publish",
-		Short: "Publish current account as an public faucet. Do NOT add many coins in this account",
-		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			kb, errkb := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), inBuf)
-			if errkb != nil {
-				return errkb
-			}
-
-			// check local key
-			armor, err := kb.Export(cliCtx.GetFromName())
-			if err != nil {
-				return err
-			}
-
-			msg := types.NewMsgFaucetKey(cliCtx.GetFromAddress(), armor)
-			err = msg.ValidateBasic()
-			if err != nil {
-				return err
-			}
-
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-		},
-	}
-}
-
-func GetCmdInitial(cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "init",
-		Short: "Initialize mint key for faucet",
-		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			//txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			kb, errkb := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), inBuf)
-			if errkb != nil {
-				return errkb
-			}
-
-			// check local key
-			_, err := kb.Get(types.ModuleName)
-			if err == nil {
-				return errors.New("faucet existed")
-			}
-
-			// fetch from chain
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/key", types.ModuleName), nil)
-			if err != nil {
-				return nil
-			}
-			var rkey types.FaucetKey
-			cdc.MustUnmarshalJSON(res, &rkey)
-
-			if len(rkey.Armor) == 0 {
-				return errors.New("Faucet key has not published")
-			}
-			// import to keybase
-			kb.Import(types.ModuleName, rkey.Armor)
-			fmt.Println("The faucet has been loaded successfully.")
-			return nil
-
-		},
-	}
-}
