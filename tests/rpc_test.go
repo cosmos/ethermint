@@ -614,6 +614,7 @@ func TestBlockBloom(t *testing.T) {
 
 	lb := hexToBigInt(t, block["logsBloom"].(string))
 	require.NotEqual(t, big.NewInt(0), lb)
+	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
 }
 
 func TestBlockBloom_Hash(t *testing.T) {
