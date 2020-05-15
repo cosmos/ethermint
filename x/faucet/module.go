@@ -66,7 +66,7 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetQueryCmd returns no root query command for the faucet module.
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return nil
+	return cli.GetQueryCmd(cdc)
 }
 
 type AppModule struct {
