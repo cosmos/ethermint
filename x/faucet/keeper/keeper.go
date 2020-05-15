@@ -74,6 +74,7 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 	}
 
 	cap := k.GetCap(ctx)
+
 	if totalFunded.Add(totalRequested).GT(cap) {
 		return fmt.Errorf("maximum cap of %s reached. Cannot continue funding", cap)
 	}
@@ -85,6 +86,8 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, amount); err != nil {
 		return err
 	}
+
+	k.SetFunded(ctx, funded.Add(amount...))
 
 	k.Logger(ctx).Info(fmt.Sprintf("funded %s to %s", amount, recipient))
 	return nil

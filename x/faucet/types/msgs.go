@@ -33,10 +33,10 @@ func (msg MsgFund) ValidateBasic() error {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.Amount.String())
 	}
 	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "sender %s", msg.Sender.String())
 	}
 	if msg.Recipient.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Recipient.String())
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "recipient %s", msg.Recipient.String())
 	}
 	return nil
 }

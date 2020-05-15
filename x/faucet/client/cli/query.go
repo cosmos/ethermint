@@ -38,7 +38,7 @@ func GetCmdFunded(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, height, err := cliCtx.Query(fmt.Sprintf("custom/%s/storage/funded", types.QuerierRoute))
+			res, height, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFunded))
 			if err != nil {
 				return fmt.Errorf("could not resolve: %s", err)
 			}

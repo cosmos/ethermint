@@ -38,8 +38,8 @@ func (gs GenesisState) Validate() error {
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		EnableFaucet:        false,
-		Timeout:             time.Hour,
-		FaucetCap:           sdk.NewInt(10 ^ 9), // 1B max amount to be funded by the faucet
+		Timeout:             20 * time.Minute,
+		FaucetCap:           sdk.NewInt(1000000000),
 		MaxAmountPerRequest: sdk.NewInt(1000),
 	}
 }
