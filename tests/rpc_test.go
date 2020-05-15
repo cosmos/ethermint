@@ -11,6 +11,7 @@ package tests
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -105,6 +106,14 @@ func call(t *testing.T, method string, params interface{}) *Response {
 	require.Nil(t, rpcRes.Error)
 
 	return rpcRes
+}
+
+// turns a 0x prefixed hex string to a big.Int
+func hexToBigInt(t *testing.T, in string) *big.Int {
+	s := in[2:]
+	b, err := hex.DecodeString(s)
+	require.NoError(t, err)
+	return big.NewInt(0).SetBytes(b)
 }
 
 func TestEth_protocolVersion(t *testing.T) {
@@ -276,6 +285,7 @@ func sendTestTransaction(t *testing.T) hexutil.Bytes {
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	param[0]["value"] = "0x1"
 	rpcRes := call(t, "eth_sendTransaction", param)
 
 	var hash hexutil.Bytes
@@ -296,6 +306,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
 	require.Equal(t, "0x1", receipt["status"].(string))
+	require.Equal(t, []interface{}{}, receipt["logs"].([]interface{}))
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
@@ -587,4 +598,42 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 
 	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
 
+}
+
+func TestBlockBloom(t *testing.T) {
+	hash := deployTestContractWithFunction(t)
+	receipt := waitForReceipt(t, hash)
+
+	number := receipt["blockNumber"].(string)
+	t.Log(number)
+
+	param := []interface{}{number, false}
+	rpcRes := call(t, "eth_getBlockByNumber", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+
+	lb := hexToBigInt(t, block["logsBloom"].(string))
+	require.NotEqual(t, big.NewInt(0), lb)
+	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
+}
+
+func TestBlockBloom_Hash(t *testing.T) {
+	t.Skip()
+	// TODO: get this to work
+	hash := deployTestContractWithFunction(t)
+	receipt := waitForReceipt(t, hash)
+
+	blockHash := receipt["blockHash"].(string)
+
+	param := []interface{}{blockHash, false}
+	rpcRes := call(t, "eth_getBlockByHash", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+
+	lb := hexToBigInt(t, block["logsBloom"].(string))
+	require.NotEqual(t, big.NewInt(0), lb)
 }
