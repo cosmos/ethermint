@@ -62,16 +62,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	// Prepare db for logs
 	// TODO: block hash
 	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	k.TxCount++
 
 	// TODO: move to keeper
 	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	k.TxCount++
-	p := k.CommitStateDB.GetNonce(st.Sender)
-	k.CommitStateDB.SetNonce(st.Sender, p)
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -142,15 +139,12 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	// Prepare db for logs
 	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+	k.TxCount++
 
 	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	k.TxCount++
-	p := k.CommitStateDB.GetNonce(st.Sender)
-	k.CommitStateDB.SetNonce(st.Sender, p)
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
