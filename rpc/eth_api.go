@@ -180,6 +180,21 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
+	if blockNum == LatestBlockNumber {
+		// Get nonce (sequence) from account
+		from := sdk.AccAddress(address.Bytes())
+		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
+		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+
+		_, nonce, err := accRet.GetAccountNumberSequence(from)
+		if err != nil {
+			return nil, err
+		}
+
+		n := hexutil.Uint64(nonce)
+		return &n, nil
+	}
+
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/nonce/%s", types.ModuleName, address.Hex()), nil)
 	if err != nil {
