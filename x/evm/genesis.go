@@ -25,8 +25,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 
 // ExportGenesis exports genesis state
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+	// nolint: prealloc
 	var ethGenAccounts []GenesisAccount
-
 	accounts := ak.GetAllAccounts(ctx)
 
 	var err error
