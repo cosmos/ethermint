@@ -358,12 +358,9 @@ func applyTransaction(
 
 	// Apply the transaction to the current state (included in the env)
 	execResult, err := ethcore.ApplyMessage(vmenv, msg, gp)
+	// NOTE: ignore vm execution error (eg: tx out of gas) as we care only about state transition errors
 	if err != nil {
 		return nil, 0, err
-	}
-
-	if execResult.Err != nil {
-		return nil, execResult.UsedGas, execResult.Err
 	}
 
 	// Update the state with pending changes
