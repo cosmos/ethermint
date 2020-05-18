@@ -40,8 +40,9 @@ func GetCmdFunded(cdc *codec.Codec) *cobra.Command {
 
 			res, height, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFunded))
 			if err != nil {
-				return fmt.Errorf("could not resolve: %s", err)
+				return err
 			}
+
 			var out sdk.Coins
 			cdc.MustUnmarshalJSON(res, &out)
 			cliCtx = cliCtx.WithHeight(height)
