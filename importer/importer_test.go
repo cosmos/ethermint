@@ -357,9 +357,13 @@ func applyTransaction(
 	vmenv := ethvm.NewEVM(context, statedb, config, cfg)
 
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ethcore.ApplyMessage(vmenv, msg, gp)
+	execResult, err := ethcore.ApplyMessage(vmenv, msg, gp)
 	if err != nil {
-		return nil, gas, err
+		return nil, 0, err
+	}
+
+	if execResult.Err != nil {
+		return nil, execResult.UsedGas, execResult.Err
 	}
 
 	// Update the state with pending changes
