@@ -250,7 +250,7 @@ func NewEthermintApp(
 		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper),
+		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
 		faucet.NewAppModule(app.FaucetKeeper),
 	)
 
