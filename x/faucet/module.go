@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 
 	"github.com/cosmos/ethermint/x/faucet/client/cli"
+	"github.com/cosmos/ethermint/x/faucet/client/rest"
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
 
@@ -55,8 +56,7 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, bz json.RawMessag
 
 // RegisterRESTRoutes registers the REST routes for the faucet module.
 func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	// TODO: currently the EVM module RPC runs on the rest server so we can't
-	// register new endpoints.
+	rest.RegisterRoutes(ctx, rtr)
 }
 
 // GetTxCmd returns the root tx command for the faucet module.
