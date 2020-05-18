@@ -375,17 +375,17 @@ func applyTransaction(
 	}
 
 	if err != nil {
-		return nil, gas, err
+		return nil, execResult.UsedGas, err
 	}
 
 	root := intRoot.Bytes()
-	*usedGas += gas
+	*usedGas += execResult.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := ethtypes.NewReceipt(root, failed, *usedGas)
+	receipt := ethtypes.NewReceipt(root, execResult.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = execResult.UsedGas
 
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
@@ -399,5 +399,5 @@ func applyTransaction(
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
-	return receipt, gas, err
+	return receipt, execResult.UsedGas, err
 }
