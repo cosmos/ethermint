@@ -74,10 +74,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
-	if err != nil {
-		return nil, err
-	}
+	k.SetTransactionLogs(ctx, txHash, executionResult.Logs)
 
 	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
@@ -118,10 +115,8 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
-	sender := common.BytesToAddress(msg.From.Bytes())
 
 	st := types.StateTransition{
-		Sender:       sender,
 		AccountNonce: msg.AccountNonce,
 		Price:        msg.Price.BigInt(),
 		GasLimit:     msg.GasLimit,
@@ -130,6 +125,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
 		TxHash:       &ethHash,
+		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
 	}
 
@@ -151,10 +147,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
-	if err != nil {
-		return nil, err
-	}
+	k.SetTransactionLogs(ctx, txHash, executionResult.Logs)
 
 	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)

@@ -236,8 +236,7 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	err = suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, resultData.Logs, hash)
-	suite.Require().NoError(err, "failed to set logs")
+	suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, hash, resultData.Logs)
 
 	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
 	suite.Require().NoError(err, "failed to get logs")
@@ -280,7 +279,7 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	suite.Require().Equal(logs, resultData.Logs)
 
 	// query tx logs
-	path := []string{"txLogs", fmt.Sprintf("0x%x", hash)}
+	path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
 	res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
 	suite.Require().NoError(err, "failed to query txLogs")
 

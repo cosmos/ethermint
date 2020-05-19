@@ -19,7 +19,7 @@ const (
 	QueryCode            = types.QueryCode
 	QueryNonce           = types.QueryNonce
 	QueryHashToHeight    = types.QueryHashToHeight
-	QueryTxLogs          = types.QueryTxLogs
+	QueryTransactionLogs = types.QueryTransactionLogs
 	QueryLogsBloom       = types.QueryLogsBloom
 	QueryLogs            = types.QueryLogs
 	QueryAccount         = types.QueryAccount
@@ -27,8 +27,9 @@ const (
 
 // nolint
 var (
-	NewKeeper = keeper.NewKeeper
-	TxDecoder = types.TxDecoder
+	NewKeeper         = keeper.NewKeeper
+	TxDecoder         = types.TxDecoder
+	NewGenesisStorage = types.NewGenesisStorage
 )
 
 //nolint
@@ -36,4 +37,6 @@ type (
 	Keeper          = keeper.Keeper
 	QueryResAccount = types.QueryResAccount
 	GenesisState    = types.GenesisState
+	GenesisAccount  = types.GenesisAccount
+	GenesisStorage  = types.GenesisStorage
 )
