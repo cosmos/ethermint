@@ -19,6 +19,7 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
+	// HeaderByNumber(blockNum BlockNumber) (ethtypes.Header, error)
 	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
 	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
@@ -32,18 +33,31 @@ type Backend interface {
 	// TODO: Bloom methods
 }
 
-// EmintBackend implements Backend
+// EthermintBackend implements the Backend interface
 type EthermintBackend struct {
 	cliCtx   context.CLIContext
 	gasLimit int64
 }
 
+// NewEthermintBackend creates a new ethermint backend instance.
 func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
 	return &EthermintBackend{
 		cliCtx:   cliCtx,
 		gasLimit: int64(^uint32(0)),
 	}
 }
+
+// // HeaderByNumber returns the current block number.
+// func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (ethtypes.Header, error)
+// 	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
+// 	if err != nil {
+// 		return hexutil.Uint64(0), err
+// 	}
+
+// 	var out types.QueryResBlockNumber
+// 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+// 	return hexutil.Uint64(out.Number), nil
+// }
 
 // BlockNumber returns the current block number.
 func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {

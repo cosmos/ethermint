@@ -87,6 +87,17 @@ func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, error) {
 	return bz, nil
 }
 
+// func queryHeaderByNumber(ctx sdk.Context, keeper Keeper) ([]byte, error) {
+// 	num := ctx.BlockHeight()
+// 	bnRes := types.QueryResBlockNumber{Number: num}
+// 	bz, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
+// 	if err != nil {
+// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+// 	}
+
+// 	return bz, nil
+// }
+
 func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	addr := ethcmn.HexToAddress(path[1])
 	key := ethcmn.HexToHash(path[2])

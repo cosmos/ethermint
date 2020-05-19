@@ -17,43 +17,25 @@ import (
 	Used to set the criteria passed in from RPC params
 */
 
-const blockFilter = "block"
-const pendingTxFilter = "pending"
-const logFilter = "log"
-
 // Filter can be used to retrieve and filter logs, blocks, or pending transactions.
 type Filter struct {
-	backend            Backend
+	backend Backend
+
 	fromBlock, toBlock *big.Int         // start and end block numbers
 	addresses          []common.Address // contract addresses to watch
 	topics             [][]common.Hash  // log topics to watch for
 	blockHash          *common.Hash     // Block hash if filtering a single block
 
-	typ     string
+	typ     filters.Type    // filter type
 	hashes  []common.Hash   // filtered block or transaction hashes
-	logs    []*ethtypes.Log //nolint // filtered logs
+	logs    []*ethtypes.Log // filtered logs
 	stopped bool            // set to true once filter in uninstalled
 
 	err error
 }
 
 // NewFilter returns a new Filter
-func NewFilter(backend Backend, criteria *filters.FilterCriteria) *Filter {
-	filter := &Filter{
-		backend:   backend,
-		fromBlock: criteria.FromBlock,
-		toBlock:   criteria.ToBlock,
-		addresses: criteria.Addresses,
-		topics:    criteria.Topics,
-		typ:       logFilter,
-		stopped:   false,
-	}
-
-	return filter
-}
-
-// NewFilterWithBlockHash returns a new Filter with a blockHash.
-func NewFilterWithBlockHash(backend Backend, criteria *filters.FilterCriteria) *Filter {
+func NewFilter(backend Backend, criteria *filters.FilterCriteria, filterType filters.Type) *Filter {
 	return &Filter{
 		backend:   backend,
 		fromBlock: criteria.FromBlock,
@@ -61,23 +43,9 @@ func NewFilterWithBlockHash(backend Backend, criteria *filters.FilterCriteria) *
 		addresses: criteria.Addresses,
 		topics:    criteria.Topics,
 		blockHash: criteria.BlockHash,
-		typ:       logFilter,
+		typ:       filterType,
+		stopped:   false,
 	}
-}
-
-// NewBlockFilter creates a new filter that notifies when a block arrives.
-func NewBlockFilter(backend Backend) *Filter {
-	filter := NewFilter(backend, &filters.FilterCriteria{})
-	filter.typ = blockFilter
-
-	go func() {
-		err := filter.pollForBlocks()
-		if err != nil {
-			filter.err = err
-		}
-	}()
-
-	return filter
 }
 
 func (f *Filter) pollForBlocks() error {
@@ -148,28 +116,13 @@ func contains(slice []common.Hash, item common.Hash) bool {
 	return ok
 }
 
-// NewPendingTransactionFilter creates a new filter that notifies when a pending transaction arrives.
-func NewPendingTransactionFilter(backend Backend) *Filter {
-	filter := NewFilter(backend, &filters.FilterCriteria{})
-	filter.typ = pendingTxFilter
-
-	go func() {
-		err := filter.pollForTransactions()
-		if err != nil {
-			filter.err = err
-		}
-	}()
-
-	return filter
-}
-
 func (f *Filter) uninstallFilter() {
 	f.stopped = true
 }
 
 func (f *Filter) getFilterChanges() (interface{}, error) {
 	switch f.typ {
-	case blockFilter:
+	case filters.BlocksSubscription:
 		if f.err != nil {
 			return nil, f.err
 		}
@@ -179,7 +132,7 @@ func (f *Filter) getFilterChanges() (interface{}, error) {
 		f.hashes = []common.Hash{}
 
 		return blocks, nil
-	case pendingTxFilter:
+	case filters.PendingTransactionsSubscription:
 		if f.err != nil {
 			return nil, f.err
 		}
@@ -188,7 +141,7 @@ func (f *Filter) getFilterChanges() (interface{}, error) {
 		copy(txs, f.hashes)
 		f.hashes = []common.Hash{}
 		return txs, nil
-	case logFilter:
+	case filters.LogsSubscription:
 		return f.getFilterLogs()
 	}
 
