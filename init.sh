@@ -37,7 +37,7 @@ cat  $HOME/.emintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet
 
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
-echo -e "emintcli tx faucet fund 100photon --from $KEY\n"
+echo -e "emintcli tx faucet request 100photon --from $KEY\n"
 
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
