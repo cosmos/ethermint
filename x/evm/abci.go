@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"fmt"
 	"math/big"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -20,6 +21,11 @@ func BeginBlock(k Keeper, ctx sdk.Context, req abci.RequestBeginBlock) {
 	// Consider removing this when using evm as module without web3 API
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloomMapping(ctx, bloom, req.Header.GetHeight())
+	
+	fmt.Println("BeginBlock")
+	fmt.Println(req.Header.GetHeight())
+	fmt.Printf("0x%x\n", req.Header.LastBlockId.GetHash())
+
 	k.SetBlockHashMapping(ctx, req.Header.LastBlockId.GetHash(), req.Header.GetHeight())
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
