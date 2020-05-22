@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -35,6 +36,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	if !ok {
 		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
+
+	fmt.Println("MsgEthereumTx")
+	fmt.Println(msg)
 
 	// Verify signature and retrieve sender address
 	sender, err := msg.VerifySig(intChainID)
@@ -112,6 +116,9 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	if !ok {
 		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
+
+	fmt.Println("MsgEthermint")
+	fmt.Println(msg)
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
