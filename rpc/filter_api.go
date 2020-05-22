@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -36,7 +36,10 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *Publi
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*Filter),
-		events:  nil, // TODO: create concrete type
+		events: TendermintEvents{
+			ctx:    context.Background(),
+			client: cliCtx.Client,
+		},
 	}
 
 	// TODO: implement timeout loop
@@ -88,6 +91,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
+	api.events = api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
 	go func() {
@@ -120,34 +124,39 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	var (
-		headers   = make(chan abci.Header)
-		headerSub = api.events.SubscribeNewHeads(headers)
-	)
+	subscriberID := rpc.NewID()
+	eventCh, err := api.events.SubscribeNewHeads(subscriberID)
+	if err != nil {
+		// return an empty id
+		return rpc.ID("")
+	}
 
 	api.filtersMu.Lock()
-	api.filters[headerSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.BlocksSubscription)
+	api.filters[subscriberID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.BlocksSubscription)
 	api.filtersMu.Unlock()
 
 	go func() {
 		for {
 			select {
-			case h := <-headers:
+			case event := <-eventCh:
+				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
+				if !ok {
+					// remove filter from map
+					api.filtersMu.Lock()
+					delete(api.filters, subscriberID)
+					api.filtersMu.Unlock()
+					return
+				}
 				api.filtersMu.Lock()
-				if f, found := api.filters[headerSub.ID]; found {
-					f.hashes = append(f.hashes, common.BytesToHash(h.AppHash))
+				if f, found := api.filters[subscriberID]; found {
+					f.hashes = append(f.hashes, common.BytesToHash(evHeader.Header.Hash()))
 				}
 				api.filtersMu.Unlock()
-			case <-headerSub.Err():
-				api.filtersMu.Lock()
-				delete(api.filters, headerSub.ID)
-				api.filtersMu.Unlock()
-				return
 			}
 		}
 	}()
 
-	return headerSub.ID
+	return subscriberID
 }
 
 // NewHeads send a notification each time a new (header) block is appended to the chain.
@@ -157,27 +166,35 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
+	api.events = api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
+	var err error
 	go func() {
-		headers := make(chan abci.Header)
-		headersSub := api.events.SubscribeNewHeads(headers)
+		eventCh, err := api.events.SubscribeNewHeads(rpcSub.ID)
+		if err != nil {
+			return
+		}
 
 		for {
 			select {
-			case h := <-headers:
-				notifier.Notify(rpcSub.ID, h)
+			case event := <-eventCh:
+				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
+				if !ok {
+					return
+				}
+				notifier.Notify(rpcSub.ID, evHeader.Header)
 			case <-rpcSub.Err():
-				headersSub.Unsubscribe()
+				err = api.events.UnsubscribeHeads(rpcSub.ID)
 				return
 			case <-notifier.Closed():
-				headersSub.Unsubscribe()
+				err = api.events.UnsubscribeHeads(rpcSub.ID)
 				return
 			}
 		}
 	}()
 
-	return rpcSub, nil
+	return rpcSub, err
 }
 
 // Logs creates a subscription that fires for all new log that match the given filter criteria.
@@ -187,12 +204,15 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
+	api.events = api.events.WithContext(ctx)
+
 	var (
-		rpcSub      = notifier.CreateSubscription()
-		matchedLogs = make(chan []*types.Log)
+		rpcSub = notifier.CreateSubscription()
 	)
 
-	logsSub, err := api.events.SubscribeLogs(ethereum.FilterQuery(crit), matchedLogs)
+	// filterCriteria := ethereum.FilterQuery(crit)
+
+	eventCh, err := api.events.SubscribeLogs(rpcSub.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -201,21 +221,28 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 
 		for {
 			select {
-			case logs := <-matchedLogs:
-				for _, log := range logs {
-					notifier.Notify(rpcSub.ID, &log)
+			case event := <-eventCh:
+				_, ok := event.Data.(tmtypes.EventDataTx)
+				if !ok {
+					return
 				}
+
+				//  eventTx.Height // TODO: use filter criteria
+
+				// for _, log := range logs {
+				// 	notifier.Notify(rpcSub.ID, &log)
+				// }
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				logsSub.Unsubscribe()
+				err = api.events.UnsubscribeLogs(rpcSub.ID)
 				return
 			case <-notifier.Closed(): // connection dropped
-				logsSub.Unsubscribe()
+				err = api.events.UnsubscribeLogs(rpcSub.ID)
 				return
 			}
 		}
 	}()
 
-	return rpcSub, nil
+	return rpcSub, err
 }
 
 // NewFilter creates a new filter and returns the filter id. It can be
