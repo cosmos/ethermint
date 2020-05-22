@@ -587,18 +587,22 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 // UpdateAccounts updates the nonce and coin balances of accounts
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
+
+		fmt.Println("csdb.UpdateAccounts")
+		fmt.Printf("0x%x\n", addr)
+
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		emintAcc, ok := currAcc.(*emint.EthAccount)
 		if !ok {
-			return
+			continue
 		}
 
-		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, currAcc.GetAddress(), emint.DenomDefault)
 		if so.Balance() != balance.Amount.BigInt() && balance.IsValid() {
 			so.balance = balance.Amount
 		}
 
-		if so.Nonce() != emintAcc.GetSequence() {
+		if so.Nonce() != currAcc.GetSequence() {
 			so.account = emintAcc
 		}
 	}
