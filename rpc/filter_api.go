@@ -7,7 +7,6 @@ import (
 
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -16,6 +15,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
 // PublicFilterAPI offers support to create and manage filters. This will allow external clients to retrieve various
@@ -181,6 +182,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 			case event := <-eventCh:
 				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
+					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventNewBlockHeader)
 					return
 				}
 				notifier.Notify(rpcSub.ID, evHeader.Header)
@@ -224,6 +226,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 			case event := <-eventCh:
 				_, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
+					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
 					return
 				}
 
@@ -259,35 +262,48 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
-	logs := make(chan []*types.Log)
-	logsSub, err := api.events.SubscribeLogs(ethereum.FilterQuery(criteria), logs)
+	subscriberID := rpc.NewID()
+	eventCh, err := api.events.SubscribeLogs(subscriberID)
 	if err != nil {
 		return rpc.ID(""), err
 	}
 
+	// filterCriteria = ethereum.FilterQuery(criteria)
+
 	api.filtersMu.Lock()
-	api.filters[logsSub.ID] = NewFilter(api.backend, &criteria, filters.LogsSubscription)
+	api.filters[subscriberID] = NewFilter(api.backend, &criteria, filters.LogsSubscription)
 	api.filtersMu.Unlock()
 
 	go func() {
 		for {
 			select {
-			case l := <-logs:
+			case event := <-eventCh:
+				eventTx, ok := event.Data.(tmtypes.EventDataTx)
+				if !ok {
+					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
+					return
+				}
+
+				_, err := bytesToEthTx(api.cliCtx, eventTx.Tx)
+				if err != nil {
+					return
+				}
+
+				data, err := evmtypes.DecodeResultData(eventTx.TxResult.Result.Data)
+				if err != nil {
+					return
+				}
+
 				api.filtersMu.Lock()
-				if f, found := api.filters[logsSub.ID]; found {
-					f.logs = append(f.logs, l...)
+				if f, found := api.filters[subscriberID]; found {
+					f.logs = append(f.logs, data.Logs...)
 				}
 				api.filtersMu.Unlock()
-			case <-logsSub.Err():
-				api.filtersMu.Lock()
-				delete(api.filters, logsSub.ID)
-				api.filtersMu.Unlock()
-				return
 			}
 		}
 	}()
 
-	return logsSub.ID, nil
+	return subscriberID, nil
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
