@@ -51,6 +51,7 @@ func DefaultGenesisState() GenesisState {
 }
 
 // AragonGenesisState sets evm genesis state with aragonOS contracts preloaded into storage.
+// TODO: will this be useful?
 func AragonGenesisState() GenesisState {
 	return GenesisState{
 		Accounts: []GenesisAccount{},
@@ -64,9 +65,9 @@ func (gs GenesisState) Validate() error {
 		if bytes.Equal(acc.Address.Bytes(), zeroAddrBytes) {
 			return errors.New("invalid GenesisAccount: address cannot be empty")
 		}
-		// if acc.Balance == nil {
-		// 	return errors.New("invalid GenesisAccount: balance cannot be empty")
-		// }
+		if acc.Balance == nil {
+			return errors.New("invalid GenesisAccount: balance cannot be empty")
+		}
 	}
 	return nil
 }

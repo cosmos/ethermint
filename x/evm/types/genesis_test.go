@@ -57,7 +57,3 @@ func TestValidateGenesis(t *testing.T) {
 		}
 	}
 }
-
-func TestAragonGenesis(t *testing.T) {
-
-}
