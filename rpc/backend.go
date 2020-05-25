@@ -194,7 +194,7 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 		return nil, err
 	}
 
-	transactions := make([]*Transaction, 0, 100)
+	transactions := make([]*Transaction, pendingTxs.Count)
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := bytesToEthTx(e.cliCtx, tx)
 		if err != nil {

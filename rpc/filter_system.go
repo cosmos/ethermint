@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"time"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -16,6 +17,7 @@ import (
 // subscription which match the subscription criteria.
 type EventSystem interface {
 	WithContext(ctx context.Context) EventSystem
+	GetTimeout() time.Duration
 	SubscribeLogs(subscriberID rpc.ID) (eventCh <-chan coretypes.ResultEvent, err error)
 	UnsubscribeLogs(subscriberID rpc.ID) (err error)
 	SubscribeNewHeads(subscriberID rpc.ID) (eventCh <-chan coretypes.ResultEvent, err error)
@@ -27,14 +29,20 @@ var _ EventSystem = &TendermintEvents{}
 
 // TendermintEvents implements the EventSystem using Tendermint's RPC client.
 type TendermintEvents struct {
-	ctx    context.Context
-	client rpcclient.Client
+	ctx     context.Context
+	client  rpcclient.Client
+	timeout time.Duration
 }
 
 // WithContext sets the a given context to the
 func (te *TendermintEvents) WithContext(ctx context.Context) EventSystem {
 	te.ctx = ctx
 	return te
+}
+
+// GetTimeout returns the default timeout in seconds
+func (te TendermintEvents) GetTimeout() time.Duration {
+	return te.timeout
 }
 
 // SubscribeLogs subscribes to new incoming MsgEthereumTx or MsgEthermint transactions

@@ -33,101 +33,102 @@ type PublicFilterAPI struct {
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
-func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *PublicFilterAPI {
+func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend, timeoutSec int64) *PublicFilterAPI {
 	return &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*Filter),
-		events: TendermintEvents{
-			ctx:    context.Background(),
-			client: cliCtx.Client,
+		events: &TendermintEvents{
+			ctx:     context.Background(),
+			client:  cliCtx.Client,
+			timeout: time.Duration(timeoutSec) * time.Second,
 		},
 	}
 
 	// TODO: implement timeout loop
 }
 
-// NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
-// as transactions enter the pending state.
-//
-// It is part of the filter package because this filter can be used through the
-// `eth_getFilterChanges` polling method that is also used for log filters.
-//
-// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newpendingtransactionfilter
-func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
-	var (
-		pendingTxs   = make(chan []common.Hash)
-		pendingTxSub = api.events.SubscribePendingTxs(pendingTxs)
-	)
+// // NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
+// // as transactions enter the pending state.
+// //
+// // It is part of the filter package because this filter can be used through the
+// // `eth_getFilterChanges` polling method that is also used for log filters.
+// //
+// // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newpendingtransactionfilter
+// func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+// 	var (
+// 		pendingTxs   = make(chan []common.Hash)
+// 		pendingTxSub = api.events.SubscribePendingTxs(pendingTxs)
+// 	)
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelFn()
+// 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
+// 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
+// 	api.events = api.events.WithContext(ctx)
 
-	api.filtersMu.Lock()
-	api.filters[pendingTxSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.PendingTransactionsSubscription)
-	api.filtersMu.Unlock()
+// 	api.filtersMu.Lock()
+// 	api.filters[pendingTxSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.PendingTransactionsSubscription)
+// 	api.filtersMu.Unlock()
 
-	go func() {
-		for {
-			select {
-			case ph := <-pendingTxs:
-				api.filtersMu.Lock()
-				if f, found := api.filters[pendingTxSub.ID]; found {
-					f.hashes = append(f.hashes, ph...)
-				}
-				api.filtersMu.Unlock()
-			case <-pendingTxSub.Err():
-				api.filtersMu.Lock()
-				delete(api.filters, pendingTxSub.ID)
-				api.filtersMu.Unlock()
-				return
-			}
-		}
-	}()
+// 	go func() {
+// 		for {
+// 			select {
+// 			case ph := <-pendingTxs:
+// 				api.filtersMu.Lock()
+// 				if f, found := api.filters[pendingTxSub.ID]; found {
+// 					f.hashes = append(f.hashes, ph...)
+// 				}
+// 				api.filtersMu.Unlock()
+// 			case <-pendingTxSub.Err():
+// 				api.filtersMu.Lock()
+// 				delete(api.filters, pendingTxSub.ID)
+// 				api.filtersMu.Unlock()
+// 				return
+// 			}
+// 		}
+// 	}()
 
-	return pendingTxSub.ID
-}
+// 	return pendingTxSub.ID
+// }
 
-// NewPendingTransactions creates a subscription that is triggered each time a transaction
-// enters the transaction pool and was signed from one of the transactions this nodes manages.
-func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Subscription, error) {
-	notifier, supported := rpc.NotifierFromContext(ctx)
-	if !supported {
-		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
-	}
+// // NewPendingTransactions creates a subscription that is triggered each time a transaction
+// // enters the transaction pool and was signed from one of the transactions this nodes manages.
+// func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Subscription, error) {
+// 	notifier, supported := rpc.NotifierFromContext(ctx)
+// 	if !supported {
+// 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
+// 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelFn()
+// 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
+// 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
-	rpcSub := notifier.CreateSubscription()
+// 	api.events = api.events.WithContext(ctx)
+// 	rpcSub := notifier.CreateSubscription()
 
-	go func() {
-		txHashes := make(chan []common.Hash, 128)
-		pendingTxSub := api.events.SubscribePendingTxs(txHashes)
+// 	go func() {
+// 		txHashes := make(chan []common.Hash, 128)
+// 		pendingTxSub := api.events.SubscribePendingTxs(txHashes)
 
-		for {
-			select {
-			case hashes := <-txHashes:
-				// To keep the original behaviour, send a single tx hash in one notification.
-				// TODO(rjl493456442) Send a batch of tx hashes in one notification
-				for _, h := range hashes {
-					notifier.Notify(rpcSub.ID, h)
-				}
-			case <-rpcSub.Err():
-				pendingTxSub.Unsubscribe()
-				return
-			case <-notifier.Closed():
-				pendingTxSub.Unsubscribe()
-				return
-			}
-		}
-	}()
+// 		for {
+// 			select {
+// 			case hashes := <-txHashes:
+// 				// To keep the original behaviour, send a single tx hash in one notification.
+// 				// TODO(rjl493456442) Send a batch of tx hashes in one notification
+// 				for _, h := range hashes {
+// 					notifier.Notify(rpcSub.ID, h)
+// 				}
+// 			case <-rpcSub.Err():
+// 				pendingTxSub.Unsubscribe()
+// 				return
+// 			case <-notifier.Closed():
+// 				pendingTxSub.Unsubscribe()
+// 				return
+// 			}
+// 		}
+// 	}()
 
-	return rpcSub, nil
-}
+// 	return rpcSub, nil
+// }
 
 // NewBlockFilter creates a filter that fetches blocks that are imported into the chain.
 // It is part of the filter package since polling goes with eth_getFilterChanges.
@@ -141,7 +142,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		return rpc.ID("")
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -177,7 +178,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancelFn := context.WithTimeout(ctx, api.events.GetTimeout())
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -219,7 +220,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -227,8 +228,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	var (
 		rpcSub = notifier.CreateSubscription()
 	)
-
-	// filterCriteria := ethereum.FilterQuery(crit)
 
 	eventCh, err := api.events.SubscribeLogs(rpcSub.ID)
 	if err != nil {
@@ -260,10 +259,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					return
 				}
 
-				// TODO: use filter criteria
-				//  dataTx.Height
+				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
-				for _, log := range resultData.Logs {
+				for _, log := range logs {
 					notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
@@ -299,9 +297,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		return rpc.ID(""), err
 	}
 
-	// filterCriteria = ethereum.FilterQuery(criteria)
-
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -334,9 +330,11 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 					return
 				}
 
+				logs := filterLogs(resultData.Logs, criteria.FromBlock, criteria.ToBlock, criteria.Addresses, criteria.Topics)
+
 				api.filtersMu.Lock()
 				if f, found := api.filters[subscriberID]; found {
-					f.logs = append(f.logs, resultData.Logs...)
+					f.logs = append(f.logs, logs...)
 				}
 				api.filtersMu.Unlock()
 			}

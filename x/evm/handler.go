@@ -100,20 +100,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		)
 	}
 
-	for _, log := range executionResult.Logs {
-		if log == nil {
-			continue
-		}
-
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeLog,
-				sdk.NewAttribute(types.AttributeKeyContractAddress, log.Address.String()),
-				sdk.NewAttribute(types.AttributeKeyContractAddress, log.Data),
-			),
-		)
-	}
-
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	return executionResult.Result, nil
