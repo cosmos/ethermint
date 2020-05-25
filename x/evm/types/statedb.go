@@ -107,10 +107,6 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	return csdb
 }
 
-func (csdb *CommitStateDB) AccountKeeper() AccountKeeper {
-	return csdb.accountKeeper
-}
-
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
