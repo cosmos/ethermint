@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -59,6 +60,11 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 		pendingTxSub = api.events.SubscribePendingTxs(pendingTxs)
 	)
 
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
+
+	api.events = api.events.WithContext(ctx)
+
 	api.filtersMu.Lock()
 	api.filters[pendingTxSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.PendingTransactionsSubscription)
 	api.filtersMu.Unlock()
@@ -91,6 +97,9 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 	if !supported {
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
+
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
@@ -132,6 +141,11 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		return rpc.ID("")
 	}
 
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
+
+	api.events = api.events.WithContext(ctx)
+
 	api.filtersMu.Lock()
 	api.filters[subscriberID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.BlocksSubscription)
 	api.filtersMu.Unlock()
@@ -142,10 +156,6 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			case event := <-eventCh:
 				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
-					// remove filter from map
-					api.filtersMu.Lock()
-					delete(api.filters, subscriberID)
-					api.filtersMu.Unlock()
 					return
 				}
 				api.filtersMu.Lock()
@@ -166,6 +176,9 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	if !supported {
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
+
+	ctx, cancelFn := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
@@ -206,6 +219,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
+
 	api.events = api.events.WithContext(ctx)
 
 	var (
@@ -220,21 +236,36 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	}
 
 	go func() {
-
 		for {
 			select {
 			case event := <-eventCh:
-				_, ok := event.Data.(tmtypes.EventDataTx)
+				// filter only events from EVM module txs
+				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
+				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
+
+				if !(isMsgEthermint || isMsgEthereumTx) {
+					// ignore transaction
+					return
+				}
+
+				// get the
+				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
 					return
 				}
 
-				//  eventTx.Height // TODO: use filter criteria
+				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				if err != nil {
+					return
+				}
 
-				// for _, log := range logs {
-				// 	notifier.Notify(rpcSub.ID, &log)
-				// }
+				// TODO: use filter criteria
+				//  dataTx.Height
+
+				for _, log := range resultData.Logs {
+					notifier.Notify(rpcSub.ID, &log)
+				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
 				err = api.events.UnsubscribeLogs(rpcSub.ID)
 				return
@@ -270,6 +301,11 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 
 	// filterCriteria = ethereum.FilterQuery(criteria)
 
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
+
+	api.events = api.events.WithContext(ctx)
+
 	api.filtersMu.Lock()
 	api.filters[subscriberID] = NewFilter(api.backend, &criteria, filters.LogsSubscription)
 	api.filtersMu.Unlock()
@@ -278,25 +314,29 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		for {
 			select {
 			case event := <-eventCh:
-				eventTx, ok := event.Data.(tmtypes.EventDataTx)
+				// filter only events from EVM module txs
+				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
+				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
+
+				if !(isMsgEthermint || isMsgEthereumTx) {
+					// ignore transaction
+					return
+				}
+
+				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
 					return
 				}
 
-				_, err := bytesToEthTx(api.cliCtx, eventTx.Tx)
-				if err != nil {
-					return
-				}
-
-				data, err := evmtypes.DecodeResultData(eventTx.TxResult.Result.Data)
+				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[subscriberID]; found {
-					f.logs = append(f.logs, data.Logs...)
+					f.logs = append(f.logs, resultData.Logs...)
 				}
 				api.filtersMu.Unlock()
 			}
