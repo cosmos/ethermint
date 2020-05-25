@@ -107,6 +107,10 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	return csdb
 }
 
+func (csdb *CommitStateDB) AccountKeeper() AccountKeeper {
+	return csdb.accountKeeper
+}
+
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
@@ -587,10 +591,6 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 // UpdateAccounts updates the nonce and coin balances of accounts
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for addr, so := range csdb.stateObjects {
-
-		fmt.Println("csdb.UpdateAccounts")
-		fmt.Printf("0x%x\n", addr)
-
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		emintAcc, ok := currAcc.(*emint.EthAccount)
 		if !ok {
