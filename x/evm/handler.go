@@ -37,8 +37,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
 
-	fmt.Println("MsgEthereumTx")
-	fmt.Println(msg)
+	// fmt.Println("MsgEthereumTx")
+	// fmt.Println(msg)
 
 	// Verify signature and retrieve sender address
 	sender, err := msg.VerifySig(intChainID)
