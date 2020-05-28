@@ -16,6 +16,18 @@ func TestValidateGenesisAccount(t *testing.T) {
 		expPass        bool
 	}{
 		{
+			"valid genesis account",
+			GenesisAccount{
+				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
+				Balance: big.NewInt(1),
+				Code:    []byte{1, 2, 3},
+				Storage: []GenesisStorage{
+					NewGenesisStorage(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
+				},
+			},
+			true,
+		},
+		{
 			"empty account address bytes",
 			GenesisAccount{
 				Address: ethcmn.Address{},
@@ -28,6 +40,14 @@ func TestValidateGenesisAccount(t *testing.T) {
 			GenesisAccount{
 				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
 				Balance: nil,
+			},
+			false,
+		},
+		{
+			"nil account balance",
+			GenesisAccount{
+				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
+				Balance: big.NewInt(-1),
 			},
 			false,
 		},
@@ -59,8 +79,8 @@ func TestValidateGenesisAccount(t *testing.T) {
 				Balance: big.NewInt(1),
 				Code:    []byte{1, 2, 3},
 				Storage: []GenesisStorage{
-					{Key: ethcmn.Hash{1, 2}},
-					{Key: ethcmn.Hash{1, 2}},
+					{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
+					{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
 				},
 			},
 			false,
@@ -91,24 +111,51 @@ func TestValidateGenesis(t *testing.T) {
 			expPass:  true,
 		},
 		{
-			name: "empty account address bytes",
+			name: "valid genesis",
+			genState: GenesisState{
+				Accounts: []GenesisAccount{
+					{
+						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
+						Balance: big.NewInt(1),
+						Code:    []byte{1, 2, 3},
+						Storage: []GenesisStorage{
+							{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
+						},
+					},
+				},
+			},
+			expPass: true,
+		},
+		{
+			name: "invalid genesis",
 			genState: GenesisState{
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.Address{},
-						Balance: big.NewInt(1),
 					},
 				},
 			},
 			expPass: false,
 		},
 		{
-			name: "nil account balance",
+			name: "duplicated genesis account",
 			genState: GenesisState{
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
-						Balance: nil,
+						Balance: big.NewInt(1),
+						Code:    []byte{1, 2, 3},
+						Storage: []GenesisStorage{
+							NewGenesisStorage(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
+						},
+					},
+					{
+						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
+						Balance: big.NewInt(1),
+						Code:    []byte{1, 2, 3},
+						Storage: []GenesisStorage{
+							NewGenesisStorage(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
+						},
 					},
 				},
 			},

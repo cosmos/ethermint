@@ -37,7 +37,7 @@ type (
 // Validate performs a basic validation of a GenesisAccount fields/
 func (ga GenesisAccount) Validate() error {
 	if bytes.Equal(ga.Address.Bytes(), ethcmn.Address{}.Bytes()) {
-		return errors.New("address cannot be the zero address")
+		return fmt.Errorf("address cannot be the zero address %s", ga.Address.String())
 	}
 	if ga.Balance == nil {
 		return errors.New("balance cannot be nil")
@@ -50,15 +50,15 @@ func (ga GenesisAccount) Validate() error {
 	}
 
 	seenStorage := make(map[string]bool)
-	for i, storage := range ga.Storage {
-		if seenStorage[storage.Key.String()] {
-			return fmt.Errorf("duplicate storage key %d", i)
+	for i, state := range ga.Storage {
+		if seenStorage[state.Key.String()] {
+			return fmt.Errorf("duplicate state key %d", i)
 		}
-		if bytes.Equal(storage.Key.Bytes(), ethcmn.Hash{}.Bytes()) {
-			return fmt.Errorf("storage %d key hash cannot be empty", i)
+		if bytes.Equal(state.Key.Bytes(), ethcmn.Hash{}.Bytes()) {
+			return fmt.Errorf("state %d key hash cannot be empty", i)
 		}
-		// NOTE: storage value can be empty
-		seenStorage[storage.Key.String()] = true
+		// NOTE: state value can be empty
+		seenStorage[state.Key.String()] = true
 	}
 	return nil
 }
@@ -82,12 +82,12 @@ func DefaultGenesisState() GenesisState {
 // failure.
 func (gs GenesisState) Validate() error {
 	seenAccounts := make(map[string]bool)
-	for i, acc := range gs.Accounts {
+	for _, acc := range gs.Accounts {
 		if seenAccounts[acc.Address.String()] {
-			return fmt.Errorf("duplicated genesis account %s", acc.Address)
+			return fmt.Errorf("duplicated genesis account %s", acc.Address.String())
 		}
 		if err := acc.Validate(); err != nil {
-			return fmt.Errorf("invalid genesis account %s: %w", acc.Address, err)
+			return fmt.Errorf("invalid genesis account %s: %w", acc.Address.String(), err)
 		}
 		seenAccounts[acc.Address.String()] = true
 	}
