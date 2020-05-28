@@ -10,6 +10,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
+// Code represents GenesisAccount code
 type Code []byte
 
 // MarshalJSON marshals Code as a hex string

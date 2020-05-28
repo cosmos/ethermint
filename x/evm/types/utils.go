@@ -176,10 +176,11 @@ func HexToBytes(in string) ([]byte, error) {
 	if strings.Compare(in[:2], "0x") != 0 {
 		return nil, errors.New("no 0x prefix")
 	}
-	// Ensure we have an even length, otherwise hex.DecodeString will fail and return zero hash
+
 	if len(in)%2 != 0 {
 		return nil, errors.New("cannot decode a odd length string")
 	}
+
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	return out, err
