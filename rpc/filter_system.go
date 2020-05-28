@@ -46,9 +46,6 @@ func (te TendermintEvents) GetTimeout() time.Duration {
 }
 
 // SubscribeLogs subscribes to new incoming MsgEthereumTx or MsgEthermint transactions
-// TODO:
-// - subscribe based on Msg Type
-// - subscribe to logs based on filter criteria
 func (te TendermintEvents) SubscribeLogs(subscriberID rpc.ID) (eventCh <-chan coretypes.ResultEvent, err error) {
 	return te.client.Subscribe(
 		te.ctx, string(subscriberID),

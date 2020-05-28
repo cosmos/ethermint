@@ -20,6 +20,10 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
+var (
+	deadline = 5 * time.Minute // consider a filter inactive if it has not been polled for within deadline
+)
+
 // PublicFilterAPI offers support to create and manage filters. This will allow external clients to retrieve various
 // information related to the Ethereum protocol such as blocks, transactions and logs.
 type PublicFilterAPI struct {
@@ -29,12 +33,12 @@ type PublicFilterAPI struct {
 	quit      chan struct{}
 	events    EventSystem
 	filtersMu sync.Mutex
-	filters   map[rpc.ID]*Filter // ID to filter; TODO: change to sync.Map in case of concurrent writes
+	filters   map[rpc.ID]*Filter
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
 func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend, timeoutSec int64) *PublicFilterAPI {
-	return &PublicFilterAPI{
+	api := &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*Filter),
@@ -45,7 +49,30 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend, timeou
 		},
 	}
 
-	// TODO: implement timeout loop
+	go api.timeoutLoop()
+
+	return api
+}
+
+// timeoutLoop runs every 5 minutes and deletes filters that have not been recently used.
+// Tt is started when the api is created.
+func (api *PublicFilterAPI) timeoutLoop() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		api.filtersMu.Lock()
+		for id, f := range api.filters {
+			select {
+			case <-f.deadline.C:
+				f.Unsubscribe()
+				delete(api.filters, id)
+			default:
+				continue
+			}
+		}
+		api.filtersMu.Unlock()
+	}
 }
 
 // // NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
@@ -148,7 +175,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.events = api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
-	api.filters[subscriberID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.BlocksSubscription)
+	api.filters[subscriberID] = NewFilter(api.backend, filters.BlocksSubscription, filters.FilterCriteria{})
 	api.filtersMu.Unlock()
 
 	go func() {
@@ -303,7 +330,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	api.events = api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
-	api.filters[subscriberID] = NewFilter(api.backend, &criteria, filters.LogsSubscription)
+	api.filters[subscriberID] = NewFilter(api.backend, filters.LogsSubscription, criteria)
 	api.filtersMu.Unlock()
 
 	go func() {
@@ -348,7 +375,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getlogs
 func (api *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
-	filter := NewFilter(api.backend, &criteria, filters.LogsSubscription)
+	filter := NewFilter(api.backend, filters.LogsSubscription, criteria)
 	return filter.getFilterLogs()
 	// var filter *Filter
 	// if crit.BlockHash != nil {
@@ -389,8 +416,7 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		return false
 	}
 
-	// TODO: f.s.Unsubscribe()
-	f.uninstallFilter()
+	f.Unsubscribe()
 	return true
 }
 
@@ -411,7 +437,7 @@ func (api *PublicFilterAPI) GetFilterLogs(id rpc.ID) ([]*ethtypes.Log, error) {
 		return nil, fmt.Errorf("filter %s doesn't have a LogsSubscription type", id)
 	}
 
-	return api.filters[id].getFilterLogs()
+	return api.filters[id].Logs()
 }
 
 // GetFilterChanges returns the logs for the filter with the given id since

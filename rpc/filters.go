@@ -1,15 +1,13 @@
 package rpc
 
 import (
-	"errors"
 	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 /*
@@ -17,224 +15,29 @@ import (
 	Used to set the criteria passed in from RPC params
 */
 
-// Filter can be used to retrieve and filter logs, blocks, or pending transactions.
 type Filter struct {
 	backend Backend
 
-	fromBlock, toBlock *big.Int         // start and end block numbers
-	addresses          []common.Address // contract addresses to watch
-	topics             [][]common.Hash  // log topics to watch for
-	blockHash          *common.Hash     // Block hash if filtering a single block
+	typ      filters.Type  // filter type
+	deadline *time.Timer   // filter is inactiv when deadline triggers
+	hashes   []common.Hash // filtered block or transaction hashes
+	criteria filters.FilterCriteria
 
-	typ     filters.Type    // filter type
-	hashes  []common.Hash   // filtered block or transaction hashes
-	logs    []*ethtypes.Log // filtered logs
-	stopped bool            // set to true once filter in uninstalled
+	logs []*ethtypes.Log // filtered logs
 
-	err error
+	matcher *bloombits.Matcher
+
+	subscription bool // associated subscription in event system
 }
 
 // NewFilter returns a new Filter
-func NewFilter(backend Backend, criteria *filters.FilterCriteria, filterType filters.Type) *Filter {
+func NewFilter(backend Backend, filterType filters.Type, criteria filters.FilterCriteria) *Filter {
 	return &Filter{
-		backend:   backend,
-		fromBlock: criteria.FromBlock,
-		toBlock:   criteria.ToBlock,
-		addresses: criteria.Addresses,
-		topics:    criteria.Topics,
-		blockHash: criteria.BlockHash,
-		typ:       filterType,
-		stopped:   false,
+		backend:  backend,
+		typ:      filterType,
+		deadline: time.NewTimer(deadline),
+		criteria: criteria,
 	}
-}
-
-func (f *Filter) pollForBlocks() error {
-	prev := hexutil.Uint64(0)
-
-	for {
-		if f.stopped {
-			return nil
-		}
-
-		num, err := f.backend.BlockNumber()
-		if err != nil {
-			return err
-		}
-
-		if num == prev {
-			continue
-		}
-
-		block, err := f.backend.GetBlockByNumber(BlockNumber(num), false)
-		if err != nil {
-			return err
-		}
-
-		hashBytes, ok := block["hash"].(hexutil.Bytes)
-		if !ok {
-			return errors.New("could not convert block hash to hexutil.Bytes")
-		}
-
-		hash := common.BytesToHash(hashBytes)
-		f.hashes = append(f.hashes, hash)
-
-		prev = num
-
-		// TODO: should we add a delay?
-	}
-}
-
-func (f *Filter) pollForTransactions() error {
-	for {
-		if f.stopped {
-			return nil
-		}
-
-		txs, err := f.backend.PendingTransactions()
-		if err != nil {
-			return err
-		}
-
-		for _, tx := range txs {
-			if !contains(f.hashes, tx.Hash) {
-				f.hashes = append(f.hashes, tx.Hash)
-			}
-		}
-
-		<-time.After(1 * time.Second)
-
-	}
-}
-
-func contains(slice []common.Hash, item common.Hash) bool {
-	set := make(map[common.Hash]struct{}, len(slice))
-	for _, s := range slice {
-		set[s] = struct{}{}
-	}
-
-	_, ok := set[item]
-	return ok
-}
-
-func (f *Filter) uninstallFilter() {
-	f.stopped = true
-}
-
-func (f *Filter) getFilterChanges() (interface{}, error) {
-	switch f.typ {
-	case filters.BlocksSubscription:
-		if f.err != nil {
-			return nil, f.err
-		}
-
-		blocks := make([]common.Hash, len(f.hashes))
-		copy(blocks, f.hashes)
-		f.hashes = []common.Hash{}
-
-		return blocks, nil
-	case filters.PendingTransactionsSubscription:
-		if f.err != nil {
-			return nil, f.err
-		}
-
-		txs := make([]common.Hash, len(f.hashes))
-		copy(txs, f.hashes)
-		f.hashes = []common.Hash{}
-		return txs, nil
-	case filters.LogsSubscription:
-		return f.getFilterLogs()
-	}
-
-	return nil, errors.New("unsupported filter")
-}
-
-func (f *Filter) getFilterLogs() ([]*ethtypes.Log, error) {
-	ret := []*ethtypes.Log{}
-
-	// filter specific block only
-	if f.blockHash != nil {
-		block, err := f.backend.GetBlockByHash(*f.blockHash, true)
-		if err != nil {
-			return nil, err
-		}
-
-		// if the logsBloom == 0, there are no logs in that block
-		if txs, ok := block["transactions"].([]common.Hash); !ok {
-			return ret, nil
-		} else if len(txs) != 0 {
-			return f.checkMatches(block)
-		}
-	}
-
-	// filter range of blocks
-	num, err := f.backend.BlockNumber()
-	if err != nil {
-		return nil, err
-	}
-
-	// if f.fromBlock is set to 0, set it to the latest block number
-	if f.fromBlock == nil || f.fromBlock.Cmp(big.NewInt(0)) == 0 {
-		f.fromBlock = big.NewInt(int64(num))
-	}
-
-	// if f.toBlock is set to 0, set it to the latest block number
-	if f.toBlock == nil || f.toBlock.Cmp(big.NewInt(0)) == 0 {
-		f.toBlock = big.NewInt(int64(num))
-	}
-
-	log.Debug("[ethAPI] Retrieving filter logs", "fromBlock", f.fromBlock, "toBlock", f.toBlock,
-		"topics", f.topics, "addresses", f.addresses)
-
-	from := f.fromBlock.Int64()
-	to := f.toBlock.Int64()
-
-	for i := from; i <= to; i++ {
-		block, err := f.backend.GetBlockByNumber(NewBlockNumber(big.NewInt(i)), true)
-		if err != nil {
-			f.err = err
-			log.Debug("[ethAPI] Cannot get block", "block", block["number"], "error", err)
-			break
-		}
-
-		log.Debug("[ethAPI] filtering", "block", block)
-
-		// TODO: block logsBloom is often set in the wrong block
-		// if the logsBloom == 0, there are no logs in that block
-
-		if txs, ok := block["transactions"].([]common.Hash); !ok {
-			continue
-		} else if len(txs) != 0 {
-			logs, err := f.checkMatches(block)
-			if err != nil {
-				f.err = err
-				break
-			}
-
-			ret = append(ret, logs...)
-		}
-	}
-
-	return ret, nil
-}
-
-func (f *Filter) checkMatches(block map[string]interface{}) ([]*ethtypes.Log, error) {
-	transactions, ok := block["transactions"].([]common.Hash)
-	if !ok {
-		return nil, errors.New("invalid block transactions")
-	}
-
-	unfiltered := []*ethtypes.Log{}
-
-	for _, tx := range transactions {
-		logs, err := f.backend.GetTransactionLogs(common.BytesToHash(tx[:]))
-		if err != nil {
-			return nil, err
-		}
-
-		unfiltered = append(unfiltered, logs...)
-	}
-
-	return filterLogs(unfiltered, f.fromBlock, f.toBlock, f.addresses, f.topics), nil
 }
 
 // filterLogs creates a slice of logs matching the given criteria.

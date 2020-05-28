@@ -14,7 +14,7 @@ type PublicNetAPI struct {
 	networkVersion uint64
 }
 
-// NewPersonalEthAPI creates an instance of the public ETH Web3 API.
+// NewPublicNetAPI creates an instance of the public Net Web3 API.
 func NewPublicNetAPI(cliCtx context.CLIContext) *PublicNetAPI {
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a integer string
