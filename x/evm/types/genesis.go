@@ -34,7 +34,7 @@ type (
 	}
 )
 
-// Validate performs a basic validation of a GenesisAccount fields/
+// Validate performs a basic validation of a GenesisAccount fields.
 func (ga GenesisAccount) Validate() error {
 	if bytes.Equal(ga.Address.Bytes(), ethcmn.Address{}.Bytes()) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address.String())
