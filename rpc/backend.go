@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Backend implements the functionality needed to filter changes.
@@ -19,11 +20,14 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
-	// HeaderByNumber(blockNum BlockNumber) (ethtypes.Header, error)
-	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
+	HeaderByNumber(blockNum rpc.BlockNumber) (*ethtypes.Header, error)
+	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
+	GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
 	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
 	getGasLimit() (int64, error)
+	// returns the logs of a given block
+	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
 	// Used by pending transaction filter
 	PendingTransactions() ([]*Transaction, error)
@@ -72,14 +76,14 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (e *EthermintBackend) GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
 // GetBlockByHash returns the block identified by hash.
 func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +93,7 @@ func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 		return nil, err
 	}
 
+	e.cliCtx = e.cliCtx.WithHeight(height)
 	return e.getEthBlockByNumber(out.Number, fullTx)
 }
 
@@ -169,11 +174,12 @@ func (e *EthermintBackend) getGasLimit() (int64, error) {
 }
 
 // GetTransactionLogs returns the logs given a transaction hash.
+// It returns an error if there's an encoding error.
+// If no logs are found for the tx hash, the error is nil.
 func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
-	// do we need to use the block height somewhere?
 	ctx := e.cliCtx
 
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTransactionLogs, txHash.Hex()), nil)
+	res, height, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryTransactionLogs, txHash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +189,7 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 		return nil, err
 	}
 
+	e.cliCtx = e.cliCtx.WithHeight(height)
 	return out.Logs, nil
 }
 
@@ -211,4 +218,9 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	}
 
 	return transactions, nil
+}
+
+
+func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
+	e.cliCtx.Client.
 }
