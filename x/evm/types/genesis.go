@@ -3,12 +3,11 @@ package types
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
-
-var zeroAddrBytes = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 type (
 	// GenesisState defines the application's genesis state. It contains all the
@@ -35,6 +34,35 @@ type (
 	}
 )
 
+// Validate performs a basic validation of a GenesisAccount fields/
+func (ga GenesisAccount) Validate() error {
+	if bytes.Equal(ga.Address.Bytes(), ethcmn.Address{}.Bytes()) {
+		return errors.New("address cannot be the zero address")
+	}
+	if ga.Balance == nil {
+		return errors.New("balance cannot be nil")
+	}
+	if ga.Balance.Sign() == -1 {
+		return errors.New("balance cannot be negative")
+	}
+	if ga.Code != nil && len(ga.Code) == 0 {
+		return errors.New("code bytes cannot be empty")
+	}
+
+	seenStorage := make(map[string]bool)
+	for i, storage := range ga.Storage {
+		if seenStorage[storage.Key.String()] {
+			return fmt.Errorf("duplicate storage key %d", i)
+		}
+		if bytes.Equal(storage.Key.Bytes(), ethcmn.Hash{}.Bytes()) {
+			return fmt.Errorf("storage %d key hash cannot be empty", i)
+		}
+		// NOTE: storage value can be empty
+		seenStorage[storage.Key.String()] = true
+	}
+	return nil
+}
+
 // NewGenesisStorage creates a new GenesisStorage instance
 func NewGenesisStorage(key, value ethcmn.Hash) GenesisStorage {
 	return GenesisStorage{
@@ -53,13 +81,15 @@ func DefaultGenesisState() GenesisState {
 // Validate performs basic genesis state validation returning an error upon any
 // failure.
 func (gs GenesisState) Validate() error {
-	for _, acc := range gs.Accounts {
-		if bytes.Equal(acc.Address.Bytes(), zeroAddrBytes) {
-			return errors.New("invalid GenesisAccount: address cannot be empty")
+	seenAccounts := make(map[string]bool)
+	for i, acc := range gs.Accounts {
+		if seenAccounts[acc.Address.String()] {
+			return fmt.Errorf("duplicated genesis account %s", acc.Address)
 		}
-		if acc.Balance == nil {
-			return errors.New("invalid GenesisAccount: balance cannot be empty")
+		if err := acc.Validate(); err != nil {
+			return fmt.Errorf("invalid genesis account %s: %w", acc.Address, err)
 		}
+		seenAccounts[acc.Address.String()] = true
 	}
 	return nil
 }
