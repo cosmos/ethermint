@@ -102,14 +102,6 @@ func DefaultGenesisState() GenesisState {
 	}
 }
 
-// AragonGenesisState sets evm genesis state with aragonOS contracts preloaded into storage.
-// TODO: will this be useful?
-func AragonGenesisState() GenesisState {
-	return GenesisState{
-		Accounts: []GenesisAccount{},
-	}
-}
-
 // Validate performs basic genesis state validation returning an error upon any
 // failure.
 func (gs GenesisState) Validate() error {
