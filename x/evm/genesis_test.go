@@ -2,6 +2,7 @@ package evm_test
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"math/big"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -184,6 +185,11 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 	suite.Require().NotPanics(func() {
 		genState = evm.ExportGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper)
 	})
+
+	gs, err := json.MarshalIndent(genState, "", "\t")
+	suite.Require().NoError(err)
+
+	suite.T().Logf("%s\n", gs)
 
 	// TODO: clean this up, check every deployment
 
