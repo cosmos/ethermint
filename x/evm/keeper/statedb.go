@@ -154,7 +154,7 @@ func (k *Keeper) StorageTrie(ctx sdk.Context, addr ethcmn.Address) ethstate.Trie
 // Persistence
 // ----------------------------------------------------------------------------
 
-// Commit calls CommitStateDB.Commit using the passed { in context
+// Commit calls CommitStateDB.Commit using the passed in context
 func (k *Keeper) Commit(ctx sdk.Context, deleteEmptyObjects bool) (root ethcmn.Hash, err error) {
 	return k.CommitStateDB.WithContext(ctx).Commit(deleteEmptyObjects)
 }
