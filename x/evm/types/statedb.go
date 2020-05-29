@@ -166,12 +166,13 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
 	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	enc, err := MarshalLogs(logs)
+	bz, err := MarshalLogs(logs)
 	if err != nil {
 		return err
 	}
 
-	store.Set(hash.Bytes(), enc)
+	store.Set(hash.Bytes(), bz)
+	csdb.logSize = uint(len(logs))
 	return nil
 }
 
@@ -195,8 +196,11 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 		// panic on unmarshal error
 		panic(err)
 	}
-	csdb.SetLogs(csdb.thash, append(logs, log))
-	csdb.logSize++
+
+	if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
+		// panic on marshal error
+		panic(err)
+	}
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -323,7 +327,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
 	bz := store.Get(hash.Bytes())
 	if len(bz) == 0 {
-		// return nil if logs are not found
+		// return nil error if logs are not found
 		return []*ethtypes.Log{}, nil
 	}
 
@@ -340,7 +344,6 @@ func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	for ; iterator.Valid(); iterator.Next() {
 		var logs []*ethtypes.Log
 		ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-
 		allLogs = append(allLogs, logs...)
 	}
 

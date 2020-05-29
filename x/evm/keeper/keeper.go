@@ -112,7 +112,9 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 	for ; iterator.Valid(); iterator.Next() {
 		hash := ethcmn.BytesToHash(iterator.Key())
 		var logs []*ethtypes.Log
-		k.cdc.UnmarshalBinaryLengthPrefixed(iterator.Value(), logs)
+		k.cdc.UnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
+
+		// add a new entry
 		txLog := types.NewTransactionLog(hash, logs)
 		txsLogs = append(txsLogs, txLog)
 	}

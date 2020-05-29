@@ -114,7 +114,7 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	blockHash := ethcmn.FromHex(path[1])
 	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
-	if found {
+	if !found {
 		return []byte{}, fmt.Errorf("block height not found for hash %s", path[1])
 	}
 

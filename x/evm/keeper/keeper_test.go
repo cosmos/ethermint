@@ -46,22 +46,47 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) TestTransactionLogs() {
+	ethHash := ethcmn.BytesToHash(hash)
 	log := &ethtypes.Log{
 		Address:     address,
 		Data:        []byte("log"),
 		BlockNumber: 10,
 	}
+	log2 := &ethtypes.Log{
+		Address:     address,
+		Data:        []byte("log2"),
+		BlockNumber: 11,
+	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), expLogs)
-	suite.app.EvmKeeper.AddLog(suite.ctx, expLogs[0])
-
-	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
+	suite.app.EvmKeeper.SetLogs(suite.ctx, ethHash, expLogs)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethHash)
 	suite.Require().NoError(err)
-	suite.Require().Equal(expLogs, logs)
+	expLogs = []*ethtypes.Log{log2, log}
+
+	// add another log under the zero hash
+	suite.app.EvmKeeper.AddLog(suite.ctx, log2)
+	expLogs = append(expLogs)
 
 	logs = suite.app.EvmKeeper.AllLogs(suite.ctx)
 	suite.Require().Equal(expLogs, logs)
+
+	// add another log under the zero hash
+	log3 := &ethtypes.Log{
+		Address:     address,
+		Data:        []byte("log3"),
+		BlockNumber: 10,
+	}
+	suite.app.EvmKeeper.AddLog(suite.ctx, log3)
+
+	txLogs := suite.app.EvmKeeper.GetAllTxLogs(suite.ctx)
+	suite.Require().Equal(2, len(txLogs))
+
+	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash.String())
+	suite.Require().Equal([]*ethtypes.Log{log2, log3}, txLogs[0].Logs)
+
+	suite.Require().Equal(ethHash.String(), txLogs[1].Hash.String())
+	suite.Require().Equal([]*ethtypes.Log{log}, txLogs[1].Logs)
 }
 
 func (suite *KeeperTestSuite) TestDBStorage() {
