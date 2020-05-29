@@ -203,7 +203,7 @@ func NewEthermintApp(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+		app.cdc, keys[evm.StoreKey], app.AccountKeeper,
 		app.BankKeeper,
 	)
 	// TODO: use protobuf

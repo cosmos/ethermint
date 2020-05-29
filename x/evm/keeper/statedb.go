@@ -46,6 +46,11 @@ func (k *Keeper) SetCode(ctx sdk.Context, addr ethcmn.Address, code []byte) {
 	k.CommitStateDB.WithContext(ctx).SetCode(addr, code)
 }
 
+// SetLogs calls CommitStateDB.SetLogs using the passed in context
+func (k *Keeper) SetLogs(ctx sdk.Context, hash ethcmn.Hash, logs []*ethtypes.Log) {
+	k.CommitStateDB.WithContext(ctx).SetLogs(hash, logs)
+}
+
 // AddLog calls CommitStateDB.AddLog using the passed in context
 func (k *Keeper) AddLog(ctx sdk.Context, log *ethtypes.Log) {
 	k.CommitStateDB.WithContext(ctx).AddLog(log)
