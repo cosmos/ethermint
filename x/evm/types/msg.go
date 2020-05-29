@@ -172,7 +172,7 @@ func newMsgEthereumTx(
 }
 
 func (msg MsgEthereumTx) String() string {
-	return fmt.Sprintf("%s", msg.Data.String())
+	return msg.Data.String()
 }
 
 // Route returns the route value of an MsgEthereumTx.

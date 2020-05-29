@@ -50,7 +50,7 @@ type encodableTxData struct {
 func (td TxData) String() string {
 	if td.Recipient != nil {
 		return fmt.Sprintf("nonce=%d price=%s gasLimit=%d recipient=%s amount=%s data=0x%x v=%s r=%s s=%s",
-			td.AccountNonce, td.Price, td.GasLimit, (*td.Recipient).Hex(), td.Amount, td.Payload, td.V, td.R, td.S)
+			td.AccountNonce, td.Price, td.GasLimit, td.Recipient.Hex(), td.Amount, td.Payload, td.V, td.R, td.S)
 	}
 
 	return fmt.Sprintf("nonce=%d price=%s gasLimit=%d recipient=nil amount=%s data=0x%x v=%s r=%s s=%s",
