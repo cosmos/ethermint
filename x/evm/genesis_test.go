@@ -100,7 +100,10 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 	nonce := uint64(1)
 
 	// map of contract name -> address
-	results := make(map[string]common.Address)
+	contractAddrs := make(map[string]common.Address)
+
+	// map of test name -> return data
+	returnData := make(map[string][]byte)
 
 	testCases := []testData{
 		{
@@ -109,7 +112,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 		},
 		{
 			name: "ENS", // calls ENSFactory.newENS
-			to:   results["ENSFactory"],
+			to:   contractAddrs["ENSFactory"],
 			data: common.FromHex("0xe9358b010000000000000000000000008016b0cb7184fa3f575d4f3258796c4fdb31c893"),
 		},
 		{
@@ -147,31 +150,34 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 		{
 			// TODO: ENS address is returned from ENSFactory.newENS call
 			name: "ens.owner",
-			to:   results["ENS"],
+			to:   contractAddrs["ENS"],
 			data: common.FromHex("0x02571be39065c3e7f7b7ef1ef4e53d2d0b8e0cef02874ab020c1ece79d5f0d3d0111c0ba"),
 		},
 		{
 			// TODO: ENS address is returned from ENSFactory.newENS call
 			name: "ens.setSubnodeOwner",
-			to:   results["ENS"],
-			data: append(common.FromHex("0x06ab592393cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594000000000000000000000000"), results["APMRegistryFactory"].Bytes()...),
+			to:   contractAddrs["ENS"],
+			data: append(common.FromHex("0x06ab592393cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594000000000000000000000000"), contractAddrs["APMRegistryFactory"].Bytes()...),
 		},
 		{
 			name: "apmRegistryFactory.newAPM",
-			to:   results["APMRegistryFactory"],
+			to:   contractAddrs["APMRegistryFactory"],
 			data: append(common.FromHex("0xaac57b3a93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594000000000000000000000000"), owner.Bytes()...),
 		},
 	}
 
 	for _, test := range testCases {
 		if test.code != nil {
-			results[test.name] = suite.deployContract(test.code, nonce, gasLimit, gasPrice, privECDSA)
+			contractAddrs[test.name] = suite.deployContract(test.code, nonce, gasLimit, gasPrice, privECDSA)
+			suite.T().Logf("%s address: 0x%x", test.name, contractAddrs[test.name])
 		} else {
 			resData := suite.call(test.data, test.to, nonce, gasLimit, gasPrice, privECDSA)
-			results[test.name] = resData.ContractAddress
+			// TODO: what does a contract instance being returned actually return? seems like return from ENSFactory.newENS call is nil...
+			returnData[test.name] = resData.Ret
+			contractAddrs[test.name] = common.BytesToAddress(resData.Ret)
+			suite.T().Logf("%s address: 0x%x", test.name, contractAddrs[test.name])
 		}
 
-		suite.T().Logf("%s address: 0x%x", test.name, results[test.name])
 		nonce += 1
 	}
 
@@ -186,11 +192,11 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 
 	for _, test := range testCases {
 		if test.code != nil {
-			code := suite.app.EvmKeeper.GetCode(suite.ctx, results[test.name])
+			code := suite.app.EvmKeeper.GetCode(suite.ctx, contractAddrs[test.name])
 			suite.Require().NotNil(code)
 
 			// clear keeper code
-			suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx).SetCode(results[test.name], nil)
+			suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx).SetCode(contractAddrs[test.name], nil)
 		}
 
 		// TODO: check state updates for contract calls
@@ -200,7 +206,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 
 	for _, test := range testCases {
 		if test.code != nil {
-			code := suite.app.EvmKeeper.GetCode(suite.ctx, results[test.name])
+			code := suite.app.EvmKeeper.GetCode(suite.ctx, contractAddrs[test.name])
 			suite.Require().NotNil(code)
 			// TODO: check if deployed contract code matches (note: deployed code is different from raw bytecode)
 		}
