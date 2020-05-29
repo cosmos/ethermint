@@ -593,12 +593,12 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
-		balance := csdb.bankKeeper.GetBalance(csdb.ctx, currAcc.GetAddress(), emint.DenomDefault)
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
 		if so.Balance() != balance.Amount.BigInt() && balance.IsValid() {
 			so.balance = balance.Amount
 		}
 
-		if so.Nonce() != currAcc.GetSequence() {
+		if so.Nonce() != emintAcc.GetSequence() {
 			so.account = emintAcc
 		}
 	}

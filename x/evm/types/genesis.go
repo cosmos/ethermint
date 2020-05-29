@@ -2,37 +2,13 @@ package types
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
-
-// Code represents GenesisAccount code
-type Code []byte
-
-// MarshalJSON marshals Code as a hex string
-func (c Code) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprintf("0x%x", c))
-}
-
-// UnmarshalJSON unmarshals a hex string into Code
-func (c Code) UnmarshalJSON(in []byte) error {
-	var s string
-	if err := json.Unmarshal(in, &s); err != nil {
-		return err
-	}
-
-	var err error
-	c, err = HexToBytes(s)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 type (
 	// GenesisState defines the application's genesis state. It contains all the
@@ -54,7 +30,7 @@ type (
 	GenesisAccount struct {
 		Address ethcmn.Address   `json:"address"`
 		Balance *big.Int         `json:"balance"`
-		Code    Code             `json:"code,omitempty"`
+		Code    hexutil.Bytes    `json:"code,omitempty"`
 		Storage []GenesisStorage `json:"storage,omitempty"`
 	}
 )

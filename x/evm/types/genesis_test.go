@@ -173,14 +173,3 @@ func TestValidateGenesis(t *testing.T) {
 		}
 	}
 }
-
-func TestCodeMarshal(t *testing.T) {
-	t.Skip()
-	code := Code("nootwashere")
-	m, err := code.MarshalJSON()
-	require.NoError(t, err)
-	res := Code{}
-	err = res.UnmarshalJSON(m)
-	require.NoError(t, err)
-	require.Equal(t, code, res)
-}
