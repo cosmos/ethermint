@@ -3,8 +3,6 @@ package evm
 import (
 	"encoding/json"
 
-	"fmt"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
@@ -127,7 +125,6 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	cdc.MustUnmarshalJSON(data, &genesisState)
-	fmt.Println(genesisState)
 	return InitGenesis(ctx, am.keeper, genesisState)
 }
 
