@@ -53,10 +53,10 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, hash, expLogs)
+	suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), expLogs)
 	suite.app.EvmKeeper.AddLog(suite.ctx, expLogs[0])
 
-	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
 
@@ -73,16 +73,16 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.app.EvmKeeper.SetCode(suite.ctx, address, []byte{0x1})
 
 	// Test block hash mapping functionality
-	suite.app.EvmKeeper.SetBlockHashMapping(suite.ctx, hash, 7)
-	height, err := suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, hash)
-	suite.Require().NoError(err)
+	suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 7)
+	height, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
+	suite.Require().True(found)
 	suite.Require().Equal(int64(7), height)
 
-	suite.app.EvmKeeper.SetBlockHashMapping(suite.ctx, []byte{0x43, 0x32}, 8)
+	suite.app.EvmKeeper.SetBlockHash(suite.ctx, []byte{0x43, 0x32}, 8)
 
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
-	suite.app.EvmKeeper.SetBlockBloomMapping(suite.ctx, testBloom, 4)
+	suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 4, testBloom)
 
 	// Get those state transitions
 	suite.Require().Equal(suite.app.EvmKeeper.GetBalance(suite.ctx, address).Cmp(big.NewInt(5)), 0)
@@ -90,19 +90,19 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, address, ethcmn.HexToHash("0x2")), ethcmn.HexToHash("0x3"))
 	suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, address), []byte{0x1})
 
-	height, err = suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, hash)
-	suite.Require().NoError(err)
+	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
+	suite.Require().True(found)
 	suite.Require().Equal(height, int64(7))
-	height, err = suite.app.EvmKeeper.GetBlockHashMapping(suite.ctx, []byte{0x43, 0x32})
-	suite.Require().NoError(err)
+	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, []byte{0x43, 0x32})
+	suite.Require().True(found)
 	suite.Require().Equal(height, int64(8))
 
-	bloom, err := suite.app.EvmKeeper.GetBlockBloomMapping(suite.ctx, 4)
-	suite.Require().NoError(err)
+	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
+	suite.Require().True(found)
 	suite.Require().Equal(bloom, testBloom)
 
 	// commit stateDB
-	_, err = suite.app.EvmKeeper.Commit(suite.ctx, false)
+	_, err := suite.app.EvmKeeper.Commit(suite.ctx, false)
 	suite.Require().NoError(err, "failed to commit StateDB")
 
 	// simulate BaseApp EndBlocker commitment

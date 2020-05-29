@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -12,9 +13,8 @@ import (
 
 	"github.com/cosmos/ethermint/x/evm/types"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -100,4 +100,21 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bo
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
+}
+
+// GetAllTxLogs return all the transaction logs from the store.
+func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
+	defer iterator.Close()
+
+	txsLogs := []types.TransactionLogs{}
+	for ; iterator.Valid(); iterator.Next() {
+		hash := ethcmn.BytesToHash(iterator.Key())
+		var logs []*ethtypes.Log
+		k.cdc.UnmarshalBinaryLengthPrefixed(iterator.Value(), logs)
+		txLog := types.NewTransactionLog(hash, logs)
+		txsLogs = append(txsLogs, txLog)
+	}
+	return txsLogs
 }

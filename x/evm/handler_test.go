@@ -236,9 +236,9 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, hash, resultData.Logs)
+	suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), resultData.Logs)
 
-	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
@@ -273,7 +273,7 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// get logs by tx hash
 	hash := resultData.TxHash.Bytes()
 
-	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)

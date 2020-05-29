@@ -10,10 +10,10 @@ import (
 )
 
 type (
-	// GenesisState defines the application's genesis state. It contains all the
-	// information required and accounts to initialize the blockchain.
+	// GenesisState defines the evm module genesis state
 	GenesisState struct {
-		Accounts []GenesisAccount `json:"accounts"`
+		Accounts []GenesisAccount  `json:"accounts"`
+		TxsLogs  []TransactionLogs `json:"txs_logs"`
 	}
 
 	// GenesisStorage represents the GenesisAccount Storage map as single key value
@@ -75,6 +75,7 @@ func NewGenesisStorage(key, value ethcmn.Hash) GenesisStorage {
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Accounts: []GenesisAccount{},
+		TxsLogs:  []TransactionLogs{},
 	}
 }
 

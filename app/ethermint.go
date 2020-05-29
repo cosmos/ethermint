@@ -147,10 +147,9 @@ func NewEthermintApp(
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.CodeKey, evm.StoreKey,
+		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.StoreKey,
 		faucet.StoreKey,
 	)
-	blockKey := sdk.NewKVStoreKey(evm.BlockKey)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
@@ -298,10 +297,6 @@ func NewEthermintApp(
 	// initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tkeys)
-
-	// Mount block hash mapping key as DB (no need for historical queries)
-	// TODO: why does this need to be always StoreTypeDB?
-	app.MountStore(blockKey, sdk.StoreTypeDB)
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)

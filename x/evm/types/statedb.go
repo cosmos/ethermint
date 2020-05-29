@@ -166,7 +166,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
 	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	enc, err := EncodeLogs(logs)
+	enc, err := MarshalLogs(logs)
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 		return []*ethtypes.Log{}, nil
 	}
 
-	return DecodeLogs(bz)
+	return UnmarshalLogs(bz)
 }
 
 // AllLogs returns all the current logs in the state.
