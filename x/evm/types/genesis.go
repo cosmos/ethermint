@@ -83,6 +83,7 @@ func DefaultGenesisState() GenesisState {
 // failure.
 func (gs GenesisState) Validate() error {
 	seenAccounts := make(map[string]bool)
+	seenTxs := make(map[string]bool)
 	for _, acc := range gs.Accounts {
 		if seenAccounts[acc.Address.String()] {
 			return fmt.Errorf("duplicated genesis account %s", acc.Address.String())
@@ -92,5 +93,17 @@ func (gs GenesisState) Validate() error {
 		}
 		seenAccounts[acc.Address.String()] = true
 	}
+	for _, tx := range gs.TxsLogs {
+		if seenTxs[tx.Hash.String()] {
+			return fmt.Errorf("duplicated logs from transaction %s", tx.Hash.String())
+		}
+
+		if err := tx.Validate(); err != nil {
+			return fmt.Errorf("invalid logs from transaction %s: %w", tx.Hash.String(), err)
+		}
+
+		seenTxs[tx.Hash.String()] = true
+	}
+
 	return nil
 }
