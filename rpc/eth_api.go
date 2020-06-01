@@ -487,8 +487,7 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
 	estimatedGas := simResponse.GasInfo.GasUsed
 	gas := estimatedGas + 1000
 
-	ret := hexutil.Uint64(gas)
-	return ret, nil
+	return hexutil.Uint64(gas), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
