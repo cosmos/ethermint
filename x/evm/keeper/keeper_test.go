@@ -59,15 +59,17 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.app.EvmKeeper.SetLogs(suite.ctx, ethHash, expLogs)
+	err := suite.app.EvmKeeper.SetLogs(suite.ctx, ethHash, expLogs)
+	suite.Require().NoError(err)
+
 	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethHash)
 	suite.Require().NoError(err)
+	suite.Require().Equal(expLogs, logs)
+
 	expLogs = []*ethtypes.Log{log2, log}
 
 	// add another log under the zero hash
 	suite.app.EvmKeeper.AddLog(suite.ctx, log2)
-	expLogs = append(expLogs)
-
 	logs = suite.app.EvmKeeper.AllLogs(suite.ctx)
 	suite.Require().Equal(expLogs, logs)
 

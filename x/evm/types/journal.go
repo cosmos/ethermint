@@ -212,8 +212,8 @@ func (ch addLogChange) revert(s *CommitStateDB) {
 
 	if len(logs) == 1 {
 		s.DeleteLogs(ch.txhash)
-	} else {
-		s.SetLogs(ch.txhash, logs[:len(logs)-1])
+	} else if err := s.SetLogs(ch.txhash, logs[:len(logs)-1]); err != nil {
+		panic(err)
 	}
 
 	s.logSize--

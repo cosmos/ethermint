@@ -21,12 +21,16 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 		}
 	}
 
+	var err error
 	for _, txLog := range data.TxsLogs {
-		k.SetLogs(ctx, txLog.Hash, txLog.Logs)
+		err = k.SetLogs(ctx, txLog.Hash, txLog.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// set state objects and code to store
-	_, err := k.Commit(ctx, false)
+	_, err = k.Commit(ctx, false)
 	if err != nil {
 		panic(err)
 	}
