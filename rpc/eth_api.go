@@ -532,7 +532,8 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 	for i, tx := range txs {
 		ethTx, err := bytesToEthTx(cliCtx, tx)
 		if err != nil {
-			return nil, nil, err
+			// continue to
+			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
@@ -573,7 +574,7 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, e
 
 	ethTx, ok := stdTx.(types.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+		return nil, fmt.Errorf("invalid transaction type %T, expected MsgEthereumTx", stdTx)
 	}
 	return &ethTx, nil
 }

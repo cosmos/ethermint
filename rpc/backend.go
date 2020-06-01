@@ -51,18 +51,6 @@ func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
 	}
 }
 
-// // HeaderByNumber returns the current block number.
-// func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (ethtypes.Header, error)
-// 	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
-// 	if err != nil {
-// 		return hexutil.Uint64(0), err
-// 	}
-
-// 	var out types.QueryResBlockNumber
-// 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-// 	return hexutil.Uint64(out.Number), nil
-// }
-
 // BlockNumber returns the current block number.
 func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
@@ -145,6 +133,28 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 	var out types.QueryBloomFilter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 
+	ethHeader := &ethtypes.Header{
+		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
+		UncleHash:   common.Hash{},
+		Coinbase:    common.Address{},
+		Root:        common.BytesToHash(header.AppHash),
+		TxHash:      common.BytesToHash(header.DataHash),
+		ReceiptHash: common.Hash{},
+		Bloom:       out.Bloom,
+		Difficulty:  nil,
+		Number:      big.NewInt(height),
+		GasLimit:    uint64(gasLimit),
+		GasUsed:     uint64(gasUsed.Int64()),
+		Time:        uint64(header.Time.Unix()),
+		Extra:       nil,
+		MixDigest:   common.Hash{},
+		Nonce:       ethtypes.BlockNonce{},
+	}
+
+	ethtypes.NewTransaction()
+
+	ethBlock := ethtypes.NewBlock(ethHeader, transactions, nil, nil)
+
 	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
 }
 
@@ -220,7 +230,6 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	return transactions, nil
 }
 
-
 func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
-	e.cliCtx.Client.
+	return [][]*ethtypes.Log{}, nil
 }
