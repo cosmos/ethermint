@@ -374,32 +374,30 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 // GetLogs returns logs matching the given argument that are stored within the state.
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getlogs
-func (api *PublicFilterAPI) GetLogs(criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
-	filter := NewFilter(api.backend, filters.LogsSubscription, criteria)
-	return filter.getFilterLogs()
-	// var filter *Filter
-	// if crit.BlockHash != nil {
-	// 	// Block filter requested, construct a single-shot filter
-	// 	filter = NewBlockFilter(api.backend, *crit.BlockHash, crit.Addresses, crit.Topics)
-	// } else {
-	// 	// Convert the RPC block numbers into internal representations
-	// 	begin := rpc.LatestBlockNumber.Int64()
-	// 	if crit.FromBlock != nil {
-	// 		begin = crit.FromBlock.Int64()
-	// 	}
-	// 	end := rpc.LatestBlockNumber.Int64()
-	// 	if crit.ToBlock != nil {
-	// 		end = crit.ToBlock.Int64()
-	// 	}
-	// 	// Construct the range filter
-	// 	filter = NewRangeFilter(api.backend, begin, end, crit.Addresses, crit.Topics)
-	// }
-	// // Run the filter and return all the logs
-	// logs, err := filter.Logs(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return returnLogs(logs), err
+func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCriteria) ([]*ethtypes.Log, error) {
+	var filter *Filter
+	if crit.BlockHash != nil {
+		// Block filter requested, construct a single-shot filter
+		filter = NewBlockFilter(api.backend, *crit.BlockHash, crit.Addresses, crit.Topics)
+	} else {
+		// Convert the RPC block numbers into internal representations
+		begin := rpc.LatestBlockNumber.Int64()
+		if crit.FromBlock != nil {
+			begin = crit.FromBlock.Int64()
+		}
+		end := rpc.LatestBlockNumber.Int64()
+		if crit.ToBlock != nil {
+			end = crit.ToBlock.Int64()
+		}
+		// Construct the range filter
+		filter = NewRangeFilter(api.backend, begin, end, crit.Addresses, crit.Topics)
+	}
+	// Run the filter and return all the logs
+	logs, err := filter.Logs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return returnLogs(logs), err
 }
 
 // UninstallFilter removes the filter with the given filter id.
@@ -424,7 +422,7 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 // If the filter could not be found an empty array of logs is returned.
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getfilterlogs
-func (api *PublicFilterAPI) GetFilterLogs(id rpc.ID) ([]*ethtypes.Log, error) {
+func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*ethtypes.Log, error) {
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	api.filtersMu.Unlock()
@@ -437,7 +435,7 @@ func (api *PublicFilterAPI) GetFilterLogs(id rpc.ID) ([]*ethtypes.Log, error) {
 		return nil, fmt.Errorf("filter %s doesn't have a LogsSubscription type", id)
 	}
 
-	return api.filters[id].Logs()
+	return api.filters[id].Logs(ctx)
 }
 
 // GetFilterChanges returns the logs for the filter with the given id since

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -40,20 +41,24 @@ func NewFilter(backend Backend, filterType filters.Type, criteria filters.Filter
 	}
 }
 
+// TODO:
 func (f *Filter) Unsubscribe() {
 	if !f.subscription {
 		return
 	}
 
-	// switch f.typ {
-	// case:
-	// }
+	switch f.typ {
+	case filters.LogsSubscription:
+
+	case filters.BlocksSubscription:
+
+	}
 
 }
 
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
-func (f *Filter) Logs() ([]*ethtypes.Log, error) {
+func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
 	var err error
 	// If we're doing singleton block filtering, execute and return
@@ -114,9 +119,25 @@ func (f *Filter) blockLogs(header *ethtypes.Header) ([]*ethtypes.Log, error) {
 		return []*ethtypes.Log{}, nil
 	}
 
-	return f.checkMatches(header)
+	logsList, err := f.backend.GetLogs(header.Hash())
+	if err != nil {
+		return []*ethtypes.Log{}, err
+	}
+
+	var unfiltered []*ethtypes.Log
+	for _, logs := range logsList {
+		unfiltered = append(unfiltered, logs...)
+	}
+	logs := filterLogs(unfiltered, nil, nil, f.criteria.Addresses, f.criteria.Topics)
+	if len(logs) == 0 {
+		return []*ethtypes.Log{}, nil
+	}
+	return logs, nil
 }
 
+// checkMatches checks if the logs from the a list of transactions transaction
+// contain any log events that  match the filter criteria. This function is
+// called when the bloom filter signals a potential match.
 func (f *Filter) checkMatches(transactions []common.Hash) ([]*ethtypes.Log, error) {
 	unfiltered := []*ethtypes.Log{}
 	for _, tx := range transactions {

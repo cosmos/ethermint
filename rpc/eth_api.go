@@ -533,7 +533,7 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 	for i, tx := range txs {
 		ethTx, err := bytesToEthTx(cliCtx, tx)
 		if err != nil {
-			// continue to
+			// continue to next transaction in case it's not a MsgEthereumTx
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
