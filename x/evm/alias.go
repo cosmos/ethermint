@@ -18,7 +18,7 @@ const (
 	QueryNonce           = types.QueryNonce
 	QueryHashToHeight    = types.QueryHashToHeight
 	QueryTransactionLogs = types.QueryTransactionLogs
-	QueryLogsBloom       = types.QueryBloom
+	QueryBloom           = types.QueryBloom
 	QueryLogs            = types.QueryLogs
 	QueryAccount         = types.QueryAccount
 )
