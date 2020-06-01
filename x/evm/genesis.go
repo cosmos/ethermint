@@ -47,7 +47,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	var err error
 	for _, account := range accounts {
-		ethAccount, ok := account.(emint.EthAccount)
+		ethAccount, ok := account.(*emint.EthAccount)
 		if !ok {
 			continue
 		}
