@@ -113,7 +113,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 		{
 			name: "ENS", // calls ENSFactory.newENS
 			to:   contractAddrs["ENSFactory"],
-			data: common.FromHex("0xe9358b010000000000000000000000008016b0cb7184fa3f575d4f3258796c4fdb31c893"),
+			data: append(common.FromHex("0xe9358b01000000000000000000000000"), owner.Bytes()...),
 		},
 		{
 			name: "APMRegistry",
