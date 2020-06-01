@@ -655,3 +655,26 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	post := getNonce(t)
 	require.Equal(t, prev, post-1)
 }
+
+// estimateGas sends a dummy transaction
+func estimateGas(t *testing.T) hexutil.Bytes {
+	from := getAddress(t)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	param[0]["value"] = "0x1"
+	rpcRes := call(t, "eth_estimateGas", param)
+
+	t.Log(rpcRes)
+	var gas hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &gas)
+	require.NoError(t, err)
+	return gas
+}
+
+func TestEth_EstimateGas(t *testing.T) {
+	gas := estimateGas(t)
+	t.Log(gas)
+	require.Equal(t, hexutil.Bytes{0xf7, 0xa6}, gas)
+}
