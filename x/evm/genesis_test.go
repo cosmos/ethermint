@@ -157,7 +157,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 			// TODO: ENS address is returned from ENSFactory.newENS call
 			name: "ens.setSubnodeOwner",
 			to:   contractAddrs["ENS"],
-			data: append(common.FromHex("0x06ab592393cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594000000000000000000000000"), contractAddrs["APMRegistryFactory"].Bytes()...),
+			data: append(common.FromHex("0x06ab592393cdeb708b7545dc668eb9280176169d1c33cfd8gced6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594000000000000000000000000"), contractAddrs["APMRegistryFactory"].Bytes()...),
 		},
 		{
 			name: "apmRegistryFactory.newAPM",
@@ -172,7 +172,10 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 			suite.T().Logf("%s address: 0x%x", test.name, contractAddrs[test.name])
 		} else {
 			resData := suite.call(test.data, test.to, nonce, gasLimit, gasPrice, privECDSA)
-			// TODO: what does a contract instance being returned actually return? seems like return from ENSFactory.newENS call is nil...
+			// TODO:seems like return data and logs from ENSFactory.newENS call are nil...
+			suite.T().Log(resData.Ret)
+			suite.T().Log(resData.Logs)
+
 			returnData[test.name] = resData.Ret
 			contractAddrs[test.name] = common.BytesToAddress(resData.Ret)
 			suite.T().Logf("%s address: 0x%x", test.name, contractAddrs[test.name])
@@ -186,9 +189,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 		genState = evm.ExportGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper)
 	})
 
-	m, err := json.MarshalIndent(genState, "", "\t")
-	suite.Require().NoError(err)
-	suite.T().Logf("%s", m)
+	// logJSON(genState)
 
 	for _, test := range testCases {
 		if test.code != nil {
@@ -213,4 +214,10 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 
 		// TODO: check state updates for contract calls
 	}
+}
+
+func (suite *EvmTestSuite) logJSON(genState types.GenesisState) {
+	m, err := json.MarshalIndent(genState, "", "\t")
+	suite.Require().NoError(err)
+	suite.T().Logf("%s", m)
 }

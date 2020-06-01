@@ -183,6 +183,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 		resultData.ContractAddress = contractAddress
 	}
 
+	fmt.Println(contractAddress)
+	//fmt.Println(ret)
+	fmt.Println(logs)
+
 	resBz, err := EncodeResultData(resultData)
 	if err != nil {
 		return nil, err
