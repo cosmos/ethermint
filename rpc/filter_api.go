@@ -24,6 +24,17 @@ var (
 	deadline = 5 * time.Minute // consider a filter inactive if it has not been polled for within deadline
 )
 
+// filter is a helper struct that holds meta information over the filter type
+// and associated subscription in the event system.
+type filter struct {
+	typ      filters.Type
+	deadline *time.Timer // filter is inactiv when deadline triggers
+	hashes   []common.Hash
+	crit     filters.FilterCriteria
+	logs     []*types.Log
+	s        *Subscription // associated subscription in event system
+}
+
 // PublicFilterAPI offers support to create and manage filters. This will allow external clients to retrieve various
 // information related to the Ethereum protocol such as blocks, transactions and logs.
 type PublicFilterAPI struct {
@@ -37,15 +48,14 @@ type PublicFilterAPI struct {
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
-func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend, timeoutSec int64) *PublicFilterAPI {
+func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *PublicFilterAPI {
 	api := &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*Filter),
 		events: &TendermintEvents{
-			ctx:     context.Background(),
-			client:  cliCtx.Client,
-			timeout: time.Duration(timeoutSec) * time.Second,
+			ctx:    context.Background(),
+			client: cliCtx.Client,
 		},
 	}
 
@@ -57,7 +67,7 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend, timeou
 // timeoutLoop runs every 5 minutes and deletes filters that have not been recently used.
 // Tt is started when the api is created.
 func (api *PublicFilterAPI) timeoutLoop() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(deadline)
 	defer ticker.Stop()
 	for {
 		<-ticker.C
@@ -162,32 +172,31 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	subscriberID := rpc.NewID()
-	eventCh, err := api.events.SubscribeNewHeads(subscriberID)
+	headerSub, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		// return an empty id
 		return rpc.ID("")
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
+	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
-	api.filters[subscriberID] = NewFilter(api.backend, filters.BlocksSubscription, filters.FilterCriteria{})
+	api.filters[headerSub.ID()] = NewFilter(api.backend, filters.BlocksSubscription, filters.FilterCriteria{})
 	api.filtersMu.Unlock()
 
 	go func() {
 		for {
 			select {
-			case event := <-eventCh:
+			case event := <-headerSub.eventChannel:
 				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
 					return
 				}
 				api.filtersMu.Lock()
-				if f, found := api.filters[subscriberID]; found {
+				if f, found := api.filters[headerSub.ID()]; found {
 					f.hashes = append(f.hashes, common.BytesToHash(evHeader.Header.Hash()))
 				}
 				api.filtersMu.Unlock()
@@ -195,7 +204,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		}
 	}()
 
-	return subscriberID
+	return headerSub.ID()
 }
 
 // NewHeads send a notification each time a new (header) block is appended to the chain.
@@ -205,22 +214,21 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(ctx, api.events.GetTimeout())
+	ctx, cancelFn := context.WithTimeout(ctx, deadline)
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
-	var err error
-	go func() {
-		eventCh, err := api.events.SubscribeNewHeads(rpcSub.ID)
-		if err != nil {
-			return
-		}
+	headersSub, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return nil, err
+	}
 
+	go func() {
 		for {
 			select {
-			case event := <-eventCh:
+			case event := <-headersSub.eventChannel:
 				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventNewBlockHeader)
@@ -228,10 +236,10 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 				}
 				notifier.Notify(rpcSub.ID, evHeader.Header)
 			case <-rpcSub.Err():
-				err = api.events.UnsubscribeHeads(rpcSub.ID)
+				err = headersSub.Unsubscribe(ctx, api.cliCtx.Client)
 				return
 			case <-notifier.Closed():
-				err = api.events.UnsubscribeHeads(rpcSub.ID)
+				err = headersSub.Unsubscribe(ctx, api.cliCtx.Client)
 				return
 			}
 		}
@@ -247,7 +255,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
+	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -256,7 +264,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		rpcSub = notifier.CreateSubscription()
 	)
 
-	eventCh, err := api.events.SubscribeLogs(rpcSub.ID)
+	logsSub, err := api.events.SubscribeLogs(crit)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +272,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	go func() {
 		for {
 			select {
-			case event := <-eventCh:
+			case event := <-logsSub.eventChannel:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -292,10 +300,10 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				err = api.events.UnsubscribeLogs(rpcSub.ID)
+				err = logsSub.Unsubscribe(ctx, api.cliCtx.Client)
 				return
 			case <-notifier.Closed(): // connection dropped
-				err = api.events.UnsubscribeLogs(rpcSub.ID)
+				err = logsSub.Unsubscribe(ctx, api.cliCtx.Client)
 				return
 			}
 		}
@@ -319,12 +327,12 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
 	subscriberID := rpc.NewID()
-	eventCh, err := api.events.SubscribeLogs(subscriberID)
+	logsSub, err := api.events.SubscribeLogs(criteria)
 	if err != nil {
 		return rpc.ID(""), err
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
+	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
 	api.events = api.events.WithContext(ctx)
@@ -336,7 +344,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	go func() {
 		for {
 			select {
-			case event := <-eventCh:
+			case event := <-logsSub.eventChannel:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -428,11 +436,11 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 	api.filtersMu.Unlock()
 
 	if !found {
-		return nil, fmt.Errorf("filter %s not found", id)
+		return returnLogs(nil), fmt.Errorf("filter %s not found", id)
 	}
 
 	if f.typ != filters.LogsSubscription {
-		return nil, fmt.Errorf("filter %s doesn't have a LogsSubscription type", id)
+		return returnLogs(nil), fmt.Errorf("filter %s doesn't have a LogsSubscription type: got %d", id, f.typ)
 	}
 
 	return api.filters[id].Logs(ctx)
@@ -454,6 +462,14 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		return nil, fmt.Errorf("filter %s not found", id)
 	}
 
+	if !f.deadline.Stop() {
+		// timer expired but filter is not yet removed in timeout loop
+		// receive timer value and reset timer
+		<-f.deadline.C
+	}
+	f.deadline.Reset(deadline)
+
+	var err error
 	switch f.typ {
 	case filters.PendingTransactionsSubscription, filters.BlocksSubscription:
 		hashes := f.hashes
@@ -461,6 +477,12 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		return returnHashes(hashes), nil
 	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
 		logs := f.logs
+		if len(logs) == 0 {
+			logs, err = f.Logs(context.Background())
+			if err != nil {
+				return returnLogs(nil), err
+			}
+		}
 		f.logs = nil
 		return returnLogs(logs), nil
 	default:

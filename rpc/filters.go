@@ -28,6 +28,8 @@ type Filter struct {
 
 	matcher *bloombits.Matcher
 
+	logs []*ethtypes.Log // stored logs
+
 	subscription bool // associated subscription in event system
 }
 
@@ -49,8 +51,12 @@ func (f *Filter) Unsubscribe() {
 
 	switch f.typ {
 	case filters.LogsSubscription:
+		
 
 	case filters.BlocksSubscription:
+
+	
+	case filters.U
 
 	}
 

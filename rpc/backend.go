@@ -113,7 +113,7 @@ func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error
 		return nil, err
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(height, 10)))
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryBloom, strconv.FormatInt(height, 10)))
 	if err != nil {
 		return nil, err
 	}
