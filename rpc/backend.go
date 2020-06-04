@@ -34,7 +34,7 @@ type Backend interface {
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
-	// TODO: Bloom methods
+	BloomStatus() (uint64, uint64)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -300,4 +300,10 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	return blockLogs, nil
+}
+
+// BloomStatus returns the BloomBitsBlocks and the number of processed sections maintained
+// by the chain indexer.
+func (e *EthermintBackend) BloomStatus() (uint64, uint64) {
+	return 4096, 0
 }

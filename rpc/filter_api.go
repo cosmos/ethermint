@@ -20,9 +20,8 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
-var (
-	deadline = 5 * time.Minute // consider a filter inactive if it has not been polled for within deadline
-)
+// consider a filter inactive if it has not been polled for within deadline
+var deadline = 5 * time.Minute
 
 // filter is a helper struct that holds meta information over the filter type
 // and associated subscription in the event system.
@@ -44,7 +43,7 @@ type PublicFilterAPI struct {
 	quit      chan struct{}
 	events    EventSystem
 	filtersMu sync.Mutex
-	filters   map[rpc.ID]*Filter
+	filters   map[rpc.ID]*filter
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
@@ -52,11 +51,8 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *Publi
 	api := &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
-		filters: make(map[rpc.ID]*Filter),
-		events: &TendermintEvents{
-			ctx:    context.Background(),
-			client: cliCtx.Client,
-		},
+		filters: make(map[rpc.ID]*filter),
+		events:  NewTendermintEvents(cliCtx.Client),
 	}
 
 	go api.timeoutLoop()
@@ -75,7 +71,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				f.Unsubscribe()
+				f.s.Unsubscribe(context.Background(), api.cliCtx.Client)
 				delete(api.filters, id)
 			default:
 				continue
@@ -184,7 +180,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.events = api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
-	api.filters[headerSub.ID()] = NewFilter(api.backend, filters.BlocksSubscription, filters.FilterCriteria{})
+	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
 	api.filtersMu.Unlock()
 
 	go func() {
@@ -326,7 +322,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
-	subscriberID := rpc.NewID()
 	logsSub, err := api.events.SubscribeLogs(criteria)
 	if err != nil {
 		return rpc.ID(""), err
@@ -338,7 +333,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	api.events = api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
-	api.filters[subscriberID] = NewFilter(api.backend, filters.LogsSubscription, criteria)
+	api.filters[logsSub.ID()] = &filter{typ: filters.LogsSubscription, crit: criteria, deadline: time.NewTimer(deadline), logs: make([]*types.Log, 0), s: logsSub}
 	api.filtersMu.Unlock()
 
 	go func() {
@@ -368,7 +363,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 				logs := filterLogs(resultData.Logs, criteria.FromBlock, criteria.ToBlock, criteria.Addresses, criteria.Topics)
 
 				api.filtersMu.Lock()
-				if f, found := api.filters[subscriberID]; found {
+				if f, found := api.filters[logsSub.ID()]; found {
 					f.logs = append(f.logs, logs...)
 				}
 				api.filtersMu.Unlock()
@@ -376,7 +371,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		}
 	}()
 
-	return subscriberID, nil
+	return logsSub.ID(), nil
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
@@ -386,7 +381,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 	var filter *Filter
 	if crit.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, *crit.BlockHash, crit.Addresses, crit.Topics)
+		filter = NewBlockFilter(api.backend, crit)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()
@@ -422,7 +417,7 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		return false
 	}
 
-	f.Unsubscribe()
+	f.s.Unsubscribe(context.Background(), api.cliCtx.Client)
 	return true
 }
 
@@ -443,7 +438,31 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 		return returnLogs(nil), fmt.Errorf("filter %s doesn't have a LogsSubscription type: got %d", id, f.typ)
 	}
 
-	return api.filters[id].Logs(ctx)
+	var filter *Filter
+	if f.crit.BlockHash != nil {
+		// Block filter requested, construct a single-shot filter
+		filter = NewBlockFilter(api.backend, f.crit)
+	} else {
+		// Convert the RPC block numbers into internal representations
+		begin := rpc.LatestBlockNumber.Int64()
+		if f.crit.FromBlock != nil {
+			begin = f.crit.FromBlock.Int64()
+		}
+		end := rpc.LatestBlockNumber.Int64()
+		if f.crit.ToBlock != nil {
+			end = f.crit.ToBlock.Int64()
+		}
+		// Construct the range filter
+		filter = NewRangeFilter(api.backend, begin, end, f.crit.Addresses, f.crit.Topics)
+	}
+	// Run the filter and return all the logs
+	logs, err := filter.Logs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return returnLogs(logs), nil
+
+	// return api.filters[id].Logs(ctx)
 }
 
 // GetFilterChanges returns the logs for the filter with the given id since
@@ -469,7 +488,6 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	}
 	f.deadline.Reset(deadline)
 
-	var err error
 	switch f.typ {
 	case filters.PendingTransactionsSubscription, filters.BlocksSubscription:
 		hashes := f.hashes
@@ -477,12 +495,6 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		return returnHashes(hashes), nil
 	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
 		logs := f.logs
-		if len(logs) == 0 {
-			logs, err = f.Logs(context.Background())
-			if err != nil {
-				return returnLogs(nil), err
-			}
-		}
 		f.logs = nil
 		return returnLogs(logs), nil
 	default:

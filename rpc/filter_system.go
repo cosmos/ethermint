@@ -70,9 +70,9 @@ type TendermintEvents struct {
 //
 // The returned manager has a loop that needs to be stopped with the Stop function
 // or by stopping the given mux.
-func NewTendermintEvents(ctx context.Context, client rpcclient.Client) *TendermintEvents {
+func NewTendermintEvents(client rpcclient.Client) *TendermintEvents {
 	te := &TendermintEvents{
-		ctx:    ctx,
+		ctx:    context.Background(),
 		client: client,
 	}
 

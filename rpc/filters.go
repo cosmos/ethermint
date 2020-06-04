@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -13,53 +12,63 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-/*
-	- Filter functions derived from go-ethereum
-	Used to set the criteria passed in from RPC params
-*/
-
+// Filter can be used to retrieve and filter logs.
 type Filter struct {
-	backend Backend
-
-	typ      filters.Type  // filter type
-	deadline *time.Timer   // filter is inactiv when deadline triggers
-	hashes   []common.Hash // filtered block or transaction hashes
+	backend  Backend
 	criteria filters.FilterCriteria
-
-	matcher *bloombits.Matcher
-
-	logs []*ethtypes.Log // stored logs
-
-	subscription bool // associated subscription in event system
+	matcher  *bloombits.Matcher
 }
 
-// NewFilter returns a new Filter
-func NewFilter(backend Backend, filterType filters.Type, criteria filters.FilterCriteria) *Filter {
+// NewBlockFilter creates a new filter which directly inspects the contents of
+// a block to figure out whether it is interesting or not.
+func NewBlockFilter(backend Backend, criteria filters.FilterCriteria) *Filter {
+	// Create a generic filter and convert it into a block filter
+	return newFilter(backend, criteria, nil)
+}
+
+// NewRangeFilter creates a new filter which uses a bloom filter on blocks to
+// figure out whether a particular block is interesting or not.
+func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Address, topics [][]common.Hash) *Filter {
+	// Flatten the address and topic filter clauses into a single bloombits filter
+	// system. Since the bloombits are not positional, nil topics are permitted,
+	// which get flattened into a nil byte slice.
+	var filtersBz [][][]byte
+	if len(addresses) > 0 {
+		filter := make([][]byte, len(addresses))
+		for i, address := range addresses {
+			filter[i] = address.Bytes()
+		}
+		filtersBz = append(filtersBz, filter)
+	}
+
+	for _, topicList := range topics {
+		filter := make([][]byte, len(topicList))
+		for i, topic := range topicList {
+			filter[i] = topic.Bytes()
+		}
+		filtersBz = append(filtersBz, filter)
+	}
+
+	size, _ := backend.BloomStatus()
+
+	// Create a generic filter and convert it into a range filter
+	criteria := filters.FilterCriteria{
+		FromBlock: big.NewInt(begin),
+		ToBlock:   big.NewInt(end),
+		Addresses: addresses,
+		Topics:    topics,
+	}
+
+	return newFilter(backend, criteria, bloombits.NewMatcher(size, filtersBz))
+}
+
+// newFilter returns a new Filter
+func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloombits.Matcher) *Filter {
 	return &Filter{
 		backend:  backend,
-		typ:      filterType,
-		deadline: time.NewTimer(deadline),
 		criteria: criteria,
+		matcher:  matcher,
 	}
-}
-
-// TODO:
-func (f *Filter) Unsubscribe() {
-	if !f.subscription {
-		return
-	}
-
-	switch f.typ {
-	case filters.LogsSubscription:
-		
-
-	case filters.BlocksSubscription:
-
-	
-	case filters.U
-
-	}
-
 }
 
 // Logs searches the blockchain for matching log entries, returning all from the
