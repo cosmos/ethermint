@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strconv"
 
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/ethermint/x/evm"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -121,25 +123,8 @@ func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error
 	var bloomRes types.QueryBloomFilter
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
 
-	header := block.Block.Header
-	ethHeader := &ethtypes.Header{
-		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
-		UncleHash:   common.Hash{},
-		Coinbase:    common.Address{},
-		Root:        common.BytesToHash(header.AppHash),
-		TxHash:      common.BytesToHash(header.DataHash),
-		ReceiptHash: common.Hash{},
-		Bloom:       bloomRes.Bloom,
-		Difficulty:  nil,
-		Number:      big.NewInt(height),
-		// TODO: block gas limit
-		// GasLimit:    uint64(gasLimit),
-		// GasUsed:     uint64(gasUsed.Int64()),
-		Time:      uint64(header.Time.Unix()),
-		Extra:     nil,
-		MixDigest: common.Hash{},
-		Nonce:     ethtypes.BlockNonce{},
-	}
+	ethHeader := EthHeaderFromTendermint(block.Block.Header)
+	ethHeader.Bloom = bloomRes.Bloom
 
 	return ethHeader, nil
 }
@@ -306,4 +291,23 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // by the chain indexer.
 func (e *EthermintBackend) BloomStatus() (uint64, uint64) {
 	return 4096, 0
+}
+
+// EthHeaderFromTendermint is an util function that returns an Ethereum Header
+// from a tendermint Header.
+func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
+	return &ethtypes.Header{
+		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
+		UncleHash:   common.Hash{},
+		Coinbase:    common.Address{},
+		Root:        common.BytesToHash(header.AppHash),
+		TxHash:      common.BytesToHash(header.DataHash),
+		ReceiptHash: common.Hash{},
+		Difficulty:  nil,
+		Number:      big.NewInt(header.Height),
+		Time:        uint64(header.Time.Unix()),
+		Extra:       nil,
+		MixDigest:   common.Hash{},
+		Nonce:       ethtypes.BlockNonce{},
+	}
 }

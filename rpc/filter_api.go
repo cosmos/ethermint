@@ -41,7 +41,7 @@ type PublicFilterAPI struct {
 	backend   Backend
 	mux       *event.TypeMux
 	quit      chan struct{}
-	events    EventSystem
+	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
 }
@@ -52,7 +52,7 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *Publi
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*filter),
-		events:  NewTendermintEvents(cliCtx.Client),
+		events:  NewEventSystem(cliCtx.Client),
 	}
 
 	go api.timeoutLoop()
@@ -71,7 +71,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				f.s.Unsubscribe(context.Background(), api.cliCtx.Client)
+				f.s.Unsubscribe(api.events)
 				delete(api.filters, id)
 			default:
 				continue
@@ -97,7 +97,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 // 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
 // 	defer cancelFn()
 
-// 	api.events = api.events.WithContext(ctx)
+// 	api.events.WithContext(ctx)
 
 // 	api.filtersMu.Lock()
 // 	api.filters[pendingTxSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.PendingTransactionsSubscription)
@@ -135,7 +135,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 // 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
 // 	defer cancelFn()
 
-// 	api.events = api.events.WithContext(ctx)
+// 	api.events.WithContext(ctx)
 // 	rpcSub := notifier.CreateSubscription()
 
 // 	go func() {
@@ -177,7 +177,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
+	api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
@@ -213,7 +213,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	ctx, cancelFn := context.WithTimeout(ctx, deadline)
 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
+	api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
 	headersSub, err := api.events.SubscribeNewHeads()
@@ -232,10 +232,10 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 				}
 				notifier.Notify(rpcSub.ID, evHeader.Header)
 			case <-rpcSub.Err():
-				err = headersSub.Unsubscribe(ctx, api.cliCtx.Client)
+				err = headersSub.Unsubscribe(api.events)
 				return
 			case <-notifier.Closed():
-				err = headersSub.Unsubscribe(ctx, api.cliCtx.Client)
+				err = headersSub.Unsubscribe(api.events)
 				return
 			}
 		}
@@ -254,7 +254,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
+	api.events.WithContext(ctx)
 
 	var (
 		rpcSub = notifier.CreateSubscription()
@@ -296,10 +296,10 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				err = logsSub.Unsubscribe(ctx, api.cliCtx.Client)
+				err = logsSub.Unsubscribe(api.events)
 				return
 			case <-notifier.Closed(): // connection dropped
-				err = logsSub.Unsubscribe(ctx, api.cliCtx.Client)
+				err = logsSub.Unsubscribe(api.events)
 				return
 			}
 		}
@@ -330,7 +330,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
-	api.events = api.events.WithContext(ctx)
+	api.events.WithContext(ctx)
 
 	api.filtersMu.Lock()
 	api.filters[logsSub.ID()] = &filter{typ: filters.LogsSubscription, crit: criteria, deadline: time.NewTimer(deadline), logs: make([]*types.Log, 0), s: logsSub}
@@ -417,7 +417,7 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		return false
 	}
 
-	f.s.Unsubscribe(context.Background(), api.cliCtx.Client)
+	f.s.Unsubscribe(api.events)
 	return true
 }
 
