@@ -217,13 +217,13 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 	})
 
 	for _, acc := range genState.Accounts {
-		suite.T().Log(acc.Storage)
+		//suite.T().Log(acc.Storage)
 		if acc.Address == contractAddrs["ENS"] {
-			//suite.Require().NotNil(acc.Storage)
+			suite.Require().NotNil(acc.Storage)
 		}
 	}
 
-	//suite.logJSON(genState)
+	suite.logJSON(genState)
 
 	for _, test := range testCases {
 		if test.code != nil {
