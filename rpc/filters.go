@@ -32,7 +32,7 @@ func NewRangeFilter(backend Backend, begin, end int64, addresses []common.Addres
 	// Flatten the address and topic filter clauses into a single bloombits filter
 	// system. Since the bloombits are not positional, nil topics are permitted,
 	// which get flattened into a nil byte slice.
-	var filtersBz [][][]byte
+	var filtersBz [][][]byte // nolint: prealloc
 	if len(addresses) > 0 {
 		filter := make([][]byte, len(addresses))
 		for i, address := range addresses {
@@ -139,7 +139,7 @@ func (f *Filter) blockLogs(header *ethtypes.Header) ([]*ethtypes.Log, error) {
 		return []*ethtypes.Log{}, err
 	}
 
-	var unfiltered []*ethtypes.Log
+	var unfiltered []*ethtypes.Log // nolint: prealloc
 	for _, logs := range logsList {
 		unfiltered = append(unfiltered, logs...)
 	}
@@ -190,7 +190,7 @@ Logs:
 		}
 		// If the to filtered topics is greater than the amount of topics in logs, skip.
 		if len(topics) > len(log.Topics) {
-			continue Logs
+			continue
 		}
 		for i, sub := range topics {
 			match := len(sub) == 0 // empty rule set == wildcard

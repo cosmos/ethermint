@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
@@ -39,8 +38,6 @@ type filter struct {
 type PublicFilterAPI struct {
 	cliCtx    clientcontext.CLIContext
 	backend   Backend
-	mux       *event.TypeMux
-	quit      chan struct{}
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
@@ -71,7 +68,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				f.s.Unsubscribe(api.events)
+				_ = f.s.Unsubscribe(api.events)
 				delete(api.filters, id)
 			default:
 				continue
@@ -184,6 +181,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.filtersMu.Unlock()
 
 	go func() {
+		// nolint: gosimple
 		for {
 			select {
 			case event := <-headerSub.eventChannel:
@@ -230,7 +228,10 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventNewBlockHeader)
 					return
 				}
-				notifier.Notify(rpcSub.ID, evHeader.Header)
+				err = notifier.Notify(rpcSub.ID, evHeader.Header)
+				if err != nil {
+					return
+				}
 			case <-rpcSub.Err():
 				err = headersSub.Unsubscribe(api.events)
 				return
@@ -293,7 +294,10 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				for _, log := range logs {
-					notifier.Notify(rpcSub.ID, &log)
+					err = notifier.Notify(rpcSub.ID, log)
+					if err != nil {
+						return
+					}
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
 				err = logsSub.Unsubscribe(api.events)
@@ -337,6 +341,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	api.filtersMu.Unlock()
 
 	go func() {
+		// nolint: gosimple
 		for {
 			select {
 			case event := <-logsSub.eventChannel:
@@ -417,8 +422,8 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		return false
 	}
 
-	f.s.Unsubscribe(api.events)
-	return true
+	err := f.s.Unsubscribe(api.events)
+	return err != nil
 }
 
 // GetFilterLogs returns the logs for the filter with the given id.
