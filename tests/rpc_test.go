@@ -301,10 +301,12 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 
 	param := []string{hash.String()}
 	rpcRes := call(t, "eth_getTransactionReceipt", param)
+	require.Nil(t, rpcRes.Error)
 
 	receipt := make(map[string]interface{})
 	err := json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
+	require.NotEmpty(t, receipt)
 	require.Equal(t, "0x1", receipt["status"].(string))
 	require.Equal(t, []interface{}{}, receipt["logs"].([]interface{}))
 }
@@ -654,4 +656,20 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	sendTestTransaction(t)
 	post := getNonce(t)
 	require.Equal(t, prev, post-1)
+}
+
+func TestEth_EstimateGas(t *testing.T) {
+	from := getAddress(t)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	param[0]["value"] = "0x1"
+	rpcRes := call(t, "eth_estimateGas", param)
+
+	var gas hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &gas)
+	require.NoError(t, err)
+
+	require.Equal(t, hexutil.Bytes{0xf7, 0xa6}, gas)
 }
