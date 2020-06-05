@@ -223,6 +223,7 @@ func (so *stateObject) commitState() {
 	store := ctx.KVStore(so.stateDB.storeKey)
 
 	for key, value := range so.dirtyStorage {
+		fmt.Println("stateObject.commitState", key, value)
 		delete(so.dirtyStorage, key)
 
 		// skip no-op changes, persist actual changes

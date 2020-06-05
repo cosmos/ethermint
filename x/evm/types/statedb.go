@@ -718,6 +718,8 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
+		fmt.Println("csdb.ForEachStorage", iter.Key())
+
 		key := ethcmn.BytesToHash(iter.Key())
 		value := iter.Value()
 
