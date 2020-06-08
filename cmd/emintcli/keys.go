@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	emintcrypto "github.com/cosmos/ethermint/crypto"
+	ethermintcrypto "github.com/cosmos/ethermint/crypto"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,14 +50,9 @@ func keyCommands() *cobra.Command {
 	return cmd
 }
 
-func ethermintAlgosFn(opts *keyring.Options) {
-	opts.SupportedAlgos = append(opts.SupportedAlgos, emintcrypto.PrivKeySecp256k1)
-	opts.SupportedAlgosLedger = append(opts.SupportedAlgosLedger, emintcrypto.PrivKeySecp256k1)
-}
-
 func getKeyring(transient bool, buf io.Reader) (keyring.Keyring, error) {
 	if transient {
-		return keyring.NewInMemory(ethermintAlgosFn), nil
+		return keyring.NewInMemory(ethermintcrypto.EthSeckp256k1Option), nil
 	}
 
 	return keyring.New(
@@ -65,7 +60,7 @@ func getKeyring(transient bool, buf io.Reader) (keyring.Keyring, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		buf,
-		keyring.Option(ethermintAlgosFn),
+		keyring.Option(ethermintcrypto.EthSeckp256k1Option),
 	)
 }
 
