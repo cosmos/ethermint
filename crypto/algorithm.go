@@ -44,7 +44,11 @@ func (s ethSecp256k1) Derive() hd.DeriveFn {
 
 		// HMAC the seed to produce the private key and chain code
 		mac := hmac.New(sha512.New, []byte("Bitcoin seed"))
-		mac.Write(seed)
+		_, err = mac.Write(seed)
+		if err != nil {
+			return nil, err
+		}
+
 		seed = mac.Sum(nil)
 
 		priv, err := ethcrypto.ToECDSA(seed[:32])

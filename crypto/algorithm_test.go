@@ -22,6 +22,7 @@ func TestKeyring(t *testing.T) {
 	// fail in retrieving key
 	info, err := kr.Key("foo")
 	require.Error(t, err)
+	require.Nil(t, info)
 
 	mockIn.Reset("password\npassword\n")
 	info, mnemonic, err := kr.NewMnemonic("foo", keyring.English, sdk.FullFundraiserPath, Secp256k1)
