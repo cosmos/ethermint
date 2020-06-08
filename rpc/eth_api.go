@@ -92,18 +92,17 @@ func (e *PublicEthAPI) Syncing() (interface{}, error) {
 
 // Coinbase is the address that staking rewards will be send to (alias for Etherbase).
 func (e *PublicEthAPI) Coinbase() (common.Address, error) {
-	height, err := e.BlockNumber()
-	if err != nil {
-		return common.Address{}, err
-	}
-	blockNumber := int64(height)
-
-	block, err := e.cliCtx.Client.Block(&blockNumber)
+	node, err := e.cliCtx.GetNode()
 	if err != nil {
 		return common.Address{}, err
 	}
 
-	return common.BytesToAddress(block.Block.ProposerAddress.Bytes()), nil
+	status, err := node.Status()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(status.ValidatorInfo.Address.Bytes()), nil
 }
 
 // Mining returns whether or not this node is currently mining. Always false.
