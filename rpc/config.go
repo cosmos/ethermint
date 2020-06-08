@@ -105,12 +105,13 @@ func registerRoutes(rs *lcd.RestServer) {
 	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 }
 
-func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
+func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintcrypto.PrivKeySecp256k1, error) {
 	keystore, err := keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
+		emintcrypto.EthSeckp256k1Option,
 	)
 	if err != nil {
 		return nil, err
@@ -123,16 +124,19 @@ func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey em
 		return nil, err
 	}
 
-	privKey, _, err := crypto.UnarmorDecryptPrivKey(armored, passphrase)
+	privKey, algo, err := crypto.UnarmorDecryptPrivKey(armored, passphrase)
 	if err != nil {
 		return nil, err
 	}
 
-	var ok bool
-	emintKey, ok = privKey.(emintcrypto.PrivKeySecp256k1)
+	if algo != string(emintcrypto.EthSecp256k1Type) {
+		panic(fmt.Sprintf("invalid Keyring algorithm for JSON-RPC key, expected '%s' got '%s'", string(emintcrypto.EthSecp256k1Type), algo))
+	}
+
+	ethSecp256k1, ok := privKey.(emintcrypto.PrivKeySecp256k1)
 	if !ok {
 		panic(fmt.Sprintf("invalid private key type: %T", privKey))
 	}
 
-	return
+	return ethSecp256k1, nil
 }

@@ -132,6 +132,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
+		emintcrypto.EthSeckp256k1Option,
 	)
 	if err != nil {
 		return addresses, err

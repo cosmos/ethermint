@@ -39,6 +39,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		inBuf,
+		emintcrypto.EthSeckp256k1Option,
 	)
 	if err != nil {
 		return err

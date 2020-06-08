@@ -22,7 +22,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 
 	"github.com/cosmos/ethermint/codec"
+	ethermintcrypto "github.com/cosmos/ethermint/crypto"
 	ethermint "github.com/cosmos/ethermint/types"
+
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -60,6 +62,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					viper.GetString(flags.FlagKeyringBackend),
 					viper.GetString(flagClientHome),
 					inBuf,
+					ethermintcrypto.EthSeckp256k1Option,
 				)
 				if err != nil {
 					return err

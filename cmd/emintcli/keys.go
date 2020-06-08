@@ -60,7 +60,7 @@ func getKeyring(transient bool, buf io.Reader) (keyring.Keyring, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		buf,
-		keyring.Option(ethermintcrypto.EthSeckp256k1Option),
+		ethermintcrypto.EthSeckp256k1Option,
 	)
 }
 

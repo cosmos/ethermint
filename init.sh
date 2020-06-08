@@ -15,10 +15,9 @@ emintcli config keyring-backend test
 emintcli config chain-id $CHAINID
 emintcli config output json
 emintcli config indent true
-emintcli config trust-node true
 
 # if $KEY exists it should be deleted
-emintcli keys add $KEY
+emintcli keys add $KEY --algo ethsecp256k1
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 emintd init $MONIKER --chain-id $CHAINID
