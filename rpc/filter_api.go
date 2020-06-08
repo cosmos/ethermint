@@ -19,6 +19,19 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
+// FiltersBackend defines the methods requided by the PublicFilterAPI backend
+type FiltersBackend interface {
+	GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
+	HeaderByNumber(blockNr rpc.BlockNumber) (*ethtypes.Header, error)
+	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
+	// GetReceipts(blockHash common.Hash) (ethtypes.Receipts, error)
+	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
+
+	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
+	BloomStatus() (uint64, uint64)
+	// ServiceFilter(session *bloombits.MatcherSession)
+}
+
 // consider a filter inactive if it has not been polled for within deadline
 var deadline = 5 * time.Minute
 
@@ -37,14 +50,14 @@ type filter struct {
 // information related to the Ethereum protocol such as blocks, transactions and logs.
 type PublicFilterAPI struct {
 	cliCtx    clientcontext.CLIContext
-	backend   Backend
+	backend   FiltersBackend
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
-func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *PublicFilterAPI {
+func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
 	api := &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
@@ -52,7 +65,7 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend Backend) *Publi
 		events:  NewEventSystem(cliCtx.Client),
 	}
 
-	go api.timeoutLoop()
+	// go api.timeoutLoop()
 
 	return api
 }
@@ -78,127 +91,127 @@ func (api *PublicFilterAPI) timeoutLoop() {
 	}
 }
 
-// // NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
-// // as transactions enter the pending state.
-// //
-// // It is part of the filter package because this filter can be used through the
-// // `eth_getFilterChanges` polling method that is also used for log filters.
-// //
-// // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newpendingtransactionfilter
-// func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
-// 	var (
-// 		pendingTxs   = make(chan []common.Hash)
-// 		pendingTxSub = api.events.SubscribePendingTxs(pendingTxs)
-// 	)
-
-// 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
-// 	defer cancelFn()
-
-// 	api.events.WithContext(ctx)
-
-// 	api.filtersMu.Lock()
-// 	api.filters[pendingTxSub.ID] = NewFilter(api.backend, &filters.FilterCriteria{}, filters.PendingTransactionsSubscription)
-// 	api.filtersMu.Unlock()
-
-// 	go func() {
-// 		for {
-// 			select {
-// 			case ph := <-pendingTxs:
-// 				api.filtersMu.Lock()
-// 				if f, found := api.filters[pendingTxSub.ID]; found {
-// 					f.hashes = append(f.hashes, ph...)
-// 				}
-// 				api.filtersMu.Unlock()
-// 			case <-pendingTxSub.Err():
-// 				api.filtersMu.Lock()
-// 				delete(api.filters, pendingTxSub.ID)
-// 				api.filtersMu.Unlock()
-// 				return
-// 			}
-// 		}
-// 	}()
-
-// 	return pendingTxSub.ID
-// }
-
-// // NewPendingTransactions creates a subscription that is triggered each time a transaction
-// // enters the transaction pool and was signed from one of the transactions this nodes manages.
-// func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Subscription, error) {
-// 	notifier, supported := rpc.NotifierFromContext(ctx)
-// 	if !supported {
-// 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
-// 	}
-
-// 	ctx, cancelFn := context.WithTimeout(context.Background(), api.events.GetTimeout())
-// 	defer cancelFn()
-
-// 	api.events.WithContext(ctx)
-// 	rpcSub := notifier.CreateSubscription()
-
-// 	go func() {
-// 		txHashes := make(chan []common.Hash, 128)
-// 		pendingTxSub := api.events.SubscribePendingTxs(txHashes)
-
-// 		for {
-// 			select {
-// 			case hashes := <-txHashes:
-// 				// To keep the original behaviour, send a single tx hash in one notification.
-// 				// TODO(rjl493456442) Send a batch of tx hashes in one notification
-// 				for _, h := range hashes {
-// 					notifier.Notify(rpcSub.ID, h)
-// 				}
-// 			case <-rpcSub.Err():
-// 				pendingTxSub.Unsubscribe()
-// 				return
-// 			case <-notifier.Closed():
-// 				pendingTxSub.Unsubscribe()
-// 				return
-// 			}
-// 		}
-// 	}()
-
-// 	return rpcSub, nil
-// }
-
-// NewBlockFilter creates a filter that fetches blocks that are imported into the chain.
-// It is part of the filter package since polling goes with eth_getFilterChanges.
+// NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
+// as transactions enter the pending state.
 //
-// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
-func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	headerSub, err := api.events.SubscribeNewHeads()
+// It is part of the filter package because this filter can be used through the
+// `eth_getFilterChanges` polling method that is also used for log filters.
+//
+// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newpendingtransactionfilter
+func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		// return an empty id
 		return rpc.ID("")
+	}
+
+	defer cancelSubs()
+
+	api.filtersMu.Lock()
+	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
+	api.filtersMu.Unlock()
+
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case ph := <-pendingTxs:
+	// 			api.filtersMu.Lock()
+	// 			if f, found := api.filters[pendingTxSub.ID()]; found {
+	// 				f.hashes = append(f.hashes, ph...)
+	// 			}
+	// 			api.filtersMu.Unlock()
+	// 		}
+	// 	}
+	// }()
+
+	return pendingTxSub.ID()
+}
+
+// NewPendingTransactions creates a subscription that is triggered each time a transaction
+// enters the transaction pool and was signed from one of the transactions this nodes manages.
+func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
 	api.events.WithContext(ctx)
+	rpcSub := notifier.CreateSubscription()
+
+	_, cancelSubs, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return nil, err
+	}
+
+	defer cancelSubs()
+
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case hashes := <-pendingTxSub.eventChannel:
+
+	// 			// To keep the original behaviour, send a single tx hash in one notification.
+	// 			// TODO(rjl493456442) Send a batch of tx hashes in one notification
+	// 			for _, h := range hashes {
+	// 				err = notifier.Notify(rpcSub.ID, h)
+	// 				if err != nil {
+	// 					return
+	// 				}
+	// 			}
+	// 		case <-rpcSub.Err():
+	// 			err = pendingTxSub.Unsubscribe(api.events)
+	// 			return
+	// 		case <-notifier.Closed():
+	// 			err = pendingTxSub.Unsubscribe(api.events)
+	// 			return
+	// 		}
+	// 	}
+	// }()
+
+	return rpcSub, nil
+}
+
+// NewBlockFilter creates a filter that fetches blocks that are imported into the chain.
+// It is part of the filter package since polling goes with eth_getFilterChanges.
+//
+// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
+func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
+	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		// return an empty id
+		return rpc.ID("1")
+	}
+
+	defer cancelSubs()
 
 	api.filtersMu.Lock()
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
 	api.filtersMu.Unlock()
 
-	go func() {
-		// nolint: gosimple
-		for {
-			select {
-			case event := <-headerSub.eventChannel:
-				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
-				if !ok {
-					return
-				}
-				api.filtersMu.Lock()
-				if f, found := api.filters[headerSub.ID()]; found {
-					f.hashes = append(f.hashes, common.BytesToHash(evHeader.Header.Hash()))
-				}
-				api.filtersMu.Unlock()
-			}
-		}
-	}()
-
 	return headerSub.ID()
+
+	// go func() {
+	// 	// nolint: gosimple
+	// 	for {
+	// 		select {
+	// 		case event := <-headerSub.eventChannel:
+	// 			evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
+	// 			if !ok {
+	// 				return
+	// 			}
+	// 			api.filtersMu.Lock()
+	// 			if f, found := api.filters[headerSub.ID()]; found {
+	// 				f.hashes = append(f.hashes, common.BytesToHash(evHeader.Header.Hash()))
+	// 			}
+	// 			api.filtersMu.Unlock()
+	// 		}
+	// 	}
+	// }()
+
+	// return headerSub.ID()
 }
 
 // NewHeads send a notification each time a new (header) block is appended to the chain.
@@ -208,21 +221,21 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(ctx, deadline)
-	defer cancelFn()
-
 	api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
-	headersSub, err := api.events.SubscribeNewHeads()
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	go func() {
+		headersSub, cancelSubs, err := api.events.SubscribeNewHeads()
+		if err != nil {
+			return
+		}
+
+		defer cancelSubs()
+
 		for {
 			select {
-			case event := <-headersSub.eventChannel:
+			case event := <-api.events.chainCh:
 				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventNewBlockHeader)
@@ -252,24 +265,21 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
-	defer cancelFn()
-
 	api.events.WithContext(ctx)
+	rpcSub := notifier.CreateSubscription()
 
-	var (
-		rpcSub = notifier.CreateSubscription()
-	)
-
-	logsSub, err := api.events.SubscribeLogs(crit)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	go func() {
+		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit)
+		if err != nil {
+			return
+		}
+
+		defer cancelSubs()
+
 		for {
 			select {
-			case event := <-logsSub.eventChannel:
+			case event := <-api.events.logsCh:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -326,37 +336,27 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
-	logsSub, err := api.events.SubscribeLogs(criteria)
-	if err != nil {
-		return rpc.ID(""), err
-	}
-
-	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
-	defer cancelFn()
-
-	api.events.WithContext(ctx)
-
-	api.filtersMu.Lock()
-	api.filters[logsSub.ID()] = &filter{typ: filters.LogsSubscription, crit: criteria, deadline: time.NewTimer(deadline), logs: make([]*types.Log, 0), s: logsSub}
-	api.filtersMu.Unlock()
+	var (
+		filterID = rpc.ID("")
+		err      error
+	)
 
 	go func() {
-		// nolint: gosimple
+		logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria)
+		if err != nil {
+			return
+		}
+
+		defer cancelSubs()
+
+		filterID = logsSub.ID()
+
 		for {
 			select {
-			case event := <-logsSub.eventChannel:
-				// filter only events from EVM module txs
-				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
-				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
-
-				if !(isMsgEthermint || isMsgEthereumTx) {
-					// ignore transaction
-					return
-				}
-
+			case event := <-api.events.logsCh:
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
-					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
+					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
 					return
 				}
 
@@ -376,7 +376,11 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		}
 	}()
 
-	return logsSub.ID(), nil
+	if err != nil {
+		return rpc.ID(""), err
+	}
+
+	return filterID, nil
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.

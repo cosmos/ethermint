@@ -3,10 +3,8 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -15,29 +13,17 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
-type subscription struct {
-	id       rpc.ID
-	typ      filters.Type
-	created  time.Time
-	logsCrit filters.FilterCriteria
-	logs     chan []*ethtypes.Log
-	// hashes    chan []common.Hash
-	headers   chan *ethtypes.Header
-	installed chan struct{} // closed when the filter is installed
-}
-
-func (s subscription) event() string {
-	switch s.typ {
-	case filters.LogsSubscription, filters.PendingTransactionsSubscription, filters.MinedAndPendingLogsSubscription, filters.PendingLogsSubscription:
-		return tmtypes.EventTx
-	case filters.BlocksSubscription:
-		return tmtypes.EventNewBlockHeader
-	default:
-		return ""
-	}
-}
+var (
+	txEvents     = fmt.Sprintf("%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx)
+	evmEvents    = fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)
+	headerEvents = fmt.Sprintf("%s='%s'", tmtypes.EventTypeKey, tmtypes.EventNewBlockHeader)
+)
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
 // subscription which match the subscription criteria using the Tendermint's RPC client.
@@ -45,17 +31,24 @@ type EventSystem struct {
 	ctx    context.Context
 	client rpcclient.Client
 
+	// light client mode
+	lightMode bool
+
 	// Subscriptions
-	// txsSub         *Subscription // Subscription for new transaction event
+	txsSub  *Subscription // Subscription for new transaction event
 	logsSub *Subscription // Subscription for new log event
 	// rmLogsSub      *Subscription // Subscription for removed log event
-	// pendingLogsSub *Subscription // Subscription for pending log event
-	chainSub *Subscription // Subscription for new chain event
+	pendingLogsSub *Subscription // Subscription for pending log event
+	chainSub       *Subscription // Subscription for new chain event
 
 	// Channels
-	install       chan *subscription           // install filter for event notification
-	uninstall     chan *subscription           // remove filter for event notification
-	eventsChannel <-chan coretypes.ResultEvent // channel to receive tendermint event results
+	install       chan *Subscription           // install filter for event notification
+	uninstall     chan *Subscription           // remove filter for event notification
+	txsCh         <-chan coretypes.ResultEvent // Channel to receive new pending transactions event
+	logsCh        <-chan coretypes.ResultEvent // Channel to receive new log event
+	pendingLogsCh <-chan coretypes.ResultEvent // Channel to receive new log event
+	rmLogsCh      <-chan coretypes.ResultEvent // Channel to receive removed log event
+	chainCh       <-chan coretypes.ResultEvent // Channel to receive new chain event
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,
@@ -66,14 +59,10 @@ type EventSystem struct {
 // or by stopping the given mux.
 func NewEventSystem(client rpcclient.Client) *EventSystem {
 	es := &EventSystem{
-		ctx:    context.Background(),
-		client: client,
+		ctx:       context.Background(),
+		client:    client,
+		lightMode: false,
 	}
-
-	// Subscribe events
-	// es.txsSub = es.SubscribeNewTxsEvent(m.txsCh)
-	es.logsSub, _ = es.SubscribeLogs(filters.FilterCriteria{})
-	es.chainSub, _ = es.SubscribeNewHeads()
 
 	go es.eventLoop()
 	return es
@@ -84,22 +73,33 @@ func (es *EventSystem) WithContext(ctx context.Context) {
 	es.ctx = ctx
 }
 
-func (es EventSystem) subscribe(sub *subscription) (*Subscription, error) {
-	es.install <- sub
-	<-sub.installed
+func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.CancelFunc, error) {
+	var (
+		err      error
+		cancelFn context.CancelFunc
+	)
 
-	var err error
-	subscription := &Subscription{
-		subscription: sub,
+	es.ctx, cancelFn = context.WithTimeout(context.Background(), deadline)
+
+	switch sub.typ {
+	case filters.PendingTransactionsSubscription:
+		es.txsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
+		es.pendingLogsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+	case filters.LogsSubscription:
+		es.logsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+	case filters.BlocksSubscription:
+		es.chainCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+	default:
+		err = fmt.Errorf("invalid filter subscription type %d", sub.typ)
 	}
-	subscription.eventChannel, err = es.client.Subscribe(es.ctx, string(sub.id), tmtypes.QueryForEvent(sub.event()).String())
-	return subscription, err
+	return sub, cancelFn, err
 }
 
 // SubscribeLogs creates a subscription that will write all logs matching the
 // given criteria to the given logs channel. Default value for the from and to
 // block is "latest". If the fromBlock > toBlock an error is returned.
-func (es *EventSystem) SubscribeLogs(crit filters.FilterCriteria) (*Subscription, error) {
+func (es *EventSystem) SubscribeLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
 	var from, to rpc.BlockNumber
 	if crit.FromBlock == nil {
 		from = rpc.LatestBlockNumber
@@ -113,9 +113,9 @@ func (es *EventSystem) SubscribeLogs(crit filters.FilterCriteria) (*Subscription
 	}
 
 	switch {
-	// // only interested in pending logs
-	// case from == rpc.PendingBlockNumber && to == rpc.PendingBlockNumber:
-	// 	return es.subscribePendingLogs(crit, logs)
+	// only interested in pending logs
+	case from == rpc.PendingBlockNumber && to == rpc.PendingBlockNumber:
+		return es.subscribePendingLogs(crit)
 
 	// only interested in new mined logs, mined logs within a specific block range, or
 	// logs from a specific block number to new mined blocks
@@ -123,35 +123,22 @@ func (es *EventSystem) SubscribeLogs(crit filters.FilterCriteria) (*Subscription
 		(from >= 0 && to >= 0 && to >= from):
 		return es.subscribeLogs(crit)
 
-	// // interested in mined logs from a specific block number, new logs and pending logs
-	// case from >= rpc.LatestBlockNumber && to == rpc.PendingBlockNumber:
-	// 	return es.subscribeMinedPendingLogs(crit, logs)
+	// interested in mined logs from a specific block number, new logs and pending logs
+	case from >= rpc.LatestBlockNumber && to == rpc.PendingBlockNumber:
+		return es.subscribeMinedPendingLogs(crit)
 
 	default:
-		return nil, fmt.Errorf("invalid from and to block combination: from > to (%d > %d)", from, to)
+		return nil, nil, fmt.Errorf("invalid from and to block combination: from > to (%d > %d)", from, to)
 	}
 }
 
-// // subscribeMinedPendingLogs creates a subscription that returned mined and
-// // pending logs that match the given criteria.
-// func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria) (*Subscription, error) {
-// 	sub := &subscription{
-// 		id:        rpc.NewID(),
-// 		typ:       filters.MinedAndPendingLogsSubscription,
-// 		logsCrit:  crit,
-// 		created:   time.Now(),
-// 		logs:      make(chan []*ethtypes.Log),
-// 		installed: make(chan struct{}),
-// 	}
-// 	return es.subscribe(sub)
-// }
-
-// subscribeLogs creates a subscription that will write all logs matching the
-// given criteria to the given logs channel.
-func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria) (*Subscription, error) {
-	sub := &subscription{
+// subscribeMinedPendingLogs creates a subscription that returned mined and
+// pending logs that match the given criteria.
+func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
 		id:        rpc.NewID(),
-		typ:       filters.LogsSubscription,
+		typ:       filters.MinedAndPendingLogsSubscription,
+		event:     evmEvents,
 		logsCrit:  crit,
 		created:   time.Now(),
 		logs:      make(chan []*ethtypes.Log),
@@ -160,25 +147,42 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria) (*Subscription
 	return es.subscribe(sub)
 }
 
-// // subscribePendingLogs creates a subscription that writes transaction hashes for
-// // transactions that enter the transaction pool.
-// func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria) (*Subscription, error) {
-// 	sub := &subscription{
-// 		id:        rpc.NewID(),
-// 		typ:       filters.PendingLogsSubscription,
-// 		logsCrit:  crit,
-// 		created:   time.Now(),
-// 		logs:      make(chan []*ethtypes.Log),
-// 		installed: make(chan struct{}),
-// 	}
-// 	return es.subscribe(sub)
-// }
+// subscribeLogs creates a subscription that will write all logs matching the
+// given criteria to the given logs channel.
+func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
+		id:        rpc.NewID(),
+		typ:       filters.LogsSubscription,
+		event:     evmEvents,
+		logsCrit:  crit,
+		created:   time.Now(),
+		logs:      make(chan []*ethtypes.Log),
+		installed: make(chan struct{}),
+	}
+	return es.subscribe(sub)
+}
+
+// subscribePendingLogs creates a subscription that writes transaction hashes for
+// transactions that enter the transaction pool.
+func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
+		id:        rpc.NewID(),
+		typ:       filters.PendingLogsSubscription,
+		event:     evmEvents,
+		logsCrit:  crit,
+		created:   time.Now(),
+		logs:      make(chan []*ethtypes.Log),
+		installed: make(chan struct{}),
+	}
+	return es.subscribe(sub)
+}
 
 // SubscribeNewHeads subscribes to new block headers events.
-func (es EventSystem) SubscribeNewHeads() (*Subscription, error) {
-	sub := &subscription{
+func (es EventSystem) SubscribeNewHeads() (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.BlocksSubscription,
+		event:     tmtypes.EventNewBlockHeader,
 		created:   time.Now(),
 		headers:   make(chan *ethtypes.Header),
 		installed: make(chan struct{}),
@@ -187,28 +191,21 @@ func (es EventSystem) SubscribeNewHeads() (*Subscription, error) {
 }
 
 // SubscribePendingTxs subscribes to new pending transactions events from the mempool.
-func (es EventSystem) SubscribePendingTxs(hashes chan []common.Hash) (*Subscription, error) {
-	sub := &subscription{
+func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.PendingTransactionsSubscription,
+		event:     txEvents,
 		created:   time.Now(),
+		hashes:    make(chan []common.Hash),
 		installed: make(chan struct{}),
 	}
 	return es.subscribe(sub)
 }
 
-type filterIndex map[filters.Type]map[rpc.ID]*subscription
+type filterIndex map[filters.Type]map[rpc.ID]*Subscription
 
 func (es *EventSystem) handleLogs(filterIdx filterIndex, ev coretypes.ResultEvent) {
-	// filter only events from EVM module txs
-	_, isMsgEthermint := ev.Events[evmtypes.TypeMsgEthermint]
-	_, isMsgEthereumTx := ev.Events[evmtypes.TypeMsgEthereumTx]
-
-	if !(isMsgEthermint || isMsgEthereumTx) {
-		// ignore transaction
-		return
-	}
-
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	resultData, err := evmtypes.DecodeResultData(data.TxResult.Result.Data)
 	if err != nil {
@@ -226,6 +223,13 @@ func (es *EventSystem) handleLogs(filterIdx filterIndex, ev coretypes.ResultEven
 	}
 }
 
+func (es *EventSystem) handleTxsEvent(filterIdx filterIndex, ev coretypes.ResultEvent) {
+	data, _ := ev.Data.(tmtypes.EventDataTx)
+	for _, f := range filterIdx[filters.PendingTransactionsSubscription] {
+		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
+	}
+}
+
 func (es *EventSystem) handleChainEvent(filterIdx filterIndex, ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 	for _, f := range filterIdx[filters.BlocksSubscription] {
@@ -236,29 +240,55 @@ func (es *EventSystem) handleChainEvent(filterIdx filterIndex, ev coretypes.Resu
 
 // eventLoop (un)installs filters and processes mux events.
 func (es *EventSystem) eventLoop() {
+	var (
+		err                                                    error
+		cancelPendingTxsSubs, cancelLogsSubs, cancelHeaderSubs context.CancelFunc
+	)
+
+	// Subscribe events
+	es.txsSub, cancelPendingTxsSubs, err = es.SubscribePendingTxs()
+	if err != nil {
+		panic(err)
+	}
+
+	defer cancelPendingTxsSubs()
+
+	es.logsSub, cancelLogsSubs, err = es.SubscribeLogs(filters.FilterCriteria{})
+	if err != nil {
+		panic(err)
+	}
+
+	defer cancelLogsSubs()
+
+	es.chainSub, cancelHeaderSubs, err = es.SubscribeNewHeads()
+	if err != nil {
+		panic(err)
+	}
+
+	defer cancelHeaderSubs()
+
 	// Ensure all subscriptions get cleaned up
 	defer func() {
-		// _ = es.txsSub.Unsubscribe(es)
+		_ = es.txsSub.Unsubscribe(es)
 		_ = es.logsSub.Unsubscribe(es)
 		// _ = es.rmLogsSub.Unsubscribe(es)
-		// _ = es.pendingLogsSub.Unsubscribe(es)
+		_ = es.pendingLogsSub.Unsubscribe(es)
 		_ = es.chainSub.Unsubscribe(es)
 	}()
 
 	index := make(filterIndex)
 	for i := filters.UnknownSubscription; i < filters.LastIndexSubscription; i++ {
-		index[i] = make(map[rpc.ID]*subscription)
+		index[i] = make(map[rpc.ID]*Subscription)
 	}
 
 	for {
 		select {
-		case ev := <-es.eventsChannel:
-			switch ev.Data.(type) {
-			case tmtypes.EventDataTx:
-				es.handleLogs(index, ev)
-			case tmtypes.EventDataNewBlockHeader:
-				es.handleChainEvent(index, ev)
-			}
+		case txEvent := <-es.txsCh:
+			es.handleTxsEvent(index, txEvent)
+		case headerEv := <-es.chainCh:
+			es.handleChainEvent(index, headerEv)
+		case logsEv := <-es.logsCh:
+			es.handleLogs(index, logsEv)
 
 		case f := <-es.install:
 			if f.typ == filters.MinedAndPendingLogsSubscription {
@@ -284,39 +314,26 @@ func (es *EventSystem) eventLoop() {
 
 // Subscription defines a wrapper for the private subscription
 type Subscription struct {
-	subscription *subscription
-	eventChannel <-chan coretypes.ResultEvent
-	unsubOnce    sync.Once
+	id        rpc.ID
+	typ       filters.Type
+	event     string
+	created   time.Time
+	logsCrit  filters.FilterCriteria
+	logs      chan []*ethtypes.Log
+	hashes    chan []common.Hash
+	headers   chan *ethtypes.Header
+	installed chan struct{} // closed when the filter is installed
 }
 
 // ID returns the underlying subscription RPC identifier.
 func (s Subscription) ID() rpc.ID {
-	return s.subscription.id
+	return s.id
 }
 
 // Unsubscribe the current subscription from Tendermint Websocket.
 func (s Subscription) Unsubscribe(es *EventSystem) (err error) {
-	s.unsubOnce.Do(func() {
-	uninstallLoop:
-		for {
-			// write uninstall request and consume logs/hashes. This prevents
-			// the eventLoop broadcast method to deadlock when writing to the
-			// filter event channel while the subscription loop is waiting for
-			// this method to return (and thus not reading these events).
-			select {
-			case es.uninstall <- s.subscription:
-				break uninstallLoop
-			case <-s.subscription.logs:
-			// case <-s.subscription.hashes:
-			case <-s.subscription.headers:
-			}
-		}
-
-		err = es.client.Unsubscribe(
-			es.ctx, string(s.ID()),
-			tmtypes.QueryForEvent(s.subscription.event()).String(),
-		)
-	})
-
-	return
+	return es.client.Unsubscribe(
+		es.ctx, string(s.ID()),
+		tmtypes.QueryForEvent(s.event).String(),
+	)
 }
