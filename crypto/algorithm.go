@@ -13,6 +13,9 @@ import (
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
+// EthSecp256k1Type uses the Ethereum secp256k1 ECDSA parameters.
+const EthSecp256k1Type = hd.PubKeyType("ethsecp256k1")
+
 var _ keyring.SignatureAlgo = ethSecp256k1{}
 
 // EthSeckp256k1Option defines a keyring option for the ethereum Secp256k1 curve.
@@ -26,8 +29,9 @@ var Secp256k1 = ethSecp256k1{}
 
 type ethSecp256k1 struct{}
 
+// Name returns the Secp256k1 PubKeyType.
 func (s ethSecp256k1) Name() hd.PubKeyType {
-	return hd.PubKeyType("ethsecp256k1")
+	return EthSecp256k1Type
 }
 
 // Derive derives and returns the secp256k1 private key for the given seed and HD path.
@@ -56,8 +60,8 @@ func (s ethSecp256k1) Derive() hd.DeriveFn {
 
 func (ethSecp256k1) Generate() hd.GenerateFn {
 	return func(bz []byte) tmcrypto.PrivKey {
-		var bzArr []byte
+		var bzArr [32]byte
 		copy(bzArr[:], bz)
-		return PrivKeySecp256k1(bzArr)
+		return PrivKeySecp256k1(bzArr[:])
 	}
 }
