@@ -333,7 +333,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 
 	// otherwise load the value from the KVStore
 	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixStorage)
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {

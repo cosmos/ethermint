@@ -157,11 +157,11 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 			to:   "ENS",
 			data: common.FromHex("0x06ab592393cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594"),
 		},
-		// {
-		// 	name: "apmRegistryFactory.newAPM",
-		// 	to:   "APMRegistryFactory",
-		// 	data: append(common.FromHex("0xaac57b3a93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594"), padAddr(owner)...),
-		// },
+		{
+			name: "apmRegistryFactory.newAPM",
+			to:   "APMRegistryFactory",
+			data: append(common.FromHex("0xaac57b3a93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae1542111b4698ac085139692eae7c6efb632a4ae2779f8686da94511ebbbff594"), padAddr(owner)...),
+		},
 	}
 
 	for _, test := range testCases {
@@ -184,15 +184,13 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 			contractAddrs[test.name] = suite.deployContract(test.code, nonce, gasLimit, gasPrice, privECDSA)
 			suite.T().Logf("%s address: 0x%x", test.name, contractAddrs[test.name])
 		} else {
-
-			// if test.name == "apmRegistryFactory.newAPM" {
-			// 	suite.T().Log(test.data)
-			// 	suite.T().Log(len(test.data))
-			// }
-
 			if test.name == "ens.setSubnodeOwner" {
 				test.data = append(test.data, padAddr(contractAddrs["APMRegistryFactory"])...)
+				suite.T().Logf("0x%x", test.data)
+				suite.T().Logf("0x%x", contractAddrs[test.to])
 			}
+
+			suite.T().Logf("0x%x", test.data)
 
 			resData := suite.call(test.data, contractAddrs[test.to], nonce, gasLimit, gasPrice, privECDSA)
 
