@@ -14,12 +14,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 
-	ethcdc "github.com/cosmos/ethermint/codec"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 )
 
 // NewDefaultGenesisState generates the default state for the application.
 func NewDefaultGenesisState() simapp.GenesisState {
-	cdc := ethcdc.MakeCodec(ModuleBasics)
+	_, cdc := ethermintcodec.MakeCodecs(ModuleBasics)
 	return ModuleBasics.DefaultGenesis(cdc)
 }
 

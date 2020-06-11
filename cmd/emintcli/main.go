@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
@@ -40,7 +41,7 @@ import (
 const flagUnlockKey = "unlock-key"
 
 var (
-	appCodec, cdc = app.MakeCodecs()
+	appCodec, cdc = ethermintcodec.MakeCodecs(app.ModuleBasics)
 )
 
 func init() {

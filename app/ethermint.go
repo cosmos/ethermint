@@ -7,9 +7,7 @@ import (
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/testdata"
-	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/simapp"
-	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -136,7 +134,7 @@ func NewEthermintApp(
 	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
 ) *EthermintApp {
 
-	appCodec, cdc := MakeCodecs()
+	appCodec, cdc := ethermintcodec.MakeCodecs(ModuleBasics)
 
 	// use custom Ethermint transaction decoder
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
@@ -371,18 +369,6 @@ func (app *EthermintApp) GetKey(storeKey string) *sdk.KVStoreKey {
 // for modules to register their own custom testing types.
 func (app *EthermintApp) Codec() *codec.Codec {
 	return app.cdc
-}
-
-// MakeCodecs constructs the *std.Codec and *codec.Codec instances used by
-// simapp. It is useful for tests and clients who do not want to construct the
-// full simapp
-func MakeCodecs() (*std.Codec, *codec.Codec) {
-	cdc := ethermintcodec.MakeCodec(ModuleBasics)
-	interfaceRegistry := cdctypes.NewInterfaceRegistry()
-	std.RegisterInterfaces(interfaceRegistry)
-	ModuleBasics.RegisterInterfaceModules(interfaceRegistry)
-	appCodec := std.NewAppCodec(cdc, interfaceRegistry)
-	return appCodec, cdc
 }
 
 // GetMaccPerms returns a copy of the module account permissions
