@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -262,6 +263,25 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 // GetTransactionLogs returns the logs given a transaction hash.
 func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	return e.backend.GetTransactionLogs(txHash)
+}
+
+// ExportAccount exports an account's balance, code, and storage at the given block number
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryExportAccount, address.Hex()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	var out types.QueryResExportAccount
+	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	jout, err := json.MarshalIndent(out, "", "\t")
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s", jout), nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
