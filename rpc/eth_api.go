@@ -12,7 +12,6 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -23,6 +22,7 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -33,7 +33,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -575,7 +574,7 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(clientCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
+func bytesToEthTx(clientCtx client.Context, bz []byte) (*types.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := clientCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	if err != nil {
@@ -807,7 +806,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 	e.clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
 	storageProofs := make([]StorageResult, len(storageKeys))
-	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
+	opts := rpcclient.ABCIQueryOptions{Height: int64(block), Prove: true}
 	for i, k := range storageKeys {
 		// Get value for key
 		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", types.ModuleName, evm.QueryStorage, address, k)
@@ -884,7 +883,6 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		authclient.Codec = codec.NewAppCodec(e.clientCtx.Codec)
 		accRet := authtypes.NewAccountRetriever(authclient.Codec)
 
 		_, nonce, err = accRet.GetAccountNumberSequence(e.clientCtx, from)

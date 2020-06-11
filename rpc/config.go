@@ -33,7 +33,7 @@ type Config struct {
 	RPCVHosts []string
 }
 
-func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintcrypto.PrivKeySecp256k1, error) {
+func UnlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintcrypto.PrivKeySecp256k1, error) {
 	keystore, err := keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),

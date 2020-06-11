@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
@@ -15,7 +15,7 @@ import (
 )
 
 // RegisterRoutes register REST endpoints for the faucet module
-func RegisterRoutes(clientCtx context.CLIContext, r *mux.Router) {
+func RegisterRoutes(clientCtx client.Context, r *mux.Router) {
 	r.HandleFunc(fmt.Sprintf("/%s/request", types.ModuleName), requestHandler(clientCtx)).Methods("POST")
 	r.HandleFunc(fmt.Sprintf("/%s/funded", types.ModuleName), fundedHandlerFn(clientCtx)).Methods("GET")
 }
@@ -27,7 +27,7 @@ type PostRequestBody struct {
 	Recipient string       `json:"receipient" yaml:"receipient"`
 }
 
-func requestHandler(clientCtx context.CLIContext) http.HandlerFunc {
+func requestHandler(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req PostRequestBody
 		if !rest.ReadRESTReq(w, r, clientCtx.Codec, &req) {
@@ -69,7 +69,7 @@ func requestHandler(clientCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-func fundedHandlerFn(clientCtx context.CLIContext) http.HandlerFunc {
+func fundedHandlerFn(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, height, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFunded))
 		if rest.CheckInternalServerError(w, err) {

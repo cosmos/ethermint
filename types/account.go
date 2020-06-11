@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"gopkg.in/yaml.v2"
@@ -14,8 +13,15 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var _ exported.Account = (*EthAccount)(nil)
-var _ exported.GenesisAccount = (*EthAccount)(nil)
+var (
+	_ authtypes.AccountI       = (*EthAccount)(nil)
+	_ authtypes.GenesisAccount = (*EthAccount)(nil)
+)
+
+const (
+	// EthermintAccountName is the amino encoding name for EthAccount
+	EthermintAccountName = "ethermint/EthAccount"
+)
 
 // ----------------------------------------------------------------------------
 // Main Ethermint account
@@ -23,7 +29,7 @@ var _ exported.GenesisAccount = (*EthAccount)(nil)
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
-func ProtoAccount() exported.Account {
+func ProtoAccount() authtypes.AccountI {
 	return &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),

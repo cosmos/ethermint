@@ -3,13 +3,15 @@ package evm
 import (
 	"encoding/json"
 
+	"github.com/gogo/protobuf/grpc"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
@@ -50,20 +52,21 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, bz json.RawMessag
 	return genesisState.Validate()
 }
 
-// RegisterRESTRoutes Registers rest routes
-func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	//rpc.RegisterRoutes(ctx, rtr, StoreKey)
+// RegisterRESTRoutes registers the REST routes for the evm module.
+func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {}
+
+// GetTxCmd returns the root tx command for the ibc module.
+func (AppModuleBasic) GetTxCmd(clientCtx client.Context) *cobra.Command {
+	return cli.GetTxCmd(clientCtx.Codec)
 }
 
 // GetQueryCmd Gets the root query command of this module
-func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetQueryCmd(types.ModuleName, cdc)
+func (AppModuleBasic) GetQueryCmd(clientCtx client.Context) *cobra.Command {
+	return cli.GetQueryCmd(clientCtx.Codec)
 }
 
-// GetTxCmd Gets the root tx command of this module
-func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(types.ModuleName, cdc)
-}
+// RegisterInterfaceTypes registers module concrete types into protobuf Any.
+func (AppModuleBasic) RegisterInterfaceTypes(registry cdctypes.InterfaceRegistry) {}
 
 //____________________________________________________________________________
 
@@ -91,14 +94,9 @@ func (AppModule) Name() string {
 // RegisterInvariants interface for registering invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
-// Route specifies path for transactions
-func (am AppModule) Route() string {
-	return types.RouterKey
-}
-
-// NewHandler sets up a new handler for module
-func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper)
+// Route returns the sdk.Route for the evm module.
+func (am AppModule) Route() *sdk.Route {
+	return sdk.NewRoute(RouterKey, NewHandler(am.keeper))
 }
 
 // QuerierRoute sets up path for queries
@@ -110,6 +108,9 @@ func (am AppModule) QuerierRoute() string {
 func (am AppModule) NewQuerierHandler() sdk.Querier {
 	return keeper.NewQuerier(am.keeper)
 }
+
+// RegisterQueryService registers the gRPC query service for the evm module
+func (am AppModule) RegisterQueryService(grpc.Server) {}
 
 // BeginBlock function for module at start of each block
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {

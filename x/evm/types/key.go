@@ -16,6 +16,9 @@ const (
 
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
+
+	// QuerierRoute is the querier route for the evm module
+	QuerierRoute = ModuleName
 )
 
 // KVStore key prefixes

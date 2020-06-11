@@ -9,7 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
@@ -19,6 +19,7 @@ type Keeper struct {
 	cdc           *codec.Codec
 	storeKey      sdk.StoreKey
 	accountKeeper types.AccountKeeper
+	bankKeeper    types.BankKeeper
 
 	// History of users and their funding timeouts. They are reset if the app is reinitialized.
 	timeouts map[string]time.Time
@@ -27,11 +28,13 @@ type Keeper struct {
 // NewKeeper creates a new faucet Keeper instance.
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, accountKeeper types.AccountKeeper,
+	bankKeeper types.BankKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: accountKeeper,
+		bankKeeper:    bankKeeper,
 		timeouts:      make(map[string]time.Time),
 	}
 }
@@ -42,7 +45,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // GetFaucetAccount returns the faucet ModuleAccount
-func (k Keeper) GetFaucetAccount(ctx sdk.Context) supplyexported.ModuleAccountI {
+func (k Keeper) GetFaucetAccount(ctx sdk.Context) authtypes.ModuleAccountI {
 	return k.accountKeeper.GetModuleAccount(ctx, types.ModuleName)
 }
 
@@ -79,11 +82,11 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 		return fmt.Errorf("maximum cap of %s reached. Cannot continue funding", cap)
 	}
 
-	if err := k.accountKeeper.MintCoins(ctx, types.ModuleName, amount); err != nil {
+	if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, amount); err != nil {
 		return err
 	}
 
-	if err := k.accountKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, amount); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, amount); err != nil {
 		return err
 	}
 

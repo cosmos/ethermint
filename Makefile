@@ -213,7 +213,6 @@ COSMOS_PROTO_TYPES  = third_party/proto/cosmos-proto
 SDK_PROTO_TYPES     = third_party/proto/cosmos-sdk/types
 AUTH_PROTO_TYPES    = third_party/proto/cosmos-sdk/x/auth/types
 VESTING_PROTO_TYPES = third_party/proto/cosmos-sdk/x/auth/vesting/types
-SUPPLY_PROTO_TYPES  = third_party/proto/cosmos-sdk/x/supply/types
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
@@ -244,12 +243,6 @@ proto-update-deps:
 	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
 	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
 	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
-
-	@mkdir -p $(SUPPLY_PROTO_TYPES)
-	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
-
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
 

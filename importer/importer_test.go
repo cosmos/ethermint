@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
-	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec"
+	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,7 +24,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
@@ -67,16 +68,14 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *sdkcodec.Codec {
-	cdc := sdkcodec.New()
+func newTestCodec() *codec.Codec {
+	cdc := codec.New()
 
 	evmtypes.RegisterCodec(cdc)
-	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	emintcrypto.RegisterCodec(cdc)
-	sdkcodec.RegisterCrypto(cdc)
 
 	return cdc
 }
@@ -173,7 +172,8 @@ func TestImportBlocks(t *testing.T) {
 	trapSignals()
 
 	cdc := newTestCodec()
-	appCodec := codec.NewAppCodec(cdc)
+	interfaceRegistry := cdctypes.NewInterfaceRegistry()
+	appCodec := std.NewAppCodec(cdc, interfaceRegistry)
 
 	cms := store.NewCommitMultiStore(db)
 

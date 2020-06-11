@@ -63,6 +63,10 @@ func NewMsgEthermint(
 	}
 }
 
+// dummy implementation of proto.Message
+func (msg MsgEthermint) Reset()        {}
+func (msg MsgEthermint) ProtoMessage() {}
+
 func (msg MsgEthermint) String() string {
 	return fmt.Sprintf("nonce=%d gasPrice=%d gasLimit=%d recipient=%s amount=%d data=0x%x from=%s",
 		msg.AccountNonce, msg.Price, msg.GasLimit, msg.Recipient, msg.Amount, msg.Payload, msg.From)
@@ -170,6 +174,10 @@ func newMsgEthereumTx(
 
 	return MsgEthereumTx{Data: txData}
 }
+
+// dummy implementation of proto.Message
+func (msg MsgEthereumTx) Reset()        {}
+func (msg MsgEthereumTx) ProtoMessage() {}
 
 func (msg MsgEthereumTx) String() string {
 	return msg.Data.String()

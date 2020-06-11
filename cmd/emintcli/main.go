@@ -27,10 +27,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
+
+	gethrpc "github.com/ethereum/go-ethereum/rpc"
 )
 
 const flagUnlockKey = "unlock-key"
@@ -38,6 +42,10 @@ const flagUnlockKey = "unlock-key"
 var (
 	appCodec, cdc = app.MakeCodecs()
 )
+
+func init() {
+	authclient.Codec = appCodec
+}
 
 func main() {
 	// Configure cobra to sort commands
@@ -179,7 +187,7 @@ func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 // registerRoutes creates a new server and registers the `/rpc` endpoint.
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func registerRoutes(rs *lcd.RestServer) {
-	s := rpc.NewServer()
+	s := gethrpc.NewServer()
 	accountName := viper.GetString(flagUnlockKey)
 
 	var emintKey emintcrypto.PrivKeySecp256k1
@@ -201,13 +209,13 @@ func registerRoutes(rs *lcd.RestServer) {
 			}
 		}
 
-		emintKey, err = unlockKeyFromNameAndPassphrase(accountName, passphrase)
+		emintKey, err = rpc.UnlockKeyFromNameAndPassphrase(accountName, passphrase)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	apis := GetRPCAPIs(rs.ClientCtx, emintKey)
+	apis := rpc.GetRPCAPIs(rs.ClientCtx, emintKey)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -225,7 +233,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	rs.Mux.HandleFunc("/", s.ServeHTTP).Methods("POST", "OPTIONS")
 
 	// Register all other Cosmos routes
-	client.RegisterRoutes(rs.ClientCtx, rs.Mux)
+	clientrpc.RegisterRoutes(rs.ClientCtx, rs.Mux)
 	authrest.RegisterTxRoutes(rs.ClientCtx, rs.Mux)
 	app.ModuleBasics.RegisterRESTRoutes(rs.ClientCtx, rs.Mux)
 }

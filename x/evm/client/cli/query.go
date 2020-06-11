@@ -14,7 +14,7 @@ import (
 )
 
 // GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	evmQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the evm module",
@@ -23,8 +23,8 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	evmQueryCmd.AddCommand(flags.GetCommands(
-		GetCmdGetStorageAt(moduleName, cdc),
-		GetCmdGetCode(moduleName, cdc),
+		GetCmdGetStorageAt(types.QuerierRoute, cdc),
+		GetCmdGetCode(types.QuerierRoute, cdc),
 	)...)
 	return evmQueryCmd
 }

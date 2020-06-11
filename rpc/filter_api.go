@@ -3,8 +3,7 @@ package rpc
 import (
 	"errors"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-
+	"github.com/cosmos/cosmos-sdk/client"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -12,13 +11,13 @@ import (
 
 // PublicFilterAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicFilterAPI struct {
-	clientCtx context.CLIContext
+	clientCtx client.Context
 	backend   Backend
 	filters   map[rpc.ID]*Filter // ID to filter; TODO: change to sync.Map in case of concurrent writes
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicFilterAPI(clientCtx context.CLIContext, backend Backend) *PublicFilterAPI {
+func NewPublicFilterAPI(clientCtx client.Context, backend Backend) *PublicFilterAPI {
 	return &PublicFilterAPI{
 		clientCtx: clientCtx,
 		backend:   backend,

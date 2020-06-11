@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 )
@@ -15,7 +15,7 @@ type PublicNetAPI struct {
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicNetAPI(clientCtx context.CLIContext) *PublicNetAPI {
+func NewPublicNetAPI(clientCtx client.Context) *PublicNetAPI {
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a integer string
 	intChainID, err := strconv.ParseUint(chainID, 0, 64)

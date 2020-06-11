@@ -3,19 +3,20 @@ package rpc
 import (
 	"context"
 
-	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
-	clientCtx sdkcontext.CLIContext
+	clientCtx client.Context
 	nonceLock *AddrLocker
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPersonalEthAPI(clientCtx sdkcontext.CLIContext, nonceLock *AddrLocker) *PersonalEthAPI {
+func NewPersonalEthAPI(clientCtx client.Context, nonceLock *AddrLocker) *PersonalEthAPI {
 	return &PersonalEthAPI{
 		clientCtx: clientCtx,
 		nonceLock: nonceLock,

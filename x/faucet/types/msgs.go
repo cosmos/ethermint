@@ -21,6 +21,11 @@ func NewMsgFund(amount sdk.Coins, sender, recipient sdk.AccAddress) MsgFund {
 	}
 }
 
+// dummy implementation of proto.Message
+func (msg MsgFund) Reset()         {}
+func (msg MsgFund) ProtoMessage()  {}
+func (msg MsgFund) String() string { return "" }
+
 // Route should return the name of the module
 func (msg MsgFund) Route() string { return RouterKey }
 
