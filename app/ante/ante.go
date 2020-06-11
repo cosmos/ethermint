@@ -25,7 +25,7 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
@@ -40,7 +40,7 @@ func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper
 				authante.NewConsumeGasForTxSizeDecorator(ak),
 				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
 				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
+				authante.NewDeductFeeDecorator(ak, bk),
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
 				// TODO: remove once SDK is updated to v0.39.
@@ -55,7 +55,7 @@ func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak, bk),
 				NewNonceVerificationDecorator(ak),
-				NewEthGasConsumeDecorator(ak, sk),
+				NewEthGasConsumeDecorator(ak, bk),
 				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
 		default:

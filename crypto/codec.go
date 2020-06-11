@@ -21,7 +21,7 @@ func init() {
 	// amino panics because of unregistered Priv/PubKey
 	keyring.CryptoCdc = CryptoCodec
 	keyring.RegisterCodec(CryptoCodec)
-	cryptoamino.RegisterAmino(CryptoCodec)
+	cryptoamino.RegisterAmino(CryptoCodec.Amino)
 	RegisterCodec(CryptoCodec)
 }
 

@@ -27,7 +27,7 @@ func NewDefaultGenesisState() simapp.GenesisState {
 // file.
 func (app *EthermintApp) ExportAppStateAndValidators(
 	forZeroHeight bool, jailWhiteList []string,
-) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
+) (appState json.RawMessage, validators []tmtypes.GenesisValidator, cp *abci.ConsensusParams, err error) {
 
 	// Creates context with current height and checks txs for ctx to be usable by start of next block
 	ctx := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
@@ -40,12 +40,12 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 	genState := app.mm.ExportGenesis(ctx, app.cdc)
 	appState, err = codec.MarshalJSONIndent(app.cdc, genState)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Write validators to staking module to be used by TM node
 	validators = staking.WriteValidators(ctx, app.StakingKeeper)
-	return appState, validators, nil
+	return appState, validators, app.BaseApp.GetConsensusParams(ctx), nil
 }
 
 // prepare for fresh start at zero height

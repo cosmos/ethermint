@@ -3,7 +3,7 @@
 package rpc
 
 import (
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -14,9 +14,9 @@ const PersonalNamespace = "personal"
 const NetNamespace = "net"
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
+func GetRPCAPIs(clientCtx client.Context, key emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(cliCtx)
+	backend := NewEthermintBackend(clientCtx)
 	return []rpc.API{
 		{
 			Namespace: Web3Namespace,
@@ -27,25 +27,25 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 		{
 			Namespace: EthNamespace,
 			Version:   "1.0",
-			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, key),
+			Service:   NewPublicEthAPI(clientCtx, backend, nonceLock, key),
 			Public:    true,
 		},
 		{
 			Namespace: PersonalNamespace,
 			Version:   "1.0",
-			Service:   NewPersonalEthAPI(cliCtx, nonceLock),
+			Service:   NewPersonalEthAPI(clientCtx, nonceLock),
 			Public:    false,
 		},
 		{
 			Namespace: EthNamespace,
 			Version:   "1.0",
-			Service:   NewPublicFilterAPI(cliCtx, backend),
+			Service:   NewPublicFilterAPI(clientCtx, backend),
 			Public:    true,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   "1.0",
-			Service:   NewPublicNetAPI(cliCtx),
+			Service:   NewPublicNetAPI(clientCtx),
 			Public:    true,
 		},
 	}

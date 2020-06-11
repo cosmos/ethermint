@@ -12,17 +12,17 @@ import (
 
 // PublicFilterAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicFilterAPI struct {
-	cliCtx  context.CLIContext
-	backend Backend
-	filters map[rpc.ID]*Filter // ID to filter; TODO: change to sync.Map in case of concurrent writes
+	clientCtx context.CLIContext
+	backend   Backend
+	filters   map[rpc.ID]*Filter // ID to filter; TODO: change to sync.Map in case of concurrent writes
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicFilterAPI(cliCtx context.CLIContext, backend Backend) *PublicFilterAPI {
+func NewPublicFilterAPI(clientCtx context.CLIContext, backend Backend) *PublicFilterAPI {
 	return &PublicFilterAPI{
-		cliCtx:  cliCtx,
-		backend: backend,
-		filters: make(map[rpc.ID]*Filter),
+		clientCtx: clientCtx,
+		backend:   backend,
+		filters:   make(map[rpc.ID]*Filter),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -23,7 +24,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -39,10 +39,7 @@ const flagInvCheckPeriod = "inv-check-period"
 var invCheckPeriod uint
 
 func main() {
-	cobra.EnableCommandSorting = false
-
-	cdc := codec.MakeCodec(app.ModuleBasics)
-	appCodec := codec.NewAppCodec(cdc)
+	appCodec, cdc := app.MakeCodecs()
 
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
@@ -59,7 +56,7 @@ func main() {
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
-
+	cobra.EnableCommandSorting = false
 	rootCmd := &cobra.Command{
 		Use:               "emintd",
 		Short:             "Ethermint App Daemon (server)",
@@ -68,16 +65,17 @@ func main() {
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
 		withChainIDValidation(genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome)),
+		genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, bank.GenesisBalancesIterator{}, app.DefaultNodeHome),
+		genutilcli.MigrateGenesisCmd(ctx, cdc),
 		genutilcli.GenTxCmd(
-			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, bank.GenesisBalancesIterator{},
-			app.DefaultNodeHome, app.DefaultCLIHome,
+			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{},
+			bank.GenesisBalancesIterator{}, app.DefaultNodeHome, app.DefaultCLIHome,
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
-
-		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, appCodec, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
+		debug.Cmd(cdc),
 	)
 
 	// Tendermint node base commands
@@ -94,26 +92,35 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return app.NewEthermintApp(logger, db, traceStore, true, 0,
-		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))))
+	var cache sdk.MultiStorePersistentCache
+
+	if viper.GetBool(server.FlagInterBlockCache) {
+		cache = store.NewCommitKVStoreCacheManager()
+	}
+
+	return app.NewEthermintApp(logger, db, traceStore, true, invCheckPeriod,
+		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
+		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
+		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)),
+		baseapp.SetHaltTime(viper.GetUint64(server.FlagHaltTime)),
+		baseapp.SetInterBlockCache(cache),
+	)
 }
 
 func exportAppStateAndTMValidators(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
-) (json.RawMessage, []tmtypes.GenesisValidator, error) {
-
+) (json.RawMessage, []tmtypes.GenesisValidator, *abci.ConsensusParams, error) {
+	var ethermintApp *app.EthermintApp
 	if height != -1 {
-		emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-		err := emintApp.LoadHeight(height)
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, false, uint(1))
+		err := ethermintApp.LoadHeight(height)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	} else {
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, true, uint(1))
 	}
-
-	emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-
-	return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
 
 // Wraps cobra command with a RunE function with integer chain-id verification

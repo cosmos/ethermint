@@ -21,6 +21,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
+	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
@@ -184,7 +185,7 @@ func TestImportBlocks(t *testing.T) {
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
-	ak := auth.NewAccountKeeper(appCodec, accKey, authSubspace, types.ProtoAccount)
+	ak := auth.NewAccountKeeper(appCodec, accKey, authSubspace, types.ProtoAccount, app.GetMaccPerms())
 	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
 	// mount stores

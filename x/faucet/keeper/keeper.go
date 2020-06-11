@@ -16,9 +16,9 @@ import (
 
 // Keeper defines the faucet Keeper.
 type Keeper struct {
-	cdc          *codec.Codec
-	storeKey     sdk.StoreKey
-	supplyKeeper types.SupplyKeeper
+	cdc           *codec.Codec
+	storeKey      sdk.StoreKey
+	accountKeeper types.AccountKeeper
 
 	// History of users and their funding timeouts. They are reset if the app is reinitialized.
 	timeouts map[string]time.Time
@@ -26,13 +26,13 @@ type Keeper struct {
 
 // NewKeeper creates a new faucet Keeper instance.
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, accountKeeper types.AccountKeeper,
 ) Keeper {
 	return Keeper{
-		cdc:          cdc,
-		storeKey:     storeKey,
-		supplyKeeper: supplyKeeper,
-		timeouts:     make(map[string]time.Time),
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: accountKeeper,
+		timeouts:      make(map[string]time.Time),
 	}
 }
 
@@ -43,7 +43,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 // GetFaucetAccount returns the faucet ModuleAccount
 func (k Keeper) GetFaucetAccount(ctx sdk.Context) supplyexported.ModuleAccountI {
-	return k.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
+	return k.accountKeeper.GetModuleAccount(ctx, types.ModuleName)
 }
 
 // Fund checks for timeout and max thresholds and then mints coins and transfers
@@ -79,11 +79,11 @@ func (k Keeper) Fund(ctx sdk.Context, amount sdk.Coins, recipient sdk.AccAddress
 		return fmt.Errorf("maximum cap of %s reached. Cannot continue funding", cap)
 	}
 
-	if err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, amount); err != nil {
+	if err := k.accountKeeper.MintCoins(ctx, types.ModuleName, amount); err != nil {
 		return err
 	}
 
-	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, amount); err != nil {
+	if err := k.accountKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, amount); err != nil {
 		return err
 	}
 

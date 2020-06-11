@@ -8,20 +8,20 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 
-	"github.com/cosmos/ethermint/codec"
 	ethermintcrypto "github.com/cosmos/ethermint/crypto"
 	ethermint "github.com/cosmos/ethermint/types"
 
@@ -37,7 +37,7 @@ const (
 
 // AddGenesisAccountCmd returns add-genesis-account cobra Command.
 func AddGenesisAccountCmd(
-	ctx *server.Context, depCdc *amino.Codec, cdc *codec.Codec, defaultNodeHome, defaultClientHome string,
+	ctx *server.Context, depCdc *codec.Codec, cdc *std.Codec, defaultNodeHome, defaultClientHome string,
 ) *cobra.Command {
 
 	cmd := &cobra.Command{
@@ -45,19 +45,19 @@ func AddGenesisAccountCmd(
 		Short: "Add a genesis account to genesis.json",
 		Long: `Add a genesis account to genesis.json. The provided account must specify
 the account address or key name and a list of initial coins. If a key name is given,
-the address will be looked up in the local Keyring. The list of initial tokens must
+the address will be looked up in the local Keybase. The list of initial tokens must
 contain valid denominations. Accounts may optionally be supplied with vesting parameters.
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(cli.HomeFlag))
-			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			addr, err := sdk.AccAddressFromBech32(args[0])
+			inBuf := bufio.NewReader(cmd.InOrStdin())
 			if err != nil {
-				// attempt to lookup address from keyring if no address was provided
-				keystore, err := keyring.New(
+				// attempt to lookup address from Keybase if no address was provided
+				kb, err := keyring.New(
 					sdk.KeyringServiceName(),
 					viper.GetString(flags.FlagKeyringBackend),
 					viper.GetString(flagClientHome),
@@ -68,9 +68,9 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					return err
 				}
 
-				info, err := keystore.Key(args[0])
+				info, err := kb.Key(args[0])
 				if err != nil {
-					return fmt.Errorf("failed to get address from Keyring: %w", err)
+					return fmt.Errorf("failed to get address from Keybase: %w", err)
 				}
 
 				addr = info.GetAddress()
@@ -89,7 +89,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			}
 
 			// create concrete account type based on input parameters
-			var genAccount authexported.GenesisAccount
+			var genAccount authtypes.GenesisAccount
 
 			balances := bank.Balance{Address: addr, Coins: coins.Sort()}
 			baseAccount := auth.NewBaseAccount(addr, nil, 0, 0)

@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -41,7 +40,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := client.NewContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 
 			amount, err := sdk.ParseCoins(args[0])
@@ -51,7 +50,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 
 			var recipient sdk.AccAddress
 			if len(args) == 1 {
-				recipient = cliCtx.GetFromAddress()
+				recipient = clientCtx.GetFromAddress()
 			} else {
 				recipient, err = sdk.AccAddressFromBech32(args[1])
 			}
@@ -60,12 +59,12 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgFund(amount, cliCtx.GetFromAddress(), recipient)
+			msg := types.NewMsgFund(amount, clientCtx.GetFromAddress(), recipient)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }

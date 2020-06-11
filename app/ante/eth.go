@@ -250,11 +250,11 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 // gas consumption.
 type EthGasConsumeDecorator struct {
 	ak auth.AccountKeeper
-	sk types.SupplyKeeper
+	sk types.BankKeeper
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
-func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) EthGasConsumeDecorator {
+func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.BankKeeper) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
 		ak: ak,
 		sk: sk,
