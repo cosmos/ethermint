@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -217,9 +218,10 @@ func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, 
 		Storage: storage,
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	bz, err := json.MarshalIndent(res, "", "\t")
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
+
 	return bz, nil
 }

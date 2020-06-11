@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -274,14 +273,7 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 		return "", err
 	}
 
-	var out types.QueryResExportAccount
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	jout, err := json.MarshalIndent(out, "", "\t")
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s", jout), nil
+	return string(res), nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
