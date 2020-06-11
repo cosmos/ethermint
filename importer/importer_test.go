@@ -24,6 +24,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/app"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
@@ -173,6 +174,7 @@ func TestImportBlocks(t *testing.T) {
 
 	cdc := newTestCodec()
 	interfaceRegistry := cdctypes.NewInterfaceRegistry()
+	ethermintcodec.RegisterInterfaces(interfaceRegistry)
 	appCodec := std.NewAppCodec(cdc, interfaceRegistry)
 
 	cms := store.NewCommitMultiStore(db)
