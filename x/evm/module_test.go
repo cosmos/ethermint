@@ -15,7 +15,7 @@ var testJSON = `{
           "balance": 34
         },
         {
-          "address": "0xc52d3229a8241e5a20938daf45b6ffafe547f1ad",
+          "address": "0x2cc7fdf9fde6746731d7f11979609d455c2c197a",
           "balance": 0,
           "code": "0x60806040"
         }
@@ -27,7 +27,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 	in := json.RawMessage([]byte(testJSON))
 	_ = am.InitGenesis(suite.ctx, suite.codec, in)
 
-	testAddr := common.HexToAddress("0xc52d3229a8241e5a20938daf45b6ffafe547f1ad")
+	testAddr := common.HexToAddress("0x2cc7fdf9fde6746731d7f11979609d455c2c197a")
 
 	res := suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx).GetCode(testAddr)
 	expectedCode := common.FromHex("0x60806040")

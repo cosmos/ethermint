@@ -125,7 +125,6 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState GenesisState
 	cdc.MustUnmarshalJSON(data, &genesisState)
-	//genesisState = initAragonGenesis(cdc, genesisState)
 	return InitGenesis(ctx, am.keeper, genesisState)
 }
 
