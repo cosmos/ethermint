@@ -33,10 +33,6 @@ emintd gentx --name $KEY --keyring-backend test
 emintd collect-gentxs
 
 # Add genesis accounts to genesis file
-# accounts=$(cat evm_genesis.json)
-#echo $accounts
-# cat $HOME/.emintd/config/genesis.json | jq --arg a "\"$accounts\"" '.app_state["evm"]["accounts"]=[$a]' > $HOME/.emintd/config/tmp_genesis.json && mv $HOME/.emintd/config/tmp_genesis.json $HOME/.emintd/config/genesis.json
-# cat $HOME/.emintd/config/genesis.json
 cp ./aragon_genesis.json $HOME/.emintd/config/genesis.json
 
 # Enable faucet
