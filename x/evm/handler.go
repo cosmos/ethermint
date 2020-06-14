@@ -1,7 +1,6 @@
 package evm
 
 import (
-	//"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -70,8 +69,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	if err != nil {
 		return nil, err
 	}
-
-	//fmt.Println(msg)
 
 	// update block bloom filter
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
