@@ -204,7 +204,7 @@ func (suite *EvmTestSuite) TestAragonExportImport() {
 			suite.T().Logf("%s return: 0x%x", test.name, returnData[test.name])
 		}
 
-		nonce += 1
+		nonce++
 	}
 
 	_, err = suite.app.EvmKeeper.CommitStateDB.Commit(true)
