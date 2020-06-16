@@ -1,6 +1,7 @@
 package evm_test
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"testing"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -295,9 +297,12 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
+	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
+
+	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
 
 	// send simple value transfer with gasLimit=21000
-	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(0), gasLimit, gasPrice, nil)
+	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(1), gasLimit, gasPrice, nil)
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
