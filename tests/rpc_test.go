@@ -634,10 +634,10 @@ func TestBlockBloom(t *testing.T) {
 }
 
 func TestBlockBloom_Hash(t *testing.T) {
-	t.Skip()
-	// TODO: get this to work
 	hash := deployTestContractWithFunction(t)
 	receipt := waitForReceipt(t, hash)
+
+	time.Sleep(time.Second * 3)
 
 	blockHash := receipt["blockHash"].(string)
 
