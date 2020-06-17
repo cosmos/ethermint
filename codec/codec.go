@@ -16,12 +16,13 @@ import (
 // the full application.
 func MakeCodecs(bm module.BasicManager) (*std.Codec, *codec.Codec) {
 	cdc := std.MakeCodec(bm)
-	emintcrypto.RegisterCodec(cdc)
-	keyring.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 	interfaceRegistry := cdctypes.NewInterfaceRegistry()
 	RegisterInterfaces(interfaceRegistry)
 	bm.RegisterInterfaceModules(interfaceRegistry)
 	appCodec := std.NewAppCodec(cdc, interfaceRegistry)
+	ethermint.RegisterCodec(cdc)
+	emintcrypto.RegisterCodec(cdc)
+	keyring.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 	return appCodec, cdc
 }
 

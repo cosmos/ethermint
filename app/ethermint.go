@@ -4,10 +4,11 @@ import (
 	"io"
 	"os"
 
-	bam "github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/testdata"
 	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -90,7 +91,7 @@ var _ simapp.App = (*EthermintApp)(nil)
 // that may process transactions through Ethereum's EVM running atop of
 // Tendermint consensus.
 type EthermintApp struct {
-	*bam.BaseApp
+	*baseapp.BaseApp
 	cdc *codec.Codec
 
 	invCheckPeriod uint
@@ -131,13 +132,13 @@ type EthermintApp struct {
 // For now, it will support only running as a sovereign application.
 func NewEthermintApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
+	invCheckPeriod uint, baseAppOptions ...func(*baseapp.BaseApp),
 ) *EthermintApp {
 
 	appCodec, cdc := ethermintcodec.MakeCodecs(ModuleBasics)
 
 	// use custom Ethermint transaction decoder
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+	bApp := baseapp.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 
@@ -169,6 +170,9 @@ func NewEthermintApp(
 	app.subspaces[slashing.ModuleName] = app.ParamsKeeper.Subspace(slashing.DefaultParamspace)
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace).WithKeyTable(gov.ParamKeyTable())
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
+
+	// set the BaseApp's parameter store
+	bApp.SetParamStore(app.ParamsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(std.ConsensusParamsKeyTable()))
 
 	// use custom Ethermint account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(

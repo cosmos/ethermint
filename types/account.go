@@ -18,11 +18,6 @@ var (
 	_ authtypes.GenesisAccount = (*EthAccount)(nil)
 )
 
-const (
-	// EthermintAccountName is the amino encoding name for EthAccount
-	EthermintAccountName = "ethermint/EthAccount"
-)
-
 // ----------------------------------------------------------------------------
 // Main Ethermint account
 // ----------------------------------------------------------------------------
