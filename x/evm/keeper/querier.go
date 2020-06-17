@@ -218,9 +218,9 @@ func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, 
 		Storage: storage,
 	}
 
-	bz, err := json.MarshalIndent(res, "", "\t")
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return bz, nil
