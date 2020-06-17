@@ -754,3 +754,13 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	require.Equal(t, hexutil.Bytes(bytecode), account.Code)
 	require.NotEqual(t, []types.GenesisStorage(nil), account.Storage)
 }
+
+func TestEth_GetBlockByNumber(t *testing.T) {
+	param := []interface{}{"0x1", false}
+	rpcRes := call(t, "eth_getBlockByNumber", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+	require.Equal(t, "0x0", block["extraData"].(string))
+}
