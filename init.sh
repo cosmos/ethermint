@@ -32,9 +32,12 @@ emintd gentx --name $KEY --keyring-backend test
 # Collect genesis tx
 emintd collect-gentxs
 
+# Add genesis accounts to genesis file
+cp ./aragon_genesis.json $HOME/.emintd/config/genesis.json
+
 # Enable faucet
 cat  $HOME/.emintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.emintd/config/tmp_genesis.json && mv $HOME/.emintd/config/tmp_genesis.json $HOME/.emintd/config/genesis.json
-
+ 
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
 echo -e "emintcli tx faucet request 100photon --from $KEY\n"

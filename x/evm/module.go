@@ -123,7 +123,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState types.GenesisState
+	var genesisState GenesisState
 	cdc.MustUnmarshalJSON(data, &genesisState)
 	return InitGenesis(ctx, am.keeper, genesisState)
 }
