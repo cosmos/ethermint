@@ -48,7 +48,7 @@ aside: false
 ## Reference
 
 - **[Basics](./basics/)**: Documentation on the basic concepts of Ethermint, like the standard anatomy of an application, the transaction lifecycle and accounts management.
-- **[Core](./core/)**: Documentation on the core concepts of Ethermint, like `baseapp`, the `store` or the `server`.
+- **[Core](./core/)**: Documentation on the core concepts of Ethermint, like `encoding`, and `events`.
 - **[Building Modules](./building-modules/)**: Important concepts for module developers like `message`s, `keeper`s, `handler`s and `querier`s.
 - **[Interfaces](./interfaces/)**: Documentation on building interfaces for Ethermint applications.
 
@@ -56,7 +56,6 @@ aside: false
 
 - **[Module Directory](../x/)**: Module implementations and their respective documentation.
 - **[Ethermint API Reference](https://godoc.org/github.com/cosmos/ethermint)**: Godocs of Ethermint.
-- **[REST API spec](https://cosmos.network/rpc/)**: List of REST endpoints to interact with an full-node through REST.
 - **[REST API spec](https://cosmos.network/rpc/)**: List of REST endpoints to interact with an full-node through REST.
 
 ## Contribute
