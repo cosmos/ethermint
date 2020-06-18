@@ -90,9 +90,19 @@ func (e *PublicEthAPI) Syncing() (interface{}, error) {
 	}, nil
 }
 
-// Coinbase returns this node's coinbase address. Not used in Ethermint.
-func (e *PublicEthAPI) Coinbase() (addr common.Address) {
-	return
+// Coinbase is the address that staking rewards will be send to (alias for Etherbase).
+func (e *PublicEthAPI) Coinbase() (common.Address, error) {
+	node, err := e.cliCtx.GetNode()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	status, err := node.Status()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(status.ValidatorInfo.Address.Bytes()), nil
 }
 
 // Mining returns whether or not this node is currently mining. Always false.
@@ -252,6 +262,19 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 // GetTransactionLogs returns the logs given a transaction hash.
 func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	return e.backend.GetTransactionLogs(txHash)
+}
+
+// ExportAccount exports an account's balance, code, and storage at the given block number
+// TODO: deprecate this once the export genesis command works
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryExportAccount, address.Hex()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res), nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
@@ -477,7 +500,7 @@ func (e *PublicEthAPI) doCall(
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
-func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
+func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
 	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
@@ -486,7 +509,8 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
 	gas := estimatedGas + 1000
-	return gas, nil
+
+	return hexutil.Uint64(gas), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -515,7 +539,7 @@ func formatBlock(
 		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
-		"extraData":        nil,
+		"extraData":        hexutil.Uint64(0),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
@@ -910,10 +934,11 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 			Value:    args.Value,
 			Data:     args.Data,
 		}
-		gasLimit, err = e.EstimateGas(callArgs)
+		gl, err := e.EstimateGas(callArgs)
 		if err != nil {
 			return nil, err
 		}
+		gasLimit = uint64(gl)
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}

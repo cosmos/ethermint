@@ -9,8 +9,6 @@ import (
 const (
 	ModuleName           = types.ModuleName
 	StoreKey             = types.StoreKey
-	CodeKey              = types.StoreKey
-	BlockKey             = types.BlockKey
 	RouterKey            = types.RouterKey
 	QueryProtocolVersion = types.QueryProtocolVersion
 	QueryBalance         = types.QueryBalance
@@ -20,9 +18,10 @@ const (
 	QueryNonce           = types.QueryNonce
 	QueryHashToHeight    = types.QueryHashToHeight
 	QueryTransactionLogs = types.QueryTransactionLogs
-	QueryLogsBloom       = types.QueryLogsBloom
+	QueryBloom           = types.QueryBloom
 	QueryLogs            = types.QueryLogs
 	QueryAccount         = types.QueryAccount
+	QueryExportAccount   = types.QueryExportAccount
 )
 
 // nolint

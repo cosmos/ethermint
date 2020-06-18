@@ -47,13 +47,15 @@ func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
 
 // BlockNumber returns the current block number.
 func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
+	res, height, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", types.ModuleName), nil)
 	if err != nil {
 		return hexutil.Uint64(0), err
 	}
 
 	var out types.QueryResBlockNumber
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	e.cliCtx.WithHeight(height)
 	return hexutil.Uint64(out.Number), nil
 }
 
@@ -118,7 +120,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 		}
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryLogsBloom, strconv.FormatInt(block.Block.Height, 10)))
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryBloom, strconv.FormatInt(block.Block.Height, 10)))
 	if err != nil {
 		return nil, err
 	}
