@@ -4,6 +4,8 @@ order: 2
 
 # Architecture
 
+Learn how Ethermint's architecture leverages the Cosmos SDK Proof-of-Stake functionallity, EVM compatibility and fast-finality from Tendermint Core's BFT consensus. {synopsis}
+
 ## Cosmos-SDK
 
 <!-- TODO: -->
@@ -26,3 +28,11 @@ replacing Ethereum's PoW via Tendermint's consensus engine.
 Another example of a cryptocurrency application built on Tendermint is the Cosmos
 network. Tendermint is able to decompose the blockchain design by offering a very
 simple API (ie. the ABCI) between the application process and consensus process.
+
+## EVM module
+
+<!-- TODO: -->
+
+## Next {hide}
+
+Learn about Ethermint [accounts](./../accounts.md) {hide}

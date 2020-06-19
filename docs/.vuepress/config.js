@@ -1,6 +1,6 @@
 module.exports = {
   theme: 'cosmos',
-  title: 'Ethermint',
+  title: 'Ethermint Documentation',
   head: [
     [
       'link',
@@ -22,7 +22,9 @@ module.exports = {
     docsRepo: 'cosmos/ethermint',
     docsDir: 'docs',
     editLinks: true,
-    label: 'sdk',
+    label: 'ethermint',
+    custom: true,
+    autoSidebar: true,
     algolia: {
       id: 'BH4D9OD16A',
       key: 'ac317234e6a42074175369b2f42e9754',
@@ -30,7 +32,59 @@ module.exports = {
     },
     sidebar: [
       {
-        title: 'Using the SDK',
+        title: 'Introduction',
+        children: [
+          {
+            title: 'High-Level Overview',
+            path: '/intro/overview.html'
+          },
+          {
+            title: 'Architecture',
+            path: '/intro/architecture.html'
+          }
+        ]
+      },
+      {
+        title: 'Basics',
+        children: [
+          {
+            title: 'Accounts',
+            path: '/basics/accounts.html'
+          },
+          {
+            title: 'Transactions',
+            path: '/basics/transactions.html'
+          },
+          {
+            title: 'Gas',
+            path: '/basics/gas.html'
+          }
+        ]
+      },
+      {
+        title: 'Core Concepts',
+        children: [
+          {
+            title: 'Encoding',
+            path: '/core/encoding.html'
+          },
+          {
+            title: 'Events',
+            path: '/core/events.html'
+          },
+        ]
+      },
+      {
+        title: 'Guides',
+        children: [
+          {
+            title: 'Clients',
+            path: '/clients'
+          }
+        ]
+      },
+      {
+        title: 'Specifications',
         children: [
           {
             title: 'Modules',
@@ -52,7 +106,7 @@ module.exports = {
           },
           {
             title: 'Ethereum JSON RPC API Reference',
-            path: 'https://github.com/ethereum/wiki/wiki/JSON-RPC#json-rpc-api-reference'
+            path: 'https://eth.wiki/json-rpc/API'
           }
         ]
       }

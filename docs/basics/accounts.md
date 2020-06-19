@@ -1,5 +1,5 @@
 <!--
-order: 3
+order: 1
 -->
 
 # Accounts
@@ -22,4 +22,4 @@ This document describes the in-built accounts system of Ethermint. {synopsis}
 
 ## Next {hide}
 
-Learn about [gas](./gas.md) {hide}
+Learn about Ethermint [transactions](./transactions.md) {hide}

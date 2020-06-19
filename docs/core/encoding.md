@@ -10,7 +10,7 @@ The `codec` is used everywhere in the Cosmos SDK to encode and decode structs an
 
 - [Anatomy of an SDK application](../basics/app-anatomy.md) {prereq}
 
-## Encoding
+## Encoding Formats
 
 The Cosmos SDK utilizes two binary wire encoding protocols, [Amino](https://github.com/tendermint/go-amino/)
 and [Protocol Buffers](https://developers.google.com/protocol-buffers), where Amino

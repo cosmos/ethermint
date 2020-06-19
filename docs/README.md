@@ -1,14 +1,7 @@
 <!--
 layout: homepage
 title: Ethermint Documentation
-description: Ethermint is the world’s most popular framework for building application-specific blockchains.
-features:
-  - cta: Read
-    title: Introduction to Ethermint
-    desc: Learn about all the parts of Ethermint.
-    label: 5 min
-    url: /intro/overview.html
-    image: spaceship
+description: Ethermint is a scalable and interoperable Ethereum, built on Proof-of-Stake with fast-finality.
 sections:
   - title: Introduction
     desc: High-level overview of Ethermint.
@@ -24,11 +17,11 @@ stack:
     color: "#BA3FD9"
     label: sdk
     url: http://docs.cosmos.network
-  - title: Cosmos Hub
-    desc: The first of thousands of interconnected blockchains on the Cosmos Network.
-    color: "#BA3FD9"
-    label: hub
-    url: http://hub.cosmos.network
+  - title: Ethereum
+    desc: Ethereum is a global, open-source platform for decentralized applications.
+    color: "#1A1F36"
+    label: sdk
+    url: https://eth.wiki
   - title: Tendermint Core
     desc: The leading BFT engine for building blockchains, powering Ethermint.
     color: "#00BB00"

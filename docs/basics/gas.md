@@ -1,10 +1,10 @@
 <!--
-order: 4
+order: 3
 -->
 
 # Gas and Fees
 
-This document describes the default strategies to handle gas and fees within a Cosmos SDK application. {synopsis}
+Learn about the differences between `Gas` and `Fees` in Ethereum and Cosmos. {synopsis}
 
 ## Introduction to `Gas` in the SDK
 

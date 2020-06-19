@@ -31,3 +31,7 @@ Ethermint enables these key features through:
 The sum of these features allows developers to leverage existing Ethereum ecosystem
 tooling and software to seamlessly deploy smart contracts which interact with the rest of the Cosmos
 ecosystem!
+
+## Next {hide}
+
+Learn about Ethermint's [architecture](./architectures.md) {hide}

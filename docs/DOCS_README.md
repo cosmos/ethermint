@@ -84,26 +84,13 @@ Install the theme and all dependencies.
 npm run serve
 ```
 
-Run `pre` and `post` hooks and start a hot-reloading web-server. See output of this command for the URL (it is often https://localhost:8080).
+Run `pre` and `post` hooks and start a hot-reloading web-server. See output of this command for the URL (it is often [https://localhost:8080](https://localhost:8080)).
 
 To build documentation as a static website run `npm run build`. You will find the website in `.vuepress/dist` directory.
-
-## Build RPC Docs
-
-First, run `make tools` from the root of repo, to install the swagger-ui tool.
-
-Then, edit the `swagger.yaml` manually; it is found [here](https://github.com/cosmos/ethermint/blob/master/client/lcd/swagger-ui/swagger.yaml)
-
-Finally, run `make update_gaia_lite_docs` from the root of the repo.
 
 ## Search
 
 We are using [Algolia](https://www.algolia.com) to power full-text search. This uses a public API search-only key in the `config.js` as well as a [cosmos_network.json](https://github.com/algolia/docsearch-configs/blob/master/configs/cosmos_network.json) configuration file that we can update with PRs.
-
-## Consistency
-
-Because the build processes are identical (as is the information contained herein), this file should be kept in sync as
-much as possible with its [counterpart in the Cosmos SDK repo](https://github.com/cosmos/cosmos-sdk/blob/master/docs/DOCS_README.md).
 
 ### Update and Build the RPC docs
 
