@@ -1,5 +1,6 @@
 # Binaries for programs and plugins
 *.exe
+*.exe~
 *.dll
 *.so
 *.dylib
@@ -7,16 +8,21 @@
 # Test binary, build with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output of the go coverage tool
 *.out
 
-# Vendor deps
+# Exclude build files
 .glide/
-vendor/
-build/
+vendor
+build
+golangci-lint
 
-# Goland
+# IDE files
+*.vscode
 .idea/
 start.sh
 
-bin/
+# Documentation
+node_modules
+docs/node_modules
+docs/.vuepress/dist

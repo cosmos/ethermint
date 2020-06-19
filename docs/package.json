@@ -18,6 +18,6 @@
     "vuepress-theme-cosmos": "^1.0.166"
   },
   "devDependencies": {
-    "watchpack": "^1.6.1"
+    "watchpack": "^1.7.2"
   }
 }
