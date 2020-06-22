@@ -14,9 +14,11 @@
 .glide/
 vendor/
 build/
+docs/node_modules
 
 # Goland
 .idea/
 start.sh
+.vscode
 
 bin/

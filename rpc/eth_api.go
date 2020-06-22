@@ -266,7 +266,7 @@ func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, 
 
 // ExportAccount exports an account's balance, code, and storage at the given block number
 // TODO: deprecate this once the export genesis command works
-func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber rpc.BlockNumber) (string, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
 
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryExportAccount, address.Hex()), nil)
