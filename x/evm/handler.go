@@ -48,7 +48,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	}
 
 	fmt.Println("from balance before", k.GetBalance(ctx, sender))
-	fmt.Println("to balance before", k.GetBalance(ctx, *msg.Data.Recipient))
+	if msg.Data.Recipient != nil {
+		fmt.Println(msg.Data.Recipient)
+		bal := k.GetBalance(ctx, *msg.Data.Recipient)
+		fmt.Println("to balance before", bal)
+	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
@@ -114,7 +118,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	fmt.Println(executionResult.Result)
 
 	fmt.Println("from balance after", k.GetBalance(ctx, sender))
-	fmt.Println("to balance after", k.GetBalance(ctx, *msg.Data.Recipient))
+	if msg.Data.Recipient != nil {
+		fmt.Println("to balance after", k.GetBalance(ctx, *msg.Data.Recipient))
+	}
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()

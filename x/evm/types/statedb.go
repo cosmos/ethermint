@@ -238,7 +238,9 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 // GetBalance retrieves the balance from the given address or 0 if object not
 // found.
 func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
+	fmt.Println("csdb.GetBalance", addr.Hex())
 	so := csdb.getStateObject(addr)
+	fmt.Println(so)
 	if so != nil {
 		return so.Balance()
 	}
@@ -784,6 +786,7 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
+	fmt.Println("csdb.getStateObject", addr.Hex())
 	// prefer 'live' (cached) objects
 	if so := csdb.stateObjects[addr]; so != nil {
 		if so.deleted {
@@ -793,14 +796,19 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return so
 	}
 
+	fmt.Println("attempting to get account")
+
 	// otherwise, attempt to fetch the account from the account mapper
-	acc := csdb.accountKeeper.GetAccount(csdb.ctx, addr.Bytes())
+	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 	if acc == nil {
-		csdb.setError(fmt.Errorf("no account found for address: %X", addr.Bytes()))
+		csdb.setError(fmt.Errorf("no account found for address: %s", addr.String()))
+		fmt.Println("account not found")
 		return nil
 	}
 
+	fmt.Println("got account")
 	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), emint.DenomDefault)
+	fmt.Println("got balance", balance)
 
 	// insert the state object into the live set
 	so := newStateObject(csdb, acc, balance.Amount)
