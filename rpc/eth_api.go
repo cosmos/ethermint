@@ -45,11 +45,11 @@ import (
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
-	cliCtx       context.CLIContext
-	backend      Backend
-	key          emintcrypto.PrivKeySecp256k1
-	nonceLock    *AddrLocker
-	keystoreLock sync.Mutex
+	cliCtx      context.CLIContext
+	backend     Backend
+	key         emintcrypto.PrivKeySecp256k1
+	nonceLock   *AddrLocker
+	keybaseLock sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
@@ -123,11 +123,11 @@ func (e *PublicEthAPI) GasPrice() *hexutil.Big {
 
 // Accounts returns the list of accounts available to this node.
 func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
-	e.keystoreLock.Lock()
+	e.keybaseLock.Lock()
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	keystore, err := keyring.New(
+	keybase, err := keyring.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
@@ -137,12 +137,12 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		return addresses, err
 	}
 
-	infos, err := keystore.List()
+	infos, err := keybase.List()
 	if err != nil {
 		return addresses, err
 	}
 
-	e.keystoreLock.Unlock()
+	e.keybaseLock.Unlock()
 
 	for _, info := range infos {
 		addressBytes := info.GetPubKey().Address().Bytes()
@@ -262,6 +262,19 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber rpc.BlockNumb
 // GetTransactionLogs returns the logs given a transaction hash.
 func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	return e.backend.GetTransactionLogs(txHash)
+}
+
+// ExportAccount exports an account's balance, code, and storage at the given block number
+// TODO: deprecate this once the export genesis command works
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryExportAccount, address.Hex()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res), nil
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
@@ -526,13 +539,13 @@ func formatBlock(
 		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
-		"extraData":        nil,
+		"extraData":        hexutil.Uint64(0),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions.([]common.Hash),
-		"uncles":           nil,
+		"uncles":           []string{},
 	}
 }
 
