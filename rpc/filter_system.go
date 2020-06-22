@@ -64,7 +64,8 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 		lightMode: false,
 	}
 
-	go es.eventLoop()
+	// TODO: register on initialization
+	// go es.eventLoop()
 	return es
 }
 
@@ -248,21 +249,21 @@ func (es *EventSystem) eventLoop() {
 	// Subscribe events
 	es.txsSub, cancelPendingTxsSubs, err = es.SubscribePendingTxs()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to subscribe pending txs: %w", err))
 	}
 
 	defer cancelPendingTxsSubs()
 
 	es.logsSub, cancelLogsSubs, err = es.SubscribeLogs(filters.FilterCriteria{})
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to subscribe logs: %w", err))
 	}
 
 	defer cancelLogsSubs()
 
 	es.chainSub, cancelHeaderSubs, err = es.SubscribeNewHeads()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to subscribe headers: %w", err))
 	}
 
 	defer cancelHeaderSubs()
@@ -272,7 +273,7 @@ func (es *EventSystem) eventLoop() {
 		_ = es.txsSub.Unsubscribe(es)
 		_ = es.logsSub.Unsubscribe(es)
 		// _ = es.rmLogsSub.Unsubscribe(es)
-		_ = es.pendingLogsSub.Unsubscribe(es)
+		// _ = es.pendingLogsSub.Unsubscribe(es)
 		_ = es.chainSub.Unsubscribe(es)
 	}()
 

@@ -39,7 +39,7 @@ var deadline = 5 * time.Minute
 // and associated subscription in the event system.
 type filter struct {
 	typ      filters.Type
-	deadline *time.Timer // filter is inactiv when deadline triggers
+	deadline *time.Timer // filter is inactive when deadline triggers
 	hashes   []common.Hash
 	crit     filters.FilterCriteria
 	logs     []*types.Log
@@ -65,7 +65,13 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend FiltersBackend)
 		events:  NewEventSystem(cliCtx.Client),
 	}
 
-	// go api.timeoutLoop()
+	// start the client to subscribe to Tendermint events
+	err := api.cliCtx.Client.Start()
+	if err != nil {
+		panic(err)
+	}
+
+	go api.timeoutLoop()
 
 	return api
 }
@@ -97,12 +103,12 @@ func (api *PublicFilterAPI) timeoutLoop() {
 // It is part of the filter package because this filter can be used through the
 // `eth_getFilterChanges` polling method that is also used for log filters.
 //
-// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newpendingtransactionfilter
+// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
-		// return an empty id
-		return rpc.ID("")
+		// wrap error on the ID
+		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", err.Error()))
 	}
 
 	defer cancelSubs()
@@ -111,18 +117,21 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
 	api.filtersMu.Unlock()
 
-	// go func() {
-	// 	for {
-	// 		select {
-	// 		case ph := <-pendingTxs:
-	// 			api.filtersMu.Lock()
-	// 			if f, found := api.filters[pendingTxSub.ID()]; found {
-	// 				f.hashes = append(f.hashes, ph...)
-	// 			}
-	// 			api.filtersMu.Unlock()
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		for {
+			select {
+			case ev := <-api.events.txsCh:
+				data, _ := ev.Data.(tmtypes.EventDataTx)
+				txHash := common.BytesToHash(data.Tx.Hash())
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[pendingTxSub.ID()]; found {
+					f.hashes = append(f.hashes, txHash)
+				}
+				api.filtersMu.Unlock()
+			}
+		}
+	}()
 
 	return pendingTxSub.ID()
 }
@@ -141,37 +150,37 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 	api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
-	_, cancelSubs, err := api.events.SubscribeNewHeads()
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		return nil, err
 	}
 
 	defer cancelSubs()
 
-	// go func() {
-	// 	for {
-	// 		select {
-	// 		case hashes := <-pendingTxSub.eventChannel:
+	go func() {
+		for {
+			select {
+			case ev := <-api.events.txsCh:
+				data, _ := ev.Data.(tmtypes.EventDataTx)
+				txHash := common.BytesToHash(data.Tx.Hash())
 
-	// 			// To keep the original behaviour, send a single tx hash in one notification.
-	// 			// TODO(rjl493456442) Send a batch of tx hashes in one notification
-	// 			for _, h := range hashes {
-	// 				err = notifier.Notify(rpcSub.ID, h)
-	// 				if err != nil {
-	// 					return
-	// 				}
-	// 			}
-	// 		case <-rpcSub.Err():
-	// 			err = pendingTxSub.Unsubscribe(api.events)
-	// 			return
-	// 		case <-notifier.Closed():
-	// 			err = pendingTxSub.Unsubscribe(api.events)
-	// 			return
-	// 		}
-	// 	}
-	// }()
+				// To keep the original behaviour, send a single tx hash in one notification.
+				// TODO(rjl493456442) Send a batch of tx hashes in one notification
+				err = notifier.Notify(rpcSub.ID, txHash)
+				if err != nil {
+					return
+				}
+			case <-rpcSub.Err():
+				err = pendingTxSub.Unsubscribe(api.events)
+				return
+			case <-notifier.Closed():
+				err = pendingTxSub.Unsubscribe(api.events)
+				return
+			}
+		}
+	}()
 
-	return rpcSub, nil
+	return rpcSub, err
 }
 
 // NewBlockFilter creates a filter that fetches blocks that are imported into the chain.
@@ -181,8 +190,8 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
 	if err != nil {
-		// return an empty id
-		return rpc.ID("1")
+		// wrap error on the ID
+		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
 	}
 
 	defer cancelSubs()
@@ -191,27 +200,24 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
 	api.filtersMu.Unlock()
 
+	go func() {
+		// nolint: gosimple
+		for {
+			select {
+			case ev := <-api.events.chainCh:
+				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
+				header := EthHeaderFromTendermint(data.Header)
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[headerSub.ID()]; found {
+					f.hashes = append(f.hashes, header.Hash())
+				}
+				api.filtersMu.Unlock()
+			}
+		}
+	}()
+
 	return headerSub.ID()
-
-	// go func() {
-	// 	// nolint: gosimple
-	// 	for {
-	// 		select {
-	// 		case event := <-headerSub.eventChannel:
-	// 			evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
-	// 			if !ok {
-	// 				return
-	// 			}
-	// 			api.filtersMu.Lock()
-	// 			if f, found := api.filters[headerSub.ID()]; found {
-	// 				f.hashes = append(f.hashes, common.BytesToHash(evHeader.Header.Hash()))
-	// 			}
-	// 			api.filtersMu.Unlock()
-	// 		}
-	// 	}
-	// }()
-
-	// return headerSub.ID()
 }
 
 // NewHeads send a notification each time a new (header) block is appended to the chain.
@@ -235,13 +241,15 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 
 		for {
 			select {
-			case event := <-api.events.chainCh:
-				evHeader, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
+			case ev := <-api.events.chainCh:
+				data, ok := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
-					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventNewBlockHeader)
+					err = fmt.Errorf("invalid event data %T, expected %s", ev.Data, tmtypes.EventNewBlockHeader)
 					return
 				}
-				err = notifier.Notify(rpcSub.ID, evHeader.Header)
+
+				header := EthHeaderFromTendermint(data.Header)
+				err = notifier.Notify(rpcSub.ID, header)
 				if err != nil {
 					return
 				}
@@ -376,11 +384,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		}
 	}()
 
-	if err != nil {
-		return rpc.ID(""), err
-	}
-
-	return filterID, nil
+	return filterID, err
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
@@ -500,7 +504,7 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	switch f.typ {
 	case filters.PendingTransactionsSubscription, filters.BlocksSubscription:
 		hashes := f.hashes
-		f.hashes = nil
+		// f.hashes = nil
 		return returnHashes(hashes), nil
 	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
 		logs := f.logs
