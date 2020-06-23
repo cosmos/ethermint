@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"math/big"
+	"testing"
 
 	"github.com/stretchr/testify/suite"
 
@@ -9,8 +10,10 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/x/evm/keeper"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -23,6 +26,10 @@ type StateDBTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	app     *app.EthermintApp
+}
+
+func TestStateDBTestSuite(t *testing.T) {
+	suite.Run(t, new(StateDBTestSuite))
 }
 
 func (suite *StateDBTestSuite) SetupTest() {
@@ -50,7 +57,7 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	logs, err := stateDB.GetLogs(tHash)
 	suite.Require().NoError(err)
 	suite.Require().Len(logs, 1)
-	suite.Require().Equal(log, logs[0])
+	suite.Require().Equal(log, *logs[0])
 
 	// get logs bloom from the log
 	bloomInt := ethtypes.LogsBloom(logs)
@@ -59,4 +66,35 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	// Check to make sure bloom filter will succeed on
 	suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress))
 	suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))))
+}
+
+func (suite *StateDBTestSuite) TestStateDBWithContext() {
+	checkTx := false
+
+	suite.app = app.Setup(checkTx)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	resp := stateDB.WithContext(suite.ctx)
+	suite.Require().NotNil(suite.T(), resp)
+}
+
+func (suite *StateDBTestSuite) TestStateDBBalance() {
+	checkTx := false
+
+	suite.app = app.Setup(checkTx)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+	value := big.NewInt(100)
+	stateDB.SetBalance(addr, value)
+	suite.Require().Equal(value, stateDB.GetBalance(addr))
 }
