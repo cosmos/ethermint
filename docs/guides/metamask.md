@@ -32,7 +32,7 @@ Open the Metamask extension on your browser, you may have to log in to your Meta
 are not already. Then click the top right circle and go to `Settings` > `Networks`. Press the `Add
 Network` button and fill the form as shown below with your application `ChainID`.
 
-![metamask networks settings](./img/metamask_networks.png)
+![metamask networks settings](./img/metamask_network_settings.png)
 
 ## Import Account to Metamask
 
