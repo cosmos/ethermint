@@ -1,28 +1,53 @@
-# Binaries for programs and plugins
+# OS
+.DS_Store
+*.swp
+*.swo
+*.swl
+*.swm
+*.swn
+.vscode
+.idea
+*.pyc
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# Build
 *.test
-
-# Output of the go coverage tool
-*.out
-
-# Exclude build files
 .glide/
 vendor
 build
+tools/bin/*
+docs/_build
+docs/tutorial
+docs/node_modules
+docs/modules
+dist
+tools-stamp
+proto-tools-stamp
 golangci-lint
 
-# IDE files
-*.vscode
-.idea/
-start.sh
+# Testing
+coverage.txt
+*.out
+sim_log_file
 
-# Documentation
-node_modules
-docs/node_modules
-docs/.vuepress/dist
+# Vagrant
+.vagrant/
+*.box
+*.log
+vagrant
+
+# IDE
+.idea/
+*.iml
+
+# Graphviz
+dependency-graph.png
+
+# Latex
+*.aux
+*.out
+*.synctex.gz
