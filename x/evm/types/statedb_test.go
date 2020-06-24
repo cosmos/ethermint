@@ -38,6 +38,10 @@ func (suite *StateDBTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+	resp := stateDB.WithContext(suite.ctx)
+	suite.Require().NotNil(suite.T(), resp)
 }
 
 func (suite *StateDBTestSuite) TestBloomFilter() {
@@ -68,30 +72,11 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))))
 }
 
-func (suite *StateDBTestSuite) TestStateDBWithContext() {
-	checkTx := false
-
-	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
-
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
-	resp := stateDB.WithContext(suite.ctx)
-	suite.Require().NotNil(suite.T(), resp)
-}
-
 func (suite *StateDBTestSuite) TestStateDBBalance() {
-	checkTx := false
-
-	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
-
 	stateDB := suite.app.EvmKeeper.CommitStateDB
 
 	priv, err := crypto.GenerateKey()
-	if err != nil {
-		panic(err)
-	}
+	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 	value := big.NewInt(100)
