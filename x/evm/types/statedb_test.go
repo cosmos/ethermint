@@ -8,6 +8,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -82,4 +83,91 @@ func (suite *StateDBTestSuite) TestStateDBBalance() {
 	value := big.NewInt(100)
 	stateDB.SetBalance(addr, value)
 	suite.Require().Equal(value, stateDB.GetBalance(addr))
+
+	stateDB.SubBalance(addr, value)
+	suite.Require().Equal(big.NewInt(0), stateDB.GetBalance(addr))
+
+	stateDB.AddBalance(addr, value)
+	suite.Require().Equal(value, stateDB.GetBalance(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBNonce() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	nonce := uint64(123)
+	stateDB.SetNonce(addr, nonce)
+
+	suite.Require().Equal(nonce, stateDB.GetNonce(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBState() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+	key := ethcmn.BytesToHash([]byte("foo"))
+	val := ethcmn.BytesToHash([]byte("bar"))
+
+	stateDB.SetState(addr, key, val)
+
+	suite.Require().Equal(val, stateDB.GetState(addr, key))
+}
+
+func (suite *StateDBTestSuite) TestStateDBCode() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+	code := []byte("foobar")
+
+	stateDB.SetCode(addr, code)
+
+	suite.Require().Equal(code, stateDB.GetCode(addr))
+
+	codelen := len(code)
+	suite.Require().Equal(codelen, stateDB.GetCodeSize(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBLogs() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	hash := ethcmn.BytesToHash([]byte("hash"))
+	log := ethtypes.Log{
+		Address:     addr,
+		Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+		Data:        []byte("data"),
+		BlockNumber: 1,
+		TxHash:      common.Hash{},
+		TxIndex:     1,
+		BlockHash:   common.Hash{},
+		Index:       1,
+		Removed:     false,
+	}
+	logs := []*ethtypes.Log{&log}
+
+	stateDB.SetLogs(hash, logs)
+	dbLogs, err := stateDB.GetLogs(hash)
+	suite.Require().NoError(err)
+	suite.Require().Equal(logs, dbLogs)
+
+	stateDB.DeleteLogs(hash)
+	dbLogs, err = stateDB.GetLogs(hash)
+	suite.Require().NoError(err)
+	suite.Require().Empty(dbLogs)
+
+	stateDB.AddLog(&log)
+	suite.Require().Equal(logs, stateDB.AllLogs())
 }
