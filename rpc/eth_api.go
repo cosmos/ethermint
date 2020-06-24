@@ -264,6 +264,19 @@ func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, 
 	return e.backend.GetTransactionLogs(txHash)
 }
 
+// ExportAccount exports an account's balance, code, and storage at the given block number
+// TODO: deprecate this once the export genesis command works
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryExportAccount, address.Hex()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res), nil
+}
+
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	// TODO: Change this functionality to find an unlocked account by address
@@ -526,13 +539,13 @@ func formatBlock(
 		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
-		"extraData":        nil,
+		"extraData":        hexutil.Uint64(0),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions.([]common.Hash),
-		"uncles":           nil,
+		"uncles":           []string{},
 	}
 }
 
