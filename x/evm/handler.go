@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -31,27 +30,16 @@ func NewHandler(k Keeper) sdk.Handler {
 
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
-	fmt.Println("handleMsgEthereumTx")
-
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
-		fmt.Println("invalid chain ID")
 		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
 	}
 
 	// Verify signature and retrieve sender address
 	sender, err := msg.VerifySig(intChainID)
 	if err != nil {
-		fmt.Println("invalid sig")
 		return nil, err
-	}
-
-	fmt.Println("from balance before", k.GetBalance(ctx, sender))
-	if msg.Data.Recipient != nil {
-		fmt.Println(msg.Data.Recipient)
-		bal := k.GetBalance(ctx, *msg.Data.Recipient)
-		fmt.Println("to balance before", bal)
 	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -115,13 +103,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		)
 	}
 
-	fmt.Println(executionResult.Result)
-
-	fmt.Println("from balance after", k.GetBalance(ctx, sender))
-	if msg.Data.Recipient != nil {
-		fmt.Println("to balance after", k.GetBalance(ctx, *msg.Data.Recipient))
-	}
-
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	return executionResult.Result, nil
@@ -129,8 +110,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-	fmt.Println("handleMsgEthermint")
-
 	// parse the chainID from a string to a base-10 integer
 	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
 	if !ok {
@@ -157,9 +136,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		to := common.BytesToAddress(msg.Recipient.Bytes())
 		st.Recipient = &to
 	}
-
-	fmt.Println("from balance before", k.GetBalance(ctx, st.Sender))
-	fmt.Println("to balance before", k.GetBalance(ctx, *st.Recipient))
 
 	// Prepare db for logs
 	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
@@ -202,10 +178,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 			),
 		)
 	}
-
-	fmt.Println(executionResult.Result)
-	fmt.Println("from balance after", k.GetBalance(ctx, st.Sender))
-	fmt.Println("to balance after", k.GetBalance(ctx, *st.Recipient))
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
