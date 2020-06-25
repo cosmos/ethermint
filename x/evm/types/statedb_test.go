@@ -171,6 +171,10 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 
 	stateDB.AddLog(&log)
 	suite.Require().Equal(logs, stateDB.AllLogs())
+
+	//resets state but checking to see if storekey still persists.
+	stateDB.Reset(hash)
+	suite.Require().Equal(logs, stateDB.AllLogs())
 }
 
 func (suite *StateDBTestSuite) TestStateDBPreimage() {
@@ -194,4 +198,143 @@ func (suite *StateDBTestSuite) TestStateDBRefund() {
 
 	stateDB.SubRefund(value)
 	suite.Require().Equal(uint64(0), stateDB.GetRefund())
+}
+
+func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	stateDB.CreateAccount(addr)
+	suite.Require().True(stateDB.Exist(addr))
+
+	value := big.NewInt(100)
+	stateDB.AddBalance(addr, value)
+
+	stateDB.CreateAccount(addr)
+	suite.Require().Equal(value, stateDB.GetBalance(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	stateDB.CreateAccount(addr)
+	suite.Require().True(stateDB.Exist(addr))
+
+	stateDB.ClearStateObjects()
+	suite.Require().False(stateDB.Exist(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBReset() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	hash := ethcmn.BytesToHash([]byte("hash"))
+
+	stateDB.CreateAccount(addr)
+	suite.Require().True(stateDB.Exist(addr))
+
+	stateDB.Reset(hash)
+	suite.Require().False(stateDB.Exist(addr))
+}
+
+func (suite *StateDBTestSuite) TestStateDBUpdateAcct() {
+
+}
+
+func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	thash := ethcmn.BytesToHash([]byte("thash"))
+	bhash := ethcmn.BytesToHash([]byte("bhash"))
+	txi := 1
+
+	stateDB.Prepare(thash, bhash, txi)
+
+	suite.Require().Equal(txi, stateDB.TxIndex())
+	suite.Require().Equal(bhash, stateDB.BlockHash())
+}
+
+func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	hash := ethcmn.BytesToHash([]byte("hash"))
+	log := ethtypes.Log{
+		Address:     addr,
+		Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+		Data:        []byte("data"),
+		BlockNumber: 1,
+		TxHash:      common.Hash{},
+		TxIndex:     1,
+		BlockHash:   common.Hash{},
+		Index:       1,
+		Removed:     false,
+	}
+	logs := []*ethtypes.Log{&log}
+
+	err = stateDB.SetLogs(hash, logs)
+	suite.Require().NoError(err)
+
+	copyDB := stateDB.Copy()
+
+	copiedDBLogs, err := copyDB.GetLogs(hash)
+	suite.Require().NoError(err)
+	suite.Require().Equal(logs, copiedDBLogs)
+	suite.Require().Equal(stateDB.Exist(addr), copyDB.Exist(addr))
+}
+
+func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	suite.Require().True(stateDB.Empty(addr))
+
+	stateDB.SetBalance(addr, big.NewInt(100))
+
+	suite.Require().False(stateDB.Empty(addr))
+}
+
+func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	suicide := stateDB.Suicide(addr)
+	suite.Require().False(suicide)
+	suite.Require().False(stateDB.HasSuicided(addr))
+
+	//Suicide only works for an account with non-zero balance/nonce
+	stateDB.SetBalance(addr, big.NewInt(100))
+	suicide = stateDB.Suicide(addr)
+
+	suite.Require().True(suicide)
+	suite.Require().True(stateDB.HasSuicided(addr))
+
+	delete := true
+	stateDB.Commit(delete)
+	suite.Require().False(stateDB.Exist(addr))
 }
