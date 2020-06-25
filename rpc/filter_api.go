@@ -208,6 +208,8 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
 	api.filtersMu.Unlock()
 
+	log.Println("starting block header loop")
+
 	go func() {
 		// nolint: gosimple
 		for {
@@ -429,11 +431,20 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_uninstallfilter
 func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
+	var err error
+
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	if found {
 		log.Println("deleting filter", id)
+
+		err = f.s.Unsubscribe(api.events)
+		if err != nil {
+			log.Println("error unsubscribing:", err)
+		}
+
 		delete(api.filters, id)
+		log.Println("uninstall complete", id)
 	}
 	api.filtersMu.Unlock()
 
@@ -442,10 +453,6 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		return false
 	}
 
-	err := f.s.Unsubscribe(api.events)
-	if err != nil {
-		log.Println("error unsubscribing", err)
-	}
 	return err == nil
 }
 

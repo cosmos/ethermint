@@ -35,6 +35,8 @@ type EventSystem struct {
 	// light client mode
 	lightMode bool
 
+	index filterIndex
+
 	// Subscriptions
 	txsSub  *Subscription // Subscription for new transaction event
 	logsSub *Subscription // Subscription for new log event
@@ -59,10 +61,16 @@ type EventSystem struct {
 // The returned manager has a loop that needs to be stopped with the Stop function
 // or by stopping the given mux.
 func NewEventSystem(client rpcclient.Client) *EventSystem {
+	index := make(filterIndex)
+	for i := filters.UnknownSubscription; i < filters.LastIndexSubscription; i++ {
+		index[i] = make(map[rpc.ID]*Subscription)
+	}
+
 	es := &EventSystem{
 		ctx:       context.Background(),
 		client:    client,
 		lightMode: false,
+		index:     index,
 	}
 
 	go es.eventLoop()
@@ -98,7 +106,24 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	default:
 		err = fmt.Errorf("invalid filter subscription type %d", sub.typ)
 	}
-	return sub, cancelFn, err
+
+	if err != nil {
+		return nil, cancelFn, err
+	}
+
+	go func() {
+	subscribeLoop:
+		for {
+			select {
+			case es.install <- sub:
+				break subscribeLoop
+			case <-sub.installed:
+				break subscribeLoop
+			}
+		}
+	}()
+
+	return sub, cancelFn, nil
 }
 
 // SubscribeLogs creates a subscription that will write all logs matching the
@@ -210,7 +235,7 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 
 type filterIndex map[filters.Type]map[rpc.ID]*Subscription
 
-func (es *EventSystem) handleLogs(filterIdx filterIndex, ev coretypes.ResultEvent) {
+func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	resultData, err := evmtypes.DecodeResultData(data.TxResult.Result.Data)
 	if err != nil {
@@ -220,7 +245,7 @@ func (es *EventSystem) handleLogs(filterIdx filterIndex, ev coretypes.ResultEven
 	if len(resultData.Logs) == 0 {
 		return
 	}
-	for _, f := range filterIdx[filters.LogsSubscription] {
+	for _, f := range es.index[filters.LogsSubscription] {
 		matchedLogs := filterLogs(resultData.Logs, f.logsCrit.FromBlock, f.logsCrit.ToBlock, f.logsCrit.Addresses, f.logsCrit.Topics)
 		if len(matchedLogs) > 0 {
 			f.logs <- matchedLogs
@@ -228,16 +253,16 @@ func (es *EventSystem) handleLogs(filterIdx filterIndex, ev coretypes.ResultEven
 	}
 }
 
-func (es *EventSystem) handleTxsEvent(filterIdx filterIndex, ev coretypes.ResultEvent) {
+func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
-	for _, f := range filterIdx[filters.PendingTransactionsSubscription] {
+	for _, f := range es.index[filters.PendingTransactionsSubscription] {
 		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
 	}
 }
 
-func (es *EventSystem) handleChainEvent(filterIdx filterIndex, ev coretypes.ResultEvent) {
+func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
-	for _, f := range filterIdx[filters.BlocksSubscription] {
+	for _, f := range es.index[filters.BlocksSubscription] {
 		f.headers <- EthHeaderFromTendermint(data.Header)
 	}
 	// TODO: light client
@@ -281,39 +306,39 @@ func (es *EventSystem) eventLoop() {
 		_ = es.chainSub.Unsubscribe(es)
 	}()
 
-	index := make(filterIndex)
-	for i := filters.UnknownSubscription; i < filters.LastIndexSubscription; i++ {
-		index[i] = make(map[rpc.ID]*Subscription)
-	}
-
 	go func() {
 		for {
 			select {
 			case txEvent := <-es.txsCh:
-				es.handleTxsEvent(index, txEvent)
+				log.Println("received tx event", txEvent)
+				go es.handleTxsEvent(txEvent)
 			case headerEv := <-es.chainCh:
-				es.handleChainEvent(index, headerEv)
+				log.Println("received header event", headerEv)
+				go es.handleChainEvent(headerEv)
 			case logsEv := <-es.logsCh:
-				es.handleLogs(index, logsEv)
+				log.Println("received logs event", logsEv)
+				go es.handleLogs(logsEv)
 
 			case f := <-es.install:
 				if f.typ == filters.MinedAndPendingLogsSubscription {
 					// the type are logs and pending logs subscriptions
-					index[filters.LogsSubscription][f.id] = f
-					index[filters.PendingLogsSubscription][f.id] = f
+					es.index[filters.LogsSubscription][f.id] = f
+					es.index[filters.PendingLogsSubscription][f.id] = f
 				} else {
-					index[f.typ][f.id] = f
+					es.index[f.typ][f.id] = f
 				}
 				close(f.installed)
+				log.Println("filter installed", f.id)
 
 			case f := <-es.uninstall:
 				if f.typ == filters.MinedAndPendingLogsSubscription {
 					// the type are logs and pending logs subscriptions
-					delete(index[filters.LogsSubscription], f.id)
-					delete(index[filters.PendingLogsSubscription], f.id)
+					delete(es.index[filters.LogsSubscription], f.id)
+					delete(es.index[filters.PendingLogsSubscription], f.id)
 				} else {
-					delete(index[f.typ], f.id)
+					delete(es.index[f.typ], f.id)
 				}
+				log.Println("filter installed", f.id)
 			}
 		}
 	}()
@@ -338,6 +363,27 @@ func (s Subscription) ID() rpc.ID {
 }
 
 // Unsubscribe the current subscription from Tendermint Websocket.
-func (s Subscription) Unsubscribe(es *EventSystem) error {
-	return es.client.Unsubscribe(es.ctx, string(s.ID()), s.event)
+func (s *Subscription) Unsubscribe(es *EventSystem) error {
+	if err := es.client.Unsubscribe(es.ctx, string(s.ID()), s.event); err != nil {
+		return err
+	}
+
+	go func() {
+	uninstallLoop:
+		for {
+			// write uninstall request and consume logs/hashes. This prevents
+			// the eventLoop broadcast method to deadlock when writing to the
+			// filter event channel while the subscription loop is waiting for
+			// this method to return (and thus not reading these events).
+			select {
+			case es.uninstall <- s:
+				break uninstallLoop
+			case <-s.logs:
+			case <-s.hashes:
+			case <-s.headers:
+			}
+		}
+	}()
+
+	return nil
 }
