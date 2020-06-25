@@ -172,3 +172,26 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	stateDB.AddLog(&log)
 	suite.Require().Equal(logs, stateDB.AllLogs())
 }
+
+func (suite *StateDBTestSuite) TestStateDBPreimage() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	hash := ethcmn.BytesToHash([]byte("hash"))
+	preimage := []byte("preimage")
+
+	stateDB.AddPreimage(hash, preimage)
+
+	suite.Require().Equal(preimage, stateDB.Preimages()[hash])
+}
+
+func (suite *StateDBTestSuite) TestStateDBRefund() {
+	stateDB := suite.app.EvmKeeper.CommitStateDB
+
+	value := uint64(100)
+
+	stateDB.AddRefund(value)
+	suite.Require().Equal(value, stateDB.GetRefund())
+
+	stateDB.SubRefund(value)
+	suite.Require().Equal(uint64(0), stateDB.GetRefund())
+}
