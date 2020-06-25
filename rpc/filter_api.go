@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -58,17 +59,17 @@ type PublicFilterAPI struct {
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
 func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
+	// start the client to subscribe to Tendermint events
+	err := cliCtx.Client.Start()
+	if err != nil {
+		panic(err)
+	}
+
 	api := &PublicFilterAPI{
 		cliCtx:  cliCtx,
 		backend: backend,
 		filters: make(map[rpc.ID]*filter),
 		events:  NewEventSystem(cliCtx.Client),
-	}
-
-	// start the client to subscribe to Tendermint events
-	err := api.cliCtx.Client.Start()
-	if err != nil {
-		panic(err)
 	}
 
 	go api.timeoutLoop()
@@ -81,13 +82,18 @@ func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend FiltersBackend)
 func (api *PublicFilterAPI) timeoutLoop() {
 	ticker := time.NewTicker(deadline)
 	defer ticker.Stop()
+
+	var err error
 	for {
 		<-ticker.C
 		api.filtersMu.Lock()
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				_ = f.s.Unsubscribe(api.events)
+				err = f.s.Unsubscribe(api.events)
+				if err != nil {
+					log.Println("error unsubscribing", err)
+				}
 				delete(api.filters, id)
 			default:
 				continue
@@ -194,6 +200,8 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
 	}
 
+	log.Println("new block filter")
+
 	defer cancelSubs()
 
 	api.filtersMu.Lock()
@@ -205,6 +213,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		for {
 			select {
 			case ev := <-api.events.chainCh:
+				log.Println("event", ev)
 				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				header := EthHeaderFromTendermint(data.Header)
 
@@ -423,15 +432,21 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	if found {
+		log.Println("deleting filter", id)
 		delete(api.filters, id)
 	}
 	api.filtersMu.Unlock()
+
 	if !found {
+		log.Println("filter not found", id)
 		return false
 	}
 
 	err := f.s.Unsubscribe(api.events)
-	return err != nil
+	if err != nil {
+		log.Println("error unsubscribing", err)
+	}
+	return err == nil
 }
 
 // GetFilterLogs returns the logs for the filter with the given id.
@@ -474,8 +489,6 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 		return nil, err
 	}
 	return returnLogs(logs), nil
-
-	// return api.filters[id].Logs(ctx)
 }
 
 // GetFilterChanges returns the logs for the filter with the given id since
@@ -504,7 +517,7 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	switch f.typ {
 	case filters.PendingTransactionsSubscription, filters.BlocksSubscription:
 		hashes := f.hashes
-		// f.hashes = nil
+		f.hashes = nil
 		return returnHashes(hashes), nil
 	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
 		logs := f.logs

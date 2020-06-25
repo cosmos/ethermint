@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -20,9 +21,9 @@ import (
 )
 
 var (
-	txEvents     = fmt.Sprintf("%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx)
-	evmEvents    = fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)
-	headerEvents = fmt.Sprintf("%s='%s'", tmtypes.EventTypeKey, tmtypes.EventNewBlockHeader)
+	txEvents     = fmt.Sprintf("%s = '%s'", tmtypes.EventTypeKey, tmtypes.EventTx)
+	evmEvents    = fmt.Sprintf("%s = '%s' AND %s.%s = '%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)
+	headerEvents = fmt.Sprintf("%s = '%s'", tmtypes.EventTypeKey, tmtypes.EventNewBlockHeader)
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -64,8 +65,7 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 		lightMode: false,
 	}
 
-	// TODO: register on initialization
-	// go es.eventLoop()
+	go es.eventLoop()
 	return es
 }
 
@@ -85,12 +85,16 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
 		es.txsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		log.Println("subscribed to pending txs")
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
 		es.pendingLogsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		log.Println("subscribed to pending logs")
 	case filters.LogsSubscription:
 		es.logsCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		log.Println("subscribed to logs")
 	case filters.BlocksSubscription:
 		es.chainCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		log.Println("subscribed to headers")
 	default:
 		err = fmt.Errorf("invalid filter subscription type %d", sub.typ)
 	}
@@ -142,8 +146,8 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria) (*
 		event:     evmEvents,
 		logsCrit:  crit,
 		created:   time.Now(),
-		logs:      make(chan []*ethtypes.Log),
-		installed: make(chan struct{}),
+		logs:      make(chan []*ethtypes.Log, 1000),
+		installed: make(chan struct{}, 1),
 	}
 	return es.subscribe(sub)
 }
@@ -157,8 +161,8 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria) (*Subscription
 		event:     evmEvents,
 		logsCrit:  crit,
 		created:   time.Now(),
-		logs:      make(chan []*ethtypes.Log),
-		installed: make(chan struct{}),
+		logs:      make(chan []*ethtypes.Log, 1000),
+		installed: make(chan struct{}, 1),
 	}
 	return es.subscribe(sub)
 }
@@ -172,8 +176,8 @@ func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria) (*Subsc
 		event:     evmEvents,
 		logsCrit:  crit,
 		created:   time.Now(),
-		logs:      make(chan []*ethtypes.Log),
-		installed: make(chan struct{}),
+		logs:      make(chan []*ethtypes.Log, 1000),
+		installed: make(chan struct{}, 1),
 	}
 	return es.subscribe(sub)
 }
@@ -185,8 +189,8 @@ func (es EventSystem) SubscribeNewHeads() (*Subscription, context.CancelFunc, er
 		typ:       filters.BlocksSubscription,
 		event:     tmtypes.EventNewBlockHeader,
 		created:   time.Now(),
-		headers:   make(chan *ethtypes.Header),
-		installed: make(chan struct{}),
+		headers:   make(chan *ethtypes.Header, 1000),
+		installed: make(chan struct{}, 1),
 	}
 	return es.subscribe(sub)
 }
@@ -198,8 +202,8 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 		typ:       filters.PendingTransactionsSubscription,
 		event:     txEvents,
 		created:   time.Now(),
-		hashes:    make(chan []common.Hash),
-		installed: make(chan struct{}),
+		hashes:    make(chan []common.Hash, 1000),
+		installed: make(chan struct{}, 1),
 	}
 	return es.subscribe(sub)
 }
@@ -282,35 +286,37 @@ func (es *EventSystem) eventLoop() {
 		index[i] = make(map[rpc.ID]*Subscription)
 	}
 
-	for {
-		select {
-		case txEvent := <-es.txsCh:
-			es.handleTxsEvent(index, txEvent)
-		case headerEv := <-es.chainCh:
-			es.handleChainEvent(index, headerEv)
-		case logsEv := <-es.logsCh:
-			es.handleLogs(index, logsEv)
+	go func() {
+		for {
+			select {
+			case txEvent := <-es.txsCh:
+				es.handleTxsEvent(index, txEvent)
+			case headerEv := <-es.chainCh:
+				es.handleChainEvent(index, headerEv)
+			case logsEv := <-es.logsCh:
+				es.handleLogs(index, logsEv)
 
-		case f := <-es.install:
-			if f.typ == filters.MinedAndPendingLogsSubscription {
-				// the type are logs and pending logs subscriptions
-				index[filters.LogsSubscription][f.id] = f
-				index[filters.PendingLogsSubscription][f.id] = f
-			} else {
-				index[f.typ][f.id] = f
-			}
-			close(f.installed)
+			case f := <-es.install:
+				if f.typ == filters.MinedAndPendingLogsSubscription {
+					// the type are logs and pending logs subscriptions
+					index[filters.LogsSubscription][f.id] = f
+					index[filters.PendingLogsSubscription][f.id] = f
+				} else {
+					index[f.typ][f.id] = f
+				}
+				close(f.installed)
 
-		case f := <-es.uninstall:
-			if f.typ == filters.MinedAndPendingLogsSubscription {
-				// the type are logs and pending logs subscriptions
-				delete(index[filters.LogsSubscription], f.id)
-				delete(index[filters.PendingLogsSubscription], f.id)
-			} else {
-				delete(index[f.typ], f.id)
+			case f := <-es.uninstall:
+				if f.typ == filters.MinedAndPendingLogsSubscription {
+					// the type are logs and pending logs subscriptions
+					delete(index[filters.LogsSubscription], f.id)
+					delete(index[filters.PendingLogsSubscription], f.id)
+				} else {
+					delete(index[f.typ], f.id)
+				}
 			}
 		}
-	}
+	}()
 }
 
 // Subscription defines a wrapper for the private subscription
@@ -332,9 +338,6 @@ func (s Subscription) ID() rpc.ID {
 }
 
 // Unsubscribe the current subscription from Tendermint Websocket.
-func (s Subscription) Unsubscribe(es *EventSystem) (err error) {
-	return es.client.Unsubscribe(
-		es.ctx, string(s.ID()),
-		tmtypes.QueryForEvent(s.event).String(),
-	)
+func (s Subscription) Unsubscribe(es *EventSystem) error {
+	return es.client.Unsubscribe(es.ctx, string(s.ID()), s.event)
 }
