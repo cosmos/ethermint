@@ -158,7 +158,8 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	}
 	logs := []*ethtypes.Log{&log}
 
-	stateDB.SetLogs(hash, logs)
+	err = stateDB.SetLogs(hash, logs)
+	suite.Require().NoError(err)
 	dbLogs, err := stateDB.GetLogs(hash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(logs, dbLogs)
