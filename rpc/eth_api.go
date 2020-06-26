@@ -144,11 +144,9 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	e.keybaseLock.Unlock()
 
-	fmt.Println("eth_accounts")
 	for _, info := range infos {
 		addressBytes := info.GetPubKey().Address().Bytes()
 		addresses = append(addresses, common.BytesToAddress(addressBytes))
-		fmt.Println(common.BytesToAddress(addressBytes).Hex())
 	}
 
 	return addresses, nil
@@ -192,7 +190,6 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
-	fmt.Println("GetTransactionCount")
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
 
 	// Get nonce (sequence) from account
@@ -202,9 +199,9 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 
 	err := accRet.EnsureExists(from)
 	if err != nil {
-		acc := authtypes.NewBaseAccountWithAddress(from)
-		fmt.Println("created acc", acc)
-		//return nil, fmt.Errorf("could not find %s: %s", address.Hex(), err)
+		// account doesn't exist yet, return 0
+		n := hexutil.Uint64(0)
+		return &n, nil
 	}
 
 	_, nonce, err := accRet.GetAccountNumberSequence(from)
@@ -305,8 +302,6 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 
 // SendTransaction sends an Ethereum transaction.
 func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
-	fmt.Println("eth_sendTrasaction", args)
-
 	// TODO: Change this functionality to find an unlocked account by address
 	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
 		return common.Hash{}, keystore.ErrLocked
@@ -395,7 +390,6 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	fmt.Println("eth_call", args)
 	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
@@ -428,8 +422,6 @@ type account struct {
 func (e *PublicEthAPI) doCall(
 	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
-	fmt.Println("eth_doCall", args)
-
 	// Set height for historical queries
 	ctx := e.cliCtx
 
@@ -447,8 +439,6 @@ func (e *PublicEthAPI) doCall(
 	} else {
 		addr = *args.From
 	}
-
-	fmt.Println("doCall", args.From)
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
@@ -517,7 +507,6 @@ func (e *PublicEthAPI) doCall(
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
-	fmt.Println("eth_estimateGas", args)
 	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
@@ -911,8 +900,6 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 		gasPrice = big.NewInt(emint.DefaultGasPrice)
 	}
 
-	fmt.Println("generateFromArgs")
-
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
@@ -921,9 +908,8 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 
 		err = accRet.EnsureExists(from)
 		if err != nil {
-			acc := authtypes.NewBaseAccountWithAddress(from)
-			fmt.Println("created acc", acc)
-			//return nil, fmt.Errorf("could not find %s: %s", args.From.Hex(), err)
+			// account doesn't exist
+			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.Hex(), err)
 		}
 
 		_, nonce, err = accRet.GetAccountNumberSequence(from)
