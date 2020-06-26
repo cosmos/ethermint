@@ -208,5 +208,5 @@ jobs:
             .sum
       - name: importer-test
         run: |
-          make test-importer
+          make test-import
         if: "env.GIT_DIFF != ''"
