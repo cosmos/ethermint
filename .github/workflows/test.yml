@@ -192,5 +192,4 @@ jobs:
       - name: rpc-test
         run: |
           make test-rpc
-          make test-integration-rpc
         if: "env.GIT_DIFF != ''"

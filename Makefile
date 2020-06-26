@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
 DOCKER_TAG = unstable
@@ -142,23 +141,17 @@ endif
 test: test-unit
 
 test-unit:
-	@${GO_MOD} go test -v --vet=off $(PACKAGES)
+	@go test -v ./...
 
 test-race:
-	@${GO_MOD} go test -v --vet=off -race $(PACKAGES)
-
-test-cli:
-	@echo "NO CLI TESTS"
+	@go test -v --vet=off -race ./...
 
 test-import:
-	@${GO_MOD} go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
+	@go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
 	--blockchain blockchain --timeout=10m
 	# TODO: remove tmp directory after test run to avoid subsequent errors
 
 test-rpc:
-	@${GO_MOD} go test -v --vet=off ./tests/rpc_test
-
-test-integration-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
 godocs:

@@ -131,9 +131,9 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 		}
 	}
 
-	// get balance of one of the genesis account having 200 ETH
+	// get balance of one of the genesis account having 400 ETH
 	b := stateDB.GetBalance(genInvestor)
-	require.Equal(t, "200000000000000000000", b.String())
+	require.Equal(t, "400000000000000000000", b.String())
 
 	// commit the stateDB with 'false' to delete empty objects
 	//
