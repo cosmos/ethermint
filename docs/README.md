@@ -1,5 +1,5 @@
 <!--
-layout: homepage
+layout: .vuepress/components/homepage
 title: Ethermint Documentation
 description: Ethermint is a scalable and interoperable Ethereum, built on Proof-of-Stake with fast-finality.
 sections:
@@ -7,10 +7,14 @@ sections:
     desc: High-level overview of Ethermint.
     url: /intro/overview.html
     icon: introduction
+  - title: Basics
+    desc: Anatomy of a blockchain, transaction lifecycle, accounts and more.
+    url: /intro/overview.html
+    icon: introduction
   - title: Core Concepts
     desc: Read about the core concepts like encoding and events.
-    icon: core
     url: /core/encoding.html
+    icon: core
 stack:
   - title: Cosmos SDK
     desc: The SDK is the world’s most popular framework for building application-specific blockchains.
