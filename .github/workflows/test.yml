@@ -54,9 +54,8 @@ jobs:
         run: |
           cat xaa.txt | xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.txt -covermode=atomic
         if: "env.GIT_DIFF != ''"
-      - name: filter out DONTCOVER
+      - name: filter out proto files
         run: |
-          excludelist="$(find ./ -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
           excludelist+=" $(find ./ -type f -name '*.pb.go')"
           for filename in ${excludelist}; do
             filename=$(echo $filename | sed 's/^./github.com\/cosmos\/ethermint/g')
@@ -91,9 +90,8 @@ jobs:
         run: |
           cat xab.txt | xargs go test -mod=readonly -timeout 6m -coverprofile=coverage.txt -covermode=atomic
         if: "env.GIT_DIFF != ''"
-      - name: filter out DONTCOVER
+      - name: filter out proto files
         run: |
-          excludelist="$(find ./ -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
           excludelist+=" $(find ./ -type f -name '*.pb.go')"
           for filename in ${excludelist}; do
             filename=$(echo $filename | sed 's/^./github.com\/cosmos\/ethermint/g')
@@ -128,9 +126,8 @@ jobs:
         run: |
           cat xac.txt | xargs go test -mod=readonly -timeout 6m -coverprofile=coverage.txt -covermode=atomic
         if: "env.GIT_DIFF != ''"
-      - name: filter out DONTCOVER
+      - name: filter out proto files
         run: |
-          excludelist="$(find ./ -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
           excludelist+=" $(find ./ -type f -name '*.pb.go')"
           for filename in ${excludelist}; do
             filename=$(echo $filename | sed 's/^./github.com\/cosmos\/ethermint/g')
@@ -165,9 +162,8 @@ jobs:
         run: |
           cat xad.txt | xargs go test -mod=readonly -timeout 6m -coverprofile=coverage.txt -covermode=atomic
         if: "env.GIT_DIFF != ''"
-      - name: filter out DONTCOVER
+      - name: filter out proto files
         run: |
-          excludelist="$(find ./ -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
           excludelist+=" $(find ./ -type f -name '*.pb.go')"
           for filename in ${excludelist}; do
             filename=$(echo $filename | sed 's/^./github.com\/cosmos\/ethermint/g')
