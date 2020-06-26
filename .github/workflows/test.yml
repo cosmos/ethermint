@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Create a file with all the pkgs
-        run: go list ./... | grep -Ev 'vendor|importer|rpc/tester') > pkgs.txt
+        run: go list ./... | grep -Ev 'vendor|importer|rpc/tester' > pkgs.txt
       - name: Split pkgs into 4 files
         run: split -n l/4 --additional-suffix=.txt ./pkgs.txt
       # cache multiple
