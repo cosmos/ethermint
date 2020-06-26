@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -43,13 +44,6 @@ var (
 		Flags:  []cli.Flag{},
 	}
 
-	CheckConns = cli.Command{
-		Name:   "checkconns",
-		Usage:  "Command to check connections",
-		Action: checkConns,
-		Flags:  []cli.Flag{},
-	}
-
 	GenerateAccts = cli.Command{
 		Name:   "genAccts",
 		Usage:  "Generate given number of accounts",
@@ -57,6 +51,10 @@ var (
 		Flags:  []cli.Flag{},
 	}
 )
+
+func getRandAcct(min, max) {
+	return rand.Intn(max-min+1) + min
+}
 
 func createRequest(method string, params interface{}) Request {
 	return Request{
@@ -96,34 +94,51 @@ func call(method string, params interface{}) (*Response, error) {
 	return rpcRes, nil
 }
 
-func sendTx(accts []sdk.AccAddress, value, gasLimit, gasPrice string) error {
+func sendTx(accts []sdk.AccAddress, value, gasLimit, gasPrice string, maxTx int) error {
 
-	for i := 0; i < len(accts); i++ {
-		param := make([]map[string]string, 1)
-		param[0] = make(map[string]string)
-		param[0]["from"] = "0x" + fmt.Sprintf("%x", accts[0])
-		param[0]["to"] = "0x" + fmt.Sprintf("%x", accts[1])
-		param[0]["value"] = "3B9ACA00"     //replace this with value
-		param[0]["gasLimit"] = "0x5208"    //replace this with gasLimit
-		param[0]["gasPrice"] = "0x15EF3C0" //replace this with gasPrice
+	ticker := time.NewTicker(time.Duration(600) * time.Nanosecond)
+	defer ticker.Stop()
 
-		rpcRes, err := call("eth_sendTransaction", param)
-		if err != nil {
-			return err
+	eChan := make(chan error)
+	txs := 0
+
+	select {
+	case <-ticker.C:
+		txs++
+
+		if txs >= maxTx {
+			ticker.Stop()
 		}
 
-		var hash hexutil.Bytes
-		err = json.Unmarshal(rpcRes.Result, &hash)
-		if err != nil {
-			return err
-		}
+		//roundrobin style tx sending
+		go func(e chan error) {
+			param := make([]map[string]string, 1)
+			param[0] = make(map[string]string)
+			from := accts[getRandAcct(0,len(accts)]
+			to := accts[getRandAcct(0,len(accts)]
+			for (from == to) {
+				to = accts[getRandAcct(0,len(accts)]
+			}
+			param[0]["from"] = "0x" + fmt.Sprintf("%x", accts[getRandAcct(0,len(accts)])
+			param[0]["to"] = "0x" + fmt.Sprintf("%x", accts[getRandAcct(0,len(accts)])
+			param[0]["value"] = "3B9ACA00"     //replace this with value
+			param[0]["gasLimit"] = "0x5208"    //replace this with gasLimit
+			param[0]["gasPrice"] = "0x15EF3C0" //replace this with gasPrice
+
+			rpcRes, err := call("eth_sendTransaction", param)
+			if err != nil {
+				eChan <- err
+			}
+
+			var hash hexutil.Bytes
+			err = json.Unmarshal(rpcRes.Result, &hash)
+			if err != nil {
+				eChan <- err
+			}
+		}(eChan)
 	}
 
 	return nil
-}
-
-func checkConns() {
-
 }
 
 func genAccts(noAccts uint64) []sdk.AccAddress {

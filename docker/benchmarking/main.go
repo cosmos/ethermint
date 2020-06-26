@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ChainSafe/tx"
+	"github.com/araskachoi/ethermint/docker/benchmarking/tx"
 	"github.com/urfave/cli"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	app.Usage = "Benchmarking suite for ethermint"
 	app.Commands = []cli.Command{
 		tx.SendTx,
-		tx.CheckConns,
+		tx.GenerateAccts
 	}
 	err := app.Run(os.Args)
 	if err != nil {
