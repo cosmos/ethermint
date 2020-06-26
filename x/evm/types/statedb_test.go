@@ -173,7 +173,7 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	suite.Require().Equal(logs, stateDB.AllLogs())
 
 	//resets state but checking to see if storekey still persists.
-	stateDB.Reset(hash)
+	err = stateDB.Reset(hash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(logs, stateDB.AllLogs())
 }
