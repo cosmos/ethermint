@@ -65,6 +65,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
+* (rpc) [\#305](https://github.com/ChainSafe/ethermint/issues/305) Update eth_getTransactionCount to check for account existence before getting sequence and return 0 as the nonce if it doesn't exist.
 * (rpc) [\#231](https://github.com/ChainSafe/ethermint/issues/231) Implement NewBlockFilter in rpc/filters.go which instantiates a polling block filter
   * Polls for new blocks via BlockNumber rpc call; if block number changes, it requests the new block via GetBlockByNumber rpc call and adds it to its internal list of blocks
   * Update uninstallFilter and getFilterChanges accordingly
