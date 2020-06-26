@@ -189,7 +189,7 @@ jobs:
           fail_ci_if_error: true
         if: "env.GIT_DIFF != ''"
 
-  integration-tests:
+  rpc-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -201,11 +201,8 @@ jobs:
             .go
             .mod
             .sum
-      - name: build-sim
+      - name: rpc-test
         run: |
-          make build-sim
-        if: "env.GIT_DIFF != ''"
-      - name: cli-test
-        run: |
-          make test-integration
+          make test-rpc
+          make test-integration-rpc
         if: "env.GIT_DIFF != ''"

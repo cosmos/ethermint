@@ -162,7 +162,7 @@ test-import:
 test-rpc:
 	@${GO_MOD} go test -v --vet=off ./tests/rpc_test
 
-it-tests:
+test-integration-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
 godocs:
@@ -174,14 +174,24 @@ docker:
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
 
-format:
-	@echo "--> Formatting go files"
-	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -w -s
-	@find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs misspell -w
-
 
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
+
+###############################################################################
+###                                Linting                                  ###
+###############################################################################
+
+lint:
+	golangci-lint run --out-format=tab --issues-exit-code=0
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -d -s
+
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name '*.pb.go' | xargs gofmt -w -s
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name '*.pb.go' | xargs misspell -w
+	find . -name '*.
+
+.PHONY: lint format
 
 ###############################################################################
 ###                                Protobuf                                 ###
