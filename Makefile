@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
 DOCKER_TAG = unstable
@@ -141,10 +142,10 @@ endif
 test: test-unit
 
 test-unit:
-	@go test -v ./...
+	@go test -v ./... $(PACKAGES)
 
 test-race:
-	@go test -v --vet=off -race ./...
+	@go test -v --vet=off -race ./... $(PACKAGES)
 
 test-import:
 	@go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \

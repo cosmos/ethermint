@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Create a file with all the pkgs
-        run: go list ./... > pkgs.txt
+        run: go list ./... | grep -Ev 'vendor|importer|rpc/tester') > pkgs.txt
       - name: Split pkgs into 4 files
         run: split -n l/4 --additional-suffix=.txt ./pkgs.txt
       # cache multiple
@@ -192,4 +192,21 @@ jobs:
       - name: rpc-test
         run: |
           make test-rpc
+        if: "env.GIT_DIFF != ''"
+
+  test-importer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: technote-space/get-diff-action@v1
+        id: git_diff
+        with:
+          SUFFIX_FILTER: |
+            .go
+            .mod
+            .sum
+      - name: importer-test
+        run: |
+          make test-importer
         if: "env.GIT_DIFF != ''"
