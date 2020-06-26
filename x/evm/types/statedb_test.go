@@ -174,6 +174,7 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 
 	//resets state but checking to see if storekey still persists.
 	stateDB.Reset(hash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(logs, stateDB.AllLogs())
 }
 
@@ -246,7 +247,8 @@ func (suite *StateDBTestSuite) TestStateDBReset() {
 	stateDB.CreateAccount(addr)
 	suite.Require().True(stateDB.Exist(addr))
 
-	stateDB.Reset(hash)
+	err = stateDB.Reset(hash)
+	suite.Require().NoError(err)
 	suite.Require().False(stateDB.Exist(addr))
 }
 
@@ -335,6 +337,7 @@ func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
 	suite.Require().True(stateDB.HasSuicided(addr))
 
 	delete := true
-	stateDB.Commit(delete)
+	_, err = stateDB.Commit(delete)
+	suite.Require().NoError(err)
 	suite.Require().False(stateDB.Exist(addr))
 }
