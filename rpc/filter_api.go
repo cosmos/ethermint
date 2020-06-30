@@ -95,8 +95,6 @@ func (api *PublicFilterAPI) timeoutLoop() {
 					log.Println("error unsubscribing", err)
 				}
 				delete(api.filters, id)
-			default:
-				continue
 			}
 		}
 		api.filtersMu.Unlock()
@@ -150,11 +148,12 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
 	}
 
+	rpcSub := notifier.CreateSubscription()
+
 	ctx, cancelFn := context.WithTimeout(context.Background(), deadline)
 	defer cancelFn()
 
 	api.events.WithContext(ctx)
-	rpcSub := notifier.CreateSubscription()
 
 	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {

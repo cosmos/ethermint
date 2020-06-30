@@ -67,10 +67,17 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 	}
 
 	es := &EventSystem{
-		ctx:       context.Background(),
-		client:    client,
-		lightMode: false,
-		index:     index,
+		ctx:           context.Background(),
+		client:        client,
+		lightMode:     false,
+		index:         index,
+		install:       make(chan *Subscription),
+		uninstall:     make(chan *Subscription),
+		txsCh:         make(chan coretypes.ResultEvent),
+		logsCh:        make(chan coretypes.ResultEvent),
+		pendingLogsCh: make(chan coretypes.ResultEvent),
+		rmLogsCh:      make(chan coretypes.ResultEvent),
+		chainCh:       make(chan coretypes.ResultEvent),
 	}
 
 	go es.eventLoop()
@@ -112,15 +119,19 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	}
 
 	go func() {
-	subscribeLoop:
-		for {
-			select {
-			case es.install <- sub:
-				break subscribeLoop
-			case <-sub.installed:
-				break subscribeLoop
-			}
-		}
+		es.install <- sub
+		<-sub.installed
+		log.Println("installed")
+		// subscribeLoop:
+		// 	for {
+		// 		select {
+		// 		case es.install <- sub:
+		// 			log.Println("installed")
+		// 			break subscribeLoop
+		// 		case <-sub.installed:
+		// 			break subscribeLoop
+		// 		}
+		// 	}
 	}()
 
 	return sub, cancelFn, nil
@@ -299,49 +310,58 @@ func (es *EventSystem) eventLoop() {
 
 	// Ensure all subscriptions get cleaned up
 	defer func() {
-		_ = es.txsSub.Unsubscribe(es)
-		_ = es.logsSub.Unsubscribe(es)
+		err = es.txsSub.Unsubscribe(es)
+		if err != nil {
+			log.Printf("failed to unsubscribe pending txs: %v", err)
+		}
+		err = es.logsSub.Unsubscribe(es)
+		if err != nil {
+			log.Printf("failed to unsubscribe logs: %v", err)
+		}
 		// _ = es.rmLogsSub.Unsubscribe(es)
 		// _ = es.pendingLogsSub.Unsubscribe(es)
 		_ = es.chainSub.Unsubscribe(es)
-	}()
-
-	go func() {
-		for {
-			select {
-			case txEvent := <-es.txsCh:
-				log.Println("received tx event", txEvent)
-				go es.handleTxsEvent(txEvent)
-			case headerEv := <-es.chainCh:
-				log.Println("received header event", headerEv)
-				go es.handleChainEvent(headerEv)
-			case logsEv := <-es.logsCh:
-				log.Println("received logs event", logsEv)
-				go es.handleLogs(logsEv)
-
-			case f := <-es.install:
-				if f.typ == filters.MinedAndPendingLogsSubscription {
-					// the type are logs and pending logs subscriptions
-					es.index[filters.LogsSubscription][f.id] = f
-					es.index[filters.PendingLogsSubscription][f.id] = f
-				} else {
-					es.index[f.typ][f.id] = f
-				}
-				close(f.installed)
-				log.Println("filter installed", f.id)
-
-			case f := <-es.uninstall:
-				if f.typ == filters.MinedAndPendingLogsSubscription {
-					// the type are logs and pending logs subscriptions
-					delete(es.index[filters.LogsSubscription], f.id)
-					delete(es.index[filters.PendingLogsSubscription], f.id)
-				} else {
-					delete(es.index[f.typ], f.id)
-				}
-				log.Println("filter installed", f.id)
-			}
+		if err != nil {
+			log.Printf("failed to unsubscribe headers: %v", err)
 		}
 	}()
+
+	// go func() {
+	for {
+		select {
+		case txEvent := <-es.txsCh:
+			log.Println("received tx event", txEvent)
+			es.handleTxsEvent(txEvent)
+		case headerEv := <-es.chainCh:
+			log.Println("received header event", headerEv)
+			es.handleChainEvent(headerEv)
+		case logsEv := <-es.logsCh:
+			log.Println("received logs event", logsEv)
+			es.handleLogs(logsEv)
+
+		case f := <-es.install:
+			if f.typ == filters.MinedAndPendingLogsSubscription {
+				// the type are logs and pending logs subscriptions
+				es.index[filters.LogsSubscription][f.id] = f
+				es.index[filters.PendingLogsSubscription][f.id] = f
+			} else {
+				es.index[f.typ][f.id] = f
+			}
+			close(f.installed)
+			log.Println("filter installed", f.id)
+
+		case f := <-es.uninstall:
+			if f.typ == filters.MinedAndPendingLogsSubscription {
+				// the type are logs and pending logs subscriptions
+				delete(es.index[filters.LogsSubscription], f.id)
+				delete(es.index[filters.PendingLogsSubscription], f.id)
+			} else {
+				delete(es.index[f.typ], f.id)
+			}
+			log.Println("filter uninstalled", f.id)
+		}
+	}
+	// }()
 }
 
 // Subscription defines a wrapper for the private subscription
