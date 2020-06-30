@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -109,7 +110,8 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
-	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
+	txsCh := make(<-chan coretypes.ResultEvent)
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs(txsCh)
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", err.Error()))
@@ -124,7 +126,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	go func() {
 		for {
 			select {
-			case ev := <-api.events.txsCh:
+			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
 				txHash := common.BytesToHash(data.Tx.Hash())
 
@@ -155,7 +157,8 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 
 	api.events.WithContext(ctx)
 
-	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
+	txsCh := make(<-chan coretypes.ResultEvent)
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs(txsCh)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +168,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 	go func() {
 		for {
 			select {
-			case ev := <-api.events.txsCh:
+			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
 				txHash := common.BytesToHash(data.Tx.Hash())
 
@@ -193,7 +196,8 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
+	headersCh := make(<-chan coretypes.ResultEvent)
+	headerSub, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
@@ -213,11 +217,10 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		// nolint: gosimple
 		for {
 			select {
-			case ev := <-api.events.chainCh:
-				log.Println("event", ev)
+			case ev := <-headersCh:
 				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				header := EthHeaderFromTendermint(data.Header)
-
+				log.Println("header", header)
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID()]; found {
 					f.hashes = append(f.hashes, header.Hash())
@@ -242,7 +245,8 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 
 	var err error
 	go func() {
-		headersSub, cancelSubs, err := api.events.SubscribeNewHeads()
+		headersCh := make(<-chan coretypes.ResultEvent)
+		headersSub, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 		if err != nil {
 			return
 		}
@@ -288,7 +292,8 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 
 	var err error
 	go func() {
-		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit)
+		logsCh := make(<-chan coretypes.ResultEvent)
+		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit, logsCh)
 		if err != nil {
 			return
 		}
@@ -297,7 +302,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 
 		for {
 			select {
-			case event := <-api.events.logsCh:
+			case event := <-logsCh:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -360,7 +365,8 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	)
 
 	go func() {
-		logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria)
+		logsCh := make(<-chan coretypes.ResultEvent)
+		logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria, logsCh)
 		if err != nil {
 			return
 		}
@@ -371,7 +377,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 
 		for {
 			select {
-			case event := <-api.events.logsCh:
+			case event := <-logsCh:
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
