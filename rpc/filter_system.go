@@ -118,20 +118,10 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 		return nil, cancelFn, err
 	}
 
+	// wrap events in a go routine to prevent blocking
 	go func() {
 		es.install <- sub
 		<-sub.installed
-		log.Println("installed")
-		// subscribeLoop:
-		// 	for {
-		// 		select {
-		// 		case es.install <- sub:
-		// 			log.Println("installed")
-		// 			break subscribeLoop
-		// 		case <-sub.installed:
-		// 			break subscribeLoop
-		// 		}
-		// 	}
 	}()
 
 	return sub, cancelFn, nil
@@ -257,6 +247,7 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 		return
 	}
 	for _, f := range es.index[filters.LogsSubscription] {
+		log.Println(es.index[filters.LogsSubscription])
 		matchedLogs := filterLogs(resultData.Logs, f.logsCrit.FromBlock, f.logsCrit.ToBlock, f.logsCrit.Addresses, f.logsCrit.Topics)
 		if len(matchedLogs) > 0 {
 			f.logs <- matchedLogs
@@ -266,6 +257,7 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 
 func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
+	log.Println(es.index[filters.PendingTransactionsSubscription])
 	for _, f := range es.index[filters.PendingTransactionsSubscription] {
 		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
 	}
@@ -273,6 +265,7 @@ func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 
 func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
+	log.Println(es.index[filters.BlocksSubscription])
 	for _, f := range es.index[filters.BlocksSubscription] {
 		f.headers <- EthHeaderFromTendermint(data.Header)
 	}
@@ -327,15 +320,19 @@ func (es *EventSystem) eventLoop() {
 	}()
 
 	// go func() {
+	log.Println("start event loop")
 	for {
 		select {
 		case txEvent := <-es.txsCh:
+			// FIXME: does't work
 			log.Println("received tx event", txEvent)
 			es.handleTxsEvent(txEvent)
 		case headerEv := <-es.chainCh:
+			// FIXME: does't work
 			log.Println("received header event", headerEv)
 			es.handleChainEvent(headerEv)
 		case logsEv := <-es.logsCh:
+			// FIXME: does't work
 			log.Println("received logs event", logsEv)
 			es.handleLogs(logsEv)
 
@@ -389,6 +386,10 @@ func (s *Subscription) Unsubscribe(es *EventSystem) error {
 	}
 
 	go func() {
+		defer func() {
+			log.Println("successfully unsubscribed to event", s.event)
+		}()
+
 	uninstallLoop:
 		for {
 			// write uninstall request and consume logs/hashes. This prevents
