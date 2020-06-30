@@ -112,18 +112,19 @@ module.exports = {
         title: 'Developer Chat',
         text: 'Chat with Ethermint developers on Discord.',
         url: 'https://discordapp.com/channels/669268347736686612',
-        bg: '#161931'
+        bg: 'linear-gradient(103.75deg, #1B1E36 0%, #22253F 100%)'
       },
       forum: {
         title: 'Ethermint Developer Forum',
         text: 'Join the Ethermint Developer Forum to learn more.',
         url: 'https://forum.cosmos.network/',
-        bg: 'linear-gradient(225deg, #46509F -1.08%, #2F3564 95.88%)',
-        logo: 'cosmos'
+        bg: 'linear-gradient(221.79deg, #3D6B99 -1.08%, #336699 95.88%)',
+        logo: 'ethereum-white'
       },
       github: {
         title: 'Found an Issue?',
-        text: 'Help us improve this page by suggesting edits on GitHub.'
+        text: 'Help us improve this page by suggesting edits on GitHub.',
+        bg: '#F8F9FC'
       }
     },
     footer: {
@@ -157,7 +158,7 @@ module.exports = {
           title: 'Documentation',
           children: [
             {
-              title: 'Cosmos SDK',
+              title: 'Cosmos SDK Docs',
               url: 'https://docs.cosmos.network'
             },
             {
