@@ -32,6 +32,7 @@ func ProtoAccount() exported.Account {
 
 type ethermintAccountPretty struct {
 	Address       sdk.AccAddress `json:"address" yaml:"address"`
+	EthAddress    ethcmn.Address `json:"eth_address" yaml:"eth_address"`
 	Coins         sdk.Coins      `json:"coins" yaml:"coins"`
 	PubKey        []byte         `json:"public_key" yaml:"public_key"`
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
@@ -39,10 +40,16 @@ type ethermintAccountPretty struct {
 	CodeHash      string         `json:"code_hash" yaml:"code_hash"`
 }
 
+// EthAddress returns the ethereum address of the
+func (acc EthAccount) EthAddress() ethcmn.Address {
+	return ethcmn.BytesToAddress(acc.Address.Bytes())
+}
+
 // MarshalYAML returns the YAML representation of an account.
 func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
+		EthAddress:    acc.EthAddress(),
 		PubKey:        acc.PubKey,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
@@ -61,6 +68,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
+		EthAddress:    acc.EthAddress(),
 		PubKey:        acc.PubKey,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
