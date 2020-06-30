@@ -11,7 +11,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/urfave/cli"
 )
 
@@ -43,16 +42,10 @@ var (
 		Action: sendTx,
 		Flags:  []cli.Flag{},
 	}
-
-	GenerateAccts = cli.Command{
-		Name:   "genAccts",
-		Usage:  "Generate given number of accounts",
-		Action: genAccts,
-		Flags:  []cli.Flag{},
-	}
 )
 
-func getRandAcct(min, max) {
+func getRandAcct(min, max int) int {
+	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(max-min+1) + min
 }
 
@@ -94,6 +87,7 @@ func call(method string, params interface{}) (*Response, error) {
 	return rpcRes, nil
 }
 
+// will get a list of addrs from some config file. these will be the addresses that are included in the genesis file.
 func sendTx(accts []sdk.AccAddress, value, gasLimit, gasPrice string, maxTx int) error {
 
 	ticker := time.NewTicker(time.Duration(600) * time.Nanosecond)
@@ -110,17 +104,19 @@ func sendTx(accts []sdk.AccAddress, value, gasLimit, gasPrice string, maxTx int)
 			ticker.Stop()
 		}
 
-		//roundrobin style tx sending
 		go func(e chan error) {
 			param := make([]map[string]string, 1)
 			param[0] = make(map[string]string)
-			from := accts[getRandAcct(0,len(accts)]
-			to := accts[getRandAcct(0,len(accts)]
-			for (from == to) {
-				to = accts[getRandAcct(0,len(accts)]
+
+			from := accts[getRandAcct(0, len(accts))]
+			to := accts[getRandAcct(0, len(accts))]
+
+			if string(from) == string(to) {
+				to = accts[getRandAcct(0, len(accts))]
 			}
-			param[0]["from"] = "0x" + fmt.Sprintf("%x", accts[getRandAcct(0,len(accts)])
-			param[0]["to"] = "0x" + fmt.Sprintf("%x", accts[getRandAcct(0,len(accts)])
+
+			param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+			param[0]["to"] = "0x" + fmt.Sprintf("%x", to)
 			param[0]["value"] = "3B9ACA00"     //replace this with value
 			param[0]["gasLimit"] = "0x5208"    //replace this with gasLimit
 			param[0]["gasPrice"] = "0x15EF3C0" //replace this with gasPrice
@@ -139,18 +135,4 @@ func sendTx(accts []sdk.AccAddress, value, gasLimit, gasPrice string, maxTx int)
 	}
 
 	return nil
-}
-
-func genAccts(noAccts uint64) []sdk.AccAddress {
-	out := []sdk.AccAddress{}
-	for i := uint64(0); i < noAccts; i++ {
-		pubkey := secp256k1.GenPrivKey().PubKey()
-		addr := sdk.AccAddress(pubkey.Address())
-		out = append(out, addr)
-		// baseAcc := auth.NewBaseAccount(addr, pubkey, i, i)
-		// ethAcc := types.EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
-		// println(ethAcc)
-	}
-
-	return out
 }

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/araskachoi/ethermint/docker/benchmarking/tx"
+	"github.com/araskachoi/ethermint/docker/benchmarking/benchmark"
 	"github.com/urfave/cli"
 )
 
@@ -14,8 +14,7 @@ func main() {
 	app.Name = "benchmark"
 	app.Usage = "Benchmarking suite for ethermint"
 	app.Commands = []cli.Command{
-		tx.SendTx,
-		tx.GenerateAccts
+		benchmark.SendTx,
 	}
 	err := app.Run(os.Args)
 	if err != nil {
