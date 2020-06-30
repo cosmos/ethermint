@@ -118,6 +118,7 @@ func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.Res
 	}
 
 	if err != nil {
+		sub.err <- err
 		return nil, cancelFn, err
 	}
 
@@ -177,6 +178,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria, ev
 		created:   time.Now().UTC(),
 		logs:      make(chan []*ethtypes.Log),
 		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
 	}
 	return es.subscribe(sub, eventCh)
 }
@@ -192,6 +194,7 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria, eventCh <-chan
 		created:   time.Now().UTC(),
 		logs:      make(chan []*ethtypes.Log),
 		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
 	}
 	return es.subscribe(sub, eventCh)
 }
@@ -207,6 +210,7 @@ func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria, eventCh
 		created:   time.Now().UTC(),
 		logs:      make(chan []*ethtypes.Log),
 		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
 	}
 	return es.subscribe(sub, eventCh)
 }
@@ -220,6 +224,7 @@ func (es EventSystem) SubscribeNewHeads(eventCh <-chan coretypes.ResultEvent) (*
 		created:   time.Now().UTC(),
 		headers:   make(chan *ethtypes.Header),
 		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
 	}
 	return es.subscribe(sub, eventCh)
 }
@@ -233,6 +238,7 @@ func (es EventSystem) SubscribePendingTxs(eventCh <-chan coretypes.ResultEvent) 
 		created:   time.Now().UTC(),
 		hashes:    make(chan []common.Hash),
 		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
 	}
 	return es.subscribe(sub, eventCh)
 }
@@ -306,20 +312,11 @@ func (es *EventSystem) eventLoop() {
 
 	// Ensure all subscriptions get cleaned up
 	defer func() {
-		err = es.txsSub.Unsubscribe(es)
-		if err != nil {
-			log.Printf("failed to unsubscribe pending txs: %v", err)
-		}
-		err = es.logsSub.Unsubscribe(es)
-		if err != nil {
-			log.Printf("failed to unsubscribe logs: %v", err)
-		}
-		// _ = es.rmLogsSub.Unsubscribe(es)
-		// _ = es.pendingLogsSub.Unsubscribe(es)
-		_ = es.chainSub.Unsubscribe(es)
-		if err != nil {
-			log.Printf("failed to unsubscribe headers: %v", err)
-		}
+		es.txsSub.Unsubscribe(es)
+		es.logsSub.Unsubscribe(es)
+		// es.rmLogsSub.Unsubscribe(es)
+		// es.pendingLogsSub.Unsubscribe(es)
+		es.chainSub.Unsubscribe(es)
 	}()
 
 	log.Println("start event loop")
@@ -357,7 +354,19 @@ func (es *EventSystem) eventLoop() {
 			} else {
 				delete(es.index[f.typ], f.id)
 			}
+			close(f.err)
 			log.Println("filter uninstalled", f.id)
+			// System stopped
+		case <-es.txsSub.Err():
+			return
+		case <-es.logsSub.Err():
+			return
+		// case <-es.rmLogsSub.Err():
+		// 	return
+		// case <-es.pendingLogsSub.Err():
+		// 	return
+		case <-es.chainSub.Err():
+			return
 		}
 	}
 	// }()
@@ -374,6 +383,7 @@ type Subscription struct {
 	hashes    chan []common.Hash
 	headers   chan *ethtypes.Header
 	installed chan struct{} // closed when the filter is installed
+	err       chan error
 }
 
 // ID returns the underlying subscription RPC identifier.
@@ -381,10 +391,11 @@ func (s Subscription) ID() rpc.ID {
 	return s.id
 }
 
-// Unsubscribe the current subscription from Tendermint Websocket.
-func (s *Subscription) Unsubscribe(es *EventSystem) error {
+// Unsubscribe to the current subscription from Tendermint Websocket. It sends an error to the
+// subscription error channel if unsubscription fails.
+func (s *Subscription) Unsubscribe(es *EventSystem) {
 	if err := es.client.Unsubscribe(es.ctx, string(s.ID()), s.event); err != nil {
-		return err
+		s.err <- err
 	}
 
 	go func() {
@@ -407,6 +418,9 @@ func (s *Subscription) Unsubscribe(es *EventSystem) error {
 			}
 		}
 	}()
+}
 
-	return nil
+// Err returns the error channel
+func (s *Subscription) Err() <-chan error {
+	return s.err
 }

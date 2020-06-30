@@ -84,18 +84,16 @@ func (api *PublicFilterAPI) timeoutLoop() {
 	ticker := time.NewTicker(deadline)
 	defer ticker.Stop()
 
-	var err error
 	for {
 		<-ticker.C
 		api.filtersMu.Lock()
 		for id, f := range api.filters {
 			select {
 			case <-f.deadline.C:
-				err = f.s.Unsubscribe(api.events)
-				if err != nil {
-					log.Println("error unsubscribing", err)
-				}
+				f.s.Unsubscribe(api.events)
 				delete(api.filters, id)
+			default:
+				continue
 			}
 		}
 		api.filtersMu.Unlock()
@@ -135,6 +133,11 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 					f.hashes = append(f.hashes, txHash)
 				}
 				api.filtersMu.Unlock()
+			case <-pendingTxSub.Err():
+				api.filtersMu.Lock()
+				delete(api.filters, pendingTxSub.ID())
+				api.filtersMu.Unlock()
+				return
 			}
 		}
 	}()
@@ -179,10 +182,10 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 					return
 				}
 			case <-rpcSub.Err():
-				err = pendingTxSub.Unsubscribe(api.events)
+				pendingTxSub.Unsubscribe(api.events)
 				return
 			case <-notifier.Closed():
-				err = pendingTxSub.Unsubscribe(api.events)
+				pendingTxSub.Unsubscribe(api.events)
 				return
 			}
 		}
@@ -226,6 +229,11 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 					f.hashes = append(f.hashes, header.Hash())
 				}
 				api.filtersMu.Unlock()
+			case <-headerSub.Err():
+				api.filtersMu.Lock()
+				delete(api.filters, headerSub.ID())
+				api.filtersMu.Unlock()
+				return
 			}
 		}
 	}()
@@ -268,10 +276,10 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 					return
 				}
 			case <-rpcSub.Err():
-				err = headersSub.Unsubscribe(api.events)
+				headersSub.Unsubscribe(api.events)
 				return
 			case <-notifier.Closed():
-				err = headersSub.Unsubscribe(api.events)
+				headersSub.Unsubscribe(api.events)
 				return
 			}
 		}
@@ -333,10 +341,10 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					}
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
-				err = logsSub.Unsubscribe(api.events)
+				logsSub.Unsubscribe(api.events)
 				return
 			case <-notifier.Closed(): // connection dropped
-				err = logsSub.Unsubscribe(api.events)
+				logsSub.Unsubscribe(api.events)
 				return
 			}
 		}
@@ -396,6 +404,11 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 					f.logs = append(f.logs, logs...)
 				}
 				api.filtersMu.Unlock()
+			case <-logsSub.Err():
+				api.filtersMu.Lock()
+				delete(api.filters, logsSub.ID())
+				api.filtersMu.Unlock()
+				return
 			}
 		}
 	}()
@@ -436,18 +449,10 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_uninstallfilter
 func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
-	var err error
-
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	if found {
 		log.Println("deleting filter", id)
-
-		err = f.s.Unsubscribe(api.events)
-		if err != nil {
-			log.Println("error unsubscribing:", err)
-		}
-
 		delete(api.filters, id)
 		log.Println("uninstall complete", id)
 	}
@@ -457,8 +462,8 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 		log.Println("filter not found", id)
 		return false
 	}
-
-	return err == nil
+	f.s.Unsubscribe(api.events)
+	return true
 }
 
 // GetFilterLogs returns the logs for the filter with the given id.
