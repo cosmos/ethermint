@@ -9,13 +9,13 @@
     .intro
       .p {{$frontmatter.description}}
     .h2 Getting Started
-    .p__alt Read all about the SDK or dive straight into the code with a tutorial.
+    .p__alt Read all about Ethermint or dive straight into the code with tutorials.
     .features
-      router-link(to="./intro/overview.html").features__item.features__item__light
+      router-link(to="/intro/overview.html").features__item.features__item__light
         .features__item__image
-          icon-spaceship.features__item__image__img
+          icon-rocket.features__item__image__img
         .features__item__text
-          .features__item__text__h2 Read
+          .features__item__text__h2 read
           .features__item__text__h1 Quick start
           .features__item__text__p A practical introduction to building blockchains with Ethermint.
           //- .features__item__text__tag
@@ -23,9 +23,9 @@
       a(href="https://tutorials.cosmos.network" target="_blank" rel="noopener").features__item.features__item__dark
         icon-arrow.features__item__icon
         .features__item__image
-          icon-window.features__item__image__img
+          icon-code.features__item__image__img
         .features__item__text
-          .features__item__text__h2 Use
+          .features__item__text__h2 use
           .features__item__text__h1 Guides
           .features__item__text__p Follow guides to using polular Ethereum tools with Ethermint.
           //- .features__item__text__label View Tutorials
@@ -38,11 +38,12 @@
           .sections__item__wrapper
             .sections__item__title {{section.title}}
             .sections__item__desc {{section.desc}}
-    .h2 Explore the Stack
+    .h2 Explore the stack
     .p__alt Check out the docs for the various parts of the Ethermint stack.
     .stack
-      a.stack__item(:href="item.url" v-for="item in $frontmatter.stack" :style="{'--accent-color': item.color, '--opacity': '5%'}")
+      a.stack__item(:href="item.url" v-for="item in $frontmatter.stack" :style="{'--accent': item.color, '--opacity': '5%'}")
         .stack__item__wrapper
+          component(:is="`tm-logo-${item.label}`" :color="item.color" height="100px").stack__item__logo
           svg(width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg").stack__item__icon
             path(d="M1.07239 14.4697C0.779499 14.7626 0.779499 15.2374 1.07239 15.5303C1.36529 15.8232 1.84016 15.8232 2.13305 15.5303L1.07239 14.4697ZM15.7088 1.95457C16.0017 1.66168 16.0017 1.18681 15.7088 0.893912C15.4159 0.601019 14.941 0.601019 14.6482 0.893912L15.7088 1.95457ZM15.6027 1H16.3527C16.3527 0.585786 16.0169 0.25 15.6027 0.25V1ZM5.4209 0.25C5.00669 0.25 4.6709 0.585786 4.6709 1C4.6709 1.41421 5.00669 1.75 5.4209 1.75V0.25ZM14.8527 11.1818C14.8527 11.596 15.1885 11.9318 15.6027 11.9318C16.0169 11.9318 16.3527 11.596 16.3527 11.1818H14.8527ZM2.13305 15.5303L15.7088 1.95457L14.6482 0.893912L1.07239 14.4697L2.13305 15.5303ZM15.6027 0.25H5.4209V1.75H15.6027V0.25ZM16.3527 11.1818V1H14.8527V11.1818H16.3527Z" fill="#DADCE6")
           div
@@ -60,9 +61,13 @@
   display flex
   align-items center
   color rgba(22, 25, 49, 0.65)
-  padding-top 0.5rem
+  padding-top 1rem
   width calc(var(--aside-width) - 6rem)
   cursor pointer
+  transition color .15s ease-out
+
+  &:hover
+    color var(--color-text, black)
 
   &__container
     display flex
@@ -75,53 +80,69 @@
     height 1.5rem
     fill #aaa
     margin-right 0.5rem
+    transition fill .15s ease-out
+
+  &:hover &__icon
+    fill var(--color-text, black)
 
 .intro
   width 100%
   max-width 800px
 
 .h1
-  font-size 2.5rem
-  font-weight 600
+  font-size 3rem
+  font-weight 700
   margin-bottom 1.5rem
+  line-height 3.25rem
+  letter-spacing -0.02em
   padding-top 2.5rem
 
 .h2
   font-size 2rem
-  font-weight 600
+  font-weight 700
   margin-top 4.5rem
   margin-bottom 1rem
+  line-height 2.25rem
+  letter-spacing -0.01em
 
 .p
   font-size 1.5rem
-  line-height 36px
+  line-height 2.25rem
 
   &__alt
     margin-top 0.75rem
     margin-bottom 2rem
     font-size 1.25rem
-    line-height 28px
+    line-height 1.75rem
 
 .features
   display grid
   grid-template-columns repeat(auto-fit, minmax(300px, 1fr))
   gap 1.5rem
-  margin-bottom 3rem
+  margin-bottom 5rem
   margin-top 2.25rem
 
   &__item
     cursor pointer
     display grid
     grid-auto-flow column
-    grid-template-columns 1fr 2fr
+    grid-template-columns minmax(6rem, 1fr) 2fr
     box-shadow 0px 2px 4px rgba(22, 25, 49, 0.05), 0px 0px 1px rgba(22, 25, 49, 0.2), 0px 0.5px 0px rgba(22, 25, 49, 0.05)
     position relative
     border-radius .5rem
     background linear-gradient(302.07deg, #FFFFFF 48.96%, #EBEDFF 100%)
-    transition box-shadow 0.25s
-    
-    &:hover
+    outline none
+    transition box-shadow 0.25s ease-out, transform 0.25s ease-out, opacity 0.4s ease-out
+
+    &:hover:not(:active),
+    &:focus
       box-shadow 0px 12px 24px rgba(22, 25, 49, 0.07), 0px 4px 8px rgba(22, 25, 49, 0.05), 0px 1px 0px rgba(22, 25, 49, 0.05)
+      transform translateY(-2px)
+      transition-duration 0.1s
+
+    &:active
+      opacity 0.7
+      transition-duration 0s
 
     &__dark
       background linear-gradient(112.22deg, #161831 0%, #2E3148 100%)
@@ -150,14 +171,25 @@
       fill white
       opacity .35
 
+    &:hover &__icon
+      opacity .6
+
     &__image
       display flex
       align-items center
       justify-content center
+      align-self center
+      max-height 10rem
+      transition transform 0.2s ease-out
 
       &__img
-        max-height 232px
-        max-width 160px
+        max-height 14rem
+        max-width 10rem
+        min-width 8rem
+
+    &:hover:not(:active) &__image
+      transform translateY(-0.25rem) scale(1.02)
+      transition-duration 0.1s
 
     &__text
       padding 1.75rem 2rem 2rem
@@ -168,24 +200,23 @@
         font-size .75rem
         letter-spacing 0.2em
         text-transform uppercase
-        color #161931
-        opacity .45
+        color var(--color-text-dim, inherit)
         margin-bottom .25rem
 
       &__h1
         font-size 1.25rem
-        color #161931
-        line-height 28px
-        letter-spacing -0.01em
-        font-weight 500
+        color var(--color-text, black)
+        line-height 1.75rem
+        letter-spacing .01em
+        font-weight 600
         margin-top .25rem
         margin-bottom .75rem
 
       &__p
-        color rgba(22, 25, 49, 0.65)
+        color var(--color-text-dim, inherit)
         font-size .875rem
-        letter-spacing 0.01em
-        line-height 20px
+        letter-spacing 0.03em
+        line-height 1.25rem
         margin-bottom 1.5rem
 
       &__tag
@@ -202,7 +233,7 @@
           color rgba(22, 25, 49, 0.65)
           letter-spacing 0.01em
           font-size .8125rem
-          line-height 18px
+          line-height 1.125rem
 
       &__label
         text-transform uppercase
@@ -215,72 +246,89 @@
 .sections
   display grid
   margin-top 3rem
-  margin-bottom 4rem
+  margin-bottom 5rem
   grid-template-columns repeat(auto-fit, minmax(300px, 1fr))
   gap 1.5rem
 
   &__item
-    padding-left 4rem
     position relative
     color initial
     border-radius 0.5rem
-    padding 1.5rem 1.5rem 1.5rem 4.5rem
+    padding 1.5rem 1.5rem 1.5rem 5.5rem
     box-shadow 0px 2px 4px rgba(22, 25, 49, 0.05), 0px 0px 1px rgba(22, 25, 49, 0.2), 0px 0.5px 0px rgba(22, 25, 49, 0.05)
-    transition box-shadow 0.25s
+    transition box-shadow 0.25s ease-out, transform 0.25s ease-out, opacity 0.4s ease-out
 
-    &:hover
+    &:hover:not(:active)
       box-shadow 0px 12px 24px rgba(22, 25, 49, 0.07), 0px 4px 8px rgba(22, 25, 49, 0.05), 0px 1px 0px rgba(22, 25, 49, 0.05)
+      transform translateY(-2px)
+      transition-duration 0.1s
+
+    &:active
+      transition-duration 0s
+      opacity 0.7
 
     &__icon
       position absolute
       top 1rem
-      left 1rem
+      left 1.25rem
       font-size 1.5rem
       display flex
       align-items center
       justify-content center
-      width 2.5rem
-      height 2.5rem
+      width 3rem
+      height 3rem
 
     &__title
-      font-weight 500
+      font-weight 600
       margin-bottom 0.5rem
 
     &__desc
       font-size 0.875rem
-      color rgba(22, 25, 49, 0.65)
+      line-height 1.25rem
+      color var(--color-text-dim, inherit)
 
 .stack
   display grid
   gap 1.5rem
   grid-template-columns repeat(auto-fit, minmax(300px, 1fr))
-  margin-bottom 3rem
+  margin-bottom 4rem
 
   &__item
     position relative
     min-height 120px
     display flex
     align-items center
-    padding 2rem 1rem
+    padding 2rem 1.25rem
     border-radius 0.5rem
-    box-shadow inset 0 0 0 1px rgba(176, 180, 207, 0.2)
-    color #161931
+    box-shadow 0px 2px 4px rgba(22, 25, 49, 0.05), 0px 0px 1px rgba(22, 25, 49, 0.2), 0px 0.5px 0px rgba(22, 25, 49, 0.05)
+    color var(--color-text, black)
     background white
-    transition box-shadow 0.25s
+    transition box-shadow 0.25s ease-out, transform 0.25s ease-out, opacity 0.4s ease-out
 
-    &:hover
-      box-shadow inset 0 0 0 1px rgba(176, 180, 207, 0.2), 0px 12px 24px rgba(22, 25, 49, 0.07), 0px 4px 8px rgba(22, 25, 49, 0.05), 0px 1px 0px rgba(22, 25, 49, 0.05)
+    &:hover:not(:active)
+      box-shadow 0px 12px 24px rgba(22, 25, 49, 0.07), 0px 4px 8px rgba(22, 25, 49, 0.05), 0px 1px 0px rgba(22, 25, 49, 0.05)
+      transform translateY(-2px)
+      transition-duration 0.1s
+
+    &:active
+      opacity 0.7
+      transition-duration 0s
 
     &__icon
       position absolute
       top 0
       right 0
       padding 1rem
+      opacity .35
+
+    &:hover &__icon
+      opacity .6
 
     &__h1
       font-size 1.25rem
+      line-height 1.5rem
       margin-bottom 0.75rem
-      font-weight 500
+      font-weight 600
 
     &__p
       font-size 0.875rem
@@ -291,7 +339,7 @@
       display grid
       grid-auto-flow column
       grid-template-columns 30% 1fr
-      gap 1rem
+      gap 1.25rem
 
     &:before
       position absolute
@@ -300,7 +348,7 @@
       content ''
       width 50%
       height 100%
-      background linear-gradient(to right, var(--accent-color), rgba(255, 255, 255, 0))
+      background linear-gradient(to right, var(--accent), rgba(255, 255, 255, 0))
       border-radius 0.5rem
       opacity 0.1
 
@@ -311,7 +359,7 @@
 @media screen and (max-width: 1136px)
   .p
     font-size 1.25rem
-    line-height 28px
+    line-height 1.75rem
 
 @media screen and (max-width: 832px)
   .h1
@@ -325,24 +373,60 @@
     display none
 
 @media screen and (max-width: 500px)
+  .h1
+    font-size 2rem
+    line-height 2.25rem
+    margin-bottom 1rem
+
+  .h2
+    font-size 1.5rem
+    line-height 2rem
+    margin-top 3rem
+    margin-bottom 0.75rem
+
+  .p__alt
+    font-size 1rem
+    line-height 1.5rem
+
+  .features
+    margin-bottom 1.5rem
+    grid-template-columns repeat(auto-fit, minmax(240px, 1fr))
+
+    &__item
+      display block
+
+      &:not(:active)
+        box-shadow 0px 24px 40px rgba(0, 0, 0, 0.1), 0px 10px 16px rgba(0, 0, 0, 0.08), 0px 1px 0px rgba(0, 0, 0, 0.05)
+
+      &__image
+        max-height 9rem
+        padding-top 1rem
+
+      &__text
+        padding 1.5rem
+
   .sections
-    gap 0.5rem
+    gap 0
     margin-bottom 0
     margin-top 2rem
-    grid-template-columns repeat(auto-fit, minmax(220px, 1fr))
+    grid-template-columns repeat(auto-fit, minmax(240px, 1fr))
+    margin-left -1rem
+    margin-right -1rem
 
     &__item
       margin-bottom 0
-      padding-left 4rem
-      box-shadow none
-      padding-bottom 0
+      padding 1.25rem 1rem 0 5.5rem
+
+      &,
+      &:hover:not(:active)
+        box-shadow none
 
       &__icon
         top 1rem
-        left 0.75rem
+        left 1.25rem
 
       &__wrapper
-        padding-bottom 1.5rem
+        padding-bottom 1.25rem
         border-bottom 1px solid rgba(140, 145, 177, 0.32)
 
       &:last-child .sections__item__wrapper
@@ -350,11 +434,11 @@
 
     &__wrapper
       position relative
-      padding 0.1px 1rem
+      padding 0.1px 1rem 1rem
       background white
       border-radius 0.5rem
 
-      &:after
+      &:before
         position absolute
         content ''
         top 0
@@ -362,43 +446,25 @@
         right 0
         bottom 0
         border-radius 0.5rem
-        box-shadow 0px 24px 40px rgba(22, 25, 49, 0.1), 0px 10px 16px rgba(22, 25, 49, 0.08), 0px 1px 0px rgba(22, 25, 49, 0.05)
+        box-shadow 0px 24px 40px rgba(0, 0, 0, 0.1), 0px 10px 16px rgba(0, 0, 0, 0.08), 0px 1px 0px rgba(0, 0, 0, 0.05)
 
   .stack
-    gap 0.5rem
+    gap 0.75rem
     grid-template-columns repeat(auto-fill, minmax(240px, 1fr))
+    margin-bottom 3rem
 
     &__item
-      &:after
-        position absolute
-        content ''
-        top 0
-        left 0
-        right 0
-        bottom 0
-        border-radius 0.5rem
+      padding 1.25rem
+
+      &:not(:active)
         box-shadow 0px 24px 40px rgba(22, 25, 49, 0.1), 0px 10px 16px rgba(22, 25, 49, 0.08), 0px 1px 0px rgba(22, 25, 49, 0.05)
 
-@media screen and (max-width: 480px)
-  .h1
-    font-size 2rem
+      &__wrapper
+        grid-template-columns 3rem 1fr
 
-  .h2
-    font-size 1.5rem
+      &__h1
+        font-size inherit
+        line-height inherit
+        margin-bottom 0.5rem
 
-  .p__alt
-    font-size 1rem
-    line-height 1.5rem
-
-  .features
-    grid-template-columns repeat(auto-fit, minmax(240px, 1fr))
-
-    &__item
-      display block
-
-      &__image
-        padding-top 1rem
-
-      &__text
-        padding 1.5rem
 </style>
