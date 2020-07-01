@@ -19,6 +19,7 @@ module.exports = {
     algolia: {
       id: 'BH4D9OD16A',
       key: 'ac317234e6a42074175369b2f42e9754',
+
       index: 'ethermint'
     },
     sidebar: { 
@@ -159,7 +160,7 @@ module.exports = {
             },
             {
               title: 'Ethermint Forum',
-              url: 'https://forum.cosmos.network'
+              url: 'https://forum.cosmos.network/c/ethermint'
             },
             {
               title: 'Chainsafe Blog',
