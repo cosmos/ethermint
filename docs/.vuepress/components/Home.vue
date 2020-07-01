@@ -19,7 +19,6 @@
           .features__item__text__h1 Quick start
           .features__item__text__p Deploy your own node, setup your testnet and more.
       router-link(to="/guides").features__item.features__item__dark
-        icon-arrow.features__item__icon
         .features__item__image
           icon-code.features__item__image__img
         .features__item__text
