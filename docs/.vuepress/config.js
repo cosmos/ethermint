@@ -1,16 +1,6 @@
 module.exports = {
   theme: 'cosmos',
   title: 'Ethermint Documentation',
-  head: [
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        type: 'text/css',
-        href: 'https://cloud.typography.com/6138116/7255612/css/fonts.css'
-      }
-    ],
-  ],
   locales: {
     '/': {
       lang: 'en-US'
@@ -18,99 +8,95 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'cosmos/ethermint',
-    docsRepo: 'cosmos/ethermint',
+    repo: 'Chainsafe/ethermint',
+    docsRepo: 'Chainsafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
     label: 'ethermint',
-    custom: true,
-    autoSidebar: true,
-    algolia: {
-      id: 'BH4D9OD16A',
-      key: 'ac317234e6a42074175369b2f42e9754',
-      index: 'ethermint'
+    autoSidebar: false,
+    sidebar: {
+      nav: [
+        {
+          title: 'Introduction',
+          children: [
+            {
+              title: 'High-Level Overview',
+              path: '/intro/overview.html'
+            },
+            {
+              title: 'Architecture',
+              path: '/intro/architecture.html'
+            }
+          ]
+        },
+        {
+          title: 'Basics',
+          children: [
+            {
+              title: 'Accounts',
+              path: '/basics/accounts.html'
+            },
+            {
+              title: 'Transactions',
+              path: '/basics/transactions.html'
+            },
+            {
+              title: 'Gas',
+              path: '/basics/gas.html'
+            }
+          ]
+        },
+        {
+          title: 'Core Concepts',
+          children: [
+            {
+              title: 'Encoding',
+              path: '/core/encoding.html'
+            },
+            {
+              title: 'Events',
+              path: '/core/events.html'
+            },
+          ]
+        },
+        {
+          title: 'Guides',
+          children: [
+            {
+              title: 'Clients',
+              path: '/clients'
+            }
+          ]
+        },
+        {
+          title: 'Specifications',
+          children: [
+            {
+              title: 'Modules',
+              path: '/modules',
+              directory: true
+            }
+          ]
+        },
+        {
+          title: 'Resources',
+          children: [
+            {
+              title: 'Ethermint API Reference',
+              path: 'https://godoc.org/github.com/cosmos/ethermint'
+            },
+            {
+              title: 'Cosmos REST API Spec',
+              path: 'https://cosmos.network/rpc/'
+            },
+            {
+              title: 'Ethereum JSON RPC API Reference',
+              path: 'https://eth.wiki/json-rpc/API'
+            }
+          ]
+        }
+      ],
     },
-    sidebar: [
-      {
-        title: 'Introduction',
-        children: [
-          {
-            title: 'High-Level Overview',
-            path: '/intro/overview.html'
-          },
-          {
-            title: 'Architecture',
-            path: '/intro/architecture.html'
-          }
-        ]
-      },
-      {
-        title: 'Basics',
-        children: [
-          {
-            title: 'Accounts',
-            path: '/basics/accounts.html'
-          },
-          {
-            title: 'Transactions',
-            path: '/basics/transactions.html'
-          },
-          {
-            title: 'Gas',
-            path: '/basics/gas.html'
-          }
-        ]
-      },
-      {
-        title: 'Core Concepts',
-        children: [
-          {
-            title: 'Encoding',
-            path: '/core/encoding.html'
-          },
-          {
-            title: 'Events',
-            path: '/core/events.html'
-          },
-        ]
-      },
-      {
-        title: 'Guides',
-        children: [
-          {
-            title: 'Clients',
-            path: '/clients'
-          }
-        ]
-      },
-      {
-        title: 'Specifications',
-        children: [
-          {
-            title: 'Modules',
-            directory: true,
-            path: '/modules'
-          }
-        ]
-      },
-      {
-        title: 'Resources',
-        children: [
-          {
-            title: 'Ethermint API Reference',
-            path: 'https://godoc.org/github.com/cosmos/ethermint'
-          },
-          {
-            title: 'Cosmos REST API Spec',
-            path: 'https://cosmos.network/rpc/'
-          },
-          {
-            title: 'Ethereum JSON RPC API Reference',
-            path: 'https://eth.wiki/json-rpc/API'
-          }
-        ]
-      }
-    ],
     gutter: {
       title: 'Help & Support',
       editLink: true,
@@ -121,15 +107,16 @@ module.exports = {
         bg: 'linear-gradient(225.11deg, #2E3148 0%, #161931 95.68%)'
       },
       forum: {
-        title: 'Cosmos SDK Forum',
-        text: 'Join the SDK Developer Forum to learn more.',
+        title: 'Cosmos Forum',
+        text: 'Join the Cosmos Developer Forum to learn more.',
         url: 'https://forum.cosmos.network/',
         bg: 'linear-gradient(225deg, #46509F -1.08%, #2F3564 95.88%)',
         logo: 'cosmos'
       },
       github: {
         title: 'Found an Issue?',
-        text: 'Help us improve this page by suggesting edits on GitHub.'
+        text: 'Help us improve this page by suggesting edits on GitHub.',
+        url: 'https://github.com/Chainsafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
       }
     },
     footer: {
@@ -149,17 +136,9 @@ module.exports = {
           url: 'https://twitter.com/cosmos'
         },
         {
-          service: 'reddit',
-          url: 'https://reddit.com/r/cosmosnetwork'
+          service: 'github',
+          url: 'https://github.com/ChainSafe/ethermint'
         },
-        {
-          service: 'telegram',
-          url: 'https://t.me/cosmosproject'
-        },
-        {
-          service: 'youtube',
-          url: 'https://www.youtube.com/c/CosmosProject'
-        }
       ],
       smallprint:
           'This website is maintained by Chainsafe Systems Inc. The contents and opinions of this website are those of Chainsafe Systems Inc.',
@@ -169,15 +148,15 @@ module.exports = {
           children: [
             {
               title: 'Cosmos SDK',
-              url: 'https://cosmos.network/docs'
+              url: 'https://docs.cosmos.network/'
             },
             {
               title: 'Ethermint',
               url: 'https://ethermint.zone/'
             },
             {
-              title: 'Cosmos Hub',
-              url: 'https://hub.cosmos.network/'
+              title: 'Ethereum',
+              url: 'https://ethereum.org/en/developers/'
             },
             {
               title: 'Tendermint Core',
@@ -208,29 +187,15 @@ module.exports = {
             {
               title: 'Contributing to the docs',
               url:
-                  'https://github.com/cosmos/ethermint/blob/master/docs/DOCS_README.md'
+                  'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/cosmos/ethermint/'
+              url: 'https://github.com/Chainsafe/ethermint/'
             }
           ]
         }
       ]
     }
   },
-  plugins: [
-    [
-      '@vuepress/google-analytics',
-      {
-        ga: 'UA-51029217-12'
-      }
-    ],
-    [
-      'sitemap',
-      {
-        hostname: 'https://docs.cosmos.network'
-      }
-    ]
-  ]
 };
