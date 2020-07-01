@@ -14,7 +14,7 @@ module.exports = {
     editLinks: true,
     custom: true,
     logo: {
-      src: "/logo.svg",
+      src: '/logo.svg',
     },
     algolia: {
       id: 'BH4D9OD16A',
