@@ -4,7 +4,7 @@ title: Ethermint Documentation
 description: Ethermint is a scalable and interoperable Ethereum, built on Proof-of-Stake with fast-finality.
 sections:
   - title: Introduction
-    desc: High-level overview of Ethermint.
+    desc: Read a high-level overview of Ethermint and its architecture.
     url: /intro
     icon: core
   - title: Basics

@@ -9,18 +9,16 @@
     .intro
       .p {{$frontmatter.description}}
     .h2 Getting Started
-    .p__alt Read all about Ethermint or dive straight into the code with tutorials.
+    .p__alt Read all about Ethermint or dive straight into the code with guides.
     .features
-      router-link(to="/intro/overview.html").features__item.features__item__light
+      router-link(to="/quick-start").features__item.features__item__light
         .features__item__image
           icon-rocket.features__item__image__img
         .features__item__text
           .features__item__text__h2 read
           .features__item__text__h1 Quick start
-          .features__item__text__p A practical introduction to building blockchains with Ethermint.
-          //- .features__item__text__tag
-          //-   .features__item__text__tag__text 5 min
-      a(href="https://tutorials.cosmos.network" target="_blank" rel="noopener").features__item.features__item__dark
+          .features__item__text__p Deploy your own node, setup your testnet and more.
+      router-link(to="/guides").features__item.features__item__dark
         icon-arrow.features__item__icon
         .features__item__image
           icon-code.features__item__image__img
@@ -28,7 +26,6 @@
           .features__item__text__h2 use
           .features__item__text__h1 Guides
           .features__item__text__p Follow guides to using polular Ethereum tools with Ethermint.
-          //- .features__item__text__label View Tutorials
     .sections__wrapper
       .h2 Explore Ethermint
       .p__alt Get familiar with Ethermint and explore its main concepts.
@@ -158,9 +155,6 @@
       color white
       opacity .8
 
-    &__dark &__text__label
-      color white
-
     &__icon
       position absolute
       top 0
@@ -218,30 +212,6 @@
         letter-spacing 0.03em
         line-height 1.25rem
         margin-bottom 1.5rem
-
-      &__tag
-        flex-grow 1
-        display flex
-        align-items flex-end
-
-        &__text
-          display inline-block
-          background rgba(176, 180, 207, 0.2)
-          border-radius .25rem
-          padding-left .5rem
-          padding-right .5rem
-          color rgba(22, 25, 49, 0.65)
-          letter-spacing 0.01em
-          font-size .8125rem
-          line-height 1.125rem
-
-      &__label
-        text-transform uppercase
-        font-weight 500
-        letter-spacing 0.02em
-        flex-grow 1
-        display flex
-        align-items flex-end
 
 .sections
   display grid
