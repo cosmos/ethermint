@@ -39,3 +39,7 @@ However, just as in Cosmos, Ethermint will support multiple signers for non-Ethe
 Signatures over the `Transaction` type are identical to Ethereum and the signatures will not be
 duplicated in the embedding
 [`auth.StdTx`](https://godoc.org/github.com/cosmos/cosmos-sdk/x/auth#StdTx).
+
+## Next {hide}
+
+Learn about the [encoding](./../core/encoding.md) formats used on Ethermint {hide}

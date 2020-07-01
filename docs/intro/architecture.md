@@ -35,4 +35,4 @@ simple API (ie. the ABCI) between the application process and consensus process.
 
 ## Next {hide}
 
-Learn about Ethermint [accounts](./../accounts.md) {hide}
+Learn how to run an Ethermint [node](./../quickstart/run_node.md) {hide}

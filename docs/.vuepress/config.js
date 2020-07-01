@@ -23,7 +23,7 @@ module.exports = {
       key: 'ac317234e6a42074175369b2f42e9754',
       index: 'ethermint'
     },
-    sidebar: { 
+    sidebar: {
       auto: false,
       nav: [
         {
@@ -35,9 +35,9 @@ module.exports = {
               path: '/intro'
             },
             {
-              title: 'Quick start',
+              title: 'Quick Start',
               directory: true,
-              path: '/quick-start'
+              path: '/quickstart'
             },
             {
               title: 'Basics',
@@ -104,7 +104,7 @@ module.exports = {
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',  // FIXME: this is displayed to master
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',
         bg: '#F8F9FC'
       }
     },
