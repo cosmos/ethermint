@@ -8,8 +8,8 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'cosmos/ethermint',
-    docsRepo: 'cosmos/ethermint',
+    repo: 'ChainSafe/ethermint',
+    docsRepo: 'ChainSafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
     custom: true,
@@ -125,6 +125,7 @@ module.exports = {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
         bg: '#F8F9FC'
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
       }
     },
     footer: {
@@ -136,7 +137,7 @@ module.exports = {
       services: [
         {
           service: 'github',
-          url: 'https://github.com/ChainSafe'
+          url: 'https://github.com/ChainSafe/ethermint'
         },
         {
           service: 'twitter',
@@ -180,7 +181,7 @@ module.exports = {
             },
             {
               title: 'Ethermint Forum',
-              url: 'https://forum.cosmos.network/'
+              url: 'https://forum.cosmos.network'
             },
             {
               title: 'Chainsafe Blog',
@@ -193,8 +194,7 @@ module.exports = {
           children: [
             {
               title: 'Contributing to the docs',
-              url:
-                  'https://github.com/ChainSafe/ethermint/tree/development/docs'
+              url: 'https://github.com/ChainSafe/ethermint/tree/development/docs'
             },
             {
               title: 'Careers at Chainsafe',
@@ -202,25 +202,11 @@ module.exports = {
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/chainsafe/ethermint'
+              url: 'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
             }
           ]
         }
       ]
     }
   },
-  plugins: [
-    [
-      '@vuepress/google-analytics',
-      {
-        ga: 'UA-51029217-12'
-      }
-    ],
-    [
-      'sitemap',
-      {
-        hostname: 'https://docs.cosmos.network'
-      }
-    ]
-  ]
 };
