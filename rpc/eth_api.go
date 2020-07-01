@@ -302,9 +302,9 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 // SendTransaction sends an Ethereum transaction.
 func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
-		return common.Hash{}, keystore.ErrLocked
-	}
+	// if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
+	// 	return common.Hash{}, keystore.ErrLocked
+	// }
 
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
 	if args.Nonce == nil {
