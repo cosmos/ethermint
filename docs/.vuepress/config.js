@@ -12,7 +12,8 @@ module.exports = {
     docsRepo: 'ChainSafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
-    custom: true,
+    // docs 1.0.168: custom true will hide subpages searchbar
+    // custom: true,
     logo: {
       src: '/logo.svg',
     },
