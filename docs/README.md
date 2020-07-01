@@ -6,7 +6,7 @@ sections:
   - title: Introduction
     desc: Read a high-level overview of Ethermint and its architecture.
     url: /intro
-    icon: core
+    icon: specifications
   - title: Basics
     desc: Start with the basic concepts of Ethermint, like accounts and transactions.
     url: /basics

@@ -21,7 +21,6 @@ module.exports = {
     algolia: {
       id: 'BH4D9OD16A',
       key: 'ac317234e6a42074175369b2f42e9754',
-
       index: 'ethermint'
     },
     sidebar: { 
@@ -105,8 +104,8 @@ module.exports = {
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        bg: '#F8F9FC',
-        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',  // FIXME: this is displayed to master
+        bg: '#F8F9FC'
       }
     },
     footer: {
