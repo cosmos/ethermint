@@ -8,63 +8,42 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'Chainsafe/ethermint',
-    docsRepo: 'Chainsafe/ethermint',
+    repo: 'ChainSafe/ethermint',
+    docsRepo: 'ChainSafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
     label: 'ethermint',
     autoSidebar: false,
     sidebar: {
+      auto: false,
       nav: [
         {
-          title: 'Introduction',
+          title: 'Reference',
           children: [
             {
-              title: 'High-Level Overview',
-              path: '/intro/overview.html'
+              title: 'Introduction',
+              path: '/intro',
+              directory: true
             },
             {
-              title: 'Architecture',
-              path: '/intro/architecture.html'
-            }
-          ]
-        },
-        {
-          title: 'Basics',
-          children: [
-            {
-              title: 'Accounts',
-              path: '/basics/accounts.html'
+              title: 'Quickstart',
+              path: '/quick-start',
+              directory: true
             },
             {
-              title: 'Transactions',
-              path: '/basics/transactions.html'
+              title: 'Basics',
+              path: '/basics',
+              directory: true
             },
             {
-              title: 'Gas',
-              path: '/basics/gas.html'
-            }
-          ]
-        },
-        {
-          title: 'Core Concepts',
-          children: [
-            {
-              title: 'Encoding',
-              path: '/core/encoding.html'
+              title: 'Core Concepts',
+              path: '/core',
+              directory: true
             },
             {
-              title: 'Events',
-              path: '/core/events.html'
-            },
-          ]
-        },
-        {
-          title: 'Guides',
-          children: [
-            {
-              title: 'Clients',
-              path: '/clients'
+              title: 'Guides',
+              path: '/guides',
+              directory: true
             }
           ]
         },
@@ -116,7 +95,7 @@ module.exports = {
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/Chainsafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
       }
     },
     footer: {
@@ -191,7 +170,7 @@ module.exports = {
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/Chainsafe/ethermint/'
+              url: 'https://github.com/ChainSafe/ethermint/'
             }
           ]
         }
