@@ -1,16 +1,20 @@
 <!--
-layout: homepage
+layout: home
 title: Ethermint Documentation
 description: Ethermint is a scalable and interoperable Ethereum, built on Proof-of-Stake with fast-finality.
 sections:
   - title: Introduction
-    desc: High-level overview of Ethermint.
-    url: /intro/overview.html
-    icon: introduction
+    desc: Read a high-level overview of Ethermint and its architecture.
+    url: /intro
+    icon: specifications
+  - title: Basics
+    desc: Start with the basic concepts of Ethermint, like accounts and transactions.
+    url: /basics
+    icon: basics
   - title: Core Concepts
     desc: Read about the core concepts like encoding and events.
+    url: /core
     icon: core
-    url: /core/encoding.html
 stack:
   - title: Cosmos SDK
     desc: The SDK is the world’s most popular framework for building application-specific blockchains.
@@ -20,7 +24,7 @@ stack:
   - title: Ethereum
     desc: Ethereum is a global, open-source platform for decentralized applications.
     color: "#1A1F36"
-    label: sdk
+    label: ethereum-black
     url: https://eth.wiki
   - title: Tendermint Core
     desc: The leading BFT engine for building blockchains, powering Ethermint.

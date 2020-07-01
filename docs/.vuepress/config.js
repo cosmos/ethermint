@@ -12,9 +12,18 @@ module.exports = {
     docsRepo: 'ChainSafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
-    label: 'ethermint',
-    autoSidebar: false,
-    sidebar: {
+    // docs 1.0.168: custom true hides subpages searchbar
+    // docs 1.0.168: custom true hides hub, ibc, core sidebar footer logos
+    custom: true,
+    logo: {
+      src: '/logo.svg',
+    },
+    algolia: {
+      id: 'BH4D9OD16A',
+      key: 'ac317234e6a42074175369b2f42e9754',
+      index: 'ethermint'
+    },
+    sidebar: { 
       auto: false,
       nav: [
         {
@@ -22,28 +31,28 @@ module.exports = {
           children: [
             {
               title: 'Introduction',
-              path: '/intro',
-              directory: true
+              directory: true,
+              path: '/intro'
             },
             {
-              title: 'Quickstart',
-              path: '/quick-start',
-              directory: true
+              title: 'Quick start',
+              directory: true,
+              path: '/quick-start'
             },
             {
               title: 'Basics',
-              path: '/basics',
-              directory: true
+              directory: true,
+              path: '/basics'
             },
             {
               title: 'Core Concepts',
-              path: '/core',
-              directory: true
+              directory: true,
+              path: '/core'
             },
             {
               title: 'Guides',
-              path: '/guides',
-              directory: true
+              directory: true,
+              path: '/guides'
             }
           ]
         },
@@ -52,8 +61,8 @@ module.exports = {
           children: [
             {
               title: 'Modules',
-              path: '/modules',
-              directory: true
+              directory: true,
+              path: '/modules'
             }
           ]
         },
@@ -74,72 +83,72 @@ module.exports = {
             }
           ]
         }
-      ],
+      ]
     },
     gutter: {
       title: 'Help & Support',
       editLink: true,
       chat: {
-        title: 'Discord',
-        text: 'Chat with Cosmos developers on Discord.',
+        title: 'Developer Chat',
+        text: 'Chat with Ethermint developers on Discord.',
         url: 'https://discordapp.com/channels/669268347736686612',
-        bg: 'linear-gradient(225.11deg, #2E3148 0%, #161931 95.68%)'
+        bg: 'linear-gradient(103.75deg, #1B1E36 0%, #22253F 100%)'
       },
       forum: {
-        title: 'Cosmos Forum',
-        text: 'Join the Cosmos Developer Forum to learn more.',
+        title: 'Ethermint Developer Forum',
+        text: 'Join the Ethermint Developer Forum to learn more.',
         url: 'https://forum.cosmos.network/',
-        bg: 'linear-gradient(225deg, #46509F -1.08%, #2F3564 95.88%)',
-        logo: 'cosmos'
+        bg: 'linear-gradient(221.79deg, #3D6B99 -1.08%, #336699 95.88%)',
+        logo: 'ethereum-white'
       },
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md'  // FIXME: this is displayed to master
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',  // FIXME: this is displayed to master
+        bg: '#F8F9FC'
       }
     },
     footer: {
-      questionsText: 'Chat with Cosmos developers on [Discord](https://discord.gg/W8trcGV) or reach out on the [SDK Developer Forum](https://forum.cosmos.network/) to learn more.',
       logo: '/logo-bw.svg',
       textLink: {
-        text: 'cosmos.network',
-        url: 'https://cosmos.network'
+        text: 'ethermint.zone',
+        url: 'https://ethermint.zone'
       },
       services: [
-        {
-          service: 'medium',
-          url: 'https://blog.cosmos.network/'
-        },
-        {
-          service: 'twitter',
-          url: 'https://twitter.com/cosmos'
-        },
         {
           service: 'github',
           url: 'https://github.com/ChainSafe/ethermint'
         },
+        {
+          service: 'twitter',
+          url: 'https://twitter.com/chainsafeth'
+        },
+        {
+          service: 'linkedin',
+          url: 'https://www.linkedin.com/company/chainsafe-systems'
+        },
+        {
+          service: 'medium',
+          url: 'https://medium.com/chainsafe-systems'
+        },
       ],
       smallprint:
-          'This website is maintained by Chainsafe Systems Inc. The contents and opinions of this website are those of Chainsafe Systems Inc.',
+          'This website is maintained by [ChainSafe Systems](https://chainsafe.io). The contents and opinions of this website are those of Chainsafe Systems.',
       links: [
         {
           title: 'Documentation',
           children: [
             {
-              title: 'Cosmos SDK',
-              url: 'https://docs.cosmos.network/'
+              title: 'Cosmos SDK Docs',
+              url: 'https://docs.cosmos.network'
             },
             {
-              title: 'Ethermint',
-              url: 'https://ethermint.zone/'
+              title: 'Ethermint Docs',
+              url: 'https://ethereum.org/developers'
             },
             {
-              title: 'Ethereum',
-              url: 'https://ethereum.org/en/developers/'
-            },
-            {
-              title: 'Tendermint Core',
-              url: 'https://docs.tendermint.com/'
+              title: 'Tendermint Core Docs',
+              url: 'https://docs.tendermint.com'
             }
           ]
         },
@@ -147,16 +156,16 @@ module.exports = {
           title: 'Community',
           children: [
             {
-              title: 'Cosmos blog',
-              url: 'https://blog.cosmos.network/'
+              title: 'Cosmos Community',
+              url: 'https://discord.gg/W8trcGV'
             },
             {
-              title: 'Forum',
-              url: 'https://forum.cosmos.network/'
+              title: 'Ethermint Forum',
+              url: 'https://forum.cosmos.network/c/ethermint'
             },
             {
-              title: 'Chat',
-              url: 'https://riot.im/app/#/room/#cosmos-sdk:matrix.org'
+              title: 'Chainsafe Blog',
+              url: 'https://medium.com/chainsafe-systems'
             }
           ]
         },
@@ -165,12 +174,15 @@ module.exports = {
           children: [
             {
               title: 'Contributing to the docs',
-              url:
-                  'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
+              url: 'https://github.com/ChainSafe/ethermint/tree/development/docs'
+            },
+            {
+              title: 'Careers at Chainsafe',
+              url: 'https://chainsafe.io/#careers'
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/ChainSafe/ethermint/'
+              url: 'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
             }
           ]
         }
