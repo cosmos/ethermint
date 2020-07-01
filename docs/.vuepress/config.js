@@ -22,57 +22,35 @@ module.exports = {
       index: 'ethermint'
     },
     sidebar: { 
-      auto: true,
+      auto: false,
       nav: [
         {
-          title: 'Introduction',
+          title: 'Reference',
           children: [
             {
-              title: 'High-Level Overview',
-              path: '/intro/overview.html'
+              title: 'Introduction',
+              directory: true,
+              path: '/intro'
             },
             {
-              title: 'Architecture',
-              path: '/intro/architecture.html'
-            }
-          ]
-        },
-        {
-          title: 'Basics',
-          children: [
-            {
-              title: 'Accounts',
-              path: '/basics/accounts.html'
+              title: 'Quick start',
+              directory: true,
+              path: '/quick-start'
             },
             {
-              title: 'Transactions',
-              path: '/basics/transactions.html'
+              title: 'Basics',
+              directory: true,
+              path: '/basics'
             },
             {
-              title: 'Gas',
-              path: '/basics/gas.html'
-            }
-          ]
-        },
-        {
-          title: 'Core Concepts',
-          children: [
-            {
-              title: 'Encoding',
-              path: '/core/encoding.html'
+              title: 'Core Concepts',
+              directory: true,
+              path: '/core'
             },
             {
-              title: 'Events',
-              path: '/core/events.html'
-            },
-          ]
-        },
-        {
-          title: 'Guides',
-          children: [
-            {
-              title: 'Clients',
-              path: '/clients'
+              title: 'Guides',
+              directory: true,
+              path: '/guides'
             }
           ]
         },

@@ -5,15 +5,15 @@ description: Ethermint is a scalable and interoperable Ethereum, built on Proof-
 sections:
   - title: Introduction
     desc: High-level overview of Ethermint.
-    url: /intro/overview.html
-    icon: basics
+    url: /intro
+    icon: core
   - title: Basics
-    desc: Anatomy of a blockchain, transaction lifecycle, accounts and more.
-    url: /intro/overview.html
+    desc: Start with the basic concepts of Ethermint, like accounts and transactions.
+    url: /basics
     icon: basics
   - title: Core Concepts
     desc: Read about the core concepts like encoding and events.
-    url: /core/encoding.html
+    url: /core
     icon: core
 stack:
   - title: Cosmos SDK
