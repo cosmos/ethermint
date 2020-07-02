@@ -42,6 +42,7 @@ type EventSystem struct {
 	txsSub  *Subscription // Subscription for new transaction event
 	logsSub *Subscription // Subscription for new log event
 	// rmLogsSub      *Subscription // Subscription for removed log event
+
 	pendingLogsSub *Subscription // Subscription for pending log event
 	chainSub       *Subscription // Subscription for new chain event
 
@@ -315,7 +316,7 @@ func (es *EventSystem) eventLoop() {
 		es.txsSub.Unsubscribe(es)
 		es.logsSub.Unsubscribe(es)
 		// es.rmLogsSub.Unsubscribe(es)
-		// es.pendingLogsSub.Unsubscribe(es)
+		es.pendingLogsSub.Unsubscribe(es)
 		es.chainSub.Unsubscribe(es)
 	}()
 
