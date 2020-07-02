@@ -16,7 +16,7 @@ const PersonalNamespace = "personal"
 const NetNamespace = "net"
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
+func GetRPCAPIs(cliCtx context.CLIContext, keys []emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
 	backend := NewEthermintBackend(cliCtx)
 	return []rpc.API{
@@ -29,7 +29,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 		{
 			Namespace: EthNamespace,
 			Version:   "1.0",
-			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, key),
+			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, keys),
 			Public:    true,
 		},
 		{
