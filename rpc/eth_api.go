@@ -299,7 +299,7 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 	// TODO: Change this functionality to find an unlocked account by address
 
 	key, exist := checkKeyInKeyring(e.keys, address)
-	if exist == false {
+	if !exist {
 		return nil, keystore.ErrLocked
 	}
 
@@ -317,7 +317,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// TODO: Change this functionality to find an unlocked account by address
 
 	key, exist := checkKeyInKeyring(e.keys, args.From)
-	if exist == false {
+	if !exist {
 		return common.Hash{}, keystore.ErrLocked
 	}
 
@@ -448,7 +448,7 @@ func (e *PublicEthAPI) doCall(
 
 	if args.From == nil {
 		key, exist := checkKeyInKeyring(e.keys, *args.From)
-		if exist == true {
+		if exist {
 			addr = common.BytesToAddress(key.PubKey().Address().Bytes())
 		}
 		// No error handled here intentionally to match geth behaviour
