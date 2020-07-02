@@ -200,7 +200,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	headersCh := make(<-chan coretypes.ResultEvent)
-	headerSub, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
+	headerSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
@@ -216,7 +216,22 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 
 	log.Println("starting block header loop, id =", headerSub.ID())
 
-	go func() {
+	// go func(ch <-chan coretypes.ResultEvent) {
+	// 	for ev := range ch {
+	// 		log.Println("got event!!!", ev)
+
+	// 		data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
+	// 		header := EthHeaderFromTendermint(data.Header)
+	// 		log.Println("header", header)
+	// 		api.filtersMu.Lock()
+	// 		if f, found := api.filters[headerSub.ID()]; found {
+	// 			f.hashes = append(f.hashes, header.Hash())
+	// 		}
+	// 		api.filtersMu.Unlock()
+	// 	}
+	// }(headersCh)
+
+	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		// nolint: gosimple
 		for {
 			select {
@@ -229,7 +244,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 					f.hashes = append(f.hashes, header.Hash())
 				}
 				api.filtersMu.Unlock()
-			case err := <-headerSub.Err():
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, headerSub.ID())
 				api.filtersMu.Unlock()
@@ -237,7 +252,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 				return
 			}
 		}
-	}()
+	}(headersCh, headerSub.Err())
 
 	return headerSub.ID()
 }
@@ -255,7 +270,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	var err error
 	go func() {
 		headersCh := make(<-chan coretypes.ResultEvent)
-		headersSub, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
+		headersSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 		if err != nil {
 			return
 		}
