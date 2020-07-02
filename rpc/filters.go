@@ -117,11 +117,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 			continue
 		}
 
-		logsMatched, err := f.checkMatches(txs)
-		if err != nil {
-			return logs, err
-		}
-
+		logsMatched := f.checkMatches(txs)
 		logs = append(logs, logsMatched...)
 	}
 
@@ -153,7 +149,7 @@ func (f *Filter) blockLogs(header *ethtypes.Header) ([]*ethtypes.Log, error) {
 // checkMatches checks if the logs from the a list of transactions transaction
 // contain any log events that  match the filter criteria. This function is
 // called when the bloom filter signals a potential match.
-func (f *Filter) checkMatches(transactions []common.Hash) ([]*ethtypes.Log, error) {
+func (f *Filter) checkMatches(transactions []common.Hash) []*ethtypes.Log {
 	unfiltered := []*ethtypes.Log{}
 	for _, tx := range transactions {
 		logs, err := f.backend.GetTransactionLogs(tx)
@@ -166,7 +162,7 @@ func (f *Filter) checkMatches(transactions []common.Hash) ([]*ethtypes.Log, erro
 		unfiltered = append(unfiltered, logs...)
 	}
 
-	return filterLogs(unfiltered, f.criteria.FromBlock, f.criteria.ToBlock, f.criteria.Addresses, f.criteria.Topics), nil
+	return filterLogs(unfiltered, f.criteria.FromBlock, f.criteria.ToBlock, f.criteria.Addresses, f.criteria.Topics)
 }
 
 // filterLogs creates a slice of logs matching the given criteria.

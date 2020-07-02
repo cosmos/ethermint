@@ -11,7 +11,6 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -44,7 +43,7 @@ type filter struct {
 	deadline *time.Timer // filter is inactive when deadline triggers
 	hashes   []common.Hash
 	crit     filters.FilterCriteria
-	logs     []*types.Log
+	logs     []*ethtypes.Log
 	s        *Subscription // associated subscription in event system
 }
 
@@ -369,7 +368,6 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	if err != nil {
 		return rpc.ID(0), err
 	}
-
 	filterID = logsSub.ID()
 
 	api.filtersMu.Lock()
@@ -555,9 +553,9 @@ func returnHashes(hashes []common.Hash) []common.Hash {
 
 // returnLogs is a helper that will return an empty log array in case the given logs array is nil,
 // otherwise the given logs array is returned.
-func returnLogs(logs []*types.Log) []*types.Log {
+func returnLogs(logs []*ethtypes.Log) []*ethtypes.Log {
 	if logs == nil {
-		return []*types.Log{}
+		return []*ethtypes.Log{}
 	}
 	return logs
 }
