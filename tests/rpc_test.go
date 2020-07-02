@@ -276,7 +276,6 @@ func TestEth_NewBlockFilter(t *testing.T) {
 	require.NoError(t, err)
 }
 
-
 func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 	rpcRes := call(t, "eth_newBlockFilter", []string{})
 
@@ -284,7 +283,9 @@ func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	time.Sleep(3 *time.Second)
+	time.Sleep(3 * time.Second)
+
+	t.Log(ID.String())
 
 	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
 	var hashes []ethcmn.Hash

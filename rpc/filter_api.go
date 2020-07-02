@@ -211,10 +211,10 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	defer cancelSubs()
 
 	api.filtersMu.Lock()
-	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
+	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: headerSub}
 	api.filtersMu.Unlock()
 
-	log.Println("starting block header loop")
+	log.Println("starting block header loop, id =", headerSub.ID())
 
 	go func() {
 		// nolint: gosimple
@@ -229,10 +229,11 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 					f.hashes = append(f.hashes, header.Hash())
 				}
 				api.filtersMu.Unlock()
-			case <-headerSub.Err():
+			case err := <-headerSub.Err():
 				api.filtersMu.Lock()
 				delete(api.filters, headerSub.ID())
 				api.filtersMu.Unlock()
+				log.Println("block filter loop err", err)
 				return
 			}
 		}
