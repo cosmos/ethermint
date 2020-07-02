@@ -302,6 +302,8 @@ func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
+	t.Log(ID.String())
+
 	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
 
 	var logs []*ethtypes.Log
@@ -435,7 +437,6 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 	logs := new([]*ethtypes.Log)
 	err := json.Unmarshal(rpcRes.Result, logs)
 	require.NoError(t, err)
-
 	require.Equal(t, 1, len(*logs))
 }
 
@@ -450,7 +451,6 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = zeroString // latest
 
 	// instantiate new filter
 	rpcRes = call(t, "eth_newFilter", param)
@@ -542,7 +542,6 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = zeroString // latest
 
 	// instantiate new filter
 	rpcRes = call(t, "eth_newFilter", param)
@@ -573,7 +572,6 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []interface{}{nil, worldTopic}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = "0x0" // latest
 
 	// instantiate new filter
 	rpcRes = call(t, "eth_newFilter", param)
@@ -653,7 +651,6 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 	require.NoError(t, err, string(changesRes.Result))
 
 	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
-
 }
 
 func TestBlockBloom(t *testing.T) {

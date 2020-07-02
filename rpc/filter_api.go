@@ -108,8 +108,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
-	txsCh := make(<-chan coretypes.ResultEvent)
-	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs(txsCh)
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", err.Error()))
@@ -121,7 +120,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
 	api.filtersMu.Unlock()
 
-	go func() {
+	go func(txsCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
 			case ev := <-txsCh:
@@ -140,7 +139,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 				return
 			}
 		}
-	}()
+	}(pendingTxSub.eventCh)
 
 	return pendingTxSub.ID()
 }
@@ -160,15 +159,14 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 
 	api.events.WithContext(ctx)
 
-	txsCh := make(<-chan coretypes.ResultEvent)
-	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs(txsCh)
+	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		return nil, err
 	}
 
 	defer cancelSubs()
 
-	go func() {
+	go func(txsCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
 			case ev := <-txsCh:
@@ -189,7 +187,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 				return
 			}
 		}
-	}()
+	}(pendingTxSub.eventCh)
 
 	return rpcSub, err
 }
@@ -199,14 +197,11 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	headersCh := make(<-chan coretypes.ResultEvent)
-	headerSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
+	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
 	}
-
-	log.Println("new block filter")
 
 	defer cancelSubs()
 
@@ -223,7 +218,6 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			case ev := <-headersCh:
 				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				header := EthHeaderFromTendermint(data.Header)
-				log.Println("header", header)
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID()]; found {
 					f.hashes = append(f.hashes, header.Hash())
@@ -237,7 +231,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 				return
 			}
 		}
-	}(headersCh, headerSub.Err())
+	}(headerSub.eventCh, headerSub.Err())
 
 	return headerSub.ID()
 }
@@ -254,8 +248,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 
 	var err error
 	go func() {
-		headersCh := make(<-chan coretypes.ResultEvent)
-		headersSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
+		headersSub, cancelSubs, err := api.events.SubscribeNewHeads()
 		if err != nil {
 			return
 		}
@@ -301,8 +294,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 
 	var err error
 	go func() {
-		logsCh := make(<-chan coretypes.ResultEvent)
-		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit, logsCh)
+		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit)
 		if err != nil {
 			return
 		}
@@ -311,7 +303,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 
 		for {
 			select {
-			case event := <-logsCh:
+			case event := <-logsSub.eventCh:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -373,46 +365,51 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 		err      error
 	)
 
-	go func() {
-		logsCh := make(<-chan coretypes.ResultEvent)
-		logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria, logsCh)
-		if err != nil {
-			return
-		}
+	logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria)
+	if err != nil {
+		return rpc.ID(0), err
+	}
 
+	filterID = logsSub.ID()
+
+	api.filtersMu.Lock()
+	api.filters[filterID] = &filter{typ: filters.LogsSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: logsSub}
+	api.filtersMu.Unlock()
+
+	go func(eventCh <-chan coretypes.ResultEvent) {
 		defer cancelSubs()
-
-		filterID = logsSub.ID()
 
 		for {
 			select {
-			case event := <-logsCh:
+			case event := <-eventCh:
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
+					log.Println("error:", err)
 					return
 				}
 
 				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
+					log.Println("cannot decode result data; error:", err)
 					return
 				}
 
 				logs := filterLogs(resultData.Logs, criteria.FromBlock, criteria.ToBlock, criteria.Addresses, criteria.Topics)
 
 				api.filtersMu.Lock()
-				if f, found := api.filters[logsSub.ID()]; found {
+				if f, found := api.filters[filterID]; found {
 					f.logs = append(f.logs, logs...)
 				}
 				api.filtersMu.Unlock()
 			case <-logsSub.Err():
 				api.filtersMu.Lock()
-				delete(api.filters, logsSub.ID())
+				delete(api.filters, filterID)
 				api.filtersMu.Unlock()
 				return
 			}
 		}
-	}()
+	}(logsSub.eventCh)
 
 	return filterID, err
 }
@@ -538,8 +535,9 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		f.hashes = nil
 		return returnHashes(hashes), nil
 	case filters.LogsSubscription, filters.MinedAndPendingLogsSubscription:
-		logs := f.logs
-		f.logs = nil
+		logs := make([]*ethtypes.Log, len(f.logs))
+		copy(logs, f.logs)
+		f.logs = []*ethtypes.Log{}
 		return returnLogs(logs), nil
 	default:
 		return nil, fmt.Errorf("invalid filter %s type %d", id, f.typ)
