@@ -128,12 +128,6 @@ func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.Res
 		<-sub.installed
 	}()
 
-	// go func(ch <-chan coretypes.ResultEvent) {
-	// 	for e := range ch {
-	// 		log.Println("got event!!!", e)
-	// 	}
-	// }(eventCh)
-
 	return sub, eventCh, cancelFn, nil
 }
 

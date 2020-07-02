@@ -285,13 +285,11 @@ func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	t.Log(ID.String())
-
 	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
 	var hashes []ethcmn.Hash
 	err = json.Unmarshal(changesRes.Result, &hashes)
 	require.NoError(t, err)
-	t.Log(hashes)
+	require.GreaterOrEqual(t, len(hashes), 1)
 }
 
 func TestEth_GetFilterChanges_NoLogs(t *testing.T) {

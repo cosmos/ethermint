@@ -216,21 +216,6 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 
 	log.Println("starting block header loop, id =", headerSub.ID())
 
-	// go func(ch <-chan coretypes.ResultEvent) {
-	// 	for ev := range ch {
-	// 		log.Println("got event!!!", ev)
-
-	// 		data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
-	// 		header := EthHeaderFromTendermint(data.Header)
-	// 		log.Println("header", header)
-	// 		api.filtersMu.Lock()
-	// 		if f, found := api.filters[headerSub.ID()]; found {
-	// 			f.hashes = append(f.hashes, header.Hash())
-	// 		}
-	// 		api.filtersMu.Unlock()
-	// 	}
-	// }(headersCh)
-
 	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		// nolint: gosimple
 		for {
