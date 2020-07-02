@@ -13,7 +13,6 @@ import (
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
-	"github.com/tendermint/go-amino"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 

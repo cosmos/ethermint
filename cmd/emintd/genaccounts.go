@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/cosmos/ethermint/codec"
 	ethermint "github.com/cosmos/ethermint/types"
+
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
