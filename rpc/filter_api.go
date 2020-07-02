@@ -318,6 +318,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
+					logsSub.err <- err
 					return
 				}
 
