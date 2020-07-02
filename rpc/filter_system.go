@@ -93,7 +93,7 @@ func (es *EventSystem) WithContext(ctx context.Context) {
 	es.ctx = ctx
 }
 
-func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.ResultEvent) (*Subscription, context.CancelFunc, error) {
+func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.ResultEvent) (*Subscription, <-chan coretypes.ResultEvent, context.CancelFunc, error) {
 	var (
 		err      error
 		cancelFn context.CancelFunc
@@ -120,7 +120,7 @@ func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.Res
 
 	if err != nil {
 		sub.err <- err
-		return nil, cancelFn, err
+		return nil, nil, cancelFn, err
 	}
 
 	// wrap events in a go routine to prevent blocking
@@ -129,7 +129,7 @@ func (es *EventSystem) subscribe(sub *Subscription, eventCh <-chan coretypes.Res
 		<-sub.installed
 	}()
 
-	return sub, cancelFn, nil
+	return sub, eventCh, cancelFn, nil
 }
 
 // SubscribeLogs creates a subscription that will write all logs matching the
@@ -181,7 +181,9 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria, ev
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),
 	}
-	return es.subscribe(sub, eventCh)
+	sub, ch, cancel, err := es.subscribe(sub, eventCh)
+	eventCh = ch
+	return sub, cancel, err
 }
 
 // subscribeLogs creates a subscription that will write all logs matching the
@@ -197,7 +199,9 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria, eventCh <-chan
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),
 	}
-	return es.subscribe(sub, eventCh)
+	sub, ch, cancel, err := es.subscribe(sub, eventCh)
+	eventCh = ch
+	return sub, cancel, err
 }
 
 // subscribePendingLogs creates a subscription that writes transaction hashes for
@@ -213,11 +217,13 @@ func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria, eventCh
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),
 	}
-	return es.subscribe(sub, eventCh)
+	sub, ch, cancel, err := es.subscribe(sub, eventCh)
+	eventCh = ch
+	return sub, cancel, err
 }
 
 // SubscribeNewHeads subscribes to new block headers events.
-func (es EventSystem) SubscribeNewHeads(eventCh <-chan coretypes.ResultEvent) (*Subscription, context.CancelFunc, error) {
+func (es EventSystem) SubscribeNewHeads(eventCh <-chan coretypes.ResultEvent) (*Subscription, <-chan coretypes.ResultEvent, context.CancelFunc, error) {
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.BlocksSubscription,
@@ -241,7 +247,9 @@ func (es EventSystem) SubscribePendingTxs(eventCh <-chan coretypes.ResultEvent) 
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),
 	}
-	return es.subscribe(sub, eventCh)
+	sub, ch, cancel, err := es.subscribe(sub, eventCh)
+	eventCh = ch
+	return sub, cancel, err
 }
 
 type filterIndex map[filters.Type]map[rpc.ID]*Subscription
@@ -304,7 +312,7 @@ func (es *EventSystem) eventLoop() {
 
 	defer cancelLogsSubs()
 
-	es.chainSub, cancelHeaderSubs, err = es.SubscribeNewHeads(es.chainCh)
+	es.chainSub, es.chainCh, cancelHeaderSubs, err = es.SubscribeNewHeads(es.chainCh)
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe headers: %w", err))
 	}

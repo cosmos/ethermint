@@ -199,7 +199,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	headersCh := make(<-chan coretypes.ResultEvent)
-	headerSub, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
+	headerSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 	if err != nil {
 		// wrap error on the ID
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
@@ -210,12 +210,12 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	defer cancelSubs()
 
 	api.filtersMu.Lock()
-	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: headerSub}
+	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: headerSub}
 	api.filtersMu.Unlock()
 
-	log.Println("starting block header loop")
+	log.Println("starting block header loop, id =", headerSub.ID())
 
-	go func() {
+	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		// nolint: gosimple
 		for {
 			select {
@@ -228,14 +228,15 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 					f.hashes = append(f.hashes, header.Hash())
 				}
 				api.filtersMu.Unlock()
-			case <-headerSub.Err():
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, headerSub.ID())
 				api.filtersMu.Unlock()
+				log.Println("block filter loop err", err)
 				return
 			}
 		}
-	}()
+	}(headersCh, headerSub.Err())
 
 	return headerSub.ID()
 }
@@ -257,7 +258,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 			cancelSubs context.CancelFunc
 		)
 		headersCh := make(<-chan coretypes.ResultEvent)
-		headersSub, cancelSubs, err = api.events.SubscribeNewHeads(headersCh)
+		headersSub, headersCh, cancelSubs, err := api.events.SubscribeNewHeads(headersCh)
 		if err != nil {
 			return
 		}
