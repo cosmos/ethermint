@@ -260,12 +260,14 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 				data, ok := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", ev.Data, tmtypes.EventNewBlockHeader)
+					headersSub.err <- err
 					return
 				}
 
 				header := EthHeaderFromTendermint(data.Header)
 				err = notifier.Notify(rpcSub.ID, header)
 				if err != nil {
+					headersSub.err <- err
 					return
 				}
 			case <-rpcSub.Err():
