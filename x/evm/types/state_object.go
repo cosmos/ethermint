@@ -23,57 +23,56 @@ var (
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 )
 
-type (
-	// StateObject interface for interacting with state object
-	StateObject interface {
-		GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
-		GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
-		SetState(db ethstate.Database, key, value ethcmn.Hash)
+// StateObject interface for interacting with state object
+type StateObject interface {
+	GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
+	GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
+	SetState(db ethstate.Database, key, value ethcmn.Hash)
 
-		Code(db ethstate.Database) []byte
-		SetCode(codeHash ethcmn.Hash, code []byte)
-		CodeHash() []byte
+	Code(db ethstate.Database) []byte
+	SetCode(codeHash ethcmn.Hash, code []byte)
+	CodeHash() []byte
 
-		AddBalance(amount *big.Int)
-		SubBalance(amount *big.Int)
-		SetBalance(amount *big.Int)
+	AddBalance(amount *big.Int)
+	SubBalance(amount *big.Int)
+	SetBalance(amount *big.Int)
 
-		Balance() *big.Int
-		ReturnGas(gas *big.Int)
-		Address() ethcmn.Address
+	Balance() *big.Int
+	ReturnGas(gas *big.Int)
+	Address() ethcmn.Address
 
-		SetNonce(nonce uint64)
-		Nonce() uint64
-	}
-	// stateObject represents an Ethereum account which is being modified.
+	SetNonce(nonce uint64)
+	Nonce() uint64
+}
+
+// stateObject represents an Ethereum account which is being modified.
+//
+// The usage pattern is as follows:
+// First you need to obtain a state object.
+// Account values can be accessed and modified through the object.
+// Finally, call CommitTrie to write the modified storage trie into a database.
+type stateObject struct {
+	code types.Code // contract bytecode, which gets set when code is loaded
+	// DB error.
+	// State objects are used by the consensus core and VM which are
+	// unable to deal with database-level errors. Any error that occurs
+	// during a database read is memoized here and will eventually be returned
+	// by StateDB.Commit.
+	dbErr         error
+	stateDB       *CommitStateDB
+	account       *types.EthAccount
+	balance       sdk.Int
+	originStorage types.Storage // Storage cache of original entries to dedup rewrites
+	dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
+	address       ethcmn.Address
+	// cache flags
 	//
-	// The usage pattern is as follows:
-	// First you need to obtain a state object.
-	// Account values can be accessed and modified through the object.
-	// Finally, call CommitTrie to write the modified storage trie into a database.
-	stateObject struct {
-		code types.Code // contract bytecode, which gets set when code is loaded
-		// DB error.
-		// State objects are used by the consensus core and VM which are
-		// unable to deal with database-level errors. Any error that occurs
-		// during a database read is memoized here and will eventually be returned
-		// by StateDB.Commit.
-		dbErr         error
-		stateDB       *CommitStateDB
-		account       *types.EthAccount
-		balance       sdk.Int
-		originStorage types.Storage // Storage cache of original entries to dedup rewrites
-		dirtyStorage  types.Storage // Storage entries that need to be flushed to disk
-		address       ethcmn.Address
-		// cache flags
-		//
-		// When an object is marked suicided it will be delete from the trie during
-		// the "update" phase of the state transition.
-		dirtyCode bool // true if the code was updated
-		suicided  bool
-		deleted   bool
-	}
-)
+	// When an object is marked suicided it will be delete from the trie during
+	// the "update" phase of the state transition.
+	dirtyCode bool // true if the code was updated
+	suicided  bool
+	deleted   bool
+}
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
@@ -401,4 +400,12 @@ func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	copy(compositeKey[len(prefix):], key)
 
 	return ethcrypto.Keccak256Hash(compositeKey)
+}
+
+// stateEntry represents a single key value pair from the StateDB's stateObject mappindg.
+// This is to prevent non determinism at genesis initialization or export.
+type stateEntry struct {
+	// address key of the state object
+	address     ethcmn.Address
+	stateObject *stateObject
 }
