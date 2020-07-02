@@ -105,7 +105,7 @@ func (j *journal) addDirty(addr ethcmn.Address) {
 	j.dirties[idx] = dirty
 }
 
-// substractDirty substracts 1 to the dirty count of an address. It performs a
+// substractDirty subtracts 1 to the dirty count of an address. It performs a
 // no-op if the address is not found.
 func (j *journal) substractDirty(addr ethcmn.Address) {
 	idx, found := j.addressToIndex[addr]
