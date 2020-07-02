@@ -614,7 +614,6 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = res.String()
-	param[0]["toBlock"] = zeroString // latest
 
 	hash := deployTestContractWithFunction(t)
 	waitForReceipt(t, hash)

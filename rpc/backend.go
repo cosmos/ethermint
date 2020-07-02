@@ -112,6 +112,16 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 }
 
 func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error) {
+	if height <= 0 {
+		// get latest block height
+		num, err := e.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+
+		height = int64(num)
+	}
+
 	block, err := e.cliCtx.Client.Block(&height)
 	if err != nil {
 		return nil, err

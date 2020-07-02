@@ -76,8 +76,9 @@ func newFilter(backend FiltersBackend, criteria filters.FilterCriteria, matcher 
 func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
 	var err error
+
 	// If we're doing singleton block filtering, execute and return
-	if f.criteria.BlockHash != nil || f.criteria.BlockHash != (&common.Hash{}) {
+	if f.criteria.BlockHash != nil && f.criteria.BlockHash != (&common.Hash{}) {
 		header, err := f.backend.HeaderByHash(*f.criteria.BlockHash)
 		if err != nil {
 			return nil, err
@@ -94,16 +95,16 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 		return nil, err
 	}
 
-	if header == nil {
+	if header == nil || header.Number == nil {
 		return nil, nil
 	}
-	head := header.Number.Uint64()
 
+	head := header.Number.Int64()
 	if f.criteria.FromBlock.Int64() == -1 {
-		f.criteria.FromBlock = big.NewInt(int64(head))
+		f.criteria.FromBlock = big.NewInt(head)
 	}
 	if f.criteria.ToBlock.Int64() == -1 {
-		f.criteria.ToBlock = big.NewInt(int64(head))
+		f.criteria.ToBlock = big.NewInt(head)
 	}
 
 	for i := f.criteria.FromBlock.Int64(); i <= f.criteria.ToBlock.Int64(); i++ {
