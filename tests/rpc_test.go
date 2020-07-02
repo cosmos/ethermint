@@ -276,6 +276,23 @@ func TestEth_NewBlockFilter(t *testing.T) {
 	require.NoError(t, err)
 }
 
+
+func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
+	rpcRes := call(t, "eth_newBlockFilter", []string{})
+
+	var ID hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+
+	time.Sleep(3 *time.Second)
+
+	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
+	var hashes []ethcmn.Hash
+	err = json.Unmarshal(changesRes.Result, &hashes)
+	require.NoError(t, err)
+	t.Log(hashes)
+}
+
 func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 	param := make([]map[string][]string, 1)
 	param[0] = make(map[string][]string)
