@@ -20,6 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -84,7 +85,7 @@ func main() {
 	}
 }
 
-func queryCmd(cdc *amino.Codec) *cobra.Command {
+func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:     "query",
 		Aliases: []string{"q"},
@@ -105,7 +106,7 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 	return queryCmd
 }
 
-func txCmd(cdc *amino.Codec) *cobra.Command {
+func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:   "tx",
 		Short: "Transactions subcommands",
