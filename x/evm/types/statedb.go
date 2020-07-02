@@ -703,11 +703,8 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	// copied, the loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range csdb.stateObjectsDirty {
-		if idx, exist := csdb.addressToIndex[addr]; !exist {
-			state.stateObjects[idx] = stateEntry{
-				address:     addr,
-				stateObject: csdb.stateObjects[idx].stateObject.deepCopy(state),
-			}
+		if idx, exist := state.addressToIndex[addr]; !exist {
+			state.setStateObject(csdb.stateObjects[idx].stateObject.deepCopy(state))
 			state.stateObjectsDirty[addr] = struct{}{}
 		}
 	}
@@ -797,17 +794,15 @@ func (csdb *CommitStateDB) setError(err error) {
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
 	idx, found := csdb.addressToIndex[addr]
-	if !found {
-		return nil
-	}
+	if found {
+		// prefer 'live' (cached) objects
+		if so := csdb.stateObjects[idx].stateObject; so != nil {
+			if so.deleted {
+				return nil
+			}
 
-	// prefer 'live' (cached) objects
-	if so := csdb.stateObjects[idx].stateObject; so != nil {
-		if so.deleted {
-			return nil
+			return so
 		}
-
-		return so
 	}
 
 	// otherwise, attempt to fetch the account from the account mapper
@@ -827,14 +822,21 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
+	idx, found := csdb.addressToIndex[so.Address()]
+	if found {
+		// update the existing object
+		csdb.stateObjects[idx].stateObject = so
+		return
+	}
+
+	// append the new state object to the stateObjects slice
 	se := stateEntry{
 		address:     so.Address(),
 		stateObject: so,
 	}
 
-	idx := len(csdb.stateObjects)
 	csdb.stateObjects = append(csdb.stateObjects, se)
-	csdb.addressToIndex[se.address] = idx
+	csdb.addressToIndex[se.address] = len(csdb.stateObjects) - 1
 }
 
 // RawDump returns a raw state dump.

@@ -81,7 +81,8 @@ func (j *journal) length() int {
 	return len(j.entries)
 }
 
-// append inserts a new modification entry to the end of the change journal.
+// getDirty returns the dirty count for a given address. If the address is not
+// found it returns 0.
 func (j *journal) getDirty(addr ethcmn.Address) int {
 	idx, found := j.addressToIndex[addr]
 	if !found {
@@ -91,6 +92,8 @@ func (j *journal) getDirty(addr ethcmn.Address) int {
 	return j.dirties[idx].changes
 }
 
+// addDirty adds 1 to the dirty count of an address. It performs a no-op if the
+// address is not found.
 func (j *journal) addDirty(addr ethcmn.Address) {
 	idx, found := j.addressToIndex[addr]
 	if !found {
@@ -102,6 +105,8 @@ func (j *journal) addDirty(addr ethcmn.Address) {
 	j.dirties[idx] = dirty
 }
 
+// substractDirty substracts 1 to the dirty count of an address. It performs a
+// no-op if the address is not found.
 func (j *journal) substractDirty(addr ethcmn.Address) {
 	idx, found := j.addressToIndex[addr]
 	if !found {
@@ -113,6 +118,8 @@ func (j *journal) substractDirty(addr ethcmn.Address) {
 	j.dirties[idx] = dirty
 }
 
+// deleteDirty deletes a dirty entry from the jounal's dirties slice. If the
+// entry is not found it performs a no-op.
 func (j *journal) deleteDirty(addr ethcmn.Address) {
 	idx, found := j.addressToIndex[addr]
 	if !found {
@@ -187,7 +194,7 @@ func (ch createObjectChange) revert(s *CommitStateDB) {
 		// perform no-op
 		return
 	}
-	// reemove from the slice
+	// remove from the slice
 	s.stateObjects = append(s.stateObjects[:idx], s.stateObjects[idx+1:]...)
 }
 
