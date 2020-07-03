@@ -1,20 +1,25 @@
 package rpc
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
+	"net"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 	// "github.com/cosmos/cosmos-sdk/client/context"
 	// "github.com/cosmos/cosmos-sdk/client/flags"
-	// "github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/rpc"
+
+	context "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // ErrorResponseJSON json for error responses
@@ -113,7 +118,12 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		//method := msg["method"]
 
 		// otherwise, call the usual rpc server to respond
-		client := &http.Client{}
+		tcpConn, err := net.Dial("tcp", "localhost:8545")
+		if err != nil {
+			log.Println("cannot connect to tcp:localhost:8545", err)
+			continue
+		}
+
 		buf := &bytes.Buffer{}
 		_, err = buf.Write(mb)
 		if err != nil {
@@ -128,60 +138,73 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		}
 
 		req.Header.Set("Content-Type", "application/json;")
+		req.Write(tcpConn)
 
-		res, err := client.Do(req)
-		if err != nil {
-			log.Println("websocket error calling rpc; error", err)
-			return
-		}
-
-		body, err := ioutil.ReadAll(res.Body)
+		respBytes, err := ioutil.ReadAll(tcpConn)
 		if err != nil {
 			log.Println("error reading response body; error", err)
 			return
 		}
 
-		err = res.Body.Close()
+		respbuf := &bytes.Buffer{}
+		respbuf.Write(respBytes)
+		resp, err := http.ReadResponse(bufio.NewReader(respbuf), req)
 		if err != nil {
-			log.Println("error closing response body; error", err)
-			return
+			log.Println("could not read response; error", err)
+			continue
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Println("could not read body from response; error", err)
+			continue
 		}
 
 		var wsSend interface{}
 		err = json.Unmarshal(body, &wsSend)
 		if err != nil {
-			log.Println("error unmarshal rpc response; error", err)
-			return
+			log.Println("error json unmarshal rpc response; error", err)
+			continue
 		}
 
 		err = s.wsConn.WriteJSON(wsSend)
 		if err != nil {
 			log.Println("error writing json response; error", err)
-			return
+			continue
 		}
 	}
 }
 
-// // PublicPubSubAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec
-// type PublicPubSubAPI struct {
-// 	cliCtx  context.CLIContext
-// 	backend Backend
-// }
+// pubSubAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec
+type pubSubAPI struct {
+	cliCtx    context.CLIContext
+	backend   Backend
+	events    *EventSystem
+	filtersMu sync.Mutex
+	filters   map[rpc.ID]*Subscription
+}
 
-// // NewPublicPubSubAPI creates an instance of the public ETH Web3 PubSub API.
-// func NewPublicPubSubAPI(cliCtx context.CLIContext, backend Backend, websocketAddr string) *PublicPubSubAPI {
-// 	newServer(websocketAddr)
+// newPubSubAPI creates an instance of the ethereum PubSub API.
+func newPubSubAPI(cliCtx context.CLIContext) *pubSubAPI {
+	return &pubSubAPI{
+		cliCtx: cliCtx,
+		events: NewEventSystem(cliCtx.Client),
+	}
+}
 
-// 	return &PublicPubSubAPI{
-// 		cliCtx:  cliCtx,
-// 		backend: backend,
-// 	}
-// }
+func (api *pubSubAPI) subscribe() (rpc.ID, error) {
+	sub, _, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return rpc.ID(0), fmt.Errorf("error creating block filter: %s", err.Error())
+	}
 
-// func (p *PublicPubSubAPI) Subscribe() (rpc.ID, error) {
-// 	return rpc.ID(0), nil
-// }
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = sub
+	api.filtersMu.Unlock()
 
-// func (p *PublicPubSubAPI) Unsubscribe(id rpc.ID) {
+	return sub.ID(), nil
+}
 
-// }
+func (api *pubSubAPI) unsubscribe(id rpc.ID) {
+
+}
