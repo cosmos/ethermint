@@ -10,15 +10,14 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
-	// "github.com/cosmos/cosmos-sdk/client/context"
-	// "github.com/cosmos/cosmos-sdk/client/flags"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	context "github.com/cosmos/cosmos-sdk/client/context"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -27,9 +26,9 @@ import (
 
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
-	Jsonrpc string  `json:"jsonrpc"`
-	Result  rpc.ID  `json:"result"`
-	ID      float64 `json:"id"`
+	Jsonrpc string      `json:"jsonrpc"`
+	Result  interface{} `json:"result"`
+	ID      float64     `json:"id"`
 }
 
 type SubscriptionNotification struct {
@@ -114,8 +113,6 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			return
 		}
 
-		log.Println("got websockets message!", mb)
-
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
 		err = json.Unmarshal(mb, &msg)
@@ -136,7 +133,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			continue
 		}
 
-		// TODO: check if method == eth_subscribe or eth_unsubscribe
+		// check if method == eth_subscribe or eth_unsubscribe
 		method := msg["method"]
 		if method.(string) == "eth_subscribe" {
 			id, err := s.api.subscribe(wsConn, "")
@@ -156,12 +153,53 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 				log.Println("failed to write json response", err)
 				continue
 			}
+
+			continue
+		} else if method.(string) == "eth_unsubscribe" {
+			ids, ok := msg["params"].([]interface{})
+			if _, idok := ids[0].(string); !ok || !idok {
+				log.Println("invalid unsubscribe message params")
+				res := &ErrorResponseJSON{
+					Jsonrpc: "2.0",
+					Error: &ErrorMessageJSON{
+						Code:    big.NewInt(-32600),
+						Message: "Invalid parameters",
+					},
+					ID: nil,
+				}
+				err = wsConn.WriteJSON(res)
+				if err != nil {
+					log.Println("websocket failed write message", "error", err)
+				}
+				continue
+			}
+
+			ok = s.api.unsubscribe(rpc.ID(ids[0].(string)))
+			res := &SubscriptionResponseJSON{
+				Jsonrpc: "2.0",
+				ID:      1,
+				Result:  ok,
+			}
+
+			err = wsConn.WriteJSON(res)
+			if err != nil {
+				log.Println("failed to write json response", err)
+				continue
+			}
+
+			continue
 		}
 
 		// otherwise, call the usual rpc server to respond
-		tcpConn, err := net.Dial("tcp", "localhost:8545")
+		addr := strings.Split(s.rpcAddr, "tcp://")
+		if len(addr) != 2 {
+			log.Println("invalid laddr", s.rpcAddr)
+			continue
+		}
+
+		tcpConn, err := net.Dial("tcp", addr[1])
 		if err != nil {
-			log.Println("cannot connect to tcp:localhost:8545", err)
+			log.Println("cannot connect to", s.rpcAddr, err)
 			continue
 		}
 
@@ -217,8 +255,9 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 }
 
 type wsSubscription struct {
-	sub  *Subscription
-	conn *websocket.Conn
+	sub          *Subscription
+	unsubscribed chan struct{} // closed when unsubscribing
+	conn         *websocket.Conn
 }
 
 // pubSubAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec
@@ -246,10 +285,12 @@ func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, er
 		return rpc.ID(0), fmt.Errorf("error creating block filter: %s", err.Error())
 	}
 
+	unsubscribed := make(chan struct{})
 	api.filtersMu.Lock()
 	api.filters[sub.ID()] = &wsSubscription{
-		sub:  sub,
-		conn: conn,
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
 	}
 	api.filtersMu.Unlock()
 
@@ -283,6 +324,8 @@ func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, er
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
+			case <-unsubscribed:
+				return
 			}
 		}
 	}(sub.eventCh, sub.Err())
@@ -290,8 +333,15 @@ func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, er
 	return sub.ID(), nil
 }
 
-func (api *pubSubAPI) unsubscribe(id rpc.ID) {
+func (api *pubSubAPI) unsubscribe(id rpc.ID) bool {
 	api.filtersMu.Lock()
+	defer api.filtersMu.Unlock()
+
+	if api.filters[id] == nil {
+		return false
+	}
+
+	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
-	api.filtersMu.Unlock()
+	return true
 }
