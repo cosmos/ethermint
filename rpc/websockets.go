@@ -186,74 +186,70 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			continue
 		}
 
-		// otherwise, call the usual rpc server to respond
-		addr := strings.Split(s.rpcAddr, "tcp://")
-		if len(addr) != 2 {
-			log.Println("invalid laddr", s.rpcAddr)
-			continue
-		}
-
-		tcpConn, err := net.Dial("tcp", addr[1])
+		err = s.tcpGetAndSendResponse(wsConn, mb)
 		if err != nil {
-			log.Println("cannot connect to", s.rpcAddr, err)
-			continue
-		}
-
-		buf := &bytes.Buffer{}
-		_, err = buf.Write(mb)
-		if err != nil {
-			log.Println("failed to write message to buffer; error", err)
-			return
-		}
-
-		req, err := http.NewRequest("POST", s.rpcAddr, buf)
-		if err != nil {
-			log.Println("failed request to rpc service; error", err)
-			return
-		}
-
-		req.Header.Set("Content-Type", "application/json;")
-		err = req.Write(tcpConn)
-		if err != nil {
-			log.Println("failed to write to tcp conn; error", err)
-			continue
-		}
-
-		respBytes, err := ioutil.ReadAll(tcpConn)
-		if err != nil {
-			log.Println("error reading response body; error", err)
-			return
-		}
-
-		respbuf := &bytes.Buffer{}
-		respbuf.Write(respBytes)
-		resp, err := http.ReadResponse(bufio.NewReader(respbuf), req)
-		if err != nil {
-			log.Println("could not read response; error", err)
-			continue
-		}
-
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println("could not read body from response; error", err)
-			continue
-		}
-
-		var wsSend interface{}
-		err = json.Unmarshal(body, &wsSend)
-		if err != nil {
-			log.Println("error json unmarshal rpc response; error", err)
-			continue
-		}
-
-		err = wsConn.WriteJSON(wsSend)
-		if err != nil {
-			log.Println("error writing json response; error", err)
-			continue
+			sendErrResponse(wsConn, err.Error())
 		}
 	}
+}
+
+// tcpGetAndSendResponse connects to the rest-server over tcp, posts a JSON-RPC request, and sends the response
+// to the client over websockets
+func (s *websocketsServer) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
+	// otherwise, call the usual rpc server to respond
+	addr := strings.Split(s.rpcAddr, "tcp://")
+	if len(addr) != 2 {
+		return fmt.Errorf("invalid laddr %s", s.rpcAddr)
+	}
+
+	tcpConn, err := net.Dial("tcp", addr[1])
+	if err != nil {
+		return fmt.Errorf("cannot connect to %s; %s", s.rpcAddr, err)
+	}
+
+	buf := &bytes.Buffer{}
+	_, err = buf.Write(mb)
+	if err != nil {
+		return fmt.Errorf("failed to write message; %s", err)
+	}
+
+	req, err := http.NewRequest("POST", s.rpcAddr, buf)
+	if err != nil {
+		return fmt.Errorf("failed to request; %s", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json;")
+	err = req.Write(tcpConn)
+	if err != nil {
+		return fmt.Errorf("failed to write to rest-server; %s", err)
+	}
+
+	respBytes, err := ioutil.ReadAll(tcpConn)
+	if err != nil {
+		return fmt.Errorf("error reading response from rest-server; %s", err)
+	}
+
+	respbuf := &bytes.Buffer{}
+	respbuf.Write(respBytes)
+	resp, err := http.ReadResponse(bufio.NewReader(respbuf), req)
+	if err != nil {
+		return fmt.Errorf("could not read response; %s", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("could not read body from response; %s", err)
+	}
+
+	var wsSend interface{}
+	err = json.Unmarshal(body, &wsSend)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal rest-server response; %s", err)
+	}
+
+	return conn.WriteJSON(wsSend)
 }
 
 type wsSubscription struct {
@@ -473,7 +469,54 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 }
 
 func (api *pubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID, error) {
-	return "", nil
+	sub, _, err := api.events.SubscribePendingTxs()
+	if err != nil {
+		return "", fmt.Errorf("error creating block filter: %s", err.Error())
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case ev := <-txsCh:
+				data, _ := ev.Data.(tmtypes.EventDataTx)
+				txHash := common.BytesToHash(data.Tx.Hash())
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[sub.ID()]; found {
+					// write to ws conn
+					res := &SubscriptionNotification{
+						Jsonrpc: "2.0",
+						Method:  "eth_subscription",
+						Params: &SubscriptionResult{
+							Subscription: sub.ID(),
+							Result:       txHash,
+						},
+					}
+
+					err = f.conn.WriteJSON(res)
+					if err != nil {
+						log.Println("error writing header")
+					}
+				}
+				api.filtersMu.Unlock()
+			case <-errCh:
+				api.filtersMu.Lock()
+				delete(api.filters, sub.ID())
+				api.filtersMu.Unlock()
+			}
+		}
+	}(sub.eventCh, sub.Err())
+
+	return sub.ID(), nil
 }
 
 func (api *pubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
