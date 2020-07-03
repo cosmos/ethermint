@@ -13,8 +13,11 @@ import (
 	"strings"
 	"sync"
 
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
@@ -38,8 +41,8 @@ type SubscriptionNotification struct {
 }
 
 type SubscriptionResult struct {
-	Subscription rpc.ID           `json:"subscription"`
-	Result       *ethtypes.Header `json:"result"`
+	Subscription rpc.ID      `json:"subscription"`
+	Result       interface{} `json:"result"`
 }
 
 // ErrorResponseJSON json for error responses
@@ -141,13 +144,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
-			mstr, ok := params[0].(string)
-			if !ok {
-				sendErrResponse(wsConn, "invalid parameters")
-				continue
-			}
-
-			id, err := s.api.subscribe(wsConn, mstr)
+			id, err := s.api.subscribe(wsConn, params)
 			if err != nil {
 				sendErrResponse(wsConn, err.Error())
 				continue
@@ -282,10 +279,26 @@ func newPubSubAPI(cliCtx context.CLIContext) *pubSubAPI {
 	}
 }
 
-func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, error) {
+func (api *pubSubAPI) subscribe(conn *websocket.Conn, params []interface{}) (rpc.ID, error) {
+	method, ok := params[0].(string)
+	if !ok {
+		return "0", fmt.Errorf("invalid parameters")
+	}
+
 	switch method {
 	case "newHeads":
+		// TODO: handle extra params
 		return api.subscribeNewHeads(conn)
+	case "logs":
+		if len(params) > 1 {
+			return api.subscribeLogs(conn, params[1])
+		} else {
+			return api.subscribeLogs(conn, nil)
+		}
+	case "newPendingTransactions":
+		return api.subscribePendingTransactions(conn)
+	case "syncing":
+		return api.subscribeSyncing(conn)
 	default:
 		return "0", fmt.Errorf("unsupported method %s", method)
 	}
@@ -307,7 +320,7 @@ func (api *pubSubAPI) unsubscribe(id rpc.ID) bool {
 func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribeNewHeads()
 	if err != nil {
-		return rpc.ID(0), fmt.Errorf("error creating block filter: %s", err.Error())
+		return "", fmt.Errorf("error creating block filter: %s", err.Error())
 	}
 
 	unsubscribed := make(chan struct{})
@@ -322,8 +335,8 @@ func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
-			case ev := <-headersCh:
-				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
+			case event := <-headersCh:
+				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
 				header := EthHeaderFromTendermint(data.Header)
 
 				api.filtersMu.Lock()
@@ -356,4 +369,113 @@ func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	}(sub.eventCh, sub.Err())
 
 	return sub.ID(), nil
+}
+
+func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rpc.ID, error) {
+	crit := filters.FilterCriteria{}
+
+	if extra != nil {
+		params, ok := extra.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("invalid criteria")
+		}
+
+		if params["address"] != nil {
+			address, ok := params["address"].(string)
+			if !ok {
+				// TODO: handle array of addresses
+				return "", fmt.Errorf("invalid address")
+			}
+			crit.Addresses = []common.Address{common.HexToAddress(address)}
+		}
+
+		if params["topics"] != nil {
+			topics, ok := params["topics"].([]interface{})
+			if !ok {
+				return "", fmt.Errorf("invalid topics")
+			}
+
+			crit.Topics = [][]common.Hash{}
+			for _, topic := range topics {
+				tstr, ok := topic.(string)
+				if !ok {
+					return "", fmt.Errorf("invalid topics")
+				}
+
+				h := common.HexToHash(tstr)
+				crit.Topics = append(crit.Topics, []common.Hash{h})
+			}
+		}
+	}
+
+	sub, _, err := api.events.SubscribeLogs(crit)
+	if err != nil {
+		return rpc.ID(""), err
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	go func(ch <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case event := <-ch:
+				dataTx, ok := event.Data.(tmtypes.EventDataTx)
+				if !ok {
+					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
+					return
+				}
+
+				var resultData evmtypes.ResultData
+				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				if err != nil {
+					return
+				}
+
+				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[sub.ID()]; found {
+					// write to ws conn
+					res := &SubscriptionNotification{
+						Jsonrpc: "2.0",
+						Method:  "eth_subscription",
+						Params: &SubscriptionResult{
+							Subscription: sub.ID(),
+							Result:       logs,
+						},
+					}
+
+					err = f.conn.WriteJSON(res)
+					if err != nil {
+						log.Println("error writing header")
+					}
+				}
+				api.filtersMu.Unlock()
+			case <-errCh:
+				api.filtersMu.Lock()
+				delete(api.filters, sub.ID())
+				api.filtersMu.Unlock()
+				return
+			case <-unsubscribed:
+				return
+			}
+		}
+	}(sub.eventCh, sub.Err())
+
+	return sub.ID(), nil
+}
+
+func (api *pubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID, error) {
+	return "", nil
+}
+
+func (api *pubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
+	return "", nil
 }
