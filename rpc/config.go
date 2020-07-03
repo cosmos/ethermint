@@ -28,20 +28,20 @@ const (
 	flagWebsocket = "websocket-port"
 )
 
-// Config contains configuration fields that determine the behavior of the RPC HTTP server.
-// TODO: These may become irrelevant if HTTP config is handled by the SDK
-type Config struct {
-	// EnableRPC defines whether or not to enable the RPC server
-	EnableRPC bool
-	// RPCAddr defines the IP address to listen on
-	RPCAddr string
-	// RPCPort defines the port to listen on
-	RPCPort int
-	// RPCCORSDomains defines list of domains to enable CORS headers for (used by browsers)
-	RPCCORSDomains []string
-	// RPCVhosts defines list of domains to listen on (useful if Tendermint is addressable via DNS)
-	RPCVHosts []string
-}
+// // Config contains configuration fields that determine the behavior of the RPC HTTP server.
+// // TODO: These may become irrelevant if HTTP config is handled by the SDK
+// type Config struct {
+// 	// EnableRPC defines whether or not to enable the RPC server
+// 	EnableRPC bool
+// 	// RPCAddr defines the IP address to listen on
+// 	RPCAddr string
+// 	// RPCPort defines the port to listen on
+// 	RPCPort int
+// 	// RPCCORSDomains defines list of domains to enable CORS headers for (used by browsers)
+// 	RPCCORSDomains []string
+// 	// RPCVhosts defines list of domains to listen on (useful if Tendermint is addressable via DNS)
+// 	RPCVHosts []string
+// }
 
 // EmintServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
@@ -84,8 +84,7 @@ func registerRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	websocketAddr := viper.GetString(flagWebsocket)
-	apis := GetRPCAPIs(rs.CliCtx, emintKey, websocketAddr)
+	apis := GetRPCAPIs(rs.CliCtx, emintKey)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -106,6 +105,11 @@ func registerRoutes(rs *lcd.RestServer) {
 	client.RegisterRoutes(rs.CliCtx, rs.Mux)
 	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
 	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+
+	// start ws server
+	websocketAddr := viper.GetString(flagWebsocket)
+	ws := newWebsocketsServer(websocketAddr)
+	ws.start()
 }
 
 func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {

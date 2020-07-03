@@ -20,7 +20,7 @@ const (
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1, websocketAddr string) []rpc.API {
+func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
 	backend := NewEthermintBackend(cliCtx)
 
@@ -55,11 +55,11 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1, web
 			Service:   NewPublicNetAPI(cliCtx),
 			Public:    true,
 		},
-		{
-			Namespace: EthNamespace,
-			Version:   apiVersion,
-			Service:   NewPublicPubSubAPI(cliCtx, backend, websocketAddr),
-			Public:    true,
-		},
+		// {
+		// 	Namespace: EthNamespace,
+		// 	Version:   apiVersion,
+		// 	Service:   NewPublicPubSubAPI(cliCtx, backend, websocketAddr),
+		// 	Public:    true,
+		// },
 	}
 }
