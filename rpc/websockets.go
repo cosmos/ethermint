@@ -288,9 +288,9 @@ func (api *pubSubAPI) subscribe(conn *websocket.Conn, params []interface{}) (rpc
 	case "logs":
 		if len(params) > 1 {
 			return api.subscribeLogs(conn, params[1])
-		} else {
-			return api.subscribeLogs(conn, nil)
 		}
+
+		return api.subscribeLogs(conn, nil)
 	case "newPendingTransactions":
 		return api.subscribePendingTransactions(conn)
 	case "syncing":
@@ -378,11 +378,26 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 
 		if params["address"] != nil {
 			address, ok := params["address"].(string)
-			if !ok {
-				// TODO: handle array of addresses
-				return "", fmt.Errorf("invalid address")
+			addresses, sok := params["address"].([]interface{})
+			if !ok && !sok {
+				return "", fmt.Errorf("invalid address; must be address or array of addresses")
 			}
-			crit.Addresses = []common.Address{common.HexToAddress(address)}
+
+			if ok {
+				crit.Addresses = []common.Address{common.HexToAddress(address)}
+			}
+
+			if sok {
+				crit.Addresses = []common.Address{}
+				for _, addr := range addresses {
+					address, ok := addr.(string)
+					if !ok {
+						return "", fmt.Errorf("invalid address")
+					}
+
+					crit.Addresses = append(crit.Addresses, common.HexToAddress(address))
+				}
+			}
 		}
 
 		if params["topics"] != nil {
