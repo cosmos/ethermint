@@ -25,7 +25,7 @@ import (
 
 const (
 	flagUnlockKey = "unlock-key"
-	flagWebsocket = "websocket-address"
+	flagWebsocket = "websocket-port"
 )
 
 // Config contains configuration fields that determine the behavior of the RPC HTTP server.
@@ -48,7 +48,7 @@ type Config struct {
 func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
 	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
-	cmd.Flags().String(flagWebsocket, "ws://localhost:7545", "websocket address to listen to")
+	cmd.Flags().String(flagWebsocket, "7545", "websocket port to listen to")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	return cmd
 }

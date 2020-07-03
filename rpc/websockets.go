@@ -1,16 +1,17 @@
 package rpc
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-)
 
-const defaultWebsocketPort = 7545
+	"github.com/cosmos/cosmos-sdk/client/context"
+
+	"github.com/ethereum/go-ethereum/rpc"
+)
 
 // TODO: add logger
 type server struct{}
@@ -21,7 +22,7 @@ func newServer(websocketAddr string) {
 	ws := mux.NewRouter()
 	ws.Handle("/", s)
 	go func() {
-		err := http.ListenAndServe(websocketAddr, ws)
+		err := http.ListenAndServe(fmt.Sprintf(":%s", websocketAddr), ws)
 		if err != nil {
 			log.Println("http error:", err)
 		}
