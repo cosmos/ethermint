@@ -24,12 +24,10 @@ type FiltersBackend interface {
 	GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
 	HeaderByNumber(blockNr rpc.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	// GetReceipts(blockHash common.Hash) (ethtypes.Receipts, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
-	// ServiceFilter(session *bloombits.MatcherSession)
 }
 
 // consider a filter inactive if it has not been polled for within deadline
@@ -112,13 +110,13 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", err.Error()))
 	}
 
-	defer cancelSubs()
-
 	api.filtersMu.Lock()
 	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
 	api.filtersMu.Unlock()
 
 	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		defer cancelSubs()
+
 		for {
 			select {
 			case ev := <-txsCh:
@@ -161,9 +159,9 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 		return nil, err
 	}
 
-	defer cancelSubs()
-
 	go func(txsCh <-chan coretypes.ResultEvent) {
+		defer cancelSubs()
+
 		for {
 			select {
 			case ev := <-txsCh:
@@ -200,13 +198,13 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", err.Error()))
 	}
 
-	defer cancelSubs()
-
 	api.filtersMu.Lock()
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: headerSub}
 	api.filtersMu.Unlock()
 
 	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		defer cancelSubs()
+
 		for {
 			select {
 			case ev := <-headersCh:
@@ -244,9 +242,9 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, err
 	}
 
-	defer cancelSubs()
-
 	go func(headersCh <-chan coretypes.ResultEvent) {
+		defer cancelSubs()
+
 		for {
 			select {
 			case ev := <-headersCh:
@@ -291,9 +289,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, err
 	}
 
-	defer cancelSubs()
-
 	go func(logsCh <-chan coretypes.ResultEvent) {
+		defer cancelSubs()
+
 		for {
 			select {
 			case event := <-logsCh:
@@ -302,11 +300,11 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
 
 				if !(isMsgEthermint || isMsgEthereumTx) {
-					// ignore transaction
+					// ignore transaction as it's not from the evm module
 					return
 				}
 
-				// get the
+				// get transaction result data
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", event.Data, tmtypes.EventTx)
