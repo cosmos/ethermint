@@ -208,10 +208,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: headerSub}
 	api.filtersMu.Unlock()
 
-	log.Println("starting block header loop, id =", headerSub.ID())
-
 	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
-		// nolint: gosimple
 		for {
 			select {
 			case ev := <-headersCh:

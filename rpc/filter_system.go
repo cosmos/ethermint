@@ -53,9 +53,10 @@ type EventSystem struct {
 	// Unidirectional channels to receive Tendermint ResultEvents
 	txsCh         <-chan coretypes.ResultEvent // Channel to receive new pending transactions event
 	logsCh        <-chan coretypes.ResultEvent // Channel to receive new log event
-	pendingLogsCh <-chan coretypes.ResultEvent // Channel to receive new log event
-	rmLogsCh      <-chan coretypes.ResultEvent // Channel to receive removed log event
-	chainCh       <-chan coretypes.ResultEvent // Channel to receive new chain event
+	pendingLogsCh <-chan coretypes.ResultEvent // Channel to receive new pending log event
+	// rmLogsCh      <-chan coretypes.ResultEvent // Channel to receive removed log event
+
+	chainCh <-chan coretypes.ResultEvent // Channel to receive new chain event
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,
@@ -80,19 +81,25 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 		txsCh:         make(<-chan coretypes.ResultEvent),
 		logsCh:        make(<-chan coretypes.ResultEvent),
 		pendingLogsCh: make(<-chan coretypes.ResultEvent),
-		rmLogsCh:      make(<-chan coretypes.ResultEvent),
-		chainCh:       make(<-chan coretypes.ResultEvent),
+		// rmLogsCh:      make(<-chan coretypes.ResultEvent),
+		chainCh: make(<-chan coretypes.ResultEvent),
 	}
 
 	go es.eventLoop()
 	return es
 }
 
-// WithContext sets the a given context to the
+// WithContext sets a new context to the EventSystem. This is required to set a timeout context when
+// a new filter is intantiated.
 func (es *EventSystem) WithContext(ctx context.Context) {
 	es.ctx = ctx
 }
 
+// subscribe performs a new event subscription to a given Tendermint event.
+// The subscription creates a unidirectional receive event channel to receive the ResultEvent. By
+// default, the subscription timeouts (i.e is canceled) after 5 minutes. This function returns an
+// error if the subscription fails (eg: if the identifier is already subscribed) or if the filter
+// type is invalid.
 func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.CancelFunc, error) {
 	var (
 		err      error
@@ -105,16 +112,12 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
-		log.Println("subscribed to pending txs")
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
-		log.Println("subscribed to pending logs")
 	case filters.LogsSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
-		log.Println("subscribed to logs")
 	case filters.BlocksSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
-		log.Println("subscribed to headers")
 	default:
 		err = fmt.Errorf("invalid filter subscription type %d", sub.typ)
 	}
@@ -259,7 +262,6 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 		return
 	}
 	for _, f := range es.index[filters.LogsSubscription] {
-		log.Println(es.index[filters.LogsSubscription])
 		matchedLogs := filterLogs(resultData.Logs, f.logsCrit.FromBlock, f.logsCrit.ToBlock, f.logsCrit.Addresses, f.logsCrit.Topics)
 		if len(matchedLogs) > 0 {
 			f.logs <- matchedLogs
@@ -269,7 +271,6 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 
 func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
-	log.Println(es.index[filters.PendingTransactionsSubscription])
 	for _, f := range es.index[filters.PendingTransactionsSubscription] {
 		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
 	}
@@ -277,7 +278,6 @@ func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 
 func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
-	log.Println(es.index[filters.BlocksSubscription])
 	for _, f := range es.index[filters.BlocksSubscription] {
 		f.headers <- EthHeaderFromTendermint(data.Header)
 	}
@@ -287,8 +287,8 @@ func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 // eventLoop (un)installs filters and processes mux events.
 func (es *EventSystem) eventLoop() {
 	var (
-		err                                                    error
-		cancelPendingTxsSubs, cancelLogsSubs, cancelHeaderSubs context.CancelFunc
+		err                                                                           error
+		cancelPendingTxsSubs, cancelLogsSubs, cancelPendingLogsSubs, cancelHeaderSubs context.CancelFunc
 	)
 
 	// Subscribe events
@@ -306,6 +306,13 @@ func (es *EventSystem) eventLoop() {
 
 	defer cancelLogsSubs()
 
+	es.pendingLogsSub, cancelPendingLogsSubs, err = es.subscribePendingLogs(filters.FilterCriteria{})
+	if err != nil {
+		panic(fmt.Errorf("failed to subscribe pending logs: %w", err))
+	}
+
+	defer cancelPendingLogsSubs()
+
 	es.chainSub, cancelHeaderSubs, err = es.SubscribeNewHeads()
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe headers: %w", err))
@@ -322,20 +329,18 @@ func (es *EventSystem) eventLoop() {
 		es.chainSub.Unsubscribe(es)
 	}()
 
-	log.Println("start event loop")
 	for {
 		select {
 		case txEvent := <-es.txsSub.eventCh:
-			// FIXME: does't work
-			log.Println("received tx event", txEvent)
 			es.handleTxsEvent(txEvent)
 		case headerEv := <-es.chainSub.eventCh:
-			// FIXME: does't work
-			//log.Println("received header event", headerEv)
 			es.handleChainEvent(headerEv)
 		case logsEv := <-es.logsSub.eventCh:
-			// FIXME: does't work
-			log.Println("received logs event", logsEv)
+			es.handleLogs(logsEv)
+		// TODO: figure out how to handle removed logs
+		// case logsEv := <-es.rmLogsSub.eventCh:
+		// 	es.handleLogs(logsEv)
+		case logsEv := <-es.pendingLogsSub.eventCh:
 			es.handleLogs(logsEv)
 
 		case f := <-es.install:
@@ -347,7 +352,6 @@ func (es *EventSystem) eventLoop() {
 				es.index[f.typ][f.id] = f
 			}
 			close(f.installed)
-			log.Println("filter installed", f.id)
 
 		case f := <-es.uninstall:
 			if f.typ == filters.MinedAndPendingLogsSubscription {
@@ -358,7 +362,6 @@ func (es *EventSystem) eventLoop() {
 				delete(es.index[f.typ], f.id)
 			}
 			close(f.err)
-			log.Println("filter uninstalled", f.id)
 			// System stopped
 		case <-es.txsSub.Err():
 			return
@@ -366,8 +369,8 @@ func (es *EventSystem) eventLoop() {
 			return
 		// case <-es.rmLogsSub.Err():
 		// 	return
-		// case <-es.pendingLogsSub.Err():
-		// 	return
+		case <-es.pendingLogsSub.Err():
+			return
 		case <-es.chainSub.Err():
 			return
 		}
