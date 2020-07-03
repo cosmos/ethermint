@@ -241,18 +241,3 @@ func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]co
 	}
 	return included
 }
-
-// func (f *Filter) pollForTransactions(hashCh chan []common.Hash, errCh chan error) {
-// 	for {
-// 		txs, err := f.backend.PendingTransactions()
-// 		if err != nil {
-// 			errCh <- err
-// 		}
-
-// 		for _, tx := range txs {
-// 			hashCh <- tx.Hash
-// 		}
-
-// 		<-time.After(6 * time.Second)
-// 	}
-// }
