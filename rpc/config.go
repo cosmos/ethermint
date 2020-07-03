@@ -84,7 +84,8 @@ func registerRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetRPCAPIs(rs.CliCtx, emintKey)
+	websocketAddr := viper.GetString(flagWebsocket)
+	apis := GetRPCAPIs(rs.CliCtx, emintKey, websocketAddr)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
