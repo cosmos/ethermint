@@ -3,9 +3,8 @@
 package rpc
 
 import (
-	emintcrypto "github.com/cosmos/ethermint/crypto"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -24,6 +23,7 @@ const (
 func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
 	backend := NewEthermintBackend(cliCtx)
+
 	return []rpc.API{
 		{
 			Namespace: Web3Namespace,
@@ -53,6 +53,12 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 			Namespace: NetNamespace,
 			Version:   apiVersion,
 			Service:   NewPublicNetAPI(cliCtx),
+			Public:    true,
+		},
+		{
+			Namespace: EthNamespace,
+			Version:   apiVersion,
+			Service:   NewPublicPubSubAPI(cliCtx, backend),
 			Public:    true,
 		},
 	}
