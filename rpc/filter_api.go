@@ -3,7 +3,6 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -119,7 +118,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
 	api.filtersMu.Unlock()
 
-	go func(txsCh <-chan coretypes.ResultEvent) {
+	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
 			case ev := <-txsCh:
@@ -131,14 +130,13 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 					f.hashes = append(f.hashes, txHash)
 				}
 				api.filtersMu.Unlock()
-			case <-pendingTxSub.Err():
+			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, pendingTxSub.ID())
 				api.filtersMu.Unlock()
-				return
 			}
 		}
-	}(pendingTxSub.eventCh)
+	}(pendingTxSub.eventCh, pendingTxSub.Err())
 
 	return pendingTxSub.ID()
 }
@@ -219,11 +217,10 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 					f.hashes = append(f.hashes, header.Hash())
 				}
 				api.filtersMu.Unlock()
-			case err := <-errCh:
+			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, headerSub.ID())
 				api.filtersMu.Unlock()
-				log.Println("block filter loop err", err)
 				return
 			}
 		}
@@ -242,18 +239,17 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
-	var err error
-	go func() {
-		headersSub, cancelSubs, err := api.events.SubscribeNewHeads()
-		if err != nil {
-			return
-		}
+	headersSub, cancelSubs, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return &rpc.Subscription{}, err
+	}
 
-		defer cancelSubs()
+	defer cancelSubs()
 
+	go func(headersCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
-			case ev := <-api.events.chainCh:
+			case ev := <-headersCh:
 				data, ok := ev.Data.(tmtypes.EventDataNewBlockHeader)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected %s", ev.Data, tmtypes.EventNewBlockHeader)
@@ -275,7 +271,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 				return
 			}
 		}
-	}()
+	}(headersSub.eventCh)
 
 	return rpcSub, err
 }
@@ -290,18 +286,17 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 	api.events.WithContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
-	var err error
-	go func() {
-		logsSub, cancelSubs, err := api.events.SubscribeLogs(crit)
-		if err != nil {
-			return
-		}
+	logsSub, cancelSubs, err := api.events.SubscribeLogs(crit)
+	if err != nil {
+		return &rpc.Subscription{}, err
+	}
 
-		defer cancelSubs()
+	defer cancelSubs()
 
+	go func(logsCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
-			case event := <-logsSub.eventCh:
+			case event := <-logsCh:
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
@@ -340,7 +335,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 				return
 			}
 		}
-	}()
+	}(logsSub.eventCh)
 
 	return rpcSub, err
 }
@@ -366,8 +361,9 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 
 	logsSub, cancelSubs, err := api.events.SubscribeLogs(criteria)
 	if err != nil {
-		return rpc.ID(0), err
+		return rpc.ID(""), err
 	}
+
 	filterID = logsSub.ID()
 
 	api.filtersMu.Lock()
@@ -383,13 +379,12 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 				dataTx, ok := event.Data.(tmtypes.EventDataTx)
 				if !ok {
 					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
-					log.Println("error:", err)
 					return
 				}
 
-				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var resultData evmtypes.ResultData
+				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
-					log.Println("cannot decode result data; error:", err)
 					return
 				}
 
@@ -450,14 +445,11 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	if found {
-		log.Println("deleting filter", id)
 		delete(api.filters, id)
-		log.Println("uninstall complete", id)
 	}
 	api.filtersMu.Unlock()
 
 	if !found {
-		log.Println("filter not found", id)
 		return false
 	}
 	f.s.Unsubscribe(api.events)
