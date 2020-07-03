@@ -83,10 +83,6 @@ func (s *websocketsServer) start() {
 	}()
 }
 
-func (s *websocketsServer) stop() {
-	//s.wsConn.Close()
-}
-
 func (s *websocketsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -103,6 +99,21 @@ func (s *websocketsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.readLoop(wsConn)
 }
 
+func sendErrResponse(conn *websocket.Conn, msg string) {
+	res := &ErrorResponseJSON{
+		Jsonrpc: "2.0",
+		Error: &ErrorMessageJSON{
+			Code:    big.NewInt(-32600),
+			Message: msg,
+		},
+		ID: nil,
+	}
+	err := conn.WriteJSON(res)
+	if err != nil {
+		log.Println("websocket failed write message", "error", err)
+	}
+}
+
 func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 	for {
 		_, mb, err := wsConn.ReadMessage()
@@ -117,28 +128,28 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		var msg map[string]interface{}
 		err = json.Unmarshal(mb, &msg)
 		if err != nil {
-			log.Println("websocket failed to unmarshal request message; error", err)
-			res := &ErrorResponseJSON{
-				Jsonrpc: "2.0",
-				Error: &ErrorMessageJSON{
-					Code:    big.NewInt(-32600),
-					Message: "Invalid request",
-				},
-				ID: nil,
-			}
-			err = wsConn.WriteJSON(res)
-			if err != nil {
-				log.Println("websocket failed write message", "error", err)
-			}
+			sendErrResponse(wsConn, "invalid request")
 			continue
 		}
 
 		// check if method == eth_subscribe or eth_unsubscribe
 		method := msg["method"]
 		if method.(string) == "eth_subscribe" {
-			id, err := s.api.subscribe(wsConn, "")
+			params := msg["params"].([]interface{})
+			if len(params) == 0 {
+				sendErrResponse(wsConn, "invalid parameters")
+				continue
+			}
+
+			mstr, ok := params[0].(string)
+			if !ok {
+				sendErrResponse(wsConn, "invalid parameters")
+				continue
+			}
+
+			id, err := s.api.subscribe(wsConn, mstr)
 			if err != nil {
-				log.Println("failed to subscribe; error", err)
+				sendErrResponse(wsConn, err.Error())
 				continue
 			}
 
@@ -158,19 +169,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
 			if _, idok := ids[0].(string); !ok || !idok {
-				log.Println("invalid unsubscribe message params")
-				res := &ErrorResponseJSON{
-					Jsonrpc: "2.0",
-					Error: &ErrorMessageJSON{
-						Code:    big.NewInt(-32600),
-						Message: "Invalid parameters",
-					},
-					ID: nil,
-				}
-				err = wsConn.WriteJSON(res)
-				if err != nil {
-					log.Println("websocket failed write message", "error", err)
-				}
+				sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
 
@@ -217,7 +216,11 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		}
 
 		req.Header.Set("Content-Type", "application/json;")
-		req.Write(tcpConn)
+		err = req.Write(tcpConn)
+		if err != nil {
+			log.Println("failed to write to tcp conn; error", err)
+			continue
+		}
 
 		respBytes, err := ioutil.ReadAll(tcpConn)
 		if err != nil {
@@ -232,6 +235,8 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			log.Println("could not read response; error", err)
 			continue
 		}
+
+		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -278,8 +283,28 @@ func newPubSubAPI(cliCtx context.CLIContext) *pubSubAPI {
 }
 
 func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, error) {
-	// TODO: switch method
+	switch method {
+	case "newHeads":
+		return api.subscribeNewHeads(conn)
+	default:
+		return "0", fmt.Errorf("unsupported method %s", method)
+	}
+}
 
+func (api *pubSubAPI) unsubscribe(id rpc.ID) bool {
+	api.filtersMu.Lock()
+	defer api.filtersMu.Unlock()
+
+	if api.filters[id] == nil {
+		return false
+	}
+
+	close(api.filters[id].unsubscribed)
+	delete(api.filters, id)
+	return true
+}
+
+func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		return rpc.ID(0), fmt.Errorf("error creating block filter: %s", err.Error())
@@ -331,17 +356,4 @@ func (api *pubSubAPI) subscribe(conn *websocket.Conn, method string) (rpc.ID, er
 	}(sub.eventCh, sub.Err())
 
 	return sub.ID(), nil
-}
-
-func (api *pubSubAPI) unsubscribe(id rpc.ID) bool {
-	api.filtersMu.Lock()
-	defer api.filtersMu.Unlock()
-
-	if api.filters[id] == nil {
-		return false
-	}
-
-	close(api.filters[id].unsubscribed)
-	delete(api.filters, id)
-	return true
 }
