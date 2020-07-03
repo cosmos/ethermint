@@ -108,7 +108,7 @@ func registerRoutes(rs *lcd.RestServer) {
 
 	// start ws server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := newWebsocketsServer(websocketAddr)
+	ws := newWebsocketsServer(rs.CliCtx, websocketAddr)
 	ws.start()
 }
 

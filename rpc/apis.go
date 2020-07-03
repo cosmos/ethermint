@@ -55,11 +55,5 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 			Service:   NewPublicNetAPI(cliCtx),
 			Public:    true,
 		},
-		// {
-		// 	Namespace: EthNamespace,
-		// 	Version:   apiVersion,
-		// 	Service:   NewPublicPubSubAPI(cliCtx, backend, websocketAddr),
-		// 	Public:    true,
-		// },
 	}
 }
