@@ -62,8 +62,7 @@ type ErrorMessageJSON struct {
 type websocketsServer struct {
 	rpcAddr string // listen address of rest-server
 	wsAddr  string // listen address of ws server
-	//wsConn  *websocket.Conn
-	api *pubSubAPI
+	api     *pubSubAPI
 }
 
 func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsServer {
@@ -121,7 +120,6 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 	for {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
-			// TODO: write error
 			wsConn.Close()
 			log.Println("failed to read message; error", err)
 			return
