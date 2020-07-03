@@ -21,8 +21,8 @@ import (
 
 // FiltersBackend defines the methods requided by the PublicFilterAPI backend
 type FiltersBackend interface {
-	GetBlockByNumber(blockNum rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
-	HeaderByNumber(blockNr rpc.BlockNumber) (*ethtypes.Header, error)
+	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
+	HeaderByNumber(blockNr BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
