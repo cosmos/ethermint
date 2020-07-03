@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -11,17 +10,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var wsPort = 7545
+const defaultWebsocketPort = 7545
 
+// TODO: add logger
 type server struct{}
 
-func newServer() {
+func newServer(websocketAddr string) {
 	s := new(server)
 	// TODO: add codec to turn . into _
 	ws := mux.NewRouter()
 	ws.Handle("/", s)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", wsPort), ws)
+		err := http.ListenAndServe(websocketAddr, ws)
 		if err != nil {
 			log.Println("http error:", err)
 		}
@@ -29,21 +29,28 @@ func newServer() {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var upg = websocket.Upgrader{
+	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 
-	ws, err := upg.Upgrade(w, r, nil)
+	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		// TODO: write error
 		log.Println("websocket upgrade failed; error:", err)
 		return
 	}
 
+	s.readLoop(wsConn)
+}
+
+func (*server) readLoop(wsConn *websocket.Conn) {
 	for {
-		_, mb, err := ws.ReadMessage()
+		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
+			// TODO: write error
+			wsConn.Close()
 			log.Println("failed to read message; error", err)
 			return
 		}
@@ -59,8 +66,8 @@ type PublicPubSubAPI struct {
 }
 
 // NewPublicPubSubAPI creates an instance of the public ETH Web3 PubSub API.
-func NewPublicPubSubAPI(cliCtx context.CLIContext, backend Backend) *PublicPubSubAPI {
-	newServer()
+func NewPublicPubSubAPI(cliCtx context.CLIContext, backend Backend, websocketAddr string) *PublicPubSubAPI {
+	newServer(websocketAddr)
 
 	return &PublicPubSubAPI{
 		cliCtx:  cliCtx,
