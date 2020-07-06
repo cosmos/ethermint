@@ -29,7 +29,6 @@ import (
 	context "github.com/cosmos/cosmos-sdk/client/context"
 )
 
-// SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Result  interface{} `json:"result"`
@@ -47,14 +46,12 @@ type SubscriptionResult struct {
 	Result       interface{} `json:"result"`
 }
 
-// ErrorResponseJSON json for error responses
 type ErrorResponseJSON struct {
 	Jsonrpc string            `json:"jsonrpc"`
 	Error   *ErrorMessageJSON `json:"error"`
 	ID      *big.Int          `json:"id"`
 }
 
-// ErrorMessageJSON json for error messages
 type ErrorMessageJSON struct {
 	Code    *big.Int `json:"code"`
 	Message string   `json:"message"`
@@ -128,7 +125,6 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			return
 		}
 
-		// determine if request is for subscribe method type
 		var msg map[string]interface{}
 		err = json.Unmarshal(mb, &msg)
 		if err != nil {
@@ -187,6 +183,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 			continue
 		}
 
+		// otherwise, call the usual rpc server to respond
 		err = s.tcpGetAndSendResponse(wsConn, mb)
 		if err != nil {
 			s.sendErrResponse(wsConn, err.Error())
@@ -197,7 +194,6 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 // tcpGetAndSendResponse connects to the rest-server over tcp, posts a JSON-RPC request, and sends the response
 // to the client over websockets
 func (s *websocketsServer) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
-	// otherwise, call the usual rpc server to respond
 	addr := strings.Split(s.rpcAddr, "tcp://")
 	if len(addr) != 2 {
 		return fmt.Errorf("invalid laddr %s", s.rpcAddr)
