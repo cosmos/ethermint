@@ -84,7 +84,7 @@ Since Ethermint runs uses Tendermint Core as it's consensus Engine and it's buil
 You can start a connection with the Ethereum websocket using the `--websocket-port` flag when initializing the REST server (default `7545`):
 
 ```bash
-emintcli rest-server --laddr "tcp://localhost:8545" --websocket-port 8646 --unlock-key <my_key> --chain-id <chain_id>
+emintcli rest-server --laddr "tcp://localhost:8545" --websocket-port 8546 --unlock-key <my_key> --chain-id <chain_id>
 ```
 
 Then, start a websocket subscription with [ws](https://github.com/hashrocket/ws)
