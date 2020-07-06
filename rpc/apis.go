@@ -5,7 +5,6 @@ package rpc
 import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
-
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -20,7 +19,7 @@ const (
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
+func GetRPCAPIs(cliCtx context.CLIContext, keys []emintcrypto.PrivKeySecp256k1) []rpc.API {
 	nonceLock := new(AddrLocker)
 	backend := NewEthermintBackend(cliCtx)
 
@@ -34,7 +33,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []r
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, key),
+			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, keys),
 			Public:    true,
 		},
 		{
