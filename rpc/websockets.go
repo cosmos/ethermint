@@ -6,25 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
+
+	"github.com/tendermint/tendermint/libs/log"
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
-	"github.com/spf13/viper"
-
 	context "github.com/cosmos/cosmos-sdk/client/context"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // SubscriptionResponseJSON for json subscription responses
@@ -58,11 +60,11 @@ type ErrorMessageJSON struct {
 	Message string   `json:"message"`
 }
 
-// TODO: add logger
 type websocketsServer struct {
 	rpcAddr string // listen address of rest-server
 	wsAddr  string // listen address of ws server
 	api     *pubSubAPI
+	logger  log.Logger
 }
 
 func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsServer {
@@ -70,6 +72,7 @@ func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsSe
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,
 		api:     newPubSubAPI(cliCtx),
+		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
 	}
 }
 
@@ -80,7 +83,7 @@ func (s *websocketsServer) start() {
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
 		if err != nil {
-			log.Println("http error:", err)
+			s.logger.Error("http error:", err)
 		}
 	}()
 }
@@ -94,14 +97,14 @@ func (s *websocketsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("websocket upgrade failed; error:", err)
+		s.logger.Error("websocket upgrade failed; error:", err)
 		return
 	}
 
 	s.readLoop(wsConn)
 }
 
-func sendErrResponse(conn *websocket.Conn, msg string) {
+func (s *websocketsServer) sendErrResponse(conn *websocket.Conn, msg string) {
 	res := &ErrorResponseJSON{
 		Jsonrpc: "2.0",
 		Error: &ErrorMessageJSON{
@@ -112,7 +115,7 @@ func sendErrResponse(conn *websocket.Conn, msg string) {
 	}
 	err := conn.WriteJSON(res)
 	if err != nil {
-		log.Println("websocket failed write message", "error", err)
+		s.logger.Error("websocket failed write message", "error", err)
 	}
 }
 
@@ -120,8 +123,8 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 	for {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
-			wsConn.Close()
-			log.Println("failed to read message; error", err)
+			_ = wsConn.Close()
+			s.logger.Error("failed to read message; error", err)
 			return
 		}
 
@@ -129,7 +132,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		var msg map[string]interface{}
 		err = json.Unmarshal(mb, &msg)
 		if err != nil {
-			sendErrResponse(wsConn, "invalid request")
+			s.sendErrResponse(wsConn, "invalid request")
 			continue
 		}
 
@@ -138,13 +141,13 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		if method.(string) == "eth_subscribe" {
 			params := msg["params"].([]interface{})
 			if len(params) == 0 {
-				sendErrResponse(wsConn, "invalid parameters")
+				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
 
 			id, err := s.api.subscribe(wsConn, params)
 			if err != nil {
-				sendErrResponse(wsConn, err.Error())
+				s.sendErrResponse(wsConn, err.Error())
 				continue
 			}
 
@@ -156,7 +159,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 
 			err = wsConn.WriteJSON(res)
 			if err != nil {
-				log.Println("failed to write json response", err)
+				s.logger.Error("failed to write json response", err)
 				continue
 			}
 
@@ -164,7 +167,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
 			if _, idok := ids[0].(string); !ok || !idok {
-				sendErrResponse(wsConn, "invalid parameters")
+				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
 
@@ -177,7 +180,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 
 			err = wsConn.WriteJSON(res)
 			if err != nil {
-				log.Println("failed to write json response", err)
+				s.logger.Error("failed to write json response", err)
 				continue
 			}
 
@@ -186,7 +189,7 @@ func (s *websocketsServer) readLoop(wsConn *websocket.Conn) {
 
 		err = s.tcpGetAndSendResponse(wsConn, mb)
 		if err != nil {
-			sendErrResponse(wsConn, err.Error())
+			s.sendErrResponse(wsConn, err.Error())
 		}
 	}
 }
@@ -262,6 +265,7 @@ type pubSubAPI struct {
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*wsSubscription
+	logger    log.Logger
 }
 
 // newPubSubAPI creates an instance of the ethereum PubSub API.
@@ -270,6 +274,7 @@ func newPubSubAPI(cliCtx context.CLIContext) *pubSubAPI {
 		cliCtx:  cliCtx,
 		events:  NewEventSystem(cliCtx.Client),
 		filters: make(map[rpc.ID]*wsSubscription),
+		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-client"),
 	}
 }
 
@@ -347,7 +352,7 @@ func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						log.Println("error writing header")
+						api.logger.Error("error writing header")
 					}
 				}
 				api.filtersMu.Unlock()
@@ -462,11 +467,13 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					}
 
 					err = f.conn.WriteJSON(res)
-					if err != nil {
-						log.Println("error writing header")
-					}
 				}
 				api.filtersMu.Unlock()
+
+				if err != nil {
+					err = fmt.Errorf("failed to write header: %w", err)
+					return
+				}
 			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, sub.ID())
@@ -516,11 +523,13 @@ func (api *pubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 					}
 
 					err = f.conn.WriteJSON(res)
-					if err != nil {
-						log.Println("error writing header")
-					}
 				}
 				api.filtersMu.Unlock()
+
+				if err != nil {
+					err = fmt.Errorf("failed to write header: %w", err)
+					return
+				}
 			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, sub.ID())
