@@ -60,3 +60,7 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress))
 	suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))))
 }
+
+// func TestStateDBTestSuite(t *testing.T) {
+// 	suite.Run(t, new(StateDBTestSuite))
+// }

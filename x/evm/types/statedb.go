@@ -47,9 +47,9 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects      []stateEntry
-	addressToIndex    map[ethcmn.Address]int // map from address to the index of the state objects slice
-	stateObjectsDirty map[ethcmn.Address]struct{}
+	stateObjects         []stateEntry
+	addressToObjectIndex map[ethcmn.Address]int // map from address to the index of the state objects slice
+	stateObjectsDirty    map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -88,15 +88,15 @@ func NewCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, ak AccountKeeper, bk BankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
-		ctx:               ctx,
-		storeKey:          storeKey,
-		accountKeeper:     ak,
-		bankKeeper:        bk,
-		stateObjects:      []stateEntry{},
-		addressToIndex:    make(map[ethcmn.Address]int),
-		stateObjectsDirty: make(map[ethcmn.Address]struct{}),
-		preimages:         make(map[ethcmn.Hash][]byte),
-		journal:           newJournal(),
+		ctx:                  ctx,
+		storeKey:             storeKey,
+		accountKeeper:        ak,
+		bankKeeper:           bk,
+		stateObjects:         []stateEntry{},
+		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
+		preimages:            make(map[ethcmn.Hash][]byte),
+		journal:              newJournal(),
 	}
 }
 
@@ -432,7 +432,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 	for _, dirty := range csdb.journal.dirties {
-		idx, exist := csdb.addressToIndex[dirty.address]
+		idx, exist := csdb.addressToObjectIndex[dirty.address]
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx:
 			// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
@@ -591,7 +591,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // next operations.
 func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	csdb.stateObjects = []stateEntry{}
-	csdb.addressToIndex = make(map[ethcmn.Address]int)
+	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
 	csdb.bhash = ethcmn.Hash{}
@@ -626,7 +626,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 // ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
 func (csdb *CommitStateDB) ClearStateObjects() {
 	csdb.stateObjects = []stateEntry{}
-	csdb.addressToIndex = make(map[ethcmn.Address]int)
+	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
 
@@ -670,17 +670,17 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 
 	// copy all the basic fields, initialize the memory ones
 	state := &CommitStateDB{
-		ctx:               csdb.ctx,
-		storeKey:          csdb.storeKey,
-		accountKeeper:     csdb.accountKeeper,
-		bankKeeper:        csdb.bankKeeper,
-		stateObjects:      make([]stateEntry, len(csdb.journal.dirties)),
-		addressToIndex:    make(map[ethcmn.Address]int, len(csdb.journal.dirties)),
-		stateObjectsDirty: make(map[ethcmn.Address]struct{}, len(csdb.journal.dirties)),
-		refund:            csdb.refund,
-		logSize:           csdb.logSize,
-		preimages:         make(map[ethcmn.Hash][]byte),
-		journal:           newJournal(),
+		ctx:                  csdb.ctx,
+		storeKey:             csdb.storeKey,
+		accountKeeper:        csdb.accountKeeper,
+		bankKeeper:           csdb.bankKeeper,
+		stateObjects:         make([]stateEntry, len(csdb.journal.dirties)),
+		addressToObjectIndex: make(map[ethcmn.Address]int, len(csdb.journal.dirties)),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}, len(csdb.journal.dirties)),
+		refund:               csdb.refund,
+		logSize:              csdb.logSize,
+		preimages:            make(map[ethcmn.Hash][]byte),
+		journal:              newJournal(),
 	}
 
 	// copy the dirty states, logs, and preimages
@@ -690,7 +690,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 		// need to check for nil.
 		//
 		// Ref: https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527
-		if idx, exist := csdb.addressToIndex[dirty.address]; exist {
+		if idx, exist := csdb.addressToObjectIndex[dirty.address]; exist {
 			state.stateObjects[idx] = stateEntry{
 				address:     dirty.address,
 				stateObject: csdb.stateObjects[idx].stateObject.deepCopy(state),
@@ -703,7 +703,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	// copied, the loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range csdb.stateObjectsDirty {
-		if idx, exist := state.addressToIndex[addr]; !exist {
+		if idx, exist := state.addressToObjectIndex[addr]; !exist {
 			state.setStateObject(csdb.stateObjects[idx].stateObject.deepCopy(state))
 			state.stateObjectsDirty[addr] = struct{}{}
 		}
@@ -793,7 +793,7 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
-	idx, found := csdb.addressToIndex[addr]
+	idx, found := csdb.addressToObjectIndex[addr]
 	if found {
 		// prefer 'live' (cached) objects
 		if so := csdb.stateObjects[idx].stateObject; so != nil {
@@ -822,7 +822,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	idx, found := csdb.addressToIndex[so.Address()]
+	idx, found := csdb.addressToObjectIndex[so.Address()]
 	if found {
 		// update the existing object
 		csdb.stateObjects[idx].stateObject = so
@@ -836,7 +836,7 @@ func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 	}
 
 	csdb.stateObjects = append(csdb.stateObjects, se)
-	csdb.addressToIndex[se.address] = len(csdb.stateObjects) - 1
+	csdb.addressToObjectIndex[se.address] = len(csdb.stateObjects) - 1
 }
 
 // RawDump returns a raw state dump.
