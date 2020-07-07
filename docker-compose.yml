@@ -1,0 +1,70 @@
+version: "3"
+
+services:
+  emintdnode0:
+    container_name: emintdnode0
+    image: "ethermint/node"
+    ports:
+      - "26656-26657:26656-26657"
+      - "1317:1317"
+    environment:
+      - ID=0
+      - LOG=${LOG:-emintd.log}
+    volumes:
+      - ./build:/emintd:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.2
+
+  emintdnode1:
+    container_name: emintdnode1
+    image: "ethermint/node"
+    ports:
+      - "26659-26660:26656-26657"
+      - "1318:1317"
+    environment:
+      - ID=1
+      - LOG=${LOG:-emintd.log}
+    volumes:
+      - ./build:/emintd:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.3
+
+  emintdnode2:
+    container_name: emintdnode2
+    image: "ethermint/node"
+    environment:
+      - ID=2
+      - LOG=${LOG:-emintd.log}
+    ports:
+      - "26661-26662:26656-26657"
+      - "1319:1317"
+    volumes:
+      - ./build:/emintd:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.4
+
+  emintdnode3:
+    container_name: emintdnode3
+    image: "ethermint/node"
+    environment:
+      - ID=3
+      - LOG=${LOG:-emintd.log}
+    ports:
+      - "26663-26664:26656-26657"
+      - "1320:1317"
+    volumes:
+      - ./build:/emintd:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.5
+
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/16

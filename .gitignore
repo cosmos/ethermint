@@ -28,6 +28,8 @@ dist
 tools-stamp
 proto-tools-stamp
 golangci-lint
+local_testnet
+keyring_test_cosmos
 
 # Testing
 coverage.txt
