@@ -69,7 +69,7 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 }
 
 // ChainId returns the chain's ID
-func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) {
+func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { //nolint
 	chainID := viper.GetString(flags.FlagChainID)
 
 	// parse the chainID from a integer string
