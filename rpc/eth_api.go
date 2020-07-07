@@ -30,7 +30,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -46,19 +45,19 @@ import (
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
 	backend     Backend
-	key         emintcrypto.PrivKeySecp256k1
+	keys        []emintcrypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
 	keybaseLock sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
-	key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
+	key []emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
 
 	return &PublicEthAPI{
 		cliCtx:    cliCtx,
 		backend:   backend,
-		key:       key,
+		keys:      key,
 		nonceLock: nonceLock,
 	}
 }
@@ -283,15 +282,28 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 	return string(res), nil
 }
 
+func checkKeyInKeyring(keys []emintcrypto.PrivKeySecp256k1, address common.Address) (key emintcrypto.PrivKeySecp256k1, exist bool) {
+	if len(keys) > 0 {
+		for _, key := range keys {
+			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+				return key, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), address.Bytes()) {
+
+	key, exist := checkKeyInKeyring(e.keys, address)
+	if !exist {
 		return nil, keystore.ErrLocked
 	}
 
 	// Sign the requested hash with the wallet
-	signature, err := e.key.Sign(data)
+	signature, err := key.Sign(data)
 	if err == nil {
 		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
 	}
@@ -302,7 +314,9 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 // SendTransaction sends an Ethereum transaction.
 func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
+
+	key, exist := checkKeyInKeyring(e.keys, args.From)
+	if !exist {
 		return common.Hash{}, keystore.ErrLocked
 	}
 
@@ -327,7 +341,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Sign transaction
-	if err := tx.Sign(intChainID, e.key.ToECDSA()); err != nil {
+	if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
 		return common.Hash{}, err
 	}
 
@@ -388,7 +402,7 @@ type CallArgs struct {
 }
 
 // Call performs a raw contract call.
-func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
 	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
@@ -419,7 +433,7 @@ type account struct {
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (e *PublicEthAPI) doCall(
-	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
+	args CallArgs, blockNr BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
 	// Set height for historical queries
 	ctx := e.cliCtx
@@ -430,9 +444,11 @@ func (e *PublicEthAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
+
 	if args.From == nil {
-		if e.key != nil {
-			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
+		key, exist := checkKeyInKeyring(e.keys, *args.From)
+		if exist {
+			addr = common.BytesToAddress(key.PubKey().Address().Bytes())
 		}
 		// No error handled here intentionally to match geth behaviour
 	} else {
@@ -561,7 +577,8 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 	for i, tx := range txs {
 		ethTx, err := bytesToEthTx(cliCtx, tx)
 		if err != nil {
-			return nil, nil, err
+			// continue to next transaction in case it's not a MsgEthereumTx
+			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
@@ -602,7 +619,7 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx
 
 	ethTx, ok := stdTx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+		return nil, fmt.Errorf("invalid transaction type %T, expected MsgEthereumTx", stdTx)
 	}
 	return &ethTx, nil
 }
