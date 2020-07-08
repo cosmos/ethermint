@@ -68,14 +68,12 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 	return hexutil.Uint(version.ProtocolVersion)
 }
 
-// ChainId returns the chain's ID
-func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { //nolint
-	chainID := viper.GetString(flags.FlagChainID)
-
+// ChainId returns the chain's identifier in hex format
+func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
 	// parse the chainID from a integer string
-	intChainID, err := strconv.ParseUint(chainID, 0, 64)
+	intChainID, err := strconv.ParseUint(e.cliCtx.ChainID, 0, 64)
 	if err != nil {
-		return 0, fmt.Errorf("invalid chainID: %s, must be integer format", chainID)
+		return 0, fmt.Errorf("invalid chainID: %s, must be integer format", e.cliCtx.ChainID)
 	}
 
 	return hexutil.Uint(intChainID), nil
