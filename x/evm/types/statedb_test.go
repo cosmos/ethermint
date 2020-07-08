@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/x/evm/keeper"
+	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -27,6 +28,7 @@ type StateDBTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	app     *app.EthermintApp
+	stateDB *types.CommitStateDB
 }
 
 func TestStateDBTestSuite(t *testing.T) {
@@ -39,27 +41,22 @@ func (suite *StateDBTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
-
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-	resp := stateDB.WithContext(suite.ctx)
-	suite.Require().NotNil(suite.T(), resp)
+	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 }
 
 func (suite *StateDBTestSuite) TestBloomFilter() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	// Prepare db for logs
 	tHash := ethcmn.BytesToHash([]byte{0x1})
-	stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
+	suite.stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
 
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 
 	// Generate and add a log to test
 	log := ethtypes.Log{Address: contractAddress}
-	stateDB.AddLog(&log)
+	suite.stateDB.AddLog(&log)
 
 	// Get log from db
-	logs, err := stateDB.GetLogs(tHash)
+	logs, err := suite.stateDB.GetLogs(tHash)
 	suite.Require().NoError(err)
 	suite.Require().Len(logs, 1)
 	suite.Require().Equal(log, *logs[0])
@@ -74,39 +71,33 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 }
 
 func (suite *StateDBTestSuite) TestStateDBBalance() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 	value := big.NewInt(100)
-	stateDB.SetBalance(addr, value)
-	suite.Require().Equal(value, stateDB.GetBalance(addr))
+	suite.stateDB.SetBalance(addr, value)
+	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
 
-	stateDB.SubBalance(addr, value)
-	suite.Require().Equal(big.NewInt(0), stateDB.GetBalance(addr))
+	suite.stateDB.SubBalance(addr, value)
+	suite.Require().Equal(big.NewInt(0), suite.stateDB.GetBalance(addr))
 
-	stateDB.AddBalance(addr, value)
-	suite.Require().Equal(value, stateDB.GetBalance(addr))
+	suite.stateDB.AddBalance(addr, value)
+	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBNonce() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
 	nonce := uint64(123)
-	stateDB.SetNonce(addr, nonce)
+	suite.stateDB.SetNonce(addr, nonce)
 
-	suite.Require().Equal(nonce, stateDB.GetNonce(addr))
+	suite.Require().Equal(nonce, suite.stateDB.GetNonce(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBState() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -114,31 +105,27 @@ func (suite *StateDBTestSuite) TestStateDBState() {
 	key := ethcmn.BytesToHash([]byte("foo"))
 	val := ethcmn.BytesToHash([]byte("bar"))
 
-	stateDB.SetState(addr, key, val)
+	suite.stateDB.SetState(addr, key, val)
 
-	suite.Require().Equal(val, stateDB.GetState(addr, key))
+	suite.Require().Equal(val, suite.stateDB.GetState(addr, key))
 }
 
 func (suite *StateDBTestSuite) TestStateDBCode() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 	code := []byte("foobar")
 
-	stateDB.SetCode(addr, code)
+	suite.stateDB.SetCode(addr, code)
 
-	suite.Require().Equal(code, stateDB.GetCode(addr))
+	suite.Require().Equal(code, suite.stateDB.GetCode(addr))
 
 	codelen := len(code)
-	suite.Require().Equal(codelen, stateDB.GetCodeSize(addr))
+	suite.Require().Equal(codelen, suite.stateDB.GetCodeSize(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBLogs() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -158,85 +145,75 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	}
 	logs := []*ethtypes.Log{&log}
 
-	err = stateDB.SetLogs(hash, logs)
+	err = suite.stateDB.SetLogs(hash, logs)
 	suite.Require().NoError(err)
-	dbLogs, err := stateDB.GetLogs(hash)
+	dbLogs, err := suite.stateDB.GetLogs(hash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(logs, dbLogs)
 
-	stateDB.DeleteLogs(hash)
-	dbLogs, err = stateDB.GetLogs(hash)
+	suite.stateDB.DeleteLogs(hash)
+	dbLogs, err = suite.stateDB.GetLogs(hash)
 	suite.Require().NoError(err)
 	suite.Require().Empty(dbLogs)
 
-	stateDB.AddLog(&log)
-	suite.Require().Equal(logs, stateDB.AllLogs())
+	suite.stateDB.AddLog(&log)
+	suite.Require().Equal(logs, suite.stateDB.AllLogs())
 
 	//resets state but checking to see if storekey still persists.
-	err = stateDB.Reset(hash)
+	err = suite.stateDB.Reset(hash)
 	suite.Require().NoError(err)
-	suite.Require().Equal(logs, stateDB.AllLogs())
+	suite.Require().Equal(logs, suite.stateDB.AllLogs())
 }
 
 func (suite *StateDBTestSuite) TestStateDBPreimage() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	preimage := []byte("preimage")
 
-	stateDB.AddPreimage(hash, preimage)
+	suite.stateDB.AddPreimage(hash, preimage)
 
-	suite.Require().Equal(preimage, stateDB.Preimages()[hash])
+	suite.Require().Equal(preimage, suite.stateDB.Preimages()[hash])
 }
 
 func (suite *StateDBTestSuite) TestStateDBRefund() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	value := uint64(100)
 
-	stateDB.AddRefund(value)
-	suite.Require().Equal(value, stateDB.GetRefund())
+	suite.stateDB.AddRefund(value)
+	suite.Require().Equal(value, suite.stateDB.GetRefund())
 
-	stateDB.SubRefund(value)
-	suite.Require().Equal(uint64(0), stateDB.GetRefund())
+	suite.stateDB.SubRefund(value)
+	suite.Require().Equal(uint64(0), suite.stateDB.GetRefund())
 }
 
 func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	stateDB.CreateAccount(addr)
-	suite.Require().True(stateDB.Exist(addr))
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().True(suite.stateDB.Exist(addr))
 
 	value := big.NewInt(100)
-	stateDB.AddBalance(addr, value)
+	suite.stateDB.AddBalance(addr, value)
 
-	stateDB.CreateAccount(addr)
-	suite.Require().Equal(value, stateDB.GetBalance(addr))
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	stateDB.CreateAccount(addr)
-	suite.Require().True(stateDB.Exist(addr))
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().True(suite.stateDB.Exist(addr))
 
-	stateDB.ClearStateObjects()
-	suite.Require().False(stateDB.Exist(addr))
+	suite.stateDB.ClearStateObjects()
+	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBReset() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -244,12 +221,12 @@ func (suite *StateDBTestSuite) TestStateDBReset() {
 
 	hash := ethcmn.BytesToHash([]byte("hash"))
 
-	stateDB.CreateAccount(addr)
-	suite.Require().True(stateDB.Exist(addr))
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().True(suite.stateDB.Exist(addr))
 
-	err = stateDB.Reset(hash)
+	err = suite.stateDB.Reset(hash)
 	suite.Require().NoError(err)
-	suite.Require().False(stateDB.Exist(addr))
+	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBUpdateAcct() {
@@ -257,21 +234,17 @@ func (suite *StateDBTestSuite) TestStateDBUpdateAcct() {
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	thash := ethcmn.BytesToHash([]byte("thash"))
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 1
 
-	stateDB.Prepare(thash, bhash, txi)
+	suite.stateDB.Prepare(thash, bhash, txi)
 
-	suite.Require().Equal(txi, stateDB.TxIndex())
-	suite.Require().Equal(bhash, stateDB.BlockHash())
+	suite.Require().Equal(txi, suite.stateDB.TxIndex())
+	suite.Require().Equal(bhash, suite.stateDB.BlockHash())
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -291,53 +264,49 @@ func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
 	}
 	logs := []*ethtypes.Log{&log}
 
-	err = stateDB.SetLogs(hash, logs)
+	err = suite.stateDB.SetLogs(hash, logs)
 	suite.Require().NoError(err)
 
-	copyDB := stateDB.Copy()
+	copyDB := suite.stateDB.Copy()
 
 	copiedDBLogs, err := copyDB.GetLogs(hash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(logs, copiedDBLogs)
-	suite.Require().Equal(stateDB.Exist(addr), copyDB.Exist(addr))
+	suite.Require().Equal(suite.stateDB.Exist(addr), copyDB.Exist(addr))
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	suite.Require().True(stateDB.Empty(addr))
+	suite.Require().True(suite.stateDB.Empty(addr))
 
-	stateDB.SetBalance(addr, big.NewInt(100))
+	suite.stateDB.SetBalance(addr, big.NewInt(100))
 
-	suite.Require().False(stateDB.Empty(addr))
+	suite.Require().False(suite.stateDB.Empty(addr))
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
-	stateDB := suite.app.EvmKeeper.CommitStateDB
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	suicide := stateDB.Suicide(addr)
+	suicide := suite.stateDB.Suicide(addr)
 	suite.Require().False(suicide)
-	suite.Require().False(stateDB.HasSuicided(addr))
+	suite.Require().False(suite.stateDB.HasSuicided(addr))
 
 	//Suicide only works for an account with non-zero balance/nonce
-	stateDB.SetBalance(addr, big.NewInt(100))
-	suicide = stateDB.Suicide(addr)
+	suite.stateDB.SetBalance(addr, big.NewInt(100))
+	suicide = suite.stateDB.Suicide(addr)
 
 	suite.Require().True(suicide)
-	suite.Require().True(stateDB.HasSuicided(addr))
+	suite.Require().True(suite.stateDB.HasSuicided(addr))
 
 	delete := true
-	_, err = stateDB.Commit(delete)
+	_, err = suite.stateDB.Commit(delete)
 	suite.Require().NoError(err)
-	suite.Require().False(stateDB.Exist(addr))
+	suite.Require().False(suite.stateDB.Exist(addr))
 }
