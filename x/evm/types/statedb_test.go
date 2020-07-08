@@ -8,7 +8,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -133,12 +132,12 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	log := ethtypes.Log{
 		Address:     addr,
-		Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+		Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
 		Data:        []byte("data"),
 		BlockNumber: 1,
-		TxHash:      common.Hash{},
+		TxHash:      ethcmn.Hash{},
 		TxIndex:     1,
-		BlockHash:   common.Hash{},
+		BlockHash:   ethcmn.Hash{},
 		Index:       1,
 		Removed:     false,
 	}
@@ -252,12 +251,12 @@ func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	log := ethtypes.Log{
 		Address:     addr,
-		Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+		Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
 		Data:        []byte("data"),
 		BlockNumber: 1,
-		TxHash:      common.Hash{},
+		TxHash:      ethcmn.Hash{},
 		TxIndex:     1,
-		BlockHash:   common.Hash{},
+		BlockHash:   ethcmn.Hash{},
 		Index:       1,
 		Removed:     false,
 	}

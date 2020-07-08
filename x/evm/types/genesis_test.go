@@ -7,7 +7,6 @@ import (
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -136,7 +135,7 @@ func TestValidateGenesis(t *testing.T) {
 						Logs: []*ethtypes.Log{
 							{
 								Address:     addr,
-								Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+								Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
 								Data:        []byte("data"),
 								BlockNumber: 1,
 								TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
@@ -205,7 +204,7 @@ func TestValidateGenesis(t *testing.T) {
 						Logs: []*ethtypes.Log{
 							{
 								Address:     addr,
-								Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+								Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
 								Data:        []byte("data"),
 								BlockNumber: 1,
 								TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
@@ -221,7 +220,7 @@ func TestValidateGenesis(t *testing.T) {
 						Logs: []*ethtypes.Log{
 							{
 								Address:     addr,
-								Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
+								Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
 								Data:        []byte("data"),
 								BlockNumber: 1,
 								TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
