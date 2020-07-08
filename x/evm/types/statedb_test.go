@@ -21,7 +21,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-// nolint: unused
 type StateDBTestSuite struct {
 	suite.Suite
 
