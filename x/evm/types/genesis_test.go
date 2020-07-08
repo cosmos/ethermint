@@ -237,7 +237,7 @@ func TestValidateGenesis(t *testing.T) {
 			expPass: false,
 		},
 		{
-			name: "duplicated tx log",
+			name: "invalid tx log",
 			genState: GenesisState{
 				Accounts: []GenesisAccount{
 					{
@@ -249,24 +249,7 @@ func TestValidateGenesis(t *testing.T) {
 						},
 					},
 				},
-				TxsLogs: []TransactionLogs{
-					{
-						Hash: ethcmn.BytesToHash([]byte("tx_hash")),
-						Logs: []*ethtypes.Log{
-							{
-								Address:     addr,
-								Topics:      []common.Hash{ethcmn.BytesToHash([]byte("topic"))},
-								Data:        []byte("data"),
-								BlockNumber: 1,
-								TxHash:      ethcmn.BytesToHash([]byte("other_hash")),
-								TxIndex:     1,
-								BlockHash:   ethcmn.BytesToHash([]byte("block_hash")),
-								Index:       1,
-								Removed:     false,
-							},
-						},
-					},
-				},
+				TxsLogs: []TransactionLogs{NewTransactionLogs(ethcmn.Hash{}, nil)},
 			},
 			expPass: false,
 		},
