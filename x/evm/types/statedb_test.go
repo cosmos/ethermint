@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"math/big"
+	"testing"
 
 	"github.com/stretchr/testify/suite"
 
@@ -59,4 +60,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	// Check to make sure bloom filter will succeed on
 	suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress))
 	suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))))
+}
+
+func TestStateDBTestSuite(t *testing.T) {
+	suite.Run(t, new(StateDBTestSuite))
 }
