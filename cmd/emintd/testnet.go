@@ -6,15 +6,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	emintCrypto "github.com/cosmos/ethermint/crypto"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"net"
 	"os"
 	"path/filepath"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 	tmconfig "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
+	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -35,6 +34,7 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
 )
 
@@ -46,6 +46,8 @@ var (
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
 )
+
+const nodeDirPerm = 0755
 
 // get cmd to initialize all files for tendermint testnet and application
 func testnetCmd(ctx *server.Context, cdc *codec.Codec,
@@ -94,9 +96,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	return cmd
 }
 
-const nodeDirPerm = 0755
-
-// Initialize the testnet
+// InitTestnet initializes the testnet configuration
 func InitTestnet(
 	cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 	mbm module.BasicManager, genBalIterator banktypes.GenesisBalancesIterator,
@@ -109,7 +109,7 @@ func InitTestnet(
 	}
 
 	nodeIDs := make([]string, numValidators)
-	valPubKeys := make([]crypto.PubKey, numValidators)
+	valPubKeys := make([]tmcrypto.PubKey, numValidators)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -163,7 +163,7 @@ func InitTestnet(
 			keyringBackend,
 			clientDir,
 			inBuf,
-			keyring.WithKeygenFunc(ethermintKeygenFunc),
+			keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
 		)
 		if err != nil {
 			return err
@@ -196,7 +196,7 @@ func InitTestnet(
 		accStakingTokens := sdk.TokensFromConsensusPower(500)
 		coins := sdk.Coins{
 			sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), accTokens),
-			sdk.NewCoin(sdk.DefaultBondDenom, accStakingTokens),
+			sdk.NewCoin(types.DenomDefault, accStakingTokens),
 		}
 
 		genBalances = append(genBalances, banktypes.Balance{Address: addr, Coins: coins.Sort()})
@@ -209,7 +209,7 @@ func InitTestnet(
 		msg := stakingtypes.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			valPubKeys[i],
-			sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
+			sdk.NewCoin(types.DenomDefault, valTokens),
 			stakingtypes.NewDescription(nodeDirName, "", "", "", ""),
 			stakingtypes.NewCommissionRates(sdk.OneDec(), sdk.OneDec(), sdk.OneDec()),
 			sdk.OneInt(),
@@ -299,7 +299,7 @@ func initGenFiles(
 
 func collectGenFiles(
 	cdc *codec.Codec, config *tmconfig.Config, chainID string,
-	nodeIDs []string, valPubKeys []crypto.PubKey,
+	nodeIDs []string, valPubKeys []tmcrypto.PubKey,
 	numValidators int, outputDir, nodeDirPrefix, nodeDaemonHome string,
 	genBalIterator banktypes.GenesisBalancesIterator,
 ) error {
@@ -383,8 +383,4 @@ func writeFile(name string, dir string, contents []byte) error {
 	}
 
 	return nil
-}
-
-func ethermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (crypto.PrivKey, error) {
-	return emintCrypto.PrivKeySecp256k1(bz), nil
 }
