@@ -16,10 +16,10 @@ if [ -z "${BINARY_CHECK}" ]; then
 	exit 1
 fi
 
-export EMINTD="/emintd/node${ID}/emintd"
+export EMINTDHOME="/emintd/node${ID}/emintd"
 
-if [ -d "$(dirname "${EMINTD}"/"${LOG}")" ]; then
-  "${BINARY}" --home "${EMINTD}" "$@" | tee "${EMINTD}/${LOG}"
+if [ -d "$(dirname "${EMINTDHOME}"/"${LOG}")" ]; then
+  "${BINARY}" --home "${EMINTDHOME}" "$@" | tee "${EMINTDHOME}/${LOG}"
 else
-  "${BINARY}" --home "${EMINTD}" "$@"
+  "${BINARY}" --home "${EMINTDHOME}" "$@"
 fi

@@ -61,30 +61,9 @@ verify:
 	${GO_MOD} go mod verify
 
 
-############################
-### Tools / Dependencies ###
-############################
-
-##########################################################
-### TODO: Move tool depedencies to a separate makefile ###
-##########################################################
-
-GOLINT = github.com/tendermint/lint/golint
-GOCILINT = github.com/golangci/golangci-lint/cmd/golangci-lint
-UNCONVERT = github.com/mdempsky/unconvert
-INEFFASSIGN = github.com/gordonklaus/ineffassign
-MISSPELL = github.com/client9/misspell/cmd/misspell
-ERRCHECK = github.com/kisielk/errcheck
-UNPARAM = mvdan.cc/unparam
-
-GOLINT_CHECK := $(shell command -v golint 2> /dev/null)
-GOCILINT_CHECK := $(shell command -v golangci-lint 2> /dev/null)
-UNCONVERT_CHECK := $(shell command -v unconvert 2> /dev/null)
-INEFFASSIGN_CHECK := $(shell command -v ineffassign 2> /dev/null)
-MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
-ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
-UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
-
+###############################################################################
+###                          Tools & Dependencies                           ###
+###############################################################################
 
 # Install the runsim binary with a temporary workaround of entering an outside
 # directory as the "go get" command ignores the -mod option and will polute the
@@ -97,10 +76,9 @@ $(RUNSIM):
 
 tools: $(RUNSIM)
 
-
-#######################
-### Testing / Misc. ###
-#######################
+###############################################################################
+###                           Tests & Simulation                            ###
+###############################################################################
 
 test: test-unit
 
@@ -117,9 +95,40 @@ test-import:
 test-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
-godocs:
-	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
-	godoc -http=:6060
+test-sim-nondeterminism:
+	@echo "Running non-determinism test..."
+	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
+
+test-sim-custom-genesis-fast:
+	@echo "Running custom genesis simulation..."
+	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
+		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
+
+test-sim-import-export: runsim
+	@echo "Running Ethermint import/export simulation. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
+
+test-sim-after-import: runsim
+	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
+
+test-sim-custom-genesis-multi-seed: runsim
+	@echo "Running multi-seed custom genesis simulation..."
+	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+
+test-sim-multi-seed-long: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
+
+test-sim-multi-seed-short: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
+
+.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
+	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed
 
 docker:
 	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
@@ -218,50 +227,10 @@ proto-update-deps:
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
 
-#######################
-### Simulations     ###
-#######################
 
-test-sim-nondeterminism:
-	@echo "Running non-determinism test..."
-	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
-		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
-
-test-sim-custom-genesis-fast:
-	@echo "Running custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
-		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
-
-test-sim-import-export: runsim
-	@echo "Running Ethermint import/export simulation. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
-
-test-sim-after-import: runsim
-	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
-
-test-sim-custom-genesis-multi-seed: runsim
-	@echo "Running multi-seed custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
-
-test-sim-multi-seed-long: runsim
-	@echo "Running multi-seed application simulation. This may take awhile!"
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
-
-test-sim-multi-seed-short: runsim
-	@echo "Running multi-seed application simulation. This may take awhile!"
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
-
-.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
-	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed \
-
-
-
-#######################
-###  Documentation  ###
-#######################
+###############################################################################
+###                              Documentation                              ###
+###############################################################################
 
 # Start docs site at localhost:8080
 docs-serve:
@@ -274,6 +243,10 @@ docs-build:
 	@cd docs && \
 	npm install && \
 	npm run build
+
+godocs:
+	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
+	godoc -http=:6060
 
 ###############################################################################
 ###                                Localnet                                 ###

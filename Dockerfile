@@ -1,22 +1,22 @@
 FROM golang:alpine AS build-env
 
-# Set up dependencies
-ENV PACKAGES git build-base
+# Install minimum necessary dependencies
+ENV PACKAGES curl make git libc-dev bash gcc linux-headers eudev-dev python3
+RUN apk add --no-cache $PACKAGES
 
 # Set working directory for the build
-WORKDIR /go/src/github.com/Chainsafe/ethermint
-
-# Install dependencies
-RUN apk add --update $PACKAGES
+WORKDIR /go/src/github.com/ChainSafe/ethermint
 
 # Add source files
 COPY . .
 
-# Make the binary
-RUN make build
+# build Cosmos SDK, remove packages
+RUN make build-ethermint && \
+  cp ./build/emint* /go/bin
+
 
 # Final image
-FROM alpine
+FROM alpine:edge
 
 # Install ca-certificates
 RUN apk add --update ca-certificates
@@ -26,5 +26,7 @@ WORKDIR /root
 COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintd /usr/bin/emintd
 COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintcli /usr/bin/emintcli
 
-# Run emintd by default
+EXPOSE 26656 26657 1317
+
+# Run emintd by default, omit entrypoint to ease using container with emintcli
 CMD ["emintd"]
