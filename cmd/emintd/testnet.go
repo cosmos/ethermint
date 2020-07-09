@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	emintCrypto "github.com/cosmos/ethermint/crypto"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"net"
 	"os"
 	"path/filepath"
@@ -58,7 +60,7 @@ necessary files (private validator, genesis, config, etc.).
 
 Note, strict routability for addresses is turned off in the config file.`,
 
-		Example: "simd testnet --v 4 --keyring-backend= test --output-dir ./output --starting-ip-address 192.168.10.2",
+		Example: "simd testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			config := ctx.Config
 
@@ -161,10 +163,15 @@ func InitTestnet(
 			keyringBackend,
 			clientDir,
 			inBuf,
+			keyring.WithKeygenFunc(ethermintKeygenFunc),
 		)
 		if err != nil {
 			return err
 		}
+
+		cmd.Printf(
+			"Password for account '%s' :\n", nodeDirName,
+		)
 
 		keyPass := clientkeys.DefaultKeyPass
 		addr, secret, err := server.GenerateSaveCoinKey(kb, nodeDirName, keyPass, true)
@@ -193,7 +200,10 @@ func InitTestnet(
 		}
 
 		genBalances = append(genBalances, banktypes.Balance{Address: addr, Coins: coins.Sort()})
-		genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
+		genAccounts = append(genAccounts, types.EthAccount{
+			BaseAccount: authtypes.NewBaseAccount(addr, nil, 0, 0),
+			CodeHash:    ethcrypto.Keccak256(nil),
+		})
 
 		valTokens := sdk.TokensFromConsensusPower(100)
 		msg := stakingtypes.NewMsgCreateValidator(
@@ -373,4 +383,8 @@ func writeFile(name string, dir string, contents []byte) error {
 	}
 
 	return nil
+}
+
+func ethermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (crypto.PrivKey, error) {
+	return emintCrypto.PrivKeySecp256k1(bz), nil
 }
