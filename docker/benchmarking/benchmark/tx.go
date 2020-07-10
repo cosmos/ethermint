@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -37,10 +38,14 @@ var (
 	HOST = os.Getenv("HOST")
 
 	SendTx = cli.Command{
-		Name:   "sendtx",
-		Usage:  "Command to send transactions",
-		Action: sendTx,
-		Flags:  []cli.Flag{},
+		Name:      "sendtx",
+		ShortName: "s",
+		Usage:     "Command to send transactions",
+		Action:    sendTx,
+		Flags: []cli.Flag{
+			cli.IntFlag{Name: "duration, d", Value: 10, Hidden: false, Usage: "test duration in seconds"},
+			cli.IntFlag{Name: "txcount, c", Value: 100, Hidden: false, Usage: "test transaction count"},
+		},
 	}
 )
 
@@ -69,7 +74,7 @@ func call(method string, params interface{}) (*Response, error) {
 	}
 
 	var rpcRes *Response
-	time.Sleep(1 * time.Second)
+	time.Sleep(1000000 * time.Nanosecond)
 	/* #nosec */
 	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
 	if err != nil {
@@ -108,7 +113,7 @@ func getTransactionReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
 }
 
 func waitForReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
-	for i := 0; i < 600; i++ {
+	for i := 0; i < 10; i++ {
 		receipt, err := getTransactionReceipt(hash)
 		if receipt != nil {
 			return receipt, err
@@ -119,8 +124,24 @@ func waitForReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
 	return nil, nil
 }
 
+func getAllReceipts(hashes []hexutil.Bytes) []map[string]interface{} {
+	var receipts []map[string]interface{}
+	for _, hash := range hashes {
+		receipt, err := waitForReceipt(hash)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		receipts = append(receipts, receipt)
+	}
+	return receipts
+}
+
 // will get a list of addrs from some config file. these will be the addresses that are included in the genesis file.
 func sendTx(ctx *cli.Context) error {
+
+	fmt.Println(ctx.Int("duration"))
+	fmt.Println(ctx.Int("txcount"))
 
 	rpcRes, err := call("eth_accounts", []string{})
 	if err != nil {
@@ -138,84 +159,108 @@ func sendTx(ctx *cli.Context) error {
 		return nil
 	}
 
-	value := "0x3B9ACA00"
-	gasLimit := "0x5208"
-	gasPrice := "0x15EF3C0"
-	maxTx := 1000
+	//remove facuet from list of accts
+	accts = accts[1:]
+
+	var nonces = make([]int, len(accts))
+
+	value := "0x3B9ACA00"   //
+	gasLimit := "0x5208"    //
+	gasPrice := "0x15EF3C0" //
 	txs := 0
 
-	ticker := time.NewTicker(time.Duration(100000) * time.Nanosecond)
-	defer ticker.Stop()
-	testDuration := time.NewTicker(time.Duration(10) * time.Second)
+	txTicker := time.NewTicker(time.Duration(500000) * time.Nanosecond)
+	defer txTicker.Stop()
+	testDuration := time.NewTicker(time.Duration(10000) * time.Second)
 	defer testDuration.Stop()
 
 	echan := make(chan error)
 
 	hashes := []hexutil.Bytes{}
-	receipts := []map[string]interface{}{}
+	nonceIncIndex := 0
 	var wg sync.WaitGroup
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-txTicker.C:
 			txs++
-			if txs >= maxTx {
+			if txs >= ctx.Int("txcount") {
 				wg.Wait()
-				ticker.Stop()
+				txTicker.Stop()
+				testDuration.Stop()
+				receipts := getAllReceipts(hashes)
+
 				fmt.Println("hashes: ", hashes)
 				fmt.Println("receipts: ", receipts)
+				fmt.Println("nonces: ", nonces)
+
 				return nil
 			}
+
 			wg.Add(1)
-			go func(e chan error) {
-				fmt.Println(txs)
 
-				from := accts[getRandAcct(0, len(accts)-1)]
-				to := accts[getRandAcct(0, len(accts)-1)]
+			fromIndex := getRandAcct(0, len(accts)-1)
+			nonceIncIndex = fromIndex
+			from := accts[fromIndex]
+			toIndex := getRandAcct(0, len(accts)-1)
+			to := accts[toIndex]
 
-				if string(from) == string(to) {
-					to = accts[getRandAcct(0, len(accts)-1)]
-				}
+			if string(from) == string(to) {
+				to = accts[getRandAcct(0, len(accts)-1)]
+			}
 
-				fmt.Println("from: ", from)
-				fmt.Println("to: ", to)
+			param := make([]map[string]string, 1)
+			param[0] = make(map[string]string)
 
-				param := make([]map[string]string, 1)
-				param[0] = make(map[string]string)
+			param[0]["from"] = fmt.Sprintf("%s", from)
+			param[0]["to"] = fmt.Sprintf("%s", to)
+			param[0]["value"] = value
+			param[0]["gasLimit"] = gasLimit
+			param[0]["gasPrice"] = gasPrice
+			param[0]["nonce"] = "0x" + fmt.Sprintf("%x", nonces[fromIndex])
 
-				param[0]["from"] = fmt.Sprintf("%s", from)
-				param[0]["to"] = fmt.Sprintf("%s", to)
-				param[0]["value"] = value
-				param[0]["gasLimit"] = gasLimit
-				param[0]["gasPrice"] = gasPrice
+			rpcTxRes, err := call("eth_sendTransaction", param)
+			if err != nil {
+				fmt.Println(err)
+				echan <- err
+			}
 
-				fmt.Println(param)
+			var hash hexutil.Bytes
+			err = json.Unmarshal(rpcTxRes.Result, &hash)
+			if err != nil {
+				fmt.Println(err)
+				echan <- err
+			}
+			hashes = append(hashes, hash)
 
-				rpcTxRes, err := call("eth_sendTransaction", param)
-				if err != nil {
-					fmt.Println(err)
-					echan <- err
-				}
+			nonces[nonceIncIndex]++
 
-				var hash hexutil.Bytes
-				err = json.Unmarshal(rpcTxRes.Result, &hash)
-				if err != nil {
-					fmt.Println(err)
-					echan <- err
-				}
-				hashes = append(hashes, hash)
+			wg.Done()
 
-				receipt, err := waitForReceipt(hash)
-				if err != nil {
-					fmt.Println(err)
-					echan <- err
-				}
-				receipts = append(receipts, receipt)
-
-				wg.Done()
-			}(echan)
 		case <-testDuration.C:
-			ticker.Stop()
+			for i, acct := range accts {
+				param := []interface{}{acct, "latest"}
+				rpcRes, err := call("eth_getTransactionCount", param)
+				if err != nil {
+					fmt.Println(err)
+					echan <- err
+				}
+
+				var result string
+				err = json.Unmarshal(rpcRes.Result, &result)
+				if err != nil {
+					panic(err)
+				}
+
+				nonce, err := strconv.ParseInt(string(result), 0, 64)
+				if err != nil {
+					fmt.Println(err)
+					echan <- err
+				}
+
+				nonces[i] = int(nonce)
+			}
+			txTicker.Stop()
 			testDuration.Stop()
 			return nil
 		case err := <-echan:

@@ -11,6 +11,8 @@ MONIKER="localbenchmarktestnet"
 # remove existing daemon and client
 rm -rf ~/.emint*
 
+pkill -f "emint*"
+
 make install
 
 emintcli config keyring-backend test
