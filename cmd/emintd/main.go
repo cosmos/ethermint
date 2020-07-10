@@ -20,7 +20,7 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/store"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
@@ -89,7 +89,7 @@ func main() {
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
 	return app.NewEthermintApp(logger, db, traceStore, true, 0,
-		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))))
+		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))))
 }
 
 func exportAppStateAndTMValidators(

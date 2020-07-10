@@ -16,10 +16,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -29,7 +27,7 @@ import (
 )
 
 var (
-	codec.MakeCodec(app.ModuleBasics)
+	cdc = codec.MakeCodec(app.ModuleBasics)
 )
 
 func main() {
