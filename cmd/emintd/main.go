@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/codec"
+	"github.com/cosmos/ethermint/crypto"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -40,6 +42,9 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)
+
+	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
 
 	keys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc

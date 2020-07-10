@@ -4,18 +4,11 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
-
-func init() {
-	tmamino.RegisterKeyType(PubKeySecp256k1{}, PubKeyAminoName)
-	tmamino.RegisterKeyType(PrivKeySecp256k1{}, PrivKeyAminoName)
-}
 
 // ----------------------------------------------------------------------------
 // secp256k1 Private Key

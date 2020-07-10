@@ -10,14 +10,18 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/codec"
+	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/rpc"
 
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -34,8 +38,11 @@ func main() {
 	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
 
-	// keys.CryptoCdc = cdc
-	// clientkeys.KeysCdc = cdc
+	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
+
+	keys.CryptoCdc = cdc
+	clientkeys.KeysCdc = cdc
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()

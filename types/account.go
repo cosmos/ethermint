@@ -57,10 +57,13 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
 		Coins:         acc.Coins,
-		PubKey:        acc.PubKey.Bytes(),
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+	}
+
+	if acc.PubKey != nil {
+		alias.PubKey = acc.PubKey.Bytes()
 	}
 
 	bz, err := yaml.Marshal(alias)
@@ -75,10 +78,14 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		PubKey:        acc.PubKey.Bytes(),
+		Coins:         acc.Coins,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+	}
+
+	if acc.PubKey != nil {
+		alias.PubKey = acc.PubKey.Bytes()
 	}
 
 	return json.Marshal(alias)
@@ -101,6 +108,7 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		acc.BaseAccount.PubKey = pubKey
 	}
 
+	acc.BaseAccount.Coins = alias.Coins
 	acc.BaseAccount.Address = alias.Address
 	acc.BaseAccount.AccountNumber = alias.AccountNumber
 	acc.BaseAccount.Sequence = alias.Sequence

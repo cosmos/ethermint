@@ -6,8 +6,8 @@ import (
 
 var cryptoCodec = codec.New()
 
+// Amino encoding names
 const (
-	// Amino encoding names
 	PrivKeyAminoName = "crypto/PrivKeySecp256k1"
 	PubKeyAminoName  = "crypto/PubKeySecp256k1"
 )
