@@ -16,7 +16,7 @@ import (
 //
 // NOTE: This codec will be deprecated in favor of AppCodec once all modules are
 // migrated.
-func MakeCodec(bm module.BasicManager) *codec.Codec {
+func MakeCodec(bm module.BasicManager) {
 	cdc := codec.New()
 
 	bm.RegisterCodec(cdc)
@@ -31,5 +31,5 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	// our codec instead.
 	// authclient.Codec = cdc
 
-	return cdc
+	// return cdc
 }

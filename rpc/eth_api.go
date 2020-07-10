@@ -7,13 +7,10 @@ import (
 	"log"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -38,7 +35,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -523,7 +520,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err := jsonpb.Unmarshal(strings.NewReader(string(res)), &simResponse); err != nil {
+	if err := ctx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
 		return nil, err
 	}
 
@@ -931,7 +928,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
+		// authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
 		accRet := authtypes.NewAccountRetriever(e.cliCtx)
 
 		err = accRet.EnsureExists(from)
