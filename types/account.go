@@ -56,6 +56,7 @@ type ethermintAccountPretty struct {
 func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
+		Coins:         acc.Coins,
 		PubKey:        acc.PubKey.Bytes(),
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,

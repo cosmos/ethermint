@@ -19,7 +19,7 @@ import (
 
 // NewDefaultGenesisState generates the default state for the application.
 func NewDefaultGenesisState() simapp.GenesisState {
-	ethcdc.MakeCodec(ModuleBasics)
+	_ = ethcdc.MakeCodec(ModuleBasics)
 	return ModuleBasics.DefaultGenesis()
 }
 

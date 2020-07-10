@@ -23,7 +23,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
-	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
@@ -151,7 +150,8 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	// verify account mapper state
 	genAcc := ak.GetAccount(ctx, sdk.AccAddress(genInvestor.Bytes()))
 	require.NotNil(t, genAcc)
-	balance := bk.GetBalance(ctx, genAcc.GetAddress(), types.DenomDefault)
+	// balance := bk.GetBalance(ctx, genAcc.GetAddress(), types.DenomDefault)
+	balance := sdk.NewCoin(types.DenomDefault, genAcc.GetCoins().AmountOf(types.DenomDefault))
 	require.Equal(t, sdk.NewIntFromBigInt(b), balance.Amount)
 }
 
@@ -173,23 +173,23 @@ func TestImportBlocks(t *testing.T) {
 	trapSignals()
 
 	cdc := newTestCodec()
-	appCodec := codec.NewAppCodec(cdc)
+	// appCodec := codec.NewAppCodec(cdc)
 
 	cms := store.NewCommitMultiStore(db)
 
 	// The ParamsKeeper handles parameter storage for the application
-	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
+	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(appCodec, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
-	ak := auth.NewAccountKeeper(appCodec, accKey, authSubspace, types.ProtoAccount)
-	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
+	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
+	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
 
 	// mount stores
-	keys := []*sdk.KVStoreKey{accKey, bankKey, storeKey}
+	keys := []*sdk.KVStoreKey{accKey, storeKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,7 +20,6 @@ import (
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 
-	"github.com/cosmos/ethermint/codec"
 	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -88,12 +88,16 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			var genAccount authexported.GenesisAccount
 
 			// balances := bank.Balance{Address: addr, Coins: coins.Sort()}
-			baseAccount := auth.NewBaseAccount(addr, nil, 0, 0)
+			coins = coins.Sort()
+			baseAccount := auth.NewBaseAccount(addr, coins, nil, 0, 0)
 			if !vestingAmt.IsZero() {
-				baseVestingAccount := authvesting.NewBaseVestingAccount(baseAccount, vestingAmt.Sort(), vestingEnd)
+				baseVestingAccount, err := authvesting.NewBaseVestingAccount(baseAccount, vestingAmt.Sort(), vestingEnd)
+				if err != nil {
+					return err
+				}
 
-				if (balances.Coins.IsZero() && !baseVestingAccount.OriginalVesting.IsZero()) ||
-					baseVestingAccount.OriginalVesting.IsAnyGT(balances.Coins) {
+				if (coins.IsZero() && !baseVestingAccount.OriginalVesting.IsZero()) ||
+					baseVestingAccount.OriginalVesting.IsAnyGT(coins) {
 					return errors.New("vesting amount cannot be greater than total amount")
 				}
 
@@ -119,7 +123,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			}
 
 			genFile := config.GenesisFile()
-			appState, genDoc, err := genutil.GenesisStateFromGenFile(depCdc, genFile)
+			appState, genDoc, err := genutil.GenesisStateFromGenFile(cdc, genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
