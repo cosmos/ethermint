@@ -19,6 +19,10 @@ import (
 var _ exported.Account = (*EthAccount)(nil)
 var _ exported.GenesisAccount = (*EthAccount)(nil)
 
+func init() {
+	authtypes.RegisterAccountTypeCodec(EthAccount, EthAccountName)
+}
+
 // ----------------------------------------------------------------------------
 // Main Ethermint account
 // ----------------------------------------------------------------------------
@@ -45,7 +49,7 @@ type ethermintAccountPretty struct {
 func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		PubKey:        acc.PubKey,
+		PubKey:        acc.PubKey.Bytes(),
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
@@ -63,7 +67,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		PubKey:        acc.PubKey,
+		PubKey:        acc.PubKey.Bytes(),
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),

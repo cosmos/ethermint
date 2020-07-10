@@ -2,30 +2,17 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 )
 
 const (
-	// Amino encoding name
-	EthermintAccountName = "ethermint/EthAccount"
+	// EthAccountName is the amino encoding name for EthAccount
+	EthAccountName = "ethermint/EthAccount"
 )
-
-// Codec defines the interface needed to serialize x/auth state. It must be
-// aware of all concrete account types.
-type Codec interface {
-	codec.Marshaler
-
-	MarshalAccount(acc exported.Account) ([]byte, error)
-	UnmarshalAccount(bz []byte) (exported.Account, error)
-
-	MarshalAccountJSON(acc exported.Account) ([]byte, error)
-	UnmarshalAccountJSON(bz []byte) (exported.Account, error)
-}
 
 // RegisterCodec registers the account interfaces and concrete types on the
 // provided Amino codec.
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(&EthAccount{}, EthermintAccountName, nil)
+	cdc.RegisterConcrete(&EthAccount{}, EthAccountName, nil)
 }
 
 var (
