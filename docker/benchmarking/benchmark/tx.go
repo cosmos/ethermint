@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -190,9 +189,25 @@ func sendTx(ctx *cli.Context) error {
 				testDuration.Stop()
 				receipts := getAllReceipts(hashes)
 
-				fmt.Println("hashes: ", hashes)
-				fmt.Println("receipts: ", receipts)
-				fmt.Println("nonces: ", nonces)
+				hashesf, err := os.Create("/ethermint/docker/benchmarking/hashes.json")
+				if err != nil {
+					return err
+				}
+				hashesJson, err := json.Marshal(hashes)
+				if err != nil {
+					return err
+				}
+				hashesf.Write(hashesJson)
+
+				receiptsf, err := os.Create("/ethermint/docker/benchmarking/receipts.json")
+				if err != nil {
+					return err
+				}
+				receiptsJson, err := json.Marshal(receipts)
+				if err != nil {
+					return err
+				}
+				receiptsf.Write(receiptsJson)
 
 				return nil
 			}
@@ -238,28 +253,6 @@ func sendTx(ctx *cli.Context) error {
 			wg.Done()
 
 		case <-testDuration.C:
-			for i, acct := range accts {
-				param := []interface{}{acct, "latest"}
-				rpcRes, err := call("eth_getTransactionCount", param)
-				if err != nil {
-					fmt.Println(err)
-					echan <- err
-				}
-
-				var result string
-				err = json.Unmarshal(rpcRes.Result, &result)
-				if err != nil {
-					panic(err)
-				}
-
-				nonce, err := strconv.ParseInt(string(result), 0, 64)
-				if err != nil {
-					fmt.Println(err)
-					echan <- err
-				}
-
-				nonces[i] = int(nonce)
-			}
 			txTicker.Stop()
 			testDuration.Stop()
 			return nil
