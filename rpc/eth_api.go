@@ -34,7 +34,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -137,7 +137,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	keybase, err := keyring.NewKeyring(
+	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
@@ -204,8 +204,8 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
-	authclient.Codec = codec.NewAppCodec(ctx.Codec)
-	accRet := authtypes.NewAccountRetriever(authclient.Codec, ctx)
+	// authclient.Codec = codec.NewAppCodec(ctx.Codec)
+	accRet := authtypes.NewAccountRetriever(ctx)
 
 	err := accRet.EnsureExists(from)
 	if err != nil {
@@ -932,7 +932,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
 		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
-		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+		accRet := authtypes.NewAccountRetriever(e.cliCtx)
 
 		err = accRet.EnsureExists(from)
 		if err != nil {

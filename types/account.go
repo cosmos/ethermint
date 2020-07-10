@@ -20,12 +20,19 @@ var _ exported.Account = (*EthAccount)(nil)
 var _ exported.GenesisAccount = (*EthAccount)(nil)
 
 func init() {
-	authtypes.RegisterAccountTypeCodec(EthAccount, EthAccountName)
+	authtypes.RegisterAccountTypeCodec(&EthAccount{}, EthAccountName)
 }
 
 // ----------------------------------------------------------------------------
 // Main Ethermint account
 // ----------------------------------------------------------------------------
+
+// EthAccount implements the auth.Account interface and embeds an
+// auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
+type EthAccount struct {
+	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
+	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
+}
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
@@ -85,12 +92,12 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	}
 
 	if alias.PubKey != nil {
-		pubk, err := tmamino.PubKeyFromBytes(alias.PubKey)
+		pubKey, err := tmamino.PubKeyFromBytes(alias.PubKey)
 		if err != nil {
 			return err
 		}
 
-		acc.BaseAccount.PubKey = pubk.Bytes()
+		acc.BaseAccount.PubKey = pubKey
 	}
 
 	acc.BaseAccount.Address = alias.Address

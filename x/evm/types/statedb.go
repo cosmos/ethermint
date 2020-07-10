@@ -480,13 +480,34 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: emint.DenomDefault, Amount: sdk.NewIntFromBigInt(so.Balance())}
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
-	return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
+
+	// TODO: remove on the next upgrade
+	coins := so.account.GetCoins()
+
+	var setCoins bool
+	for _, coin := range coins {
+		if coin.Denom == newBalance.Denom {
+			// update the balance for photons
+			coin.Amount = newBalance.Amount
+			setCoins = true
+		}
+	}
+
+	if !setCoins {
+		coins = coins.Add(newBalance)
+	}
+
+	_ = so.account.SetCoins(coins)
+	// end removal for next upgrade
+
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
+	return nil
 }
 
 // deleteStateObject removes the given state object from the state store.
@@ -608,7 +629,11 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
-		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+		// balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+		balance := sdk.Coin{
+			Denom:  emint.DenomDefault,
+			Amount: emintAcc.GetCoins().AmountOf(emint.DenomDefault),
+		}
 		if so.Balance() != balance.Amount.BigInt() && balance.IsValid() {
 			so.balance = balance.Amount
 		}
@@ -800,7 +825,11 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return nil
 	}
 
-	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), emint.DenomDefault)
+	// balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), emint.DenomDefault)
+	balance := sdk.Coin{
+		Denom:  emint.DenomDefault,
+		Amount: acc.GetCoins().AmountOf(emint.DenomDefault),
+	}
 
 	// insert the state object into the live set
 	so := newStateObject(csdb, acc, balance.Amount)

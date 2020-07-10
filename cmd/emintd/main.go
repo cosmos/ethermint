@@ -6,10 +6,20 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,19 +29,9 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/codec"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -47,7 +47,7 @@ func main() {
 	tmamino.RegisterKeyType(emintcrypto.PubKeySecp256k1{}, emintcrypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(emintcrypto.PrivKeySecp256k1{}, emintcrypto.PrivKeyAminoName)
 
-	keyring.CryptoCdc = cdc
+	keys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
 	genutiltypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
