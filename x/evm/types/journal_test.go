@@ -38,10 +38,10 @@ func newTestCodec() *sdkcodec.Codec {
 	cdc := sdkcodec.New()
 
 	RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
 	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
 	crypto.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
 
@@ -49,11 +49,31 @@ func newTestCodec() *sdkcodec.Codec {
 }
 
 func (suite *JournalTestSuite) SetupTest() {
+	suite.setup()
+
 	privkey, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
 	suite.journal = newJournal()
+
+	// acc := types.EthAccount{
+	// 	BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
+	// 	CodeHash:    ethcrypto.Keccak256(nil),
+	// }
+
+	// suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
+	suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), sdk.NewCoin(types.DenomDefault, sdk.NewInt(100)))
+}
+
+// setup performs a manual setup of the GoLevelDB and mounts the required IAVL stores. We use the manual
+// setup here instead of the Ethermint app test setup because the journal methods are private and using
+// the latter would result in a cycle dependency. We also want to avoid declaring the journal methods public
+// to maintain consistency with the Geth implementation.
+func (suite *JournalTestSuite) setup() {
+	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
+	storeKey := sdk.NewKVStoreKey(StoreKey)
 
 	db := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
 	defer func() {
@@ -61,22 +81,12 @@ func (suite *JournalTestSuite) SetupTest() {
 	}()
 
 	cms := store.NewCommitMultiStore(db)
-
-	// The ParamsKeeper handles parameter storage for the application
-	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
-	authKey := sdk.NewKVStoreKey(auth.StoreKey)
-	storeKey := sdk.NewKVStoreKey(StoreKey)
-
-	// mount stores
-	keys := []*sdk.KVStoreKey{authKey, bankKey, storeKey}
-	for _, key := range keys {
-		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
-	}
-
-	cms.SetPruning(store.PruneNothing)
+	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(bankKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 
 	// load latest version (root)
-	err = cms.LoadLatestVersion()
+	err := cms.LoadLatestVersion()
 	suite.Require().NoError(err)
 
 	cdc := newTestCodec()
@@ -92,19 +102,8 @@ func (suite *JournalTestSuite) SetupTest() {
 	ak := auth.NewAccountKeeper(appCodec, authKey, authSubspace, types.ProtoAccount)
 	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
-	ms := cms.CacheMultiStore()
-	suite.ctx = sdk.NewContext(ms, abci.Header{}, false, tmlog.NewNopLogger())
-
+	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
 	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak, bk)
-
-	// acc := types.EthAccount{
-	// 	BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
-	// 	CodeHash:    ethcrypto.Keccak256(nil),
-	// }
-
-	// ak.SetAccount(suite.ctx, acc)
-	bk.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), sdk.NewCoin(types.DenomDefault, sdk.NewInt(100)))
-
 }
 
 func TestJournalTestSuite(t *testing.T) {
