@@ -381,3 +381,56 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Commit() {
 		suite.Require().Equal(ethcrypto.Keccak256([]byte("code")), ethAcc.CodeHash)
 	}
 }
+
+func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
+	testCase := []struct {
+		name       string
+		malleate   func()
+		deleteObjs bool
+		expPass    bool
+	}{
+		{
+			"commit suicided",
+			func() {
+				ok := suite.stateDB.Suicide(suite.address)
+				suite.Require().True(ok)
+			},
+			true, true,
+		},
+		{
+			"commit with dirty value",
+			func() {
+				suite.stateDB.AddBalance(suite.address, big.NewInt(5))
+			},
+			false, true,
+		},
+		{
+			"faled to update state object",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(10))
+			},
+			false, false,
+		},
+	}
+
+	for _, tc := range testCase {
+		tc.malleate()
+
+		err := suite.stateDB.Finalise(tc.deleteObjs)
+
+		if !tc.expPass {
+			suite.Require().Error(err, tc.name)
+			continue
+		}
+
+		suite.Require().NoError(err, tc.name)
+		acc := suite.app.AccountKeeper.GetAccount(suite.ctx, sdk.AccAddress(suite.address.Bytes()))
+
+		if tc.deleteObjs {
+			suite.Require().Nil(acc, tc.name)
+			continue
+		}
+
+		suite.Require().NotNil(acc, tc.name)
+	}
+}
