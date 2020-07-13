@@ -61,6 +61,8 @@ type CommitStateDB struct {
 
 	// TODO: Determine if we actually need this as we do not need preimages in
 	// the SDK, but it seems to be used elsewhere in Geth.
+	//
+	// NOTE: it is safe to use map here because it's only used for Copy
 	preimages map[ethcmn.Hash][]byte
 
 	// DB error.
