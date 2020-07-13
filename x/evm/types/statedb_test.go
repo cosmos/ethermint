@@ -23,10 +23,12 @@ import (
 type StateDBTestSuite struct {
 	suite.Suite
 
-	ctx     sdk.Context
-	querier sdk.Querier
-	app     *app.EthermintApp
-	stateDB *types.CommitStateDB
+	ctx         sdk.Context
+	querier     sdk.Querier
+	app         *app.EthermintApp
+	stateDB     *types.CommitStateDB
+	address     ethcmn.Address
+	stateObject types.StateObject
 }
 
 func TestStateDBTestSuite(t *testing.T) {
@@ -40,6 +42,12 @@ func (suite *StateDBTestSuite) SetupTest() {
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
+
+	privkey, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
+	suite.stateObject = suite.stateDB.GetOrNewStateObject(suite.address)
 }
 
 func (suite *StateDBTestSuite) TestBloomFilter() {
