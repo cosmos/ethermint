@@ -11,18 +11,20 @@ import (
 	tmdb "github.com/tendermint/tm-db"
 
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/crypto"
-	"github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 )
 
 type JournalTestSuite struct {
@@ -34,18 +36,22 @@ type JournalTestSuite struct {
 	stateDB *CommitStateDB
 }
 
-func newTestCodec() *sdkcodec.Codec {
+func newTestCodec() *codec.Codec {
 	cdc := sdkcodec.New()
 
 	RegisterCodec(cdc)
+	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	types.RegisterCodec(cdc)
-	auth.RegisterCodec(cdc)
-	bank.RegisterCodec(cdc)
 	crypto.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
+	ethermint.RegisterCodec(cdc)
+	keyring.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
-	return cdc
+	// since auth client doesn't use the ethermint account type, we need to set
+	// our codec instead.
+	appCodec := codec.NewAppCodec(cdc)
+
+	return appCodec
 }
 
 func (suite *JournalTestSuite) SetupTest() {
@@ -57,13 +63,14 @@ func (suite *JournalTestSuite) SetupTest() {
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
 	suite.journal = newJournal()
 
-	// acc := types.EthAccount{
-	// 	BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
-	// 	CodeHash:    ethcrypto.Keccak256(nil),
-	// }
+	acc := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
 
-	// suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
-	suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), sdk.NewCoin(types.DenomDefault, sdk.NewInt(100)))
+	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
+	suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), sdk.NewCoin(ethermint.DenomDefault, sdk.NewInt(100)))
+	// suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("hash")),)
 }
 
 // setup performs a manual setup of the GoLevelDB and mounts the required IAVL stores. We use the manual
@@ -89,9 +96,7 @@ func (suite *JournalTestSuite) setup() {
 	err := cms.LoadLatestVersion()
 	suite.Require().NoError(err)
 
-	cdc := newTestCodec()
-	appCodec := codec.NewAppCodec(cdc)
-	authclient.Codec = appCodec
+	appCodec := newTestCodec()
 
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -99,11 +104,11 @@ func (suite *JournalTestSuite) setup() {
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
-	ak := auth.NewAccountKeeper(appCodec, authKey, authSubspace, types.ProtoAccount)
+	ak := auth.NewAccountKeeper(appCodec, authKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak, bk)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak, bk).WithContext(suite.ctx)
 }
 
 func TestJournalTestSuite(t *testing.T) {
@@ -186,6 +191,12 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 				hash: ethcmn.BytesToHash([]byte("hash")),
 			},
 		},
+		{
+			"addLogChange",
+			addLogChange{
+				txhash: ethcmn.BytesToHash([]byte("hash")),
+			},
+		},
 	}
 	var dirtyCount int
 	for i, tc := range testCases {
@@ -197,19 +208,13 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 		}
 	}
 
-	// for i, tc := range testCases {
-	// suite.journal.revert(suite.stateDB, len(testCases)-1-i)
-	// suite.Require().Equal(suite.journal.length(), len(testCases)-1-i, tc.name)
-	// if tc.entry.dirtied() != nil {
-	// 	dirtyCount--
-	// 	suite.Require().Equal(dirtyCount, suite.journal.dirties[suite.address], tc.name)
-	// }
-	// }
+	// revert to the initial journal state
+	suite.journal.revert(suite.stateDB, 0)
 
-	// verify the dirty entry
-	// count, ok := suite.journal.dirties[suite.address]
-	// suite.Require().False(ok)
-	// suite.Require().Zero(count)
+	// verify the dirty entry has been deleted
+	count, ok := suite.journal.dirties[suite.address]
+	suite.Require().False(ok)
+	suite.Require().Zero(count)
 }
 
 func (suite *JournalTestSuite) TestJournal_dirty() {
