@@ -390,7 +390,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 		expPass    bool
 	}{
 		{
-			"commit suicided",
+			"finalize suicided",
 			func() {
 				ok := suite.stateDB.Suicide(suite.address)
 				suite.Require().True(ok)
@@ -398,7 +398,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 			true, true,
 		},
 		{
-			"commit with dirty value",
+			"finalize, not suicided",
 			func() {
 				suite.stateDB.AddBalance(suite.address, big.NewInt(5))
 			},
