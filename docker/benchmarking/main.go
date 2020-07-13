@@ -15,6 +15,7 @@ func main() {
 	app.Usage = "Benchmarking suite for ethermint"
 	app.Commands = []cli.Command{
 		benchmark.SendTx,
+		benchmark.Analyze,
 	}
 	err := app.Run(os.Args)
 	if err != nil {

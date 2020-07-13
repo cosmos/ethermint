@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -45,6 +46,13 @@ var (
 			cli.IntFlag{Name: "duration, d", Value: 10, Hidden: false, Usage: "test duration in seconds"},
 			cli.IntFlag{Name: "txcount, c", Value: 100, Hidden: false, Usage: "test transaction count"},
 		},
+	}
+	Analyze = cli.Command{
+		Name:      "analyze",
+		ShortName: "a",
+		Usage:     "Analyze the receipts.json file. Output will be the blocks and corresponding transactions included in those blocks.",
+		Action:    analyze,
+		Flags:     []cli.Flag{},
 	}
 )
 
@@ -136,12 +144,20 @@ func getAllReceipts(hashes []hexutil.Bytes) []map[string]interface{} {
 	return receipts
 }
 
-// will get a list of addrs from some config file. these will be the addresses that are included in the genesis file.
+func checkRepeats(list []string, item string) []string {
+	exist := false
+	for _, litem := range list {
+		if litem == item {
+			exist = true
+		}
+	}
+	if !exist {
+		list = append(list, item)
+	}
+	return list
+}
+
 func sendTx(ctx *cli.Context) error {
-
-	fmt.Println(ctx.Int("duration"))
-	fmt.Println(ctx.Int("txcount"))
-
 	rpcRes, err := call("eth_accounts", []string{})
 	if err != nil {
 		return err
@@ -261,4 +277,31 @@ func sendTx(ctx *cli.Context) error {
 			return err
 		}
 	}
+}
+
+func analyze(ctx *cli.Context) error {
+	//parse block numbers
+	//call eth_getBlockTransactionCountByNumber to get tx counts
+
+	receiptsf, err := ioutil.ReadFile("/ethermint/docker/benchmarking/receipts.json")
+	if err != nil {
+		fmt.Println("Unable to locate receipts.json file. Please run the sendtx command to generate this file.")
+		return err
+	}
+	var receipts []map[string]interface{}
+
+	err = json.Unmarshal(receiptsf, &receipts)
+	if err != nil {
+		return err
+	}
+
+	blocks := []string{}
+	for _, receipt := range receipts {
+		fmt.Println(receipt["blockNumber"])
+		blockn := fmt.Sprintf("%s", receipt["blockNumber"])
+		blocks = checkRepeats(blocks, blockn)
+	}
+	fmt.Println(blocks)
+
+	return nil
 }
