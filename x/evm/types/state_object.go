@@ -54,21 +54,24 @@ type StateObject interface {
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
 	code types.Code // contract bytecode, which gets set when code is loaded
-	// DB error.
+
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
-	dbErr         error
-	stateDB       *CommitStateDB
-	account       *types.EthAccount
-	balance       sdk.Int
 	originStorage Storage // Storage cache of original entries to dedup rewrites
 	dirtyStorage  Storage // Storage entries that need to be flushed to disk
-	address       ethcmn.Address
+
+	// DB error
+	dbErr   error
+	stateDB *CommitStateDB
+	account *types.EthAccount
+	balance sdk.Int
 
 	keyToOriginStorageIndex map[ethcmn.Hash]int
 	keyToDirtyStorageIndex  map[ethcmn.Hash]int
+
+	address ethcmn.Address
 
 	// cache flags
 	//
