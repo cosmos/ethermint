@@ -110,7 +110,6 @@ func (suite *JournalTestSuite) setup() {
 	cms.MountStoreWithDB(bankKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 
-	// load latest version (root)
 	err := cms.LoadLatestVersion()
 	suite.Require().NoError(err)
 
@@ -119,9 +118,10 @@ func (suite *JournalTestSuite) setup() {
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	paramsKeeper := params.NewKeeper(appCodec, keyParams, tkeyParams)
-	// Set specific supspaces
+
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
+
 	ak := auth.NewAccountKeeper(appCodec, authKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
