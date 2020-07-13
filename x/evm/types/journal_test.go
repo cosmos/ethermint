@@ -11,15 +11,14 @@ import (
 	tmdb "github.com/tendermint/tm-db"
 
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/ethermint/codec"
@@ -40,15 +39,11 @@ func newTestCodec() *codec.Codec {
 	cdc := sdkcodec.New()
 
 	RegisterCodec(cdc)
-	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	crypto.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
 	ethermint.RegisterCodec(cdc)
-	keyring.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
-	// since auth client doesn't use the ethermint account type, we need to set
-	// our codec instead.
 	appCodec := codec.NewAppCodec(cdc)
 
 	return appCodec
@@ -70,7 +65,30 @@ func (suite *JournalTestSuite) SetupTest() {
 
 	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
 	suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), sdk.NewCoin(ethermint.DenomDefault, sdk.NewInt(100)))
-	// suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("hash")),)
+	suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("txhash")), []*ethtypes.Log{
+		{
+			Address:     suite.address,
+			Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic_0"))},
+			Data:        []byte("data_0"),
+			BlockNumber: 1,
+			TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
+			TxIndex:     1,
+			BlockHash:   ethcmn.BytesToHash([]byte("block_hash")),
+			Index:       1,
+			Removed:     false,
+		},
+		{
+			Address:     suite.address,
+			Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic_1"))},
+			Data:        []byte("data_1"),
+			BlockNumber: 10,
+			TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
+			TxIndex:     0,
+			BlockHash:   ethcmn.BytesToHash([]byte("block_hash")),
+			Index:       0,
+			Removed:     false,
+		},
+	})
 }
 
 // setup performs a manual setup of the GoLevelDB and mounts the required IAVL stores. We use the manual
@@ -195,6 +213,12 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			"addLogChange",
 			addLogChange{
 				txhash: ethcmn.BytesToHash([]byte("hash")),
+			},
+		},
+		{
+			"addLogChange - 2 logs",
+			addLogChange{
+				txhash: ethcmn.BytesToHash([]byte("txhash")),
 			},
 		},
 	}

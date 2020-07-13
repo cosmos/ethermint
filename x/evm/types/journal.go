@@ -206,6 +206,7 @@ func (ch refundChange) dirtied() *ethcmn.Address {
 func (ch addLogChange) revert(s *CommitStateDB) {
 	logs, err := s.GetLogs(ch.txhash)
 	if err != nil {
+		// panic on unmarshal error
 		panic(err)
 	}
 
@@ -214,6 +215,7 @@ func (ch addLogChange) revert(s *CommitStateDB) {
 		s.DeleteLogs(ch.txhash)
 	} else {
 		if err := s.SetLogs(ch.txhash, logs[:len(logs)-1]); err != nil {
+			// panic on marshal error
 			panic(err)
 		}
 	}
