@@ -19,6 +19,7 @@
 .glide/
 vendor
 build
+bin
 tools/bin/*
 docs/_build
 docs/tutorial
