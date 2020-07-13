@@ -16,6 +16,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
@@ -717,9 +718,9 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	return state
 }
 
-// ForEachStorage iterates over each storage items, all invokes the provided
-// callback on each key, value pair .
-func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
+// ForEachStorage iterates over each storage items, all invoke the provided
+// callback on each key, value pair.
+func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
 	so := csdb.getStateObject(addr)
 	if so == nil {
 		return nil
@@ -734,18 +735,23 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		key := ethcmn.BytesToHash(iterator.Key())
 		value := ethcmn.BytesToHash(iterator.Value())
 
-		if value, dirty := so.dirtyStorage[key]; dirty {
+		if idx, dirty := so.keyToDirtyStorageIndex[key]; dirty {
 			// check if iteration stops
-			if cb(key, value) {
+			if cb(key, so.dirtyStorage[idx].Value) {
 				break
 			}
 
 			continue
 		}
 
+		_, content, _, err := rlp.Split(value.Bytes())
+		if err != nil {
+			return err
+		}
+
 		// check if iteration stops
-		if cb(key, value) {
-			break
+		if cb(key, ethcmn.BytesToHash(content)) {
+			return nil
 		}
 	}
 

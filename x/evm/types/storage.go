@@ -2,13 +2,14 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
-// Storage represents the Storage map as a slice of single key value
+// Storage represents the account Storage map as a slice of single key value
 // State pairs. This is to prevent non determinism at genesis initialization or export.
 type Storage []State
 
@@ -27,6 +28,24 @@ func (s Storage) Validate() error {
 		seenStorage[state.Key.String()] = true
 	}
 	return nil
+}
+
+// String implements the stringer interface
+func (s Storage) String() string {
+	var str string
+	for _, state := range s {
+		str += fmt.Sprintf("%s: %s\n", state.Key.String(), state.Value.String())
+	}
+
+	return str
+}
+
+// Copy returns a copy of storage.
+func (s Storage) Copy() Storage {
+	cpy := make(Storage, len(s))
+	copy(cpy, s)
+
+	return cpy
 }
 
 // State represents a single Storage key value pair item.
