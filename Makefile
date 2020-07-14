@@ -255,7 +255,7 @@ build-docker-local-ethermint:
 	@$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
-localnet-start: localnet-stop
+localnet-start: build-ethermint-linux localnet-stop
 	@if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/$(ETHERMINT_DAEMON_BINARY):Z emintd/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
