@@ -30,8 +30,11 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -193,13 +196,13 @@ func InitTestnet(
 		}
 
 		accTokens := sdk.TokensFromConsensusPower(1000)
-		accStakingTokens := sdk.TokensFromConsensusPower(500)
-		coins := sdk.Coins{
+		accStakingTokens := sdk.TokensFromConsensusPower(5000)
+		coins := sdk.NewCoins(
 			sdk.NewCoin(sdk.DefaultBondDenom, accTokens),
 			sdk.NewCoin(types.DenomDefault, accStakingTokens),
-		}
+		)
 
-		genBalances = append(genBalances, banktypes.Balance{Address: addr, Coins: coins.Sort()})
+		genBalances = append(genBalances, banktypes.Balance{Address: addr, Coins: coins})
 		genAccounts = append(genAccounts, types.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
@@ -276,6 +279,30 @@ func initGenFiles(
 
 	bankGenState.Balances = genBalances
 	appGenState[banktypes.ModuleName] = cdc.MustMarshalJSON(bankGenState)
+
+	var stakingGenState stakingtypes.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[stakingtypes.ModuleName], &stakingGenState)
+
+	stakingGenState.Params.BondDenom = types.DenomDefault
+	appGenState[stakingtypes.ModuleName] = cdc.MustMarshalJSON(stakingGenState)
+
+	var govGenState govtypes.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[govtypes.ModuleName], &govGenState)
+
+	govGenState.DepositParams.MinDeposit[0].Denom = types.DenomDefault
+	appGenState[govtypes.ModuleName] = cdc.MustMarshalJSON(govGenState)
+
+	var mintGenState minttypes.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[minttypes.ModuleName], &mintGenState)
+
+	mintGenState.Params.MintDenom = types.DenomDefault
+	appGenState[minttypes.ModuleName] = cdc.MustMarshalJSON(mintGenState)
+
+	var crisisGenState crisistypes.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[crisistypes.ModuleName], &crisisGenState)
+
+	crisisGenState.ConstantFee.Denom = types.DenomDefault
+	appGenState[crisistypes.ModuleName] = cdc.MustMarshalJSON(crisisGenState)
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)
 	if err != nil {
