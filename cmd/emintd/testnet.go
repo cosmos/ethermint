@@ -195,7 +195,7 @@ func InitTestnet(
 		accTokens := sdk.TokensFromConsensusPower(1000)
 		accStakingTokens := sdk.TokensFromConsensusPower(500)
 		coins := sdk.Coins{
-			sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), accTokens),
+			sdk.NewCoin(sdk.DefaultBondDenom, accTokens),
 			sdk.NewCoin(types.DenomDefault, accStakingTokens),
 		}
 
