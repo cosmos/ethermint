@@ -8,14 +8,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
-	eminttypes "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 )
 
 // MakeCodec registers the necessary types and interfaces for an sdk.App. This
 // codec is provided to all the modules the application depends on.
 //
 // NOTE: This codec will be deprecated in favor of AppCodec once all modules are
-// migrated.
+// migrated to protobuf.
 func MakeCodec(bm module.BasicManager) *codec.Codec {
 	cdc := codec.New()
 
@@ -24,7 +24,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	sdk.RegisterCodec(cdc)
 	emintcrypto.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
-	eminttypes.RegisterCodec(cdc)
+	ethermint.RegisterCodec(cdc)
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
 	// since auth client doesn't use the ethermint account type, we need to set
