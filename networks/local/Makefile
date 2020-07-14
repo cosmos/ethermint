@@ -1,4 +1,4 @@
 all:
-	docker build --tag ethermint/node node
+	docker build --tag emintd/node ethermintnode
 
 .PHONY: all
