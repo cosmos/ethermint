@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +46,7 @@ var (
 		Usage:     "Command to send transactions",
 		Action:    sendTx,
 		Flags: []cli.Flag{
-			cli.IntFlag{Name: "duration, d", Value: 10, Hidden: false, Usage: "test duration in seconds"},
+			cli.IntFlag{Name: "duration, d", Value: 10000, Hidden: false, Usage: "test duration in seconds"},
 			cli.IntFlag{Name: "txcount, c", Value: 100, Hidden: false, Usage: "test transaction count"},
 		},
 	}
@@ -52,7 +55,9 @@ var (
 		ShortName: "a",
 		Usage:     "Analyze the receipts.json file. Output will be the blocks and corresponding transactions included in those blocks.",
 		Action:    analyze,
-		Flags:     []cli.Flag{},
+		Flags: []cli.Flag{
+			cli.BoolFlag{Name: "verbose, v", Hidden: false, Usage: "Shows the details of the block."},
+		},
 	}
 )
 
@@ -157,7 +162,13 @@ func checkRepeats(list []string, item string) []string {
 	return list
 }
 
+func hexToInt(hexStr string) int {
+	result, _ := strconv.ParseUint(strings.Replace(hexStr, "0x", "", -1), 16, 64)
+	return int(result)
+}
+
 func sendTx(ctx *cli.Context) error {
+	log.Println(fmt.Sprintf("Starting transactions. Sending %d transactions, timeout %d seconds", ctx.Int("txcount"), ctx.Int("duration")))
 	rpcRes, err := call("eth_accounts", []string{})
 	if err != nil {
 		return err
@@ -186,7 +197,7 @@ func sendTx(ctx *cli.Context) error {
 
 	txTicker := time.NewTicker(time.Duration(500000) * time.Nanosecond)
 	defer txTicker.Stop()
-	testDuration := time.NewTicker(time.Duration(10000) * time.Second)
+	testDuration := time.NewTicker(time.Duration(ctx.Int("duration")) * time.Second)
 	defer testDuration.Stop()
 
 	echan := make(chan error)
@@ -195,12 +206,16 @@ func sendTx(ctx *cli.Context) error {
 	nonceIncIndex := 0
 	var wg sync.WaitGroup
 
+	startTime := time.Now()
+
 	for {
 		select {
 		case <-txTicker.C:
 			txs++
 			if txs >= ctx.Int("txcount") {
 				wg.Wait()
+				endTime := time.Now()
+
 				txTicker.Stop()
 				testDuration.Stop()
 				receipts := getAllReceipts(hashes)
@@ -224,6 +239,9 @@ func sendTx(ctx *cli.Context) error {
 					return err
 				}
 				receiptsf.Write(receiptsJson)
+
+				log.Println(fmt.Sprintf("Test completed. Test duration: %d [ns]", endTime.UnixNano()-startTime.UnixNano()))
+				log.Println(fmt.Sprintf("Start time: %d [unix], End time: %d [unix]", startTime.Unix(), endTime.Unix()))
 
 				return nil
 			}
@@ -252,7 +270,7 @@ func sendTx(ctx *cli.Context) error {
 
 			rpcTxRes, err := call("eth_sendTransaction", param)
 			if err != nil {
-				fmt.Println(err)
+				log.Panic(err)
 				echan <- err
 			}
 
@@ -289,6 +307,8 @@ func analyze(ctx *cli.Context) error {
 		return err
 	}
 	var receipts []map[string]interface{}
+	var transactions []int
+	var totalTx int
 
 	err = json.Unmarshal(receiptsf, &receipts)
 	if err != nil {
@@ -297,11 +317,50 @@ func analyze(ctx *cli.Context) error {
 
 	blocks := []string{}
 	for _, receipt := range receipts {
-		fmt.Println(receipt["blockNumber"])
 		blockn := fmt.Sprintf("%s", receipt["blockNumber"])
 		blocks = checkRepeats(blocks, blockn)
 	}
-	fmt.Println(blocks)
+
+	if ctx.Bool("verbose") {
+		for _, block := range blocks {
+
+			param := []interface{}{block, false}
+			rpcResGetBlock, err := call("eth_getBlockByNumber", param)
+			if err != nil {
+				return err
+			}
+			jsonBlock := make(map[string]interface{})
+			err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(jsonBlock)
+		}
+	}
+
+	for _, block := range blocks {
+		param := []interface{}{block}
+		rpcResGetBlock, err := call("eth_getBlockTransactionCountByNumber", param)
+		if err != nil {
+			return err
+		}
+		var txCount string
+		err = json.Unmarshal(rpcResGetBlock.Result, &txCount)
+		if err != nil {
+			return err
+		}
+
+		transactions = append(transactions, hexToInt(txCount))
+	}
+
+	for _, tx := range transactions {
+		totalTx += tx
+	}
+
+	fmt.Println("Blocks with Tx: ", blocks)
+	fmt.Println("Transactions: ", transactions)
+	fmt.Println("Total Transactions: ", totalTx)
 
 	return nil
 }
