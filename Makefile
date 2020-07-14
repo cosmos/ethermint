@@ -60,6 +60,11 @@ verify:
 	@echo "--> Verifying dependencies have not been modified"
 	${GO_MOD} go mod verify
 
+docker:
+	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
+
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###
@@ -129,12 +134,6 @@ test-sim-multi-seed-short: runsim
 
 .PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
 	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed
-
-docker:
-	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
-	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
-
 
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
@@ -256,7 +255,7 @@ build-docker-local-ethermint:
 	@$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
-localnet-start: build-ethermint-linux localnet-stop
+localnet-start: localnet-stop
 	@if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/$(ETHERMINT_DAEMON_BINARY):Z emintd/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
