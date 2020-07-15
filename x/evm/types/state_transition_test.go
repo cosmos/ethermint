@@ -102,27 +102,24 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			},
 			false,
 		},
-		// {
-		// 	"failed to Finalize",
-		// 	func() {
-		// 		// balance := sdk.Coin{Denom: ethermint.DenomDefault, Amount: sdk.NewInt(-100)}
-		// 		suite.stateDB.SubBalance(suite.address, big.NewInt(10000))
-		// 	},
-		// 	types.StateTransition{
-		// 		AccountNonce: 123,
-		// 		Price:        big.NewInt(10),
-		// 		GasLimit:     11,
-		// 		Recipient:    &recipient,
-		// 		Amount:       big.NewInt(10),
-		// 		Payload:      []byte("data"),
-		// 		ChainID:      big.NewInt(1),
-		// 		Csdb:         suite.stateDB,
-		// 		TxHash:       &ethcmn.Hash{},
-		// 		Sender:       suite.address,
-		// 		Simulate:     suite.ctx.IsCheckTx(),
-		// 	},
-		// 	true,
-		// },
+		{
+			"failed to Finalize",
+			func() {},
+			types.StateTransition{
+				AccountNonce: 123,
+				Price:        big.NewInt(10),
+				GasLimit:     11,
+				Recipient:    &recipient,
+				Amount:       big.NewInt(-5000),
+				Payload:      []byte("data"),
+				ChainID:      big.NewInt(1),
+				Csdb:         suite.stateDB,
+				TxHash:       &ethcmn.Hash{},
+				Sender:       suite.address,
+				Simulate:     false,
+			},
+			false,
+		},
 		{
 			"nil gas price",
 			func() {
