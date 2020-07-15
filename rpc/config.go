@@ -19,7 +19,7 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
 	"github.com/cosmos/ethermint/app"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -45,7 +45,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	accountName := viper.GetString(flagUnlockKey)
 	accountNames := strings.Split(accountName, ",")
 
-	var emintKeys []emintcrypto.PrivKeySecp256k1
+	var emintKeys []crypto.PrivKeySecp256k1
 	if len(accountName) > 0 {
 		var err error
 		inBuf := bufio.NewReader(os.Stdin)
@@ -98,12 +98,13 @@ func registerRoutes(rs *lcd.RestServer) {
 	ws.start()
 }
 
-func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (emintKeys []emintcrypto.PrivKeySecp256k1, err error) {
+func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (emintKeys []crypto.PrivKeySecp256k1, err error) {
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
+		keys.WithKeygenFunc(crypto.EthermintKeygenFunc),
 	)
 	if err != nil {
 		return
@@ -119,7 +120,7 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (e
 		}
 
 		var ok bool
-		emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+		emintKey, ok := privKey.(crypto.PrivKeySecp256k1)
 		if !ok {
 			panic(fmt.Sprintf("invalid private key type: %T", privKey))
 		}

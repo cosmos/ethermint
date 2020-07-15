@@ -494,17 +494,8 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 	// TODO: remove on the next upgrade
 	coins := so.account.GetCoins()
-
-	var setCoins bool
-	for _, coin := range coins {
-		if coin.Denom == newBalance.Denom {
-			// update the balance for photons
-			coin.Amount = newBalance.Amount
-			setCoins = true
-		}
-	}
-
-	if !setCoins {
+	balance := coins.AmountOf(newBalance.Denom)
+	if balance.IsZero() || !balance.Equal(newBalance.Amount) {
 		coins = coins.Add(newBalance)
 	}
 
