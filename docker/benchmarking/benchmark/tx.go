@@ -1,6 +1,7 @@
 package benchmark
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +37,13 @@ type Response struct {
 	Error  *RPCError       `json:"error"`
 	ID     int             `json:"id"`
 	Result json.RawMessage `json:"result,omitempty"`
+}
+
+type resource struct {
+	timestamp     string
+	cpuPercentage string
+	ramPercentage string
+	process       string
 }
 
 var (
@@ -298,9 +307,6 @@ func sendTx(ctx *cli.Context) error {
 }
 
 func analyze(ctx *cli.Context) error {
-	//parse block numbers
-	//call eth_getBlockTransactionCountByNumber to get tx counts
-
 	receiptsf, err := ioutil.ReadFile("/ethermint/docker/benchmarking/receipts.json")
 	if err != nil {
 		fmt.Println("Unable to locate receipts.json file. Please run the sendtx command to generate this file.")
@@ -309,6 +315,7 @@ func analyze(ctx *cli.Context) error {
 	var receipts []map[string]interface{}
 	var transactions []int
 	var totalTx int
+	var resourceUsage []resource
 
 	err = json.Unmarshal(receiptsf, &receipts)
 	if err != nil {
@@ -316,51 +323,115 @@ func analyze(ctx *cli.Context) error {
 	}
 
 	blocks := []string{}
+	timestamps := []int{}
 	for _, receipt := range receipts {
 		blockn := fmt.Sprintf("%s", receipt["blockNumber"])
 		blocks = checkRepeats(blocks, blockn)
 	}
 
-	if ctx.Bool("verbose") {
-		for _, block := range blocks {
-
-			param := []interface{}{block, false}
-			rpcResGetBlock, err := call("eth_getBlockByNumber", param)
-			if err != nil {
-				return err
-			}
-			jsonBlock := make(map[string]interface{})
-			err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(jsonBlock)
-		}
-	}
-
 	for _, block := range blocks {
 		param := []interface{}{block}
-		rpcResGetBlock, err := call("eth_getBlockTransactionCountByNumber", param)
+		rpcResGetTx, err := call("eth_getBlockTransactionCountByNumber", param)
 		if err != nil {
 			return err
 		}
 		var txCount string
-		err = json.Unmarshal(rpcResGetBlock.Result, &txCount)
+		err = json.Unmarshal(rpcResGetTx.Result, &txCount)
 		if err != nil {
 			return err
 		}
 
 		transactions = append(transactions, hexToInt(txCount))
+
+		param = []interface{}{block, false}
+		rpcResGetBlock, err := call("eth_getBlockByNumber", param)
+		if err != nil {
+			return err
+		}
+		jsonBlock := make(map[string]interface{})
+		err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
+		if err != nil {
+			return err
+		}
+
+		timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
+
+		if ctx.Bool("verbose") {
+			fmt.Println(jsonBlock)
+		}
 	}
+
+	// get the block before and after the blocks with transactions; for timestamps.
+	param := []interface{}{"0x" + fmt.Sprintf("%x", hexToInt(blocks[0])-1), false}
+	rpcResGetBlock, err := call("eth_getBlockByNumber", param)
+	if err != nil {
+		return err
+	}
+	jsonBlock := make(map[string]interface{})
+	err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
+	if err != nil {
+		return err
+	}
+
+	timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
+
+	param = []interface{}{"0x" + fmt.Sprintf("%x", hexToInt(blocks[len(blocks)-1])+1), false}
+	rpcResGetBlock, err = call("eth_getBlockByNumber", param)
+	if err != nil {
+		return err
+	}
+	jsonBlock = make(map[string]interface{})
+	err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
+	if err != nil {
+		return err
+	}
+
+	timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
 
 	for _, tx := range transactions {
 		totalTx += tx
 	}
 
+	resourcef, err := os.Open("/ethermint/docker/benchmarking/resource.log")
+	if err != nil {
+		fmt.Println("Unable to locate resource.log file. Please run the sendtx command to generate this file.")
+		return err
+	}
+	scanner := bufio.NewScanner(resourcef)
+	re := regexp.MustCompile(`\s+`)
+
+	var currentTimeStamp string
+
+	for scanner.Scan() {
+		s := re.ReplaceAllString(scanner.Text(), " ")
+		spl := strings.Split(s, " ")
+
+		if len(spl[0]) == 10 {
+			currentTimeStamp = spl[0]
+		} else if spl[0] == "" {
+			resourceUsage = append(resourceUsage,
+				resource{
+					timestamp:     currentTimeStamp,
+					cpuPercentage: spl[1],
+					ramPercentage: spl[2],
+					process:       spl[3],
+				})
+		} else {
+			resourceUsage = append(resourceUsage,
+				resource{
+					timestamp:     currentTimeStamp,
+					cpuPercentage: spl[0],
+					ramPercentage: spl[1],
+					process:       spl[2],
+				})
+		}
+	}
+
 	fmt.Println("Blocks with Tx: ", blocks)
+	fmt.Println("Block Timestamps: ", timestamps) //last two timestamps: first-1, last+1 block timestamp, respectively
 	fmt.Println("Transactions: ", transactions)
 	fmt.Println("Total Transactions: ", totalTx)
+	fmt.Printf("Resource Usage: %+v\n", resourceUsage)
 
 	return nil
 }
