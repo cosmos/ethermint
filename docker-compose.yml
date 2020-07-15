@@ -3,7 +3,7 @@ version: "3"
 services:
   emintdnode0:
     container_name: emintdnode0
-    image: "ethermint/ethermintnode"
+    image: "cosmos/ethermint:latest"
     ports:
       - "26656-26657:26656-26657"
       - "1317:1317"
@@ -18,7 +18,7 @@ services:
 
   emintdnode1:
     container_name: emintdnode1
-    image: "ethermint/ethermintnode"
+    image: "cosmos/ethermint:latest"
     ports:
       - "26659-26660:26656-26657"
       - "1318:1317"
@@ -33,7 +33,7 @@ services:
 
   emintdnode2:
     container_name: emintdnode2
-    image: "ethermint/ethermintnode"
+    image: "cosmos/ethermint:latest"
     environment:
       - ID=2
       - LOG=${LOG:-emintd.log}
@@ -48,7 +48,7 @@ services:
 
   emintdnode3:
     container_name: emintdnode3
-    image: "ethermint/ethermintnode"
+    image: "cosmos/ethermint:latest"
     environment:
       - ID=3
       - LOG=${LOG:-emintd.log}
