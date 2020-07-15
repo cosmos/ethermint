@@ -17,7 +17,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
 
 func unsafeExportEthKeyCommand() *cobra.Command {
@@ -69,7 +68,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Converts key to Ethermint secp256 implementation
-	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	emintKey, ok := privKey.(crypto.PrivKeySecp256k1)
 	if !ok {
 		return fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
 	}
