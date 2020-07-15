@@ -6,7 +6,7 @@ require (
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.38.6-0.20200714105024-f63b2ac29901
+	github.com/cosmos/cosmos-sdk v0.39.0-rc0
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.16
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
