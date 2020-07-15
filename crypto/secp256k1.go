@@ -4,11 +4,19 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
+
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
 
+	"github.com/tendermint/tendermint/crypto"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
+
+// EthermintKeygenFunc defines the function to create ECDSA keys
+func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (crypto.PrivKey, error) {
+	return PrivKeySecp256k1(bz), nil
+}
 
 // ----------------------------------------------------------------------------
 // secp256k1 Private Key

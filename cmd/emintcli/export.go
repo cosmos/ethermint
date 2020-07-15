@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/cosmos/ethermint/crypto"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
 
@@ -38,6 +39,7 @@ func runExportCmd(cmd *cobra.Command, args []string) error {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		inBuf,
+		keys.WithKeygenFunc(crypto.EthermintKeygenFunc),
 	)
 	if err != nil {
 		return err
