@@ -64,6 +64,10 @@ docker:
 	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
+	# update old container
+	docker rm ethermint
+	# create a new container from the latest image
+	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
 
 
 ###############################################################################
@@ -255,7 +259,7 @@ build-docker-local-ethermint:
 	@$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
-localnet-start: build-ethermint-linux localnet-stop
+localnet-start: docker localnet-stop
 	@if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/$(ETHERMINT_DAEMON_BINARY):Z emintd/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
