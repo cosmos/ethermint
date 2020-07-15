@@ -346,12 +346,6 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	gasMeter := ctx.GasMeter()
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
-	// no need to increment sequence on RecheckTx mode
-	if ctx.IsReCheckTx() && !simulate {
-		ctx = ctx.WithGasMeter(gasMeter)
-		return next(ctx, tx, simulate)
-	}
-
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		ctx = ctx.WithGasMeter(gasMeter)

@@ -43,9 +43,7 @@ func NewAnteHandler(ak auth.AccountKeeper, bk bank.Keeper, sk types.SupplyKeeper
 				authante.NewDeductFeeDecorator(ak, sk),
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
-				// TODO: remove once SDK is updated to v0.39.
-				// This fixes an issue that account sequence wasn't being updated on CheckTx.
-				NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 			)
 
 		case evmtypes.MsgEthereumTx:
