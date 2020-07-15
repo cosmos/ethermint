@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -18,9 +19,10 @@ import (
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
-	"github.com/cosmos/ethermint/x/evm"
-	"github.com/cosmos/ethermint/x/evm/types"
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -29,13 +31,13 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -44,19 +46,19 @@ import (
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
 	backend     Backend
-	key         emintcrypto.PrivKeySecp256k1
+	keys        []emintcrypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
 	keybaseLock sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
-	key emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
+	key []emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
 
 	return &PublicEthAPI{
 		cliCtx:    cliCtx,
 		backend:   backend,
-		key:       key,
+		keys:      key,
 		nonceLock: nonceLock,
 	}
 }
@@ -64,6 +66,17 @@ func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *Addr
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 	return hexutil.Uint(version.ProtocolVersion)
+}
+
+// ChainId returns the chain's identifier in hex format
+func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
+	// parse the chainID from a integer string
+	intChainID, err := strconv.ParseUint(e.cliCtx.ChainID, 0, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid chainID: %s, must be integer format", e.cliCtx.ChainID)
+	}
+
+	return hexutil.Uint(intChainID), nil
 }
 
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
@@ -87,9 +100,19 @@ func (e *PublicEthAPI) Syncing() (interface{}, error) {
 	}, nil
 }
 
-// Coinbase returns this node's coinbase address. Not used in Ethermint.
-func (e *PublicEthAPI) Coinbase() (addr common.Address) {
-	return
+// Coinbase is the address that staking rewards will be send to (alias for Etherbase).
+func (e *PublicEthAPI) Coinbase() (common.Address, error) {
+	node, err := e.cliCtx.GetNode()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	status, err := node.Status()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(status.ValidatorInfo.Address.Bytes()), nil
 }
 
 // Mining returns whether or not this node is currently mining. Always false.
@@ -147,12 +170,12 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", types.ModuleName, address.Hex()), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryResBalance
+	var out evmtypes.QueryResBalance
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	val, err := utils.UnmarshalBigInt(out.Balance)
 	if err != nil {
@@ -165,12 +188,12 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", types.ModuleName, address.Hex(), key), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryResStorage
+	var out evmtypes.QueryResStorage
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Value, nil
 }
@@ -178,25 +201,37 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
 	ctx := e.cliCtx.WithHeight(blockNum.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/nonce/%s", types.ModuleName, address.Hex()), nil)
+
+	// Get nonce (sequence) from account
+	from := sdk.AccAddress(address.Bytes())
+	authclient.Codec = codec.NewAppCodec(ctx.Codec)
+	accRet := authtypes.NewAccountRetriever(authclient.Codec, ctx)
+
+	err := accRet.EnsureExists(from)
+	if err != nil {
+		// account doesn't exist yet, return 0
+		n := hexutil.Uint64(0)
+		return &n, nil
+	}
+
+	_, nonce, err := accRet.GetAccountNumberSequence(from)
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryResNonce
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
-	return (*hexutil.Uint64)(&out.Nonce), nil
+	n := hexutil.Uint64(nonce)
+	return &n, nil
 }
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		// Return nil if block does not exist
 		return nil
 	}
 
-	var out types.QueryResBlockNumber
+	var out evmtypes.QueryResBlockNumber
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return e.getBlockTransactionCountByNumber(out.Number)
 }
@@ -231,30 +266,56 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 // GetCode returns the contract code at the given address and block number.
 func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryCode, address.Hex()), nil)
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryResCode
+	var out evmtypes.QueryResCode
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Code, nil
 }
 
-// GetTxLogs returns the logs given a transaction hash.
-func (e *PublicEthAPI) GetTxLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
-	return e.backend.GetTxLogs(txHash)
+// GetTransactionLogs returns the logs given a transaction hash.
+func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+	return e.backend.GetTransactionLogs(txHash)
+}
+
+// ExportAccount exports an account's balance, code, and storage at the given block number
+// TODO: deprecate this once the export genesis command works
+func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
+	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryExportAccount, address.Hex()), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res), nil
+}
+
+func checkKeyInKeyring(keys []emintcrypto.PrivKeySecp256k1, address common.Address) (key emintcrypto.PrivKeySecp256k1, exist bool) {
+	if len(keys) > 0 {
+		for _, key := range keys {
+			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+				return key, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), address.Bytes()) {
+
+	key, exist := checkKeyInKeyring(e.keys, address)
+	if !exist {
 		return nil, keystore.ErrLocked
 	}
 
 	// Sign the requested hash with the wallet
-	signature, err := e.key.Sign(data)
+	signature, err := key.Sign(data)
 	if err == nil {
 		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
 	}
@@ -265,7 +326,9 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 // SendTransaction sends an Ethereum transaction.
 func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
 	// TODO: Change this functionality to find an unlocked account by address
-	if e.key == nil || !bytes.Equal(e.key.PubKey().Address().Bytes(), args.From.Bytes()) {
+
+	key, exist := checkKeyInKeyring(e.keys, args.From)
+	if !exist {
 		return common.Hash{}, keystore.ErrLocked
 	}
 
@@ -290,7 +353,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Sign transaction
-	if err := tx.Sign(intChainID, e.key.ToECDSA()); err != nil {
+	if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
 		return common.Hash{}, err
 	}
 
@@ -314,7 +377,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 
 // SendRawTransaction send a raw Ethereum transaction.
 func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
-	tx := new(types.MsgEthereumTx)
+	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
@@ -351,13 +414,13 @@ type CallArgs struct {
 }
 
 // Call performs a raw contract call.
-func (e *PublicEthAPI) Call(args CallArgs, blockNr rpc.BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
 	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
 
-	data, err := types.DecodeResultData(simRes.Result.Data)
+	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -379,12 +442,11 @@ type account struct {
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }
 
-// DoCall performs a simulated call operation through the evm. It returns the
+// DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (e *PublicEthAPI) doCall(
-	args CallArgs, blockNr rpc.BlockNumber, globalGasCap *big.Int,
+	args CallArgs, blockNr BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
-
 	// Set height for historical queries
 	ctx := e.cliCtx
 
@@ -394,9 +456,11 @@ func (e *PublicEthAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
+
 	if args.From == nil {
-		if e.key != nil {
-			addr = common.BytesToAddress(e.key.PubKey().Address().Bytes())
+		key, exist := checkKeyInKeyring(e.keys, *args.From)
+		if exist {
+			addr = common.BytesToAddress(key.PubKey().Address().Bytes())
 		}
 		// No error handled here intentionally to match geth behaviour
 	} else {
@@ -439,7 +503,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Create new call message
-	msg := types.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 
 	// Generate tx to be used to simulate (signature isn't needed)
@@ -469,7 +533,7 @@ func (e *PublicEthAPI) doCall(
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
-func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
+func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
 	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
@@ -478,7 +542,8 @@ func (e *PublicEthAPI) EstimateGas(args CallArgs) (uint64, error) {
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
 	gas := estimatedGas + 1000
-	return gas, nil
+
+	return hexutil.Uint64(gas), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -507,13 +572,13 @@ func formatBlock(
 		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
-		"extraData":        nil,
+		"extraData":        hexutil.Uint64(0),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
 		"transactions":     transactions.([]common.Hash),
-		"uncles":           nil,
+		"uncles":           []string{},
 	}
 }
 
@@ -524,7 +589,8 @@ func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, block
 	for i, tx := range txs {
 		ethTx, err := bytesToEthTx(cliCtx, tx)
 		if err != nil {
-			return nil, nil, err
+			// continue to next transaction in case it's not a MsgEthereumTx
+			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, ethTx.Fee())
@@ -556,23 +622,23 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*types.MsgEthereumTx, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	ethTx, ok := stdTx.(types.MsgEthereumTx)
+	ethTx, ok := stdTx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type, must be an amino encoded Ethereum transaction")
+		return nil, fmt.Errorf("invalid transaction type %T, expected MsgEthereumTx", stdTx)
 	}
 	return &ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx types.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
+func newRPCTransaction(tx evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
 	from, err := tx.VerifySig(tx.ChainID())
 	if err != nil {
@@ -628,12 +694,12 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryHashToHeight, hash.Hex()))
+	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
 	}
 
-	var out types.QueryResBlockNumber
+	var out evmtypes.QueryResBlockNumber
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return e.getTransactionByBlockNumberAndIndex(out.Number, idx)
 }
@@ -700,9 +766,13 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 	txData := tx.TxResult.GetData()
 
-	data, err := types.DecodeResultData(txData)
+	data, err := evmtypes.DecodeResultData(txData)
 	if err != nil {
 		status = 0 // transaction failed
+	}
+
+	if data.Logs == nil {
+		data.Logs = []*ethtypes.Log{}
 	}
 
 	receipt := map[string]interface{}{
@@ -748,6 +818,9 @@ func (e *PublicEthAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint, idx he
 	return nil
 }
 
+// Copied the Account and StorageResult types since they are registered under an
+// internal pkg on geth.
+
 // AccountResult struct for account proof
 type AccountResult struct {
 	Address      common.Address  `json:"address"`
@@ -768,40 +841,67 @@ type StorageResult struct {
 
 // GetProof returns an account object with proof and any storage proofs
 func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, block BlockNumber) (*AccountResult, error) {
-	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
-	path := fmt.Sprintf("custom/%s/%s/%s", types.ModuleName, evm.QueryAccount, address.Hex())
-	pRes, err := e.cliCtx.Client.ABCIQueryWithOptions(path, nil, opts)
+	e.cliCtx = e.cliCtx.WithHeight(int64(block))
+	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
+
+	// query eth account at block height
+	resBz, _, err := e.cliCtx.Query(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: convert TM merkle proof to []string if needed in future
-	// proof := pRes.Response.GetProof()
-
-	var account types.QueryResAccount
-	e.cliCtx.Codec.MustUnmarshalJSON(pRes.Response.GetValue(), &account)
+	var account evmtypes.QueryResAccount
+	e.cliCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
 	storageProofs := make([]StorageResult, len(storageKeys))
+	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
 	for i, k := range storageKeys {
 		// Get value for key
-		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", types.ModuleName, evm.QueryStorage, address, k)
+		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorage, address, k)
 		vRes, err := e.cliCtx.Client.ABCIQueryWithOptions(vPath, nil, opts)
 		if err != nil {
 			return nil, err
 		}
-		var value types.QueryResStorage
+
+		var value evmtypes.QueryResStorage
 		e.cliCtx.Codec.MustUnmarshalJSON(vRes.Response.GetValue(), &value)
+
+		// check for proof
+		proof := vRes.Response.GetProof()
+		proofStr := new(merkle.Proof).String()
+		if proof != nil {
+			proofStr = proof.String()
+		}
 
 		storageProofs[i] = StorageResult{
 			Key:   k,
 			Value: (*hexutil.Big)(common.BytesToHash(value.Value).Big()),
-			Proof: []string{""},
+			Proof: []string{proofStr},
 		}
+	}
+
+	req := abci.RequestQuery{
+		Path:   fmt.Sprintf("store/%s/key", auth.StoreKey),
+		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
+		Height: int64(block),
+		Prove:  true,
+	}
+
+	res, err := e.cliCtx.QueryABCI(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// check for proof
+	accountProof := res.GetProof()
+	accProofStr := new(merkle.Proof).String()
+	if accountProof != nil {
+		accProofStr = accountProof.String()
 	}
 
 	return &AccountResult{
 		Address:      address,
-		AccountProof: []string{""}, // This shouldn't be necessary (different proof formats)
+		AccountProof: []string{accProofStr},
 		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),
 		CodeHash:     common.BytesToHash(account.CodeHash),
 		Nonce:        hexutil.Uint64(account.Nonce),
@@ -811,7 +911,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEthereumTx, error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEthereumTx, error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
@@ -833,6 +933,12 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 		from := sdk.AccAddress(args.From.Bytes())
 		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
 		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+
+		err = accRet.EnsureExists(from)
+		if err != nil {
+			// account doesn't exist
+			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.Hex(), err)
+		}
 
 		_, nonce, err = accRet.GetAccountNumberSequence(from)
 		if err != nil {
@@ -868,14 +974,15 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*types.MsgEther
 			Value:    args.Value,
 			Data:     args.Data,
 		}
-		gasLimit, err = e.EstimateGas(callArgs)
+		gl, err := e.EstimateGas(callArgs)
 		if err != nil {
 			return nil, err
 		}
+		gasLimit = uint64(gl)
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
-	msg := types.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
+	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
 	return &msg, nil
 }

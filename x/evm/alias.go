@@ -7,22 +7,9 @@ import (
 
 // nolint
 const (
-	ModuleName           = types.ModuleName
-	StoreKey             = types.StoreKey
-	CodeKey              = types.StoreKey
-	BlockKey             = types.BlockKey
-	RouterKey            = types.RouterKey
-	QueryProtocolVersion = types.QueryProtocolVersion
-	QueryBalance         = types.QueryBalance
-	QueryBlockNumber     = types.QueryBlockNumber
-	QueryStorage         = types.QueryStorage
-	QueryCode            = types.QueryCode
-	QueryNonce           = types.QueryNonce
-	QueryHashToHeight    = types.QueryHashToHeight
-	QueryTxLogs          = types.QueryTxLogs
-	QueryLogsBloom       = types.QueryLogsBloom
-	QueryLogs            = types.QueryLogs
-	QueryAccount         = types.QueryAccount
+	ModuleName = types.ModuleName
+	StoreKey   = types.StoreKey
+	RouterKey  = types.RouterKey
 )
 
 // nolint
@@ -33,7 +20,6 @@ var (
 
 //nolint
 type (
-	Keeper          = keeper.Keeper
-	QueryResAccount = types.QueryResAccount
-	GenesisState    = types.GenesisState
+	Keeper       = keeper.Keeper
+	GenesisState = types.GenesisState
 )

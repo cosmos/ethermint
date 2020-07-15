@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
@@ -35,7 +37,6 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethparams "github.com/ethereum/go-ethereum/params"
 	ethrlp "github.com/ethereum/go-ethereum/rlp"
-	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
@@ -51,7 +52,6 @@ var (
 
 	accKey   = sdk.NewKVStoreKey(auth.StoreKey)
 	storeKey = sdk.NewKVStoreKey(evmtypes.StoreKey)
-	codeKey  = sdk.NewKVStoreKey(evmtypes.CodeKey)
 
 	logger = tmlog.NewNopLogger()
 
@@ -107,7 +107,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 
-	stateDB := evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak, bk)
+	stateDB := evmtypes.NewCommitStateDB(ctx, storeKey, ak, bk)
 
 	// sort the addresses and insertion of key/value pairs matters
 	genAddrs := make([]string, len(genBlock.Alloc))
@@ -132,7 +132,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 		}
 	}
 
-	// get balance of one of the genesis account having 200 ETH
+	// get balance of one of the genesis account having 400 ETH
 	b := stateDB.GetBalance(genInvestor)
 	require.Equal(t, "200000000000000000000", b.String())
 
@@ -189,7 +189,7 @@ func TestImportBlocks(t *testing.T) {
 	bk := bank.NewBaseKeeper(appCodec, bankKey, ak, bankSubspace, nil)
 
 	// mount stores
-	keys := []*sdk.KVStoreKey{accKey, bankKey, storeKey, codeKey}
+	keys := []*sdk.KVStoreKey{accKey, bankKey, storeKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
@@ -207,8 +207,7 @@ func TestImportBlocks(t *testing.T) {
 	blockchainInput, err := os.Open(flagBlockchain)
 	require.Nil(t, err)
 
-	// nolint: gosec
-	defer blockchainInput.Close()
+	defer require.NoError(t, blockchainInput.Close())
 
 	// ethereum mainnet config
 	chainContext := core.NewChainContext()
@@ -280,7 +279,7 @@ func TestImportBlocks(t *testing.T) {
 
 // nolint: interfacer
 func createStateDB(ctx sdk.Context, ak auth.AccountKeeper, bk bank.Keeper) *evmtypes.CommitStateDB {
-	return evmtypes.NewCommitStateDB(ctx, codeKey, storeKey, ak, bk)
+	return evmtypes.NewCommitStateDB(ctx, storeKey, ak, bk)
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining
@@ -357,9 +356,10 @@ func applyTransaction(
 	vmenv := ethvm.NewEVM(context, statedb, config, cfg)
 
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ethcore.ApplyMessage(vmenv, msg, gp)
+	execResult, err := ethcore.ApplyMessage(vmenv, msg, gp)
+	// NOTE: ignore vm execution error (eg: tx out of gas) as we care only about state transition errors
 	if err != nil {
-		return nil, gas, err
+		return nil, 0, err
 	}
 
 	// Update the state with pending changes
@@ -371,17 +371,17 @@ func applyTransaction(
 	}
 
 	if err != nil {
-		return nil, gas, err
+		return nil, execResult.UsedGas, err
 	}
 
 	root := intRoot.Bytes()
-	*usedGas += gas
+	*usedGas += execResult.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := ethtypes.NewReceipt(root, failed, *usedGas)
+	receipt := ethtypes.NewReceipt(root, execResult.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = execResult.UsedGas
 
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
@@ -395,5 +395,5 @@ func applyTransaction(
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
-	return receipt, gas, err
+	return receipt, execResult.UsedGas, err
 }

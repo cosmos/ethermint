@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/cosmos/ethermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ethermint/crypto"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -86,21 +88,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 		return ResultData{}, err
 	}
 	return data, nil
-}
-
-// EncodeLogs encodes an array of logs using amino
-func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(logs)
-}
-
-// DecodeLogs decodes an amino-encoded byte array into an array of logs
-func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
-	logs := []*ethtypes.Log{}
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &logs)
-	if err != nil {
-		return nil, err
-	}
-	return logs, nil
 }
 
 // ----------------------------------------------------------------------------

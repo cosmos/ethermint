@@ -32,18 +32,18 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryStorage(ctx, path, keeper)
 		case types.QueryCode:
 			return queryCode(ctx, path, keeper)
-		case types.QueryNonce:
-			return queryNonce(ctx, path, keeper)
 		case types.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
-		case types.QueryTxLogs:
-			return queryTxLogs(ctx, path, keeper)
-		case types.QueryLogsBloom:
-			return queryBlockLogsBloom(ctx, path, keeper)
+		case types.QueryTransactionLogs:
+			return queryTransactionLogs(ctx, path, keeper)
+		case types.QueryBloom:
+			return queryBlockBloom(ctx, path, keeper)
 		case types.QueryLogs:
 			return queryLogs(ctx, keeper)
 		case types.QueryAccount:
 			return queryAccount(ctx, path, keeper)
+		case types.QueryExportAccount:
+			return queryExportAccount(ctx, path, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -113,23 +113,11 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	return bz, nil
 }
 
-func queryNonce(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
-	addr := ethcmn.HexToAddress(path[1])
-	nonce := keeper.GetNonce(ctx, addr)
-	nRes := types.QueryResNonce{Nonce: nonce}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, nRes)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
-}
-
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	blockHash := ethcmn.FromHex(path[1])
-	blockNumber, err := keeper.GetBlockHashMapping(ctx, blockHash)
-	if err != nil {
-		return []byte{}, err
+	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
+	if !found {
+		return []byte{}, fmt.Errorf("block height not found for hash %s", path[1])
 	}
 
 	res := types.QueryResBlockNumber{Number: blockNumber}
@@ -141,15 +129,15 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 	return bz, nil
 }
 
-func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal block number: %w", err)
+		return nil, fmt.Errorf("could not unmarshal block height: %w", err)
 	}
 
-	bloom, err := keeper.GetBlockBloomMapping(ctx, num)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get block bloom mapping: %w", err)
+	bloom, found := keeper.GetBlockBloom(ctx, num)
+	if !found {
+		return nil, fmt.Errorf("block bloom not found for height %d", num)
 	}
 
 	res := types.QueryBloomFilter{Bloom: bloom}
@@ -161,8 +149,9 @@ func queryBlockLogsBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte,
 	return bz, nil
 }
 
-func queryTxLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	txHash := ethcmn.HexToHash(path[1])
+
 	logs, err := keeper.GetLogs(ctx, txHash)
 	if err != nil {
 		return nil, err
@@ -206,5 +195,32 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
+	return bz, nil
+}
+
+func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	addr := ethcmn.HexToAddress(path[1])
+
+	var storage types.Storage
+	err := keeper.CommitStateDB.ForEachStorage(addr, func(key, value ethcmn.Hash) bool {
+		storage = append(storage, types.NewState(key, value))
+		return false
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := types.GenesisAccount{
+		Address: addr,
+		Balance: keeper.GetBalance(ctx, addr),
+		Code:    keeper.GetCode(ctx, addr),
+		Storage: storage,
+	}
+
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
 	return bz, nil
 }

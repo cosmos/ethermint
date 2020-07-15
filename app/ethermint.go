@@ -24,11 +24,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	ethermintcodec "github.com/cosmos/ethermint/codec"
 
 	"github.com/cosmos/ethermint/app/ante"
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	eminttypes "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
+	"github.com/cosmos/ethermint/x/faucet"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -64,6 +65,7 @@ var (
 		slashing.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 		evm.AppModuleBasic{},
+		faucet.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -74,6 +76,7 @@ var (
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		gov.ModuleName:            {supply.Burner},
+		faucet.ModuleName:         {supply.Minter},
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -113,6 +116,7 @@ type EthermintApp struct {
 	ParamsKeeper   params.Keeper
 	EvidenceKeeper evidence.Keeper
 	EvmKeeper      evm.Keeper
+	FaucetKeeper   faucet.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -143,9 +147,9 @@ func NewEthermintApp(
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.CodeKey, evm.StoreKey,
+		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.StoreKey,
+		faucet.StoreKey,
 	)
-	blockKey := sdk.NewKVStoreKey(evm.BlockKey)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
@@ -198,8 +202,12 @@ func NewEthermintApp(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, blockKey, keys[evm.CodeKey], keys[evm.StoreKey], app.AccountKeeper,
+		app.cdc, keys[evm.StoreKey], app.AccountKeeper,
 		app.BankKeeper,
+	)
+	// TODO: use protobuf
+	app.FaucetKeeper = faucet.NewKeeper(
+		app.cdc, keys[faucet.StoreKey], app.SupplyKeeper,
 	)
 
 	// create evidence keeper with router
@@ -241,7 +249,8 @@ func NewEthermintApp(
 		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper),
+		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
+		faucet.NewAppModule(app.FaucetKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -261,6 +270,7 @@ func NewEthermintApp(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		crisis.ModuleName, genutil.ModuleName, evidence.ModuleName, evm.ModuleName,
+		faucet.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -287,10 +297,6 @@ func NewEthermintApp(
 	// initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tkeys)
-
-	// Mount block hash mapping key as DB (no need for historical queries)
-	// TODO: why does this need to be always StoreTypeDB?
-	app.MountStore(blockKey, sdk.StoreTypeDB)
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)

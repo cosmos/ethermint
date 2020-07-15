@@ -1,6 +1,7 @@
 package evm_test
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -239,10 +241,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	err = suite.app.EvmKeeper.SetTransactionLogs(suite.ctx, resultData.Logs, hash)
-	suite.Require().NoError(err, "failed to set logs")
+	err = suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), resultData.Logs)
+	suite.Require().NoError(err)
 
-	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
@@ -261,9 +263,6 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	// result, err := evm.HandleEthTxMsg(suite.ctx, suite.app.EvmKeeper, tx)
-	// suite.Require().NoError(err, "failed to handle eth tx msg")
-
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
@@ -277,13 +276,13 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// get logs by tx hash
 	hash := resultData.TxHash.Bytes()
 
-	logs, err := suite.app.EvmKeeper.GetTransactionLogs(suite.ctx, hash)
+	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
 
 	// query tx logs
-	path := []string{"txLogs", fmt.Sprintf("0x%x", hash)}
+	path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
 	res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
 	suite.Require().NoError(err, "failed to query txLogs")
 
@@ -399,4 +398,24 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 
 	getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
 	suite.Require().Equal(true, strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
+}
+
+func (suite *EvmTestSuite) TestSendTransaction() {
+	gasLimit := uint64(21000)
+	gasPrice := big.NewInt(0x55ae82600)
+
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err, "failed to create key")
+	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
+
+	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
+
+	// send simple value transfer with gasLimit=21000
+	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(1), gasLimit, gasPrice, nil)
+	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
+	suite.Require().NoError(err)
+
+	result, err := suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(result)
 }

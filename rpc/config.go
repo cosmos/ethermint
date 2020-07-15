@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -24,28 +25,15 @@ import (
 
 const (
 	flagUnlockKey = "unlock-key"
+	flagWebsocket = "wsport"
 )
-
-// Config contains configuration fields that determine the behavior of the RPC HTTP server.
-// TODO: These may become irrelevant if HTTP config is handled by the SDK
-type Config struct {
-	// EnableRPC defines whether or not to enable the RPC server
-	EnableRPC bool
-	// RPCAddr defines the IP address to listen on
-	RPCAddr string
-	// RPCPort defines the port to listen on
-	RPCPort int
-	// RPCCORSDomains defines list of domains to enable CORS headers for (used by browsers)
-	RPCCORSDomains []string
-	// RPCVhosts defines list of domains to listen on (useful if Tendermint is addressable via DNS)
-	RPCVHosts []string
-}
 
 // EmintServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
 func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
 	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
+	cmd.Flags().String(flagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	return cmd
 }
@@ -55,8 +43,9 @@ func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 func registerRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
 	accountName := viper.GetString(flagUnlockKey)
+	accountNames := strings.Split(accountName, ",")
 
-	var emintKey emintcrypto.PrivKeySecp256k1
+	var emintKeys []emintcrypto.PrivKeySecp256k1
 	if len(accountName) > 0 {
 		var err error
 		inBuf := bufio.NewReader(os.Stdin)
@@ -75,13 +64,13 @@ func registerRoutes(rs *lcd.RestServer) {
 			}
 		}
 
-		emintKey, err = unlockKeyFromNameAndPassphrase(accountName, passphrase)
+		emintKeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	apis := GetRPCAPIs(rs.CliCtx, emintKey)
+	apis := GetRPCAPIs(rs.CliCtx, emintKeys)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -102,9 +91,14 @@ func registerRoutes(rs *lcd.RestServer) {
 	client.RegisterRoutes(rs.CliCtx, rs.Mux)
 	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
 	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+
+	// start websockets server
+	websocketAddr := viper.GetString(flagWebsocket)
+	ws := newWebsocketsServer(rs.CliCtx, websocketAddr)
+	ws.start()
 }
 
-func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey emintcrypto.PrivKeySecp256k1, err error) {
+func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (emintKeys []emintcrypto.PrivKeySecp256k1, err error) {
 	keybase, err := keyring.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
@@ -115,16 +109,21 @@ func unlockKeyFromNameAndPassphrase(accountName, passphrase string) (emintKey em
 		return
 	}
 
-	// With keyring keybase, password is not required as it is pulled from the OS prompt
-	privKey, err := keybase.ExportPrivateKeyObject(accountName, passphrase)
-	if err != nil {
-		return
-	}
+	// try the for loop with array []string accountNames
+	// run through the bottom code inside the for loop
+	for _, acc := range accountNames {
+		// With keyring keybase, password is not required as it is pulled from the OS prompt
+		privKey, err := keybase.ExportPrivateKeyObject(acc, passphrase)
+		if err != nil {
+			return nil, err
+		}
 
-	var ok bool
-	emintKey, ok = privKey.(emintcrypto.PrivKeySecp256k1)
-	if !ok {
-		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+		var ok bool
+		emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+		if !ok {
+			panic(fmt.Sprintf("invalid private key type: %T", privKey))
+		}
+		emintKeys = append(emintKeys, emintKey)
 	}
 
 	return

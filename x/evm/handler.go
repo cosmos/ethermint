@@ -5,10 +5,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -74,9 +75,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
+	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	// log successful execution
@@ -120,7 +121,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	ethHash := common.BytesToHash(txHash)
 
 	st := types.StateTransition{
-		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		AccountNonce: msg.AccountNonce,
 		Price:        msg.Price.BigInt(),
 		GasLimit:     msg.GasLimit,
@@ -129,6 +129,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      intChainID,
 		TxHash:       &ethHash,
+		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
 	}
 
@@ -150,9 +151,9 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 	// update transaction logs in KVStore
-	err = k.SetTransactionLogs(ctx, executionResult.Logs, txHash)
+	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	// log successful execution

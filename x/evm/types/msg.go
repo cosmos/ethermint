@@ -8,9 +8,10 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/cosmos/ethermint/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -63,6 +64,11 @@ func NewMsgEthermint(
 	}
 }
 
+func (msg MsgEthermint) String() string {
+	return fmt.Sprintf("nonce=%d gasPrice=%d gasLimit=%d recipient=%s amount=%d data=0x%x from=%s",
+		msg.AccountNonce, msg.Price, msg.GasLimit, msg.Recipient, msg.Amount, msg.Payload, msg.From)
+}
+
 // Route should return the name of the module
 func (msg MsgEthermint) Route() string { return RouterKey }
 
@@ -76,8 +82,8 @@ func (msg MsgEthermint) GetSignBytes() []byte {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.Sign() != 1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Price)
+	if msg.Price.Sign() == -1 {
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price cannot be negative %s", msg.Price)
 	}
 
 	// Amount can be 0
@@ -166,6 +172,10 @@ func newMsgEthereumTx(
 	return MsgEthereumTx{Data: txData}
 }
 
+func (msg MsgEthereumTx) String() string {
+	return msg.Data.String()
+}
+
 // Route returns the route value of an MsgEthereumTx.
 func (msg MsgEthereumTx) Route() string { return RouterKey }
 
@@ -175,8 +185,8 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
-	if msg.Data.Price.Sign() != 1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "price must be positive %s", msg.Data.Price)
+	if msg.Data.Price.Sign() == -1 {
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "price cannot be negative %s", msg.Data.Price)
 	}
 
 	// Amount can be 0
