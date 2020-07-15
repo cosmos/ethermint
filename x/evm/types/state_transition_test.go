@@ -68,17 +68,16 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 
 	for _, tc := range testCase {
 		tc.malleate()
+		_, err = tc.state.TransitionDb(suite.ctx)
+		
 		if tc.expPass {
-			_, err = tc.state.TransitionDb(suite.ctx)
-			suite.Require().NoError(err)
-			fromBalance := suite.stateDB.GetBalance(addr)
-			toBalance := suite.stateDB.GetBalance(recipient)
-			suite.Require().Equal(fromBalance, new(big.Int).SetUint64(4950))
-			suite.Require().Equal(toBalance, new(big.Int).SetUint64(50))
+			suite.Require().NoError(err, tc.name)
+			fromBalance := suite.app.EVMKeeper.GetBalance(suite.ctx, addr)
+			toBalance := suite.app.EVMKeeper.GetBalance(suite.ctx, recipient)
+			suite.Require().Equal(fromBalance, big.NewInt(4950))
+			suite.Require().Equal(toBalance, big.NewInt(50))
 		} else {
-			_, err = tc.state.TransitionDb(suite.ctx)
-			suite.Require().Error(err)
-
+			suite.Require().Error(err, tc.name)
 		}
 	}
 }
