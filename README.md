@@ -1,11 +1,46 @@
-[![CircleCI](https://circleci.com/gh/cosmos/ethermint.svg?style=svg)](https://circleci.com/gh/cosmos/ethermint)
-[![](https://godoc.org/github.com/cosmos/ethermint?status.svg)](http://godoc.org/github.com/cosmos/ethermint) [![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/ethermint)](https://goreportcard.com/report/github.com/cosmos/ethermint)
+<!--
+parent:
+  order: false
+-->
 
-# Ethermint
+<div align="center">
+  <h1> Ethermint </h1>
+</div>
 
-__**WARNING:**__ Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
+<div align="center">
+  <a href="https://github.com/cosmos/ethermint/releases/latest">
+    <img alt="Version" src="https://img.shields.io/github/tag/cosmos/ethermint.svg" />
+  </a>
+  <a href="https://github.com/cosmos/ethermint/blob/master/LICENSE">
+    <img alt="License: Apache-2.0" src="https://img.shields.io/github/license/cosmos/ethermint.svg" />
+  </a>
+  <a href="https://pkg.go.dev/github.com/cosmos/ethermint?tab=doc">
+    <img alt="GoDoc" src="https://godoc.org/github.com/cosmos/ethermint?status.svg" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/cosmos/ethermint">
+    <img alt="Go report card" src="https://goreportcard.com/badge/github.com/cosmos/ethermint" />
+  </a>
+  <a href="https://codecov.io/gh/cosmos/ethermint">
+    <img alt="Code Coverage" src="https://codecov.io/gh/cosmos/ethermint/branch/master/graph/badge.svg" />
+  </a>
+</div>
+<div align="center">
+  <a href="https://github.com/cosmos/ethermint">
+    <img alt="Lines Of Code" src="https://tokei.rs/b1/github/cosmos/ethermint" />
+  </a>
+  <a href="https://discord.gg/AzefAFd">
+    <img alt="Discord" src="https://img.shields.io/discord/669268347736686612.svg" />
+  </a>
+  <a href="https://sourcegraph.com/github.com/cosmos/ethermint?badge">
+    <img alt="Imported by" src="https://sourcegraph.com/github.com/cosmos/ethermint/-/badge.svg" />
+  </a>
+    <img alt="Sims" src="https://github.com/cosmos/ethermint/workflows/Sims/badge.svg" />
+    <img alt="Lint Satus" src="https://github.com/cosmos/ethermint/workflows/Lint/badge.svg" />
+</div>
 
-**Note**: Requires [Go 1.13+](https://golang.org/dl/)
+> **WARNING:** Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
+
+**Note**: Requires [Go 1.14+](https://golang.org/dl/)
 
 ## What is it?
 
