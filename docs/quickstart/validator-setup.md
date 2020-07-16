@@ -8,6 +8,7 @@ Configure a validator node to propose blocks and earn staking rewards {synopsis}
 
 ## Pre-requisite Readings
 
+- [Installation](./installation.md) {prereq}
 - [Run a Full Node](./run_node.md) {prereq}
 
 ## What is a Validator?
@@ -106,3 +107,7 @@ You can achieve this by setting one of the following flags during when using the
 
 The node will stop processing blocks with a zero exit code at that given height/time after
 committing the block.
+
+## Next {hide}
+
+Learn about Ethermint [accounts](./../basic/accounts.md) {hide}

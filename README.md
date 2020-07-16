@@ -8,20 +8,20 @@ parent:
 </div>
 
 <div align="center">
-  <a href="https://github.com/cosmos/ethermint/releases/latest">
+  <a href="https://github.com/ChainSafe/ethermint/releases/latest">
     <img alt="Version" src="https://img.shields.io/github/tag/cosmos/ethermint.svg" />
   </a>
-  <a href="https://github.com/cosmos/ethermint/blob/master/LICENSE">
+  <a href="https://github.com/ChainSafe/ethermint/blob/development/LICENSE">
     <img alt="License: Apache-2.0" src="https://img.shields.io/github/license/cosmos/ethermint.svg" />
   </a>
   <a href="https://pkg.go.dev/github.com/cosmos/ethermint?tab=doc">
     <img alt="GoDoc" src="https://godoc.org/github.com/cosmos/ethermint?status.svg" />
   </a>
   <a href="https://goreportcard.com/report/github.com/cosmos/ethermint">
-    <img alt="Go report card" src="https://goreportcard.com/badge/github.com/cosmos/ethermint" />
+    <img alt="Go report card" src="https://goreportcard.com/badge/github.com/cosmos/ethermint"/>
   </a>
   <a href="https://codecov.io/gh/cosmos/ethermint">
-    <img alt="Code Coverage" src="https://codecov.io/gh/cosmos/ethermint/branch/master/graph/badge.svg" />
+    <img alt="Code Coverage" src="https://codecov.io/gh/ChainSafe/ethermint/branch/development/graph/badge.svg"/>
   </a>
 </div>
 <div align="center">
@@ -32,10 +32,10 @@ parent:
     <img alt="Discord" src="https://img.shields.io/discord/669268347736686612.svg" />
   </a>
   <a href="https://sourcegraph.com/github.com/cosmos/ethermint?badge">
-    <img alt="Imported by" src="https://sourcegraph.com/github.com/cosmos/ethermint/-/badge.svg" />
+    <img alt="Imported by" src="https://sourcegraph.com/github.com/ChainSafe/ethermint/-/badge.svg"/>
   </a>
-    <img alt="Sims" src="https://github.com/cosmos/ethermint/workflows/Sims/badge.svg" />
-    <img alt="Lint Satus" src="https://github.com/cosmos/ethermint/workflows/Lint/badge.svg" />
+    <img alt="Sims" src="https://github.com/ChainSafe/ethermint/workflows/Sims/badge.svg" />
+    <img alt="Lint Satus" src="https://github.com/ChainSafe/ethermint/workflows/Lint/badge.svg" />
 </div>
 
 > **WARNING:** Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
@@ -44,88 +44,15 @@ parent:
 
 ## What is it?
 
-`ethermint` will be an implementation of the EVM that runs on top of [`tendermint`](https://github.com/tendermint/tendermint) consensus, a Proof of Stake system. This project has as its primary goals:
+Ethermint is a scalable, high-throughput Proof-of-Stake blockchain that is fully compatible and
+interoperable with Ethereum. It's build using the the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk/) which runs on top of [Tendermint Core](https://github.com/tendermint/tendermint) consensus engine.
 
-- [Hard Spoon](https://blog.cosmos.network/introducing-the-hard-spoon-4a9288d3f0df) enablement: This is the ability to take a token from the Ethereum mainnet and "spoon" (shift) the balances over to another network. This feature is intended to make it easy for applications that require more transactions than the Ethereum main chain can provide to move their code over to a compatible chain with much more capacity.
-- Web3 Compatibility: In order enable applications to be moved over to an ethermint chain existing tooling (i.e. web3 compatible clients) need to be able to interact with `ethermint`.
+## Quick Start
 
-### Implementation
+To learn how the Ethermint works from a high-level perspective, go to the [Introduction](./docs/intro/overview.md) section from the documentation.
 
-#### Completed
+For more, please refer to the [Ethermint Docs](./docs/), which are also hosted on [docs.ethermint.zone](https://docs.ethermint.zone/).
 
-- Have a working implementation that can parse and validate the existing ETH Chain and persist it in a Tendermint store
-- Implement Ethereum transactions in the CosmosSDK
-- Implement web3 compatible API layer
-- Implement the EVM as a CosmosSDK module
-- Allow the Ethermint EVM to interact with other Cosmos SDK modules
-
-#### Current Work
-
-- Ethermint is a functioning Cosmos SDK application and can be deployed as its own zone
-- Full web3 compatibility to enable existing Ethereum applications to use Ethermint
-
-#### Next Steps
-
-- Hard spoon enablement: The ability to export state from `geth` and import token balances into Ethermint
-
-### Building Ethermint
-
-To build, execute the following commands:
-
-```bash
-# To build the project and install it in $GOBIN
-make install
-
-# To build the binary and put the resulting binary in ./build
-make build
-```
-
-### Starting a Ethermint daemon (node)
-
-The following config steps can be performed all at once by executing the `init.sh` file located in the root directory like this:
-```bash
-./init.sh
-```
-> This bash file removes previous blockchain data from `~/.emintd` and `~/.emintcli`. It uses the `keyring-backend` called `test` that should prevent you from needing to enter a passkey. The `keyring-backend` `test` is unsecured and should not be used in production.
-
-To initalize your chain manually, first create a key to use in signing the genesis transaction:
-
-```bash
-emintcli keys add mykey --keyring-backend test
-```
-
-> replace mykey with whatever you want to name the key
-
-Then, run these commands to start up a node
-
-```bash
-# Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-emintd init mymoniker --chain-id 8
-
-# Set up config for CLI
-emintcli config keyring-backend test
-emintcli config chain-id 8
-emintcli config output json
-emintcli config indent true
-emintcli config trust-node true
-
-# Allocate genesis accounts (cosmos formatted addresses)
-emintd add-genesis-account $(emintcli keys show mykey -a) 1000000000000000000photon,1000000000000000000stake
-
-# Sign genesis transaction
-emintd gentx --name mykey --keyring-backend test
-
-# Collect genesis tx
-emintd collect-gentxs
-
-# Run this to ensure everything worked and that the genesis file is setup correctly
-emintd validate-genesis
-
-# Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-emintd start --pruning=nothing
-```
-
-> Note: If you used `make build` instead of make install, and replace all `emintcli` and `emintd` references to `./build/emintcli` and `./build/emintd` respectively
 
 ### Starting Ethermint Web3 RPC API
 
@@ -142,16 +69,6 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id
 ```
 
 or point any dev tooling at `http://localhost:8545` or whatever port is chosen just as you would with an Ethereum node
-
-#### Clearing data from chain
-
-Data for the CLI and Daemon should be stored at `~/.emintd` and `~/.emintcli` by default, to start the node with a fresh state, run:
-
-```bash
-rm -rf ~/.emint*
-```
-
-To clear all data except key storage (if keyring backend chosen) and then you can rerun the commands to start the node again.
 
 #### Keyring backend options
 
@@ -207,4 +124,4 @@ via the `--blockchain` flag. See `TestImportBlocks` for further documentation.
 The following chat channels and forums are a great spot to ask questions about Ethermint:
 
 - [Cosmos Discord](https://discord.gg/W8trcGV)
-- Cosmos Forum [![Discourse status](https://img.shields.io/discourse/https/forum.cosmos.network/status.svg)](https://forum.cosmos.network)
+- [Cosmos Forum](https://forum.cosmos.network)

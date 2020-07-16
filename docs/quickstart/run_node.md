@@ -63,6 +63,18 @@ minimum-gas-prices = ""
 
 Your full node is now initiallized.
 
+## Restart
+
+To restart your node, just type:
+
+```bash
+emintd start
+```
+
+::: tip
+If you are upgrading your node to a new version that is not breaking from the previous one, you can restart the chain instead of [resetting](#reset-data) the node.
+:::
+
 ## Key Management
 
 To run a node with the same key every time:
@@ -87,6 +99,38 @@ To export your ethermint key as an ethereum private key (for use with Metamask f
 ```bash
 emintcli keys unsafe-export-eth-key $KEY
 ```
+
+## Clearing data from chain
+
+### Reset Data
+
+Alternatively, you can **reset** the blockchain database, and remove the node's address book files, and resets `priv_validator.json` to the genesis state.
+
+::: danger
+If you are running a **validator node**, always be careful when doing `emintd unsafe-reset-all`. You should never use this command if you are not switching `chain-id`.
+:::
+
+::: danger
+**IMPORTANT**: Make sure that every node has a unique `priv_validator.json`. **Do not** copy the `priv_validator.json` from an old node to multiple new nodes. Running two nodes with the same `priv_validator.json` will cause you to double sign!
+:::
+
+First, remove the outdated files and reset the data.
+
+```bash
+emintd unsafe-reset-all
+```
+
+Your node is now in a pristine state while keeping the original `priv_validator.json` and `config.toml`. If you had any sentry nodes or full nodes setup before, your node will still try to connect to them, but may fail if they haven't also been upgraded.
+
+### Delete Data
+
+Data for the Daemon and CLI binaries should be stored at `~/.emintd` and `~/.emintcli`, respectively by default. To **delete** the existing binaries and configuration, run:
+
+```bash
+rm -rf ~/.emint*
+```
+
+To clear all data except key storage (if keyring backend chosen) and then you can rerun the full node installation commands from above to start the node again.
 
 ## Next {hide}
 

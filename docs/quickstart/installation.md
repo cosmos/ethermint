@@ -31,3 +31,7 @@ Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha so
 :::
 
 You can also download a specific release available on the [Ethermint repository](https://github.com/ChainSafe/ethermint/releases)
+
+## Next {hide}
+
+Learn how to [run a node](./.run_node.md) {hide}

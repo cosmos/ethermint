@@ -8,7 +8,10 @@ parent:
 
 This repository contains reference documentation on how to install and run an Etheremint full node.
 
-1. [Run a Node](./run_node.md)
+1. [Installation](./run_node.md)
+2. [Run a Node](./run_node.md)
+3. [Testnet](./testnet.md)
+4. [Validator Setup](./validator-setup.md)
 
 After going throught the Quick Start contents, head over to the [basics](./../basics/README.md) to learn more.
 
