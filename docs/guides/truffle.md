@@ -3,7 +3,7 @@
 Set up a truffle-ethermint local development environment. {synopsis}
 
 #### 1. clone and build ethermint
-If you don't already have ethermint installed, you will need to install ethermint:
+If you don't already have ethermint installed, you will need to install it:
 
 ```
 git clone https://github.com/ChainSafe/ethermint
@@ -22,8 +22,8 @@ npm i -g truffle@v5.1.31
 #### 3. create truffle project
 
 ```
-mkdir ethermint-demo
-cd ethermint-demo
+mkdir ethermint-truffle
+cd ethermint-truffle
 truffle init
 ```
 
