@@ -71,6 +71,10 @@ INEFFASSIGN = github.com/gordonklaus/ineffassign
 MISSPELL = github.com/client9/misspell/cmd/misspell
 ERRCHECK = github.com/kisielk/errcheck
 UNPARAM = mvdan.cc/unparam
+STRINGER = golang.org/x/tools/cmd/stringer
+GOBINDATA = github.com/kevinburke/go-bindata/go-bindata
+GENCODEC = github.com/fjl/gencodec
+PROTOCGENGO = github.com/golang/protobuf/protoc-gen-go
 
 GOLINT_CHECK := $(shell command -v golint 2> /dev/null)
 GOCILINT_CHECK := $(shell command -v golangci-lint 2> /dev/null)
@@ -79,6 +83,11 @@ INEFFASSIGN_CHECK := $(shell command -v ineffassign 2> /dev/null)
 MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
+STRINGER_CHECK := $(shell command -v stringer 2> /dev/null)
+GOBINDATA_CHECK := $(shell command -v go-bindata 2> /dev/null)
+GENCODEC_CHECK := $(shell command -v gencodec 2> /dev/null)
+PROTOCGENGO_CHECK := $(shell command -v protoc-gen-go 2> /dev/null)
+ABIGEN_CHECK := $(shell command -v abigen 2> /dev/null)
 
 
 # Install the runsim binary with a temporary workaround of entering an outside
@@ -88,7 +97,7 @@ UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
 # ref: https://github.com/golang/go/issues/30515
 $(RUNSIM):
 	@echo "Installing runsim..."
-	@(cd /tmp && go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+	@(cd /tmp && ${GO_MOD} go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
 
 tools: $(RUNSIM)
 ifdef GOLINT_CHECK
@@ -133,7 +142,36 @@ else
 	@echo "--> Installing unparam"
 	${GO_MOD} go get -v $(UNPARAM)
 endif
-
+ifdef STRINGER_CHECK
+	@echo "Stringer is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing stringer"
+	$(GOBIN) go get -u $(STRINGER)
+endif
+ifdef GOBINDATA_CHECK
+	@echo "Go-bindata is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing go-bindata"
+	$(GOBIN) go get -u $(GOBINDATA)
+endif
+ifdef GENCODEC_CHECK
+	@echo "Gencodec is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing gencodec"
+	$(GOBIN) go get -u $(GENCODEC)
+endif
+ifdef PROTOCGENGO_CHECK
+	@echo "Protoc-gen-go is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing protoc-gen-go"
+	$(GOBIN) go get -u $(PROTOCGENGO)
+endif
+ifdef ABIGEN_CHECK
+	@echo "Abigen is already installed. Run 'make update-tools' to update."
+else
+	@echo "--> Installing abigen"
+	$(GOBIN) go install ./cmd/abigen
+endif
 
 #######################
 ### Testing / Misc. ###
@@ -168,15 +206,10 @@ docker:
 test-cli test-race test-unit test test-import
 
 test-contract:
-	env GOBIN= go get -u golang.org/x/tools/cmd/stringer
-	env GOBIN= go get -u github.com/kevinburke/go-bindata/go-bindata
-	env GOBIN= go get -u github.com/fjl/gencodec
-	env GOBIN= go get -u github.com/golang/protobuf/protoc-gen-go
-	env GOBIN= go install ./cmd/abigen
-	@type "npm" 2> /dev/null || echo 'Please install node.js and npm'
-	@type "solc" 2> /dev/null || echo 'Please install solc'
-	@type "protoc" 2> /dev/null || echo 'Please install protoc'
-
+	@type "npm" 2> /dev/null || (echo 'Please install node.js and npm by running "make tools"' && exit 1)
+	@type "solc" 2> /dev/null || (echo 'Please install solc by running "make tools"' && exit 1)
+	@type "protoc" 2> /dev/null || (echo 'Please install protoc by running "make tools"' && exit 1)
+	@type "abigen" 2> /dev/null || (echo 'Please install abigen by running "make tools"' && exit 1)
 	bash scripts/contract-test.sh
 
 
