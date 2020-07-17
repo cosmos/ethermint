@@ -21,7 +21,8 @@ emintd -h
 emintcli -h
 ```
 
-<!-- ### Docker -->
+## Docker
+
 <!-- TODO: -->
 
 ### Releases

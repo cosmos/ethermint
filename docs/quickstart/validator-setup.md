@@ -60,12 +60,22 @@ You can confirm that you are in the validator set by using a third party explore
 
 A genesis transaction (aka `gentx`) is a JSON file carrying a self-delegation from a validator. All genesis transactions are collected by a genesis coordinator and validated against an initial `genesis.json` file.
 
+A `gentx` does three things:
+
+1. Makes the `validator` account you created into a validator operator account (i.e. the account that controls the validator).
+2. Self-delegates the provided `amount` of staking tokens.
+3. Link the operator account with a Tendermint node pubkey that will be used for signing blocks. If no `--pubkey` flag is provided, it defaults to the local node pubkey created via the `aud init` command above.
+
 If you want to participate in genesis as a validator, you need to justify that
 you have some stake at genesis, create one (or multiple) transactions to bond this stake to your validator address, and include this transaction in the genesis file.
 
 Your `cosmosvalconspub`, as shown on the section above, can be used to create a validator transaction on genesis as well.
 
-Next, craft your `emintd gentx` command.
+Next, craft your `emintd gentx` command:
+
+::: tip
+When specifying commission parameters, the `commission-max-change-rate` is used to measure % _point_ change over the `commission-rate`. E.g. 1% to 2% is a 100% rate increase, but only 1 percentage point.
+:::
 
 ```bash
 emintd gentx \
@@ -78,7 +88,12 @@ emintd gentx \
 ```
 
 ::: tip
-When specifying commission parameters, the `commission-max-change-rate` is used to measure % _point_ change over the `commission-rate`. E.g. 1% to 2% is a 100% rate increase, but only 1 percentage point.
+For more on `gentx`, use the following command:
+
+```bash
+emintd gentx --help
+```
+
 :::
 
 ## Confirm Your Validator is Running

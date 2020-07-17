@@ -63,17 +63,13 @@ minimum-gas-prices = ""
 
 Your full node is now initiallized.
 
-## Restart
+## Start node
 
-To restart your node, just type:
+To start your node, just type:
 
 ```bash
 emintd start
 ```
-
-::: tip
-If you are upgrading your node to a new version that is not breaking from the previous one, you can restart the chain instead of [resetting](#reset-data) the node.
-:::
 
 ## Key Management
 

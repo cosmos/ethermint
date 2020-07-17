@@ -17,4 +17,4 @@ After going throught the Quick Start contents, head over to the [basics](./../ba
 
 ## Next {hide}
 
-Learn how to run an Ethermint [node](./../quickstart/run_node.md) {hide}
+Learn how to [install](./../quickstart/intallation.md) Ethermint {hide}

@@ -31,28 +31,26 @@ parent:
   <a href="https://discord.gg/AzefAFd">
     <img alt="Discord" src="https://img.shields.io/discord/669268347736686612.svg" />
   </a>
-  <a href="https://sourcegraph.com/github.com/cosmos/ethermint?badge">
-    <img alt="Imported by" src="https://sourcegraph.com/github.com/ChainSafe/ethermint/-/badge.svg"/>
+  <a href="https://github.com/ChainSafe/ethermint/actions?query=workflow%3ABuild">
+    <img alt="Build Status" src="https://github.com/ChainSafe/ethermint/workflows/Build/badge.svg" />
   </a>
-    <img alt="Sims" src="https://github.com/ChainSafe/ethermint/workflows/Sims/badge.svg" />
-    <img alt="Lint Satus" src="https://github.com/ChainSafe/ethermint/workflows/Lint/badge.svg" />
+  <a href="https://github.com/ChainSafe/ethermint/actions?query=workflow%3ALint">
+    <img alt="Lint Status" src="https://github.com/ChainSafe/ethermint/workflows/Lint/badge.svg" />
+  </a>
 </div>
+
+Ethermint is a scalable, high-throughput Proof-of-Stake blockchain that is fully compatible and
+interoperable with Ethereum. It's build using the the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk/) which runs on top of [Tendermint Core](https://github.com/tendermint/tendermint) consensus engine.
 
 > **WARNING:** Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
 
 **Note**: Requires [Go 1.14+](https://golang.org/dl/)
-
-## What is it?
-
-Ethermint is a scalable, high-throughput Proof-of-Stake blockchain that is fully compatible and
-interoperable with Ethereum. It's build using the the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk/) which runs on top of [Tendermint Core](https://github.com/tendermint/tendermint) consensus engine.
 
 ## Quick Start
 
 To learn how the Ethermint works from a high-level perspective, go to the [Introduction](./docs/intro/overview.md) section from the documentation.
 
 For more, please refer to the [Ethermint Docs](./docs/), which are also hosted on [docs.ethermint.zone](https://docs.ethermint.zone/).
-
 
 ### Starting Ethermint Web3 RPC API
 

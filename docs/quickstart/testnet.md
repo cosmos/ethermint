@@ -6,37 +6,11 @@ order: 3
 
 Learn how to deploy a local testnet or connect to an existing one {synopsis}
 
-## Starting a New Node
+## Add Seed Nodes
 
-> NOTE: If you ran a full node on a previous testnet, please skip to [Upgrading From Previous Testnet](#upgrading-from-previous-testnet).
+Your node needs to know how to find peers. You'll need to add healthy seed nodes to `$HOME/.emintd/config/config.toml`. If those seeds aren't working, you can find more seeds and persistent peers on an existing explorer.
 
-To start a new node, the mainnet instructions apply:
-
-- [Join the mainnet](./join-mainnet.md)
-- [Deploy a validator](../validators/validator-setup.md)
-
-The only difference is the SDK version and genesis file. See the [testnet repo](https://github.com/cosmos/testnets) for information on testnets, including the correct version of the Cosmos-SDK to use and details about the genesis file.
-
-## Upgrading Your Node
-
-These instructions are for full nodes that have ran on previous versions of and would like to upgrade to the latest testnet.
-
-### Reset Data
-
-First, remove the outdated files and reset the data.
-
-```bash
-rm $HOME/.emintd/config/addrbook.json $HOME/.emintd/config/genesis.json
-emintd unsafe-reset-all
-```
-
-Your node is now in a pristine state while keeping the original `priv_validator.json` and `config.toml`. If you had any sentry nodes or full nodes setup before,
-your node will still try to connect to them, but may fail if they haven't also
-been upgraded.
-
-::: danger Warning
-Make sure that every node has a unique `priv_validator.json`. Do not copy the `priv_validator.json` from an old node to multiple new nodes. Running two nodes with the same `priv_validator.json` will cause you to double sign.
-:::
+For more information on seeds and peers, you can the Tendermint [P2P documentation](https://docs.tendermint.com/master/spec/p2p/peer.html).
 
 ## Requesting tokens though the testnet faucet
 
