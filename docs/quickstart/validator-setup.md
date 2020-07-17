@@ -99,7 +99,8 @@ Your validator is active if the following command returns anything:
 emintcli query tendermint-validator-set | grep "$(emintd tendermint show-validator)"
 ```
 
-You should now see your validator in one of the block explorers. You are looking for the `bech32` encoded `address` in the `~/.emintd/config/priv_validator.json` file.
+You should now see your validator in one of the block explorers. You are looking for the `bech32`
+encoded `address` in the `~/.emintd/config/priv_validator.json` file.
 
 ::: tip
 To be in the validator set, you need to have more total voting power than the 100th validator.

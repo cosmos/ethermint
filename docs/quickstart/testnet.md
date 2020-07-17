@@ -33,6 +33,10 @@ Your node needs to know how to find peers. You'll need to add healthy seed nodes
 
 For more information on seeds and peers, you can the Tendermint [P2P documentation](https://docs.tendermint.com/master/spec/p2p/peer.html).
 
+### Start testnet
+
+The final step is to [start the nodes](./run_node.md#start-node). Once enough voting power (+2/3) from the genesis validators is up-and-running, the testnet will start producing blocks.
+
 ## Testnet faucet
 
 Once the ethermint daemon is up and running, you can request tokens to your address using the `faucet` module:

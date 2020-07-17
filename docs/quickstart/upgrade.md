@@ -27,7 +27,7 @@ You will need to ensure that the version installed matches the one needed for th
 ## Upgrade Genesis File
 
 :::warning
-If the new version you are upgrading to has breaking changes, you will have to restart your chain. If it is **not** breaking, you can skip to [Restart](#restart)
+If the new version you are upgrading to has breaking changes, you will have to restart your chain. If it is **not** breaking, you can skip to [Restart](#restart-node).
 :::
 
 To upgrade the genesis file, you can either fetch it from a trusted source or export it locally using the `emintd export` command.
@@ -36,7 +36,7 @@ To upgrade the genesis file, you can either fetch it from a trusted source or ex
 
 If you are joining an existing testnet, you can fetch the genesis from the appropriate testnet source/repository where the genesis file is hosted.
 
-Save the new genesis as `new_genesis.json`. Then replace the old `genesis.json` with `new_genesis.json`
+Save the new genesis as `new_genesis.json`. Then, replace the old `genesis.json` with `new_genesis.json`.
 
 ```bash
 cd $HOME/.emintd/config
@@ -44,7 +44,7 @@ cp -f genesis.json new_genesis.json
 mv new_genesis.json genesis.json
 ```
 
-Then, go to the [reset data](#reset-data) section.
+Finally, go to the [reset data](./run_node.md#reset-data) section.
 
 ### Export State to a new Genesis locally
 
@@ -85,10 +85,6 @@ emintd migrate [target-version] [/path/to/genesis.json] --chain-id=<new_chain_id
 ```
 
 ## Restart Node
-
-::: tip
-If you are upgrading your node to a new version that is not breaking from the previous one, you can restart the chain instead of [resetting](#./run_node.md#reset-data) the node.
-:::
 
 To restart your node once the new genesis has been updated, use the `start` command:
 
