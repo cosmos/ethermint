@@ -10,7 +10,24 @@ Learn how to deploy a local testnet or connect to an existing one {synopsis}
 
 - [Run Node](./run_node.md) {prereq}
 
-## Add Seed Nodes
+## Genesis and Seeds
+
+### Copy the Genesis File
+
+<!-- TODO: link to genesis procedure -->
+::: tip
+If you want to start a network from scratch, you will need to start the genesis procedure.
+:::
+
+If you want to connect to an existing testnet, fetch the testnet's `genesis.json` file and copy it into the `emintd`'s config directory (i.e `$HOME/.emintd/config/genesis.json`).
+
+Then verify the correctness of the genesis configuration file:
+
+```bash
+emintd validate-genesis
+```
+
+### Add Seed Nodes
 
 Your node needs to know how to find peers. You'll need to add healthy seed nodes to `$HOME/.emintd/config/config.toml`. If those seeds aren't working, you can find more seeds and persistent peers on an existing explorer.
 
@@ -43,4 +60,4 @@ emintcli q supply total
 
 ## Next {hide}
 
-Learn about how to setup a [validator](./validator-setup.md) on Ethermint {hide}
+Learn about how to setup a [validator](./validator-setup.md) node on Ethermint {hide}

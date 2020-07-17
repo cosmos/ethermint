@@ -4,11 +4,13 @@ order: 5
 
 # Upgrade Node
 
-These instructions are for full nodes that have ran on previous versions of and would like to upgrade to the latest testnet.
+Learn how to upgrade your full node to the latest software version {synopsis}
 
 ## Software Upgrade
 
-First, stop your instance of `gaiad`. Next, upgrade the software:
+These instructions are for full nodes that have ran on previous versions of and would like to upgrade to the latest testnet.
+
+First, stop your instance of `emintd`. Next, upgrade the software:
 
 ```bash
 cd ethermint
@@ -25,10 +27,10 @@ You will need to ensure that the version installed matches the one needed for th
 ## Upgrade Genesis File
 
 :::warning
-If the new version you are upgrading to has breaking changes, you will have to restart your chain. If it is not breaking, you can skip to [Restart](#restart)
+If the new version you are upgrading to has breaking changes, you will have to restart your chain. If it is **not** breaking, you can skip to [Restart](#restart)
 :::
 
-To upgrade the genesis file, you can either fetch it from a trusted source or export it locally using the `export` command.
+To upgrade the genesis file, you can either fetch it from a trusted source or export it locally using the `emintd export` command.
 
 ### Fetch from a Trusted Source
 
@@ -44,16 +46,28 @@ mv new_genesis.json genesis.json
 
 Then, go to the [reset data](#reset-data) section.
 
-### Exporting State to a New Genesis Locally
+### Export State to a new Genesis locally
 
-If you were running a node in the previous version of the network and want to build your new genesis locally from a state of this previous network, use the following command:
+Ethermint can dump the entire application state to a JSON file. This, besides upgrades, can be
+useful for manual analysis of the state at a given height.
+
+Export state with:
 
 ```bash
-cd $HOME/.emintd/config
-emintd export --for-zero-height --height=<export-height> > new_genesis.json
+emintd export > new_genesis.json
 ```
 
-The command above take a state at a certain height `<export-height>` and turns it into a new genesis file that can be used to start a new network. The new network will start at height 0 if the `--for-zero-height` is provided.
+You can also export state from a particular height (at the end of processing the block of that height):
+
+```bash
+emintd export --height [height] > new_genesis.json
+```
+
+If you plan to start a new network for 0 height (i.e genesis) from the exported state, export with the `--for-zero-height` flag:
+
+```bash
+emintd export --height [height] --for-zero-height > new_genesis.json
+```
 
 Then, replace the old `genesis.json` with `new_genesis.json`.
 
@@ -70,27 +84,10 @@ You can use the `migrate` command to migrate from a given version to the next on
 emintd migrate [target-version] [/path/to/genesis.json] --chain-id=<new_chain_id> --genesis-time=<yyyy-mm-ddThh:mm:ssZ>
 ```
 
-## Reset Data
-
-First, remove the outdated files and reset the data.
-
-```bash
-rm $HOME/.emintd/config/addrbook.json $HOME/.emintd/config/genesis.json
-emintd unsafe-reset-all
-```
-
-Your node is now in a pristine state while keeping the original `priv_validator.json` and `config.toml`. If you had any sentry nodes or full nodes setup before,
-your node will still try to connect to them, but may fail if they haven't also
-been upgraded.
-
-::: danger Warning
-Make sure that every node has a unique `priv_validator.json`. Do not copy the `priv_validator.json` from an old node to multiple new nodes. Running two nodes with the same `priv_validator.json` will cause you to double sign.
-:::
-
-### Restart
+## Restart Node
 
 ::: tip
-If you are upgrading your node to a new version that is not breaking from the previous one, you can restart the chain instead of [resetting](#reset-data) the node.
+If you are upgrading your node to a new version that is not breaking from the previous one, you can restart the chain instead of [resetting](#./run_node.md#reset-data) the node.
 :::
 
 To restart your node once the new genesis has been updated, use the `start` command:
@@ -98,3 +95,7 @@ To restart your node once the new genesis has been updated, use the `start` comm
 ```bash
 emintd start
 ```
+
+## Next {hide}
+
+Learn about how to setup a [validator](./validator-setup.md) node on Ethermint {hide}

@@ -13,10 +13,10 @@ Configure a validator node to propose blocks and earn staking rewards {synopsis}
 
 ## What is a Validator?
 
-[Validators](./overview.md) are responsible for committing new blocks to the blockchain through voting. A validator's stake is slashed if they become unavailable or sign blocks at the same height. Please read about [Sentry Node Architecture](./validator-faq.md#how-can-validators-protect-themselves-from-denial-of-service-attacks) to protect your node from DDOS attacks and to ensure high-availability.
+[Validators](https://hub.cosmos.network/master/validators/overview.html) are responsible for committing new blocks to the blockchain through voting. A validator's stake is slashed if they become unavailable or sign blocks at the same height. Please read about [Sentry Node Architecture](https://hub.cosmos.network/master/validators/validator-faq.html#how-can-validators-protect-themselves-from-denial-of-service-attacks) to protect your node from DDOS attacks and to ensure high-availability.
 
 ::: danger Warning
-If you want to become a validator for the Hub's `mainnet`, you should [research security](./security.md).
+If you want to become a validator for `mainnet`, you should [research security](https://hub.cosmos.network/master/validators/security.html).
 :::
 
 You may want to skip the next section if you have already set up a [full node](../emint-tutorials/join-mainnet.md).
@@ -64,7 +64,7 @@ A `gentx` does three things:
 
 1. Makes the `validator` account you created into a validator operator account (i.e. the account that controls the validator).
 2. Self-delegates the provided `amount` of staking tokens.
-3. Link the operator account with a Tendermint node pubkey that will be used for signing blocks. If no `--pubkey` flag is provided, it defaults to the local node pubkey created via the `aud init` command above.
+3. Link the operator account with a Tendermint node pubkey that will be used for signing blocks. If no `--pubkey` flag is provided, it defaults to the local node pubkey created via the `emintd init` command above.
 
 If you want to participate in genesis as a validator, you need to justify that
 you have some stake at genesis, create one (or multiple) transactions to bond this stake to your validator address, and include this transaction in the genesis file.
@@ -84,16 +84,11 @@ emintd gentx \
   --commission-max-rate <commission_max_rate> \
   --commission-max-change-rate <commission_max_change_rate> \
   --pubkey $(emintd tendermint show-validator) \
-  --name <key_name>
+  --name $KEY
 ```
 
 ::: tip
-For more on `gentx`, use the following command:
-
-```bash
-emintd gentx --help
-```
-
+For more on `gentx`, use the help flag: `emintd gentx -h`
 :::
 
 ## Confirm Your Validator is Running
@@ -125,4 +120,4 @@ committing the block.
 
 ## Next {hide}
 
-Learn about Ethermint [accounts](./../basic/accounts.md) {hide}
+Start and connect a [client](./clients.md) to a running network {hide}

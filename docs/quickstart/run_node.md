@@ -121,7 +121,7 @@ emintcli config keyring-backend file
 
 ### Reset Data
 
-Alternatively, you can **reset** the blockchain database, and remove the node's address book files, and resets `priv_validator.json` to the genesis state.
+Alternatively, you can **reset** the blockchain database, remove the node's address book files, and reset the `priv_validator.json` to the genesis state.
 
 ::: danger
 If you are running a **validator node**, always be careful when doing `emintd unsafe-reset-all`. You should never use this command if you are not switching `chain-id`.
@@ -134,6 +134,7 @@ If you are running a **validator node**, always be careful when doing `emintd un
 First, remove the outdated files and reset the data.
 
 ```bash
+rm $HOME/.emintd/config/addrbook.json $HOME/.emintd/config/genesis.json
 emintd unsafe-reset-all
 ```
 

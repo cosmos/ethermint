@@ -43,4 +43,12 @@ emintcli tx -h
 
 ### REST server
 
+<!-- TODO: -->
+
 ### Ethereum JSON-RPC
+
+<!-- TODO: -->
+
+## Next {hide}
+
+Process and subscribe to [events](./events.md) via websockets {hide}
