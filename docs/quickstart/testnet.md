@@ -6,13 +6,17 @@ order: 3
 
 Learn how to deploy a local testnet or connect to an existing one {synopsis}
 
+## Pre-requisite Readings
+
+- [Run Node](./run_node.md) {prereq}
+
 ## Add Seed Nodes
 
 Your node needs to know how to find peers. You'll need to add healthy seed nodes to `$HOME/.emintd/config/config.toml`. If those seeds aren't working, you can find more seeds and persistent peers on an existing explorer.
 
 For more information on seeds and peers, you can the Tendermint [P2P documentation](https://docs.tendermint.com/master/spec/p2p/peer.html).
 
-## Requesting tokens though the testnet faucet
+## Testnet faucet
 
 Once the ethermint daemon is up and running, you can request tokens to your address using the `faucet` module:
 
@@ -39,4 +43,4 @@ emintcli q supply total
 
 ## Next {hide}
 
-Learn about Ethermint [accounts](./../basic/accounts.md) {hide}
+Learn about how to setup a [validator](./validator-setup.md) on Ethermint {hide}

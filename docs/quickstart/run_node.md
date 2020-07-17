@@ -6,6 +6,10 @@ order: 2
 
 Run a local node and start the REST and JSON-RPC clients {synopsis}
 
+## Pre-requisite Readings
+
+- [Installation](./installation.md) {prereq}
+
 ## Script deployment
 
 Run the local node with faucet enabled:
@@ -73,18 +77,16 @@ emintd start
 
 ## Key Management
 
-To run a node with the same key every time:
-replace `emintcli keys add $KEY` in `./init.sh` with:
+To run a node with the same key every time: replace `emintcli keys add $KEY` in `./init.sh` with:
 
 ```bash
 echo "your mnemonic here" | emintcli keys add $KEY --recover
 ```
 
-::: tip
-Ethermint currently only supports 24 word mnemonics.
+::: tip Ethermint currently only supports 24 word mnemonics.
 :::
 
-You can generate a new key/mnemonic with
+You can generate a new key/mnemonic with:
 
 ```bash
 emintcli keys add $KEY
@@ -94,6 +96,25 @@ To export your ethermint key as an ethereum private key (for use with Metamask f
 
 ```bash
 emintcli keys unsafe-export-eth-key $KEY
+```
+
+For more about the available key commands, use the `--help` flag
+
+```bash
+emintcli keys -h
+```
+
+### Keyring backend options
+
+The instructions above include commands to use `test` as the `keyring-backend`. This is an unsecured
+keyring that doesn't require entering a password and should not be used in production. Otherwise,
+Ethermint supports using a file or OS keyring backend for key storage. To create and use a file
+stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any
+relevant command and the password prompt will occur through the command line. This can also be saved
+as a CLI config option with:
+
+```bash
+emintcli config keyring-backend file
 ```
 
 ## Clearing data from chain
@@ -130,4 +151,4 @@ To clear all data except key storage (if keyring backend chosen) and then you ca
 
 ## Next {hide}
 
-Learn about Ethermint [accounts](./../basic/accounts.md) {hide}
+Learn about running a Ethermint [testnet](./testnet.md) {hide}

@@ -1,5 +1,5 @@
 <!--
-order: 2
+order: 7
 -->
 
 # Events
@@ -97,7 +97,3 @@ ws ws://localhost:8546/
 > {"id": 1, "method": "eth_subscribe", "params": ["newHeads", {}]}
 < {"jsonrpc":"2.0","result":"0x44e010cb2c3161e9c02207ff172166ef","id":1}
 ```
-
-## Next {hide}
-
-Learn how to connect Ethermint to [Metamask](./../guides/metamask.md) {hide}
