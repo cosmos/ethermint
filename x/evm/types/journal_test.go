@@ -148,7 +148,7 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			resetObjectChange{
 				prev: &stateObject{
 					address: suite.address,
-					balance: sdk.OneInt(),
+					// balance: sdk.OneInt(),
 				},
 			},
 		},

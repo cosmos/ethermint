@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"gopkg.in/yaml.v2"
 
@@ -40,6 +41,38 @@ func ProtoAccount() exported.Account {
 	return &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+}
+
+// EthAddress returns the account address ethereum format.
+func (acc EthAccount) EthAddress() ethcmn.Address {
+	return ethcmn.BytesToAddress(acc.Address.Bytes())
+}
+
+// TODO: remove on SDK v0.40
+
+// Balance returns the balance of an account.
+func (acc EthAccount) Balance() sdk.Int {
+	return acc.GetCoins().AmountOf(DenomDefault)
+}
+
+// SetBalance sets an account's balance of photons
+func (acc *EthAccount) SetBalance(amt sdk.Int) {
+	coins := acc.GetCoins()
+	diff := amt.Sub(coins.AmountOf(DenomDefault))
+	switch {
+	case diff.IsPositive():
+		// Increase coins to amount
+		coins = coins.Add(sdk.NewCoin(DenomDefault, diff))
+	case diff.IsNegative():
+		// Decrease coins to amount
+		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff.Neg())))
+	default:
+		return
+	}
+
+	if err := acc.SetCoins(coins); err != nil {
+		panic(fmt.Errorf("could not set coins for address %s: %w", acc.EthAddress().String(), err))
 	}
 }
 
