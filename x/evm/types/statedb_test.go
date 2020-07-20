@@ -266,23 +266,32 @@ func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
 }
 
 func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
 
-	suite.stateDB.CreateAccount(suite.address)
-	suite.Require().True(suite.stateDB.Exist(suite.address))
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().True(suite.stateDB.Exist(addr))
 
 	suite.stateDB.ClearStateObjects()
-	suite.Require().False(suite.stateDB.Exist(suite.address))
+	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
 func (suite *StateDBTestSuite) TestStateDBReset() {
+	priv, err := crypto.GenerateKey()
+	suite.Require().NoError(err)
+
+	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+
 	hash := ethcmn.BytesToHash([]byte("hash"))
 
-	suite.stateDB.CreateAccount(suite.address)
-	suite.Require().True(suite.stateDB.Exist(suite.address))
+	suite.stateDB.CreateAccount(addr)
+	suite.Require().True(suite.stateDB.Exist(addr))
 
-	err := suite.stateDB.Reset(hash)
+	err = suite.stateDB.Reset(hash)
 	suite.Require().NoError(err)
-	suite.Require().False(suite.stateDB.Exist(suite.address))
+	suite.Require().False(suite.stateDB.Exist(addr))
 
 }
 
@@ -381,9 +390,9 @@ func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
 		}
 
 		if tc.expPass {
-			suicide := suite.stateDB.Suicide(suite.address)
 			suite.stateDB.SetBalance(suite.address, tc.amount)
-			suite.Require().True(suicide, tc.name, tc.name)
+			suicide := suite.stateDB.Suicide(suite.address)
+			suite.Require().True(suicide, tc.name)
 			suite.Require().True(suite.stateDB.HasSuicided(suite.address), tc.name)
 		} else {
 			//Suicide only works for an account with non-zero balance/nonce
