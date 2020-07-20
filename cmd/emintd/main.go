@@ -68,6 +68,7 @@ func main() {
 	rootCmd.AddCommand(
 		withChainIDValidation(genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome)),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, auth.GenesisAccountIterator{}, app.DefaultNodeHome),
+		genutilcli.MigrateGenesisCmd(ctx, cdc),
 		genutilcli.GenTxCmd(
 			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{},
 			app.DefaultNodeHome, app.DefaultCLIHome,
