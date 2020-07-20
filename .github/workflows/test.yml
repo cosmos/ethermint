@@ -205,7 +205,7 @@ jobs:
             .go
             .mod
             .sum
-      - name: importer-test
+      - name: test-importer
         run: |
           make test-import
           rm -rf importer/tmp
