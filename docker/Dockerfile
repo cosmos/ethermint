@@ -1,7 +1,7 @@
 FROM golang:1.13
 
 RUN apt-get update && apt-get install -y \
-  make curl jq tmux
+  make curl jq tmux vim
 
 COPY . /ethermint
 

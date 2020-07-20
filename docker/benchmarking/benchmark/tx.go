@@ -40,9 +40,9 @@ type Response struct {
 }
 
 type resource struct {
-	timestamp     string
-	cpuPercentage string
-	ramPercentage string
+	timestamp     int
+	cpuPercentage float64
+	ramPercentage float64
 	process       string
 }
 
@@ -65,7 +65,9 @@ var (
 		Usage:     "Analyze the receipts.json file. Output will be the blocks and corresponding transactions included in those blocks.",
 		Action:    analyze,
 		Flags: []cli.Flag{
-			cli.BoolFlag{Name: "verbose, v", Hidden: false, Usage: "Shows the details of the block."},
+			cli.BoolFlag{Name: "verbose, v", Hidden: false, Usage: "Shows the additional details of analysis."},
+			cli.IntFlag{Name: "start, s", Usage: "Returns the metrics averaged from given start time."},
+			cli.IntFlag{Name: "end, e", Usage: "Returns the metrics averaged until given end time."},
 		},
 	}
 )
@@ -174,6 +176,16 @@ func checkRepeats(list []string, item string) []string {
 func hexToInt(hexStr string) int {
 	result, _ := strconv.ParseUint(strings.Replace(hexStr, "0x", "", -1), 16, 64)
 	return int(result)
+}
+
+func average(resourcelist []float64, timestamplist []int, start, end int) float64 {
+	var sum float64
+	for i, val := range timestamplist {
+		if val >= start && val <= end {
+			sum += resourcelist[i]
+		}
+	}
+	return sum / float64(end-start)
 }
 
 func sendTx(ctx *cli.Context) error {
@@ -372,7 +384,6 @@ func analyze(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
 	timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
 
 	param = []interface{}{"0x" + fmt.Sprintf("%x", hexToInt(blocks[len(blocks)-1])+1), false}
@@ -385,13 +396,13 @@ func analyze(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
 	timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
 
 	for _, tx := range transactions {
 		totalTx += tx
 	}
 
+	// parse resource usage file
 	resourcef, err := os.Open("/ethermint/docker/benchmarking/resource.log")
 	if err != nil {
 		fmt.Println("Unable to locate resource.log file. Please run the sendtx command to generate this file.")
@@ -400,38 +411,97 @@ func analyze(ctx *cli.Context) error {
 	scanner := bufio.NewScanner(resourcef)
 	re := regexp.MustCompile(`\s+`)
 
-	var currentTimeStamp string
+	var currentTimeStamp int
+	var emintdCpuUsage []float64
+	var emintdRamUsage []float64
+	var emintcliCpuUsage []float64
+	var emintcliRamUsage []float64
+	var emintdTimestamps []int
+	var emintcliTimestamps []int
 
 	for scanner.Scan() {
 		s := re.ReplaceAllString(scanner.Text(), " ")
 		spl := strings.Split(s, " ")
 
 		if len(spl[0]) == 10 {
-			currentTimeStamp = spl[0]
+			currentTimeStamp, err = strconv.Atoi(spl[0])
+			if err != nil {
+				return err
+			}
 		} else if spl[0] == "" {
+			cpu, err := strconv.ParseFloat(spl[1], 64)
+			if err != nil {
+				return err
+			}
+			ram, err := strconv.ParseFloat(spl[2], 64)
+			if err != nil {
+				return err
+			}
+
 			resourceUsage = append(resourceUsage,
 				resource{
 					timestamp:     currentTimeStamp,
-					cpuPercentage: spl[1],
-					ramPercentage: spl[2],
+					cpuPercentage: cpu,
+					ramPercentage: ram,
 					process:       spl[3],
 				})
+
+			if spl[3] == "emintd" {
+				emintdCpuUsage = append(emintdCpuUsage, cpu)
+				emintdRamUsage = append(emintdRamUsage, ram)
+				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
+			} else if spl[3] == "emintcli" {
+				emintcliCpuUsage = append(emintcliCpuUsage, cpu)
+				emintcliRamUsage = append(emintcliRamUsage, ram)
+				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
+			}
 		} else {
+			cpu, err := strconv.ParseFloat(spl[0], 64)
+			if err != nil {
+				return err
+			}
+			ram, err := strconv.ParseFloat(spl[1], 64)
+			if err != nil {
+				return err
+			}
 			resourceUsage = append(resourceUsage,
 				resource{
 					timestamp:     currentTimeStamp,
-					cpuPercentage: spl[0],
-					ramPercentage: spl[1],
+					cpuPercentage: cpu,
+					ramPercentage: ram,
 					process:       spl[2],
 				})
+
+			if spl[2] == "emintd" {
+				emintdCpuUsage = append(emintdCpuUsage, cpu)
+				emintdRamUsage = append(emintdRamUsage, ram)
+				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
+			} else if spl[2] == "emintcli" {
+				emintcliCpuUsage = append(emintcliCpuUsage, cpu)
+				emintcliRamUsage = append(emintcliRamUsage, ram)
+				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
+			}
 		}
+	}
+
+	if ctx.Bool("verbose") {
+		fmt.Printf("Resource Usage: %+v\n", resourceUsage)
+	}
+
+	if ctx.Int("start") > 0 && ctx.Int("end") > 0 {
+		fmt.Println("start time set: ", ctx.Int("start"))
+		fmt.Println("end time set: ", ctx.Int("end"))
+
+		fmt.Println("Average CPU Usage [emintd]: ", average(emintdCpuUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average RAM Usage [emintd]: ", average(emintdRamUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCpuUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRamUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 	}
 
 	fmt.Println("Blocks with Tx: ", blocks)
 	fmt.Println("Block Timestamps: ", timestamps) //last two timestamps: first-1, last+1 block timestamp, respectively
 	fmt.Println("Transactions: ", transactions)
 	fmt.Println("Total Transactions: ", totalTx)
-	fmt.Printf("Resource Usage: %+v\n", resourceUsage)
 
 	return nil
 }
