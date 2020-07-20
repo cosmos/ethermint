@@ -130,6 +130,15 @@ func TestEth_protocolVersion(t *testing.T) {
 	require.Equal(t, expectedRes, res, "expected: %s got: %s\n", expectedRes.String(), rpcRes.Result)
 }
 
+func TestEth_chainId(t *testing.T) {
+	rpcRes := call(t, "eth_chainId", []string{})
+
+	var res hexutil.Uint
+	err := res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+	require.NotEqual(t, "0x0", res.String())
+}
+
 func TestEth_blockNumber(t *testing.T) {
 	rpcRes := call(t, "eth_blockNumber", []string{})
 
@@ -759,7 +768,7 @@ func TestEth_ExportAccount(t *testing.T) {
 	require.Equal(t, "0x1122334455667788990011223344556677889900", account.Address.Hex())
 	require.Equal(t, big.NewInt(0), account.Balance)
 	require.Equal(t, hexutil.Bytes(nil), account.Code)
-	require.Equal(t, []types.GenesisStorage(nil), account.Storage)
+	require.Equal(t, types.Storage(nil), account.Storage)
 }
 
 func TestEth_ExportAccount_WithStorage(t *testing.T) {
@@ -803,7 +812,7 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	require.Equal(t, addr, strings.ToLower(account.Address.Hex()))
 	require.Equal(t, big.NewInt(0), account.Balance)
 	require.Equal(t, hexutil.Bytes(bytecode), account.Code)
-	require.NotEqual(t, []types.GenesisStorage(nil), account.Storage)
+	require.NotEqual(t, types.Storage(nil), account.Storage)
 }
 
 func TestEth_GetBlockByNumber(t *testing.T) {
