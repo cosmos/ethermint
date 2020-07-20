@@ -150,7 +150,6 @@ func (suite *StateDBTestSuite) TestStateDBBalance() {
 	for _, tc := range testCase {
 		tc.malleate()
 		suite.Require().Equal(tc.balance, suite.stateDB.GetBalance(suite.address), tc.name)
-
 	}
 }
 
@@ -163,20 +162,74 @@ func (suite *StateDBTestSuite) TestStateDBNonce() {
 func (suite *StateDBTestSuite) TestStateDBState() {
 	key := ethcmn.BytesToHash([]byte("foo"))
 	val := ethcmn.BytesToHash([]byte("bar"))
-
 	suite.stateDB.SetState(suite.address, key, val)
-	suite.Require().Equal(val, suite.stateDB.GetState(suite.address, key))
+
+	testCase := []struct {
+		name    string
+		address ethcmn.Address
+		key     ethcmn.Hash
+		value   ethcmn.Hash
+	}{
+		{
+			"found state",
+			suite.address,
+			ethcmn.BytesToHash([]byte("foo")),
+			ethcmn.BytesToHash([]byte("bar")),
+		},
+		{
+			"state not found",
+			suite.address,
+			ethcmn.BytesToHash([]byte("key")),
+			ethcmn.Hash{},
+		},
+		{
+			"object not found",
+			ethcmn.Address{},
+			ethcmn.BytesToHash([]byte("foo")),
+			ethcmn.Hash{},
+		},
+	}
+	for _, tc := range testCase {
+		value := suite.stateDB.GetState(tc.address, tc.key)
+		suite.Require().Equal(tc.value, value, tc.name)
+	}
 }
 
 func (suite *StateDBTestSuite) TestStateDBCode() {
-	code := []byte("foobar")
+	testCase := []struct {
+		name     string
+		address  ethcmn.Address
+		code     []byte
+		malleate func()
+	}{
+		{
+			"no stored code for state object",
+			suite.address,
+			nil,
+			func() {},
+		},
+		{
+			"existing address",
+			suite.address,
+			[]byte("code"),
+			func() {
+				suite.stateDB.SetCode(suite.address, []byte("code"))
+			},
+		},
+		{
+			"state object not found",
+			ethcmn.Address{},
+			nil,
+			func() {},
+		},
+	}
 
-	suite.stateDB.SetCode(suite.address, code)
+	for _, tc := range testCase {
+		tc.malleate()
 
-	suite.Require().Equal(code, suite.stateDB.GetCode(suite.address))
-
-	codelen := len(code)
-	suite.Require().Equal(codelen, suite.stateDB.GetCodeSize(suite.address))
+		suite.Require().Equal(tc.code, suite.stateDB.GetCode(tc.address), tc.name)
+		suite.Require().Equal(len(tc.code), suite.stateDB.GetCodeSize(tc.address), tc.name)
+	}
 }
 
 func (suite *StateDBTestSuite) TestStateDBLogs() {
@@ -236,33 +289,79 @@ func (suite *StateDBTestSuite) TestStateDBPreimage() {
 
 func (suite *StateDBTestSuite) TestStateDBRefund() {
 	testCase := []struct {
-		name   string
-		amount uint64
+		name      string
+		addAmount uint64
+		subAmount uint64
+		expRefund uint64
+		expPanic  bool
 	}{
 		{
-			"refund",
-			100,
+			"refund 0",
+			0, 0, 0,
+			false,
+		},
+		{
+			"refund positive amount",
+			100, 0, 100,
+			false,
+		},
+		{
+			"refund panic",
+			100, 200, 100,
+			true,
 		},
 	}
 
 	for _, tc := range testCase {
-		suite.stateDB.AddRefund(tc.amount)
-		suite.Require().Equal(tc.amount, suite.stateDB.GetRefund(), tc.name)
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset
 
-		suite.stateDB.SubRefund(tc.amount)
-		suite.Require().Equal(uint64(0), suite.stateDB.GetRefund(), tc.name)
+			suite.stateDB.AddRefund(tc.addAmount)
+			suite.Require().Equal(tc.addAmount, suite.stateDB.GetRefund())
+
+			if tc.expPanic {
+				suite.Panics(func() {
+					suite.stateDB.SubRefund(tc.subAmount)
+				})
+			} else {
+				suite.stateDB.SubRefund(tc.subAmount)
+				suite.Require().Equal(tc.expRefund, suite.stateDB.GetRefund())
+			}
+		})
 	}
 }
 
 func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
-	suite.stateDB.CreateAccount(suite.address)
-	suite.Require().True(suite.stateDB.Exist(suite.address))
+	prevBalance := big.NewInt(12)
 
-	value := big.NewInt(100)
-	suite.stateDB.AddBalance(suite.address, value)
+	testCase := []struct {
+		name     string
+		address  ethcmn.Address
+		malleate func()
+	}{
+		{
+			"existing account",
+			suite.address,
+			func() {
+				suite.stateDB.AddBalance(suite.address, prevBalance)
+			},
+		},
+		{
+			"new account",
+			ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"),
+			func() {
+				prevBalance = big.NewInt(0)
+			},
+		},
+	}
 
-	suite.stateDB.CreateAccount(suite.address)
-	suite.Require().Equal(value, suite.stateDB.GetBalance(suite.address))
+	for _, tc := range testCase {
+		tc.malleate()
+
+		suite.stateDB.CreateAccount(tc.address)
+		suite.Require().True(suite.stateDB.Exist(tc.address), tc.name)
+		suite.Require().Equal(prevBalance, suite.stateDB.GetBalance(tc.address), tc.name)
+	}
 }
 
 func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
@@ -284,19 +383,12 @@ func (suite *StateDBTestSuite) TestStateDBReset() {
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	hash := ethcmn.BytesToHash([]byte("hash"))
-
 	suite.stateDB.CreateAccount(addr)
 	suite.Require().True(suite.stateDB.Exist(addr))
 
-	err = suite.stateDB.Reset(hash)
+	err = suite.stateDB.Reset(ethcmn.BytesToHash(nil))
 	suite.Require().NoError(err)
 	suite.Require().False(suite.stateDB.Exist(addr))
-
-}
-
-func (suite *StateDBTestSuite) TestStateDBUpdateAcct() {
-
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
@@ -308,7 +400,6 @@ func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
 
 	suite.Require().Equal(txi, suite.stateDB.TxIndex())
 	suite.Require().Equal(bhash, suite.stateDB.BlockHash())
-
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
