@@ -242,16 +242,14 @@ func (so *stateObject) markSuicided() {
 	so.suicided = true
 }
 
-// commitState commits all dirty storage to a KVStore.
+// commitState commits all dirty storage to a KVStore and resets
+// the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
-	for i, state := range so.dirtyStorage {
+	for _, state := range so.dirtyStorage {
 		delete(so.keyToDirtyStorageIndex, state.Key)
-
-		var dirtyStorage Storage
-		dirtyStorage = append(so.dirtyStorage[:i], so.dirtyStorage[i+1:]...)
 
 		// skip no-op changes, persist actual changes
 		idx, ok := so.keyToOriginStorageIndex[state.Key]
@@ -274,8 +272,9 @@ func (so *stateObject) commitState() {
 		}
 
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
-		so.dirtyStorage = dirtyStorage
 	}
+
+	so.dirtyStorage = Storage{}
 }
 
 // commitCode persists the state object's code to the KVStore.
