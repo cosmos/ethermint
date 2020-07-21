@@ -193,9 +193,9 @@ func calcTPS(transactions, timestamps []int) float64 {
 	for _, val := range transactions {
 		sum += val
 	}
-	fmt.Println(timestamps[len(timestamps)-2])
+	fmt.Println(timestamps[len(timestamps)-1])
 	fmt.Println(timestamps[0])
-	return float64(sum) / float64(timestamps[len(timestamps)-2]-timestamps[0])
+	return float64(sum) / float64(timestamps[0]-timestamps[len(timestamps)-1])
 }
 
 func sendTx(ctx *cli.Context) error {
@@ -255,21 +255,27 @@ func sendTx(ctx *cli.Context) error {
 				if err != nil {
 					return err
 				}
-				hashesJson, err := json.Marshal(hashes)
+				hashesJSON, err := json.Marshal(hashes)
 				if err != nil {
 					return err
 				}
-				hashesf.Write(hashesJson)
+				_, err = hashesf.Write(hashesJSON)
+				if err != nil {
+					return err
+				}
 
 				receiptsf, err := os.Create("/ethermint/docker/benchmarking/receipts.json")
 				if err != nil {
 					return err
 				}
-				receiptsJson, err := json.Marshal(receipts)
+				receiptsJSON, err := json.Marshal(receipts)
 				if err != nil {
 					return err
 				}
-				receiptsf.Write(receiptsJson)
+				_, err = receiptsf.Write(receiptsJSON)
+				if err != nil {
+					return err
+				}
 
 				startTimef, err := os.Create("/ethermint/docker/benchmarking/start.txt")
 				if err != nil {
@@ -281,7 +287,10 @@ func sendTx(ctx *cli.Context) error {
 				if err != nil {
 					return err
 				}
-				endTimef.Write([]byte(fmt.Sprintf("%d", endTime.Unix())))
+				_, err = endTimef.Write([]byte(fmt.Sprintf("%d", endTime.Unix())))
+				if err != nil {
+					return err
+				}
 
 				log.Println(fmt.Sprintf("Test completed. Test duration: %d [ns]", endTime.UnixNano()-startTime.UnixNano()))
 				log.Println(fmt.Sprintf("Start time: %d [unix], End time: %d [unix]", startTime.Unix(), endTime.Unix()))
@@ -422,10 +431,10 @@ func analyze(ctx *cli.Context) error {
 	re := regexp.MustCompile(`\s+`)
 
 	var currentTimeStamp int
-	var emintdCpuUsage []float64
-	var emintdRamUsage []float64
-	var emintcliCpuUsage []float64
-	var emintcliRamUsage []float64
+	var emintdCPUUsage []float64
+	var emintdRAMUsage []float64
+	var emintcliCPUUsage []float64
+	var emintcliRAMUsage []float64
 	var emintdTimestamps []int
 	var emintcliTimestamps []int
 
@@ -457,12 +466,12 @@ func analyze(ctx *cli.Context) error {
 				})
 
 			if spl[3] == "emintd" {
-				emintdCpuUsage = append(emintdCpuUsage, cpu)
-				emintdRamUsage = append(emintdRamUsage, ram)
+				emintdCPUUsage = append(emintdCPUUsage, cpu)
+				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
 			} else if spl[3] == "emintcli" {
-				emintcliCpuUsage = append(emintcliCpuUsage, cpu)
-				emintcliRamUsage = append(emintcliRamUsage, ram)
+				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
+				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
 			}
 		} else {
@@ -483,12 +492,12 @@ func analyze(ctx *cli.Context) error {
 				})
 
 			if spl[2] == "emintd" {
-				emintdCpuUsage = append(emintdCpuUsage, cpu)
-				emintdRamUsage = append(emintdRamUsage, ram)
+				emintdCPUUsage = append(emintdCPUUsage, cpu)
+				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
 			} else if spl[2] == "emintcli" {
-				emintcliCpuUsage = append(emintcliCpuUsage, cpu)
-				emintcliRamUsage = append(emintcliRamUsage, ram)
+				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
+				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
 			}
 		}
@@ -502,10 +511,10 @@ func analyze(ctx *cli.Context) error {
 		fmt.Println("start time set: ", ctx.Int("start"))
 		fmt.Println("end time set: ", ctx.Int("end"))
 
-		fmt.Println("Average CPU Usage [emintd]: ", average(emintdCpuUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
-		fmt.Println("Average RAM Usage [emintd]: ", average(emintdRamUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
-		fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCpuUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
-		fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRamUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average CPU Usage [emintd]: ", average(emintdCPUUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average RAM Usage [emintd]: ", average(emintdRAMUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCPUUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRAMUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 
 		fmt.Println("TX per second (TPS): ", calcTPS(transactions, timestamps))
 	}
