@@ -68,6 +68,10 @@ docker:
 	docker rm ethermint
 	# create a new container from the latest image
 	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
+	# move the binaries to the ./build directory
+	mkdir -p ./build/
+	docker cp ethermint:/usr/bin/emintd ./build/ ; \
+	docker cp ethermint:/usr/bin/emintcli ./build/
 
 
 ###############################################################################
