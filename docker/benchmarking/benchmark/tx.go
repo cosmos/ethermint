@@ -188,6 +188,16 @@ func average(resourcelist []float64, timestamplist []int, start, end int) float6
 	return sum / float64(end-start)
 }
 
+func calcTPS(transactions, timestamps []int) float64 {
+	sum := 0
+	for _, val := range transactions {
+		sum += val
+	}
+	fmt.Println(timestamps[len(timestamps)-2])
+	fmt.Println(timestamps[0])
+	return float64(sum) / float64(timestamps[len(timestamps)-2]-timestamps[0])
+}
+
 func sendTx(ctx *cli.Context) error {
 	log.Println(fmt.Sprintf("Starting transactions. Sending %d transactions, timeout %d seconds", ctx.Int("txcount"), ctx.Int("duration")))
 	rpcRes, err := call("eth_accounts", []string{})
@@ -233,7 +243,7 @@ func sendTx(ctx *cli.Context) error {
 		select {
 		case <-txTicker.C:
 			txs++
-			if txs >= ctx.Int("txcount") {
+			if txs >= ctx.Int("txcount")+1 {
 				wg.Wait()
 				endTime := time.Now()
 
@@ -260,6 +270,18 @@ func sendTx(ctx *cli.Context) error {
 					return err
 				}
 				receiptsf.Write(receiptsJson)
+
+				startTimef, err := os.Create("/ethermint/docker/benchmarking/start.txt")
+				if err != nil {
+					return err
+				}
+				startTimef.Write([]byte(fmt.Sprintf("%d", startTime.Unix())))
+
+				endTimef, err := os.Create("/ethermint/docker/benchmarking/end.txt")
+				if err != nil {
+					return err
+				}
+				endTimef.Write([]byte(fmt.Sprintf("%d", endTime.Unix())))
 
 				log.Println(fmt.Sprintf("Test completed. Test duration: %d [ns]", endTime.UnixNano()-startTime.UnixNano()))
 				log.Println(fmt.Sprintf("Start time: %d [unix], End time: %d [unix]", startTime.Unix(), endTime.Unix()))
@@ -373,25 +395,13 @@ func analyze(ctx *cli.Context) error {
 		}
 	}
 
-	// get the block before and after the blocks with transactions; for timestamps.
+	// get the block before the first blocks with transactions; for timestamp.
 	param := []interface{}{"0x" + fmt.Sprintf("%x", hexToInt(blocks[0])-1), false}
 	rpcResGetBlock, err := call("eth_getBlockByNumber", param)
 	if err != nil {
 		return err
 	}
 	jsonBlock := make(map[string]interface{})
-	err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
-	if err != nil {
-		return err
-	}
-	timestamps = append(timestamps, hexToInt(fmt.Sprintf("%s", jsonBlock["timestamp"])))
-
-	param = []interface{}{"0x" + fmt.Sprintf("%x", hexToInt(blocks[len(blocks)-1])+1), false}
-	rpcResGetBlock, err = call("eth_getBlockByNumber", param)
-	if err != nil {
-		return err
-	}
-	jsonBlock = make(map[string]interface{})
 	err = json.Unmarshal(rpcResGetBlock.Result, &jsonBlock)
 	if err != nil {
 		return err
@@ -496,12 +506,18 @@ func analyze(ctx *cli.Context) error {
 		fmt.Println("Average RAM Usage [emintd]: ", average(emintdRamUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
 		fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCpuUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 		fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRamUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+
+		fmt.Println("TX per second (TPS): ", calcTPS(transactions, timestamps))
 	}
 
 	fmt.Println("Blocks with Tx: ", blocks)
 	fmt.Println("Block Timestamps: ", timestamps) //last two timestamps: first-1, last+1 block timestamp, respectively
 	fmt.Println("Transactions: ", transactions)
 	fmt.Println("Total Transactions: ", totalTx)
+
+	// take transactions, sum the array elements (from start to end)
+	// take diff of end and start timestamps
+	// tps := transactions / (end - start)
 
 	return nil
 }
