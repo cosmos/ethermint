@@ -1,8 +1,9 @@
-FROM golang:alpine AS build-env
+FROM golang:stretch as build-env
 
 # Install minimum necessary dependencies
-ENV PACKAGES curl make git libc-dev bash gcc linux-headers eudev-dev
-RUN apk add --no-cache $PACKAGES
+ENV PACKAGES curl make git libc-dev bash gcc
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y $PACKAGES
 
 # Set working directory for the build
 WORKDIR /go/src/github.com/ChainSafe/ethermint
