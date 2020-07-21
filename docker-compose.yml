@@ -3,7 +3,7 @@ version: "3"
 services:
   emintdnode0:
     container_name: emintdnode0
-    image: "emintd/node"
+    image: "ethermint-build-linux"
     ports:
       - "26656-26657:26656-26657"
       - "1317:1317"
@@ -11,14 +11,14 @@ services:
       - ID=0
       - LOG=${LOG:-emintd.log}
     volumes:
-      - ./build:/emintd:Z
+      - ./build:/ethermint-build-linux:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
 
   emintdnode1:
     container_name: emintdnode1
-    image: "emintd/node"
+    image: "ethermint-build-linux"
     ports:
       - "26659-26660:26656-26657"
       - "1318:1317"
@@ -26,14 +26,14 @@ services:
       - ID=1
       - LOG=${LOG:-emintd.log}
     volumes:
-      - ./build:/emintd:Z
+      - ./build:/ethermint-build-linux:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
 
   emintdnode2:
     container_name: emintdnode2
-    image: "emintd/node"
+    image: "ethermint-build-linux"
     environment:
       - ID=2
       - LOG=${LOG:-emintd.log}
@@ -41,14 +41,14 @@ services:
       - "26661-26662:26656-26657"
       - "1319:1317"
     volumes:
-      - ./build:/emintd:Z
+      - ./build:/ethermint-build-linux:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
 
   emintdnode3:
     container_name: emintdnode3
-    image: "emintd/node"
+    image: "ethermint-build-linux"
     environment:
       - ID=3
       - LOG=${LOG:-emintd.log}
@@ -56,7 +56,7 @@ services:
       - "26663-26664:26656-26657"
       - "1320:1317"
     volumes:
-      - ./build:/emintd:Z
+      - ./build:/ethermint-build-linux:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5

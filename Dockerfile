@@ -15,11 +15,9 @@ COPY . .
 RUN make build-ethermint-linux
 
 # Final image
-FROM alpine:edge
+FROM golang:1.13 as final
 
-# Install ca-certificates
-RUN apk add --update ca-certificates
-WORKDIR /root
+RUN apt-get update
 
 # Copy over binaries from the build-env
 COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintd /usr/bin/emintd
@@ -28,4 +26,4 @@ COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintcli /usr
 EXPOSE 26656 26657 1317
 
 # Run emintd by default, omit entrypoint to ease using container with emintcli
-CMD ["emintd"]
+ENTRYPOINT ["/bin/bash"]
