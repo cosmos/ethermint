@@ -42,7 +42,7 @@ list of `event` categories
 [here](https://godoc.org/github.com/tendermint/tendermint/types#pkg-constants).
 
 The `type` and `attribute` value of the `query` allow you to filter the specific `event` you are
-looking for. For example, a `MsgEthereumTx` transaction triggers an `event` of type `ethermint` and
+looking for. For example, a `MsgEthereumTx` transaction triggers an `event` of type `aragon-chain` and
 has `sender` and `recipient` as `attributes`. Subscribing to this `event` would be done like so:
 
 ```json
@@ -60,7 +60,7 @@ where `hexAddress` is an Ethereum hex address (eg: `0x11223344556677889900112233
 
 ### Ethereum JSON-RPC Events
 
-Ethermint also supports the Ethereum [JSON-RPC](https://eth.wiki/json-rpc/API) filters calls to
+Aragon-Chain also supports the Ethereum [JSON-RPC](https://eth.wiki/json-rpc/API) filters calls to
 subscribe to [state logs](https://eth.wiki/json-rpc/API#eth_newfilter),
 [blocks](https://eth.wiki/json-rpc/API#eth_newblockfilter) or [pending
 transactions](https://eth.wiki/json-rpc/API#eth_newpendingtransactionfilter) changes.
@@ -105,10 +105,10 @@ ws ws://localhost:8080/websocket
 
 ### Ethereum Websocket
 
-Since Ethermint runs uses Tendermint Core as it's consensus Engine and it's built with the Cosmos
+Since Aragon-Chain runs uses Tendermint Core as it's consensus Engine and it's built with the Cosmos
 SDK framework, it inherits the event format from them. However, in order to support the native Web3
 compatibility for websockets of the [Ethereum's
-PubSubAPI](https://geth.ethereum.org/docs/rpc/pubsub), Ethermint needs to cast the Tendermint
+PubSubAPI](https://geth.ethereum.org/docs/rpc/pubsub), Aragon-Chain needs to cast the Tendermint
 responses retreived into the Ethereum types.
 
 You can start a connection with the Ethereum websocket using the `--wsport` flag when initializing
@@ -131,4 +131,4 @@ ws ws://localhost:8546/
 
 ## Next {hide}
 
-Learn about Ethermint [accounts](./../basic/accounts.md) {hide}
+Learn about Aragon-Chain [accounts](./../basic/accounts.md) {hide}

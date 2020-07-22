@@ -6,7 +6,7 @@ parent:
 
 # Basics
 
-This repository contains reference documentation on the basic concepts of Ethermint.
+This repository contains reference documentation on the basic concepts of Aragon-Chain.
 
 1. [Accounts](./accounts.md)
 2. [Gas and Fees](./gas.md)

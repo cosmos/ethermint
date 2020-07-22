@@ -20,4 +20,4 @@ After going throught the Quick Start contents, head over to the [basics](./../ba
 
 ## Next {hide}
 
-Learn how to [install](./../quickstart/intallation.md) Ethermint {hide}
+Learn how to [install](./../quickstart/intallation.md) Aragon-Chain {hide}

@@ -6,11 +6,11 @@ order: 1
 
 ## Binaries
 
-Clone and build Ethermint using `git`:
+Clone and build Aragon-Chain using `git`:
 
 ```bash
-git clone https://github.com/ChainSafe/ethermint.git
-cd ethermint
+git clone https://github.com/ChainSafe/aragon-chain.git
+cd aragon-chain
 make install
 ```
 
@@ -23,7 +23,7 @@ emintcli -h
 
 ## Docker
 
-You can build Ethermint using Docker by running:
+You can build Aragon-Chain using Docker by running:
 
 ```bash
 make docker
@@ -40,10 +40,10 @@ emintcli -h
 ## Releases
 
 ::: warning
-Ethermint is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
+Aragon-Chain is under VERY ACTIVE DEVELOPMENT and should be treated as pre-alpha software. This means it is not meant to be run in production, its APIs are subject to change without warning and should not be relied upon, and it should not be used to hold any value. We will remove this warning when we have a release that is stable, secure, and properly tested.
 :::
 
-You can also download a specific release available on the [Ethermint repository](https://github.com/ChainSafe/ethermint/releases)
+You can also download a specific release available on the [Aragon-Chain repository](https://github.com/ChainSafe/aragon-chain/releases)
 
 ## Next {hide}
 

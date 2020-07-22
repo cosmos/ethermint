@@ -1,6 +1,6 @@
 module.exports = {
   theme: 'cosmos',
-  title: 'Ethermint Documentation',
+  title: 'Aragon-Chain Documentation',
   locales: {
     '/': {
       lang: 'en-US'
@@ -8,8 +8,8 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'ChainSafe/ethermint',
-    docsRepo: 'ChainSafe/ethermint',
+    repo: 'ChainSafe/aragon-chain',
+    docsRepo: 'ChainSafe/aragon-chain',
     docsDir: 'docs',
     editLinks: true,
     // docs 1.0.168: custom true hides subpages searchbar
@@ -21,7 +21,7 @@ module.exports = {
     algolia: {
       id: 'BH4D9OD16A',
       key: 'ac317234e6a42074175369b2f42e9754',
-      index: 'ethermint'
+      index: 'aragon-chain'
     },
     sidebar: {
       auto: false,
@@ -70,8 +70,8 @@ module.exports = {
           title: 'Resources',
           children: [
             {
-              title: 'Ethermint API Reference',
-              path: 'https://godoc.org/github.com/cosmos/ethermint'
+              title: 'Aragon-Chain API Reference',
+              path: 'https://godoc.org/github.com/cosmos/aragon-chain'
             },
             {
               title: 'Cosmos REST API Spec',
@@ -90,13 +90,13 @@ module.exports = {
       editLink: true,
       chat: {
         title: 'Developer Chat',
-        text: 'Chat with Ethermint developers on Discord.',
+        text: 'Chat with Aragon-Chain developers on Discord.',
         url: 'https://discordapp.com/channels/669268347736686612',
         bg: 'linear-gradient(103.75deg, #1B1E36 0%, #22253F 100%)'
       },
       forum: {
-        title: 'Ethermint Developer Forum',
-        text: 'Join the Ethermint Developer Forum to learn more.',
+        title: 'Aragon-Chain Developer Forum',
+        text: 'Join the Aragon-Chain Developer Forum to learn more.',
         url: 'https://forum.cosmos.network/',
         bg: 'linear-gradient(221.79deg, #3D6B99 -1.08%, #336699 95.88%)',
         logo: 'ethereum-white'
@@ -104,20 +104,20 @@ module.exports = {
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',
+        url: 'https://github.com/ChainSafe/aragon-chain/edit/development/docs/README.md',
         bg: '#F8F9FC'
       }
     },
     footer: {
       logo: '/logo-bw.svg',
       textLink: {
-        text: 'ethermint.zone',
-        url: 'https://ethermint.zone'
+        text: 'aragon-chain.zone',
+        url: 'https://aragon-chain.zone'
       },
       services: [
         {
           service: 'github',
-          url: 'https://github.com/ChainSafe/ethermint'
+          url: 'https://github.com/ChainSafe/aragon-chain'
         },
         {
           service: 'twitter',
@@ -143,7 +143,7 @@ module.exports = {
               url: 'https://docs.cosmos.network'
             },
             {
-              title: 'Ethermint Docs',
+              title: 'Aragon-Chain Docs',
               url: 'https://ethereum.org/developers'
             },
             {
@@ -160,8 +160,8 @@ module.exports = {
               url: 'https://discord.gg/W8trcGV'
             },
             {
-              title: 'Ethermint Forum',
-              url: 'https://forum.cosmos.network/c/ethermint'
+              title: 'Aragon-Chain Forum',
+              url: 'https://forum.cosmos.network/c/aragon-chain'
             },
             {
               title: 'Chainsafe Blog',
@@ -174,7 +174,7 @@ module.exports = {
           children: [
             {
               title: 'Contributing to the docs',
-              url: 'https://github.com/ChainSafe/ethermint/tree/development/docs'
+              url: 'https://github.com/ChainSafe/aragon-chain/tree/development/docs'
             },
             {
               title: 'Careers at Chainsafe',
@@ -182,7 +182,7 @@ module.exports = {
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
+              url: 'https://github.com/Chainsafe/aragon-chain/blob/development/docs/DOCS_README.md'
             }
           ]
         }

@@ -35,7 +35,7 @@ To create your validator, just use the following command:
 emintcli tx staking create-validator \
   --amount=1000000photon \
   --pubkey=$(emintd tendermint show-validator) \
-  --moniker=<ethermint_validator> \
+  --moniker=<aragon-chain_validator> \
   --chain-id=<chain_id> \
   --commission-rate="0.10" \
   --commission-max-rate="0.20" \

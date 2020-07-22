@@ -50,7 +50,7 @@ To run a node with the same key every time: replace `emintcli keys add $KEY` in 
 echo "your mnemonic here" | emintcli keys add $KEY --recover
 ```
 
-::: tip Ethermint currently only supports 24 word mnemonics.
+::: tip Aragon-Chain currently only supports 24 word mnemonics.
 :::
 
 You can generate a new key/mnemonic with:
@@ -59,7 +59,7 @@ You can generate a new key/mnemonic with:
 emintcli keys add $KEY
 ```
 
-To export your ethermint key as an ethereum private key (for use with Metamask for example):
+To export your aragon-chain key as an ethereum private key (for use with Metamask for example):
 
 ```bash
 emintcli keys unsafe-export-eth-key $KEY
@@ -75,7 +75,7 @@ emintcli keys -h
 
 The instructions above include commands to use `test` as the `keyring-backend`. This is an unsecured
 keyring that doesn't require entering a password and should not be used in production. Otherwise,
-Ethermint supports using a file or OS keyring backend for key storage. To create and use a file
+Aragon-Chain supports using a file or OS keyring backend for key storage. To create and use a file
 stored key instead of defaulting to the OS keyring, add the flag `--keyring-backend file` to any
 relevant command and the password prompt will occur through the command line. This can also be saved
 as a CLI config option with:
@@ -119,4 +119,4 @@ To clear all data except key storage (if keyring backend chosen) and then you ca
 
 ## Next {hide}
 
-Learn about running a Ethermint [testnet](./testnet.md) {hide}
+Learn about running a Aragon-Chain [testnet](./testnet.md) {hide}

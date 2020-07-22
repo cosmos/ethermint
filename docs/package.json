@@ -1,7 +1,7 @@
 {
   "name": "docs",
   "version": "1.0.0",
-  "description": "Ethermint Documentation",
+  "description": "Aragon-Chain Documentation",
   "main": "index.js",
   "scripts": {
     "preserve": "./pre.sh",

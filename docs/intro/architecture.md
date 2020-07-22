@@ -4,7 +4,7 @@ order: 2
 
 # Architecture
 
-Learn how Ethermint's architecture leverages the Cosmos SDK Proof-of-Stake functionallity, EVM compatibility and fast-finality from Tendermint Core's BFT consensus. {synopsis}
+Learn how Aragon-Chain's architecture leverages the Cosmos SDK Proof-of-Stake functionallity, EVM compatibility and fast-finality from Tendermint Core's BFT consensus. {synopsis}
 
 ## Cosmos-SDK
 
@@ -22,7 +22,7 @@ language.
 Tendermint has evolved to be a general purpose blockchain consensus engine that
 can host arbitrary application states. Since Tendermint can replicate arbitrary
 applications, it can be used as a plug-and-play replacement for the consensus
-engines of other blockchains. Ethermint is such an example of an ABCI application
+engines of other blockchains. Aragon-Chain is such an example of an ABCI application
 replacing Ethereum's PoW via Tendermint's consensus engine.
 
 Another example of a cryptocurrency application built on Tendermint is the Cosmos
@@ -35,4 +35,4 @@ simple API (ie. the ABCI) between the application process and consensus process.
 
 ## Next {hide}
 
-Learn how to run an Ethermint [node](./../quickstart/run_node.md) {hide}
+Learn how to run an Aragon-Chain [node](./../quickstart/run_node.md) {hide}

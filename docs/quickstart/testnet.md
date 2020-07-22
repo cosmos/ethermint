@@ -8,7 +8,7 @@ Learn how to deploy a local testnet or connect to an existing public one {synops
 
 ## Pre-requisite Readings
 
-- [Install Ethermint](./installation.md) {prereq}
+- [Install Aragon-Chain](./installation.md) {prereq}
 - [Install Docker](https://docs.docker.com/engine/installation/)  {prereq}
 - [Install docker-compose](https://docs.docker.com/compose/install/)  {prereq}
 <!-- - [Install `jq`](https://stedolan.github.io/jq/download/) {prereq} -->
@@ -200,7 +200,7 @@ If you have multiple binaries with different names, you can specify which one to
 
 ```bash
 # Run with custom binary
-BINARY=ethermint make localnet-start
+BINARY=aragon-chain make localnet-start
 ```
 
 ## Multi-node, Public, Manual Testnet
@@ -235,7 +235,7 @@ The final step is to [start the nodes](./run_node.md#start-node). Once enough vo
 
 ## Testnet faucet
 
-Once the ethermint daemon is up and running, you can request tokens to your address using the `faucet` module:
+Once the aragon-chain daemon is up and running, you can request tokens to your address using the `faucet` module:
 
 ```bash
 # query your initial balance
@@ -260,4 +260,4 @@ emintcli q supply total
 
 ## Next {hide}
 
-Learn about how to setup a [validator](./validator-setup.md) node on Ethermint {hide}
+Learn about how to setup a [validator](./validator-setup.md) node on Aragon-Chain {hide}

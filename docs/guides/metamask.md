@@ -4,18 +4,18 @@ order: 2
 
 # Metamask
 
-Connect your Metamask wallet with Ethermint on a localnet mode. {synopsis}
+Connect your Metamask wallet with Aragon-Chain on a localnet mode. {synopsis}
 
 ## Start node and REST server
 
-Start the Ethermint node using your terminal:
+Start the Aragon-Chain node using your terminal:
 
 ```bash
 emintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info"
 ```
 
 ::: tip
-You can also start a node from scratch by running `./init.sh` from the Ethermint repository directory. This will generate a key called `mykey` that you can use on the next step.
+You can also start a node from scratch by running `./init.sh` from the Aragon-Chain repository directory. This will generate a key called `mykey` that you can use on the next step.
 :::
 
 In another tab start the REST server. Here replace `mykey` with the name of the key that you want to use and set the `chain-id` the chain identifier of your application.
@@ -24,7 +24,7 @@ In another tab start the REST server. Here replace `mykey` with the name of the 
 emintcli rest-server --laddr "tcp://localhost:8545" --unlock-key mykey --chain-id 1
 ```
 
-## Adding a custom Network for Ethermint
+## Adding a custom Network for Aragon-Chain
 
 One og the main limitations of using the default `Localhost 8545` network is that the tokens will be represented as `ETH`.
 
@@ -54,7 +54,7 @@ Your account balance should show up as `1 PHOTON` and do transfers as usual.
 
 ::: tip
 If it takes some time to load the balance of the account, change the network to `Main Ethereum
-Network` (or any other than `Localhost 8545` or `Ethermint`) and then switch back to `Ethermint`.
+Network` (or any other than `Localhost 8545` or `Aragon-Chain`) and then switch back to `Aragon-Chain`.
 :::
 
 ## Downloading State
