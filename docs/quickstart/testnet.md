@@ -171,7 +171,7 @@ Each `./build/nodeN` directory is mounted to the `/emintd` directory in each con
 
 ### Logging
 
-Logs are saved under each `./build/nodeN/emintd/gaia.log`. You can also watch logs
+Logs are saved under each `./build/nodeN/emintd/emintd.log`. You can also watch logs
 directly via Docker, for example:
 
 ```bash
