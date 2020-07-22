@@ -17,6 +17,8 @@ RUN make build-ethermint-linux
 # Final image
 FROM golang:1.14 as final
 
+WORKDIR /
+
 RUN apt-get update
 
 # Copy over binaries from the build-env
@@ -26,4 +28,4 @@ COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintcli /usr
 EXPOSE 26656 26657 1317
 
 # Run emintd by default, omit entrypoint to ease using container with emintcli
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/bash", "-c"]

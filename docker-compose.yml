@@ -11,10 +11,11 @@ services:
       - ID=0
       - LOG=${LOG:-emintd.log}
     volumes:
-      - ./build:/ethermint-build-linux:Z
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
+    entrypoint: "emintd --home ethermint/node0/emintd/config/ start"
 
   emintdnode1:
     container_name: emintdnode1
@@ -26,10 +27,11 @@ services:
       - ID=1
       - LOG=${LOG:-emintd.log}
     volumes:
-      - ./build:/ethermint-build-linux:Z
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
+    entrypoint: "emintd --home ethermint/node0/emintd/config/ start"
 
   emintdnode2:
     container_name: emintdnode2
@@ -41,10 +43,11 @@ services:
       - "26661-26662:26656-26657"
       - "1319:1317"
     volumes:
-      - ./build:/ethermint-build-linux:Z
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
+    entrypoint: "emintd --home ethermint/node0/emintd/config/ start"
 
   emintdnode3:
     container_name: emintdnode3
@@ -56,10 +59,11 @@ services:
       - "26663-26664:26656-26657"
       - "1320:1317"
     volumes:
-      - ./build:/ethermint-build-linux:Z
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5
+    entrypoint: "emintd --home ethermint/node0/emintd/config/ start"
 
 networks:
   localnet:
