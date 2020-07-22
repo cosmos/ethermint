@@ -82,9 +82,11 @@ Now its safe to start the daemon:
 emintd start
 ```
 
+You can then stop the node using Ctrl+C.
+
 ## Multi-node, Local, Automated Testnet
 
-### Build & Run Testnet
+### Build Testnet & Start Testnet
 
 To build start a 4 node testnet run:
 
@@ -106,6 +108,61 @@ To update the binary, just rebuild it and restart the nodes:
 
 ```bash
 make localnet-start
+```
+
+Start the testnet using Docker compose:
+
+```bash
+docker-compose up
+```
+
+You should see the logs from each node. First, you will see a few of them producing blocks while the others are trying to connect to their peers:
+
+```bash
+emintdnode0 is up-to-date
+emintdnode3 is up-to-date
+emintdnode1 is up-to-date
+emintdnode2 is up-to-date
+Attaching to emintdnode0, emintdnode3, emintdnode1, emintdnode2
+emintdnode3    | I[2020-07-22|07:47:07.437] starting ABCI with Tendermint                module=main 
+emintdnode3    | E[2020-07-22|07:47:07.967] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 11186e7dd7aa0dfc96048b492c4320f734a1940c@192.168.10.4:26656"
+emintdnode3    | E[2020-07-22|07:47:07.967] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 254941abdd04466361c89d2f1f145cf71434c2c9@192.168.10.3:26656"
+emintdnode3    | E[2020-07-22|07:47:07.967] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address fe56e598bacdcf57165f0cd9f9e54d4ee041616f@192.168.10.2:26656"
+emintdnode3    | I[2020-07-22|07:47:13.297] Executed block                               module=state height=1 validTxs=0 invalidTxs=0
+emintdnode3    | I[2020-07-22|07:47:13.299] Committed state                              module=state height=1 txs=0 appHash=C96935712F41C25AE97AA35C88636CDEC2080D34A4E15520DD6958D5E35BFBFD
+emintdnode3    | I[2020-07-22|07:47:18.605] Executed block                               module=state height=2 validTxs=0 invalidTxs=0
+emintdnode3    | I[2020-07-22|07:47:18.609] Committed state                              module=state height=2 txs=0 appHash=ABB24CA318A9B41D7F35AAEEA198EF91DBF2A263B2E271C6161FF4563B188DEA
+emintdnode3    | I[2020-07-22|07:47:23.936] Executed block                               module=state height=3 validTxs=0 invalidTxs=0
+emintdnode3    | I[2020-07-22|07:47:23.939] Committed state                              module=state height=3 txs=0 appHash=6B042D4D833132DC649332810EA388FED8D3DDD211DA12BA515BC411354A819E
+emintdnode0    | I[2020-07-22|07:47:07.444] starting ABCI with Tendermint                module=main 
+emintdnode0    | E[2020-07-22|07:47:07.933] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 11186e7dd7aa0dfc96048b492c4320f734a1940c@192.168.10.4:26656"
+emintdnode0    | E[2020-07-22|07:47:07.943] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 254941abdd04466361c89d2f1f145cf71434c2c9@192.168.10.3:26656"
+emintdnode0    | E[2020-07-22|07:47:07.943] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 668f4d838fcf8832a387295bc73bdbf265bf5026@192.168.10.5:26656"
+emintdnode0    | I[2020-07-22|07:47:13.396] Executed block                               module=state height=1 validTxs=0 invalidTxs=0
+emintdnode0    | I[2020-07-22|07:47:13.398] Committed state                              module=state height=1 txs=0 appHash=C96935712F41C25AE97AA35C88636CDEC2080D34A4E15520DD6958D5E35BFBFD
+emintdnode0    | I[2020-07-22|07:47:18.608] Executed block                               module=state height=2 validTxs=0 invalidTxs=0
+emintdnode0    | I[2020-07-22|07:47:18.618] Committed state                              module=state height=2 txs=0 appHash=ABB24CA318A9B41D7F35AAEEA198EF91DBF2A263B2E271C6161FF4563B188DEA
+emintdnode0    | I[2020-07-22|07:47:23.939] Executed block                               module=state height=3 validTxs=0 invalidTxs=0
+emintdnode0    | I[2020-07-22|07:47:23.940] Committed state                              module=state height=3 txs=0 appHash=6B042D4D833132DC649332810EA388FED8D3DDD211DA12BA515BC411354A819E
+emintdnode2    | I[2020-07-22|07:47:07.386] starting ABCI with Tendermint                module=main 
+emintdnode2    | E[2020-07-22|07:47:07.903] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 254941abdd04466361c89d2f1f145cf71434c2c9@192.168.10.3:26656"
+emintdnode2    | E[2020-07-22|07:47:07.903] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 668f4d838fcf8832a387295bc73bdbf265bf5026@192.168.10.5:26656"
+emintdnode2    | E[2020-07-22|07:47:07.903] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address fe56e598bacdcf57165f0cd9f9e54d4ee041616f@192.168.10.2:26656"
+emintdnode2    | I[2020-07-22|07:47:13.290] Executed block                               module=state height=1 validTxs=0 invalidTxs=0
+emintdnode2    | I[2020-07-22|07:47:13.293] Committed state                              module=state height=1 txs=0 appHash=C96935712F41C25AE97AA35C88636CDEC2080D34A4E15520DD6958D5E35BFBFD
+emintdnode2    | I[2020-07-22|07:47:18.605] Executed block                               module=state height=2 validTxs=0 invalidTxs=0
+emintdnode2    | I[2020-07-22|07:47:18.608] Committed state                              module=state height=2 txs=0 appHash=ABB24CA318A9B41D7F35AAEEA198EF91DBF2A263B2E271C6161FF4563B188DEA
+emintdnode2    | I[2020-07-22|07:47:23.933] Executed block                               module=state height=3 validTxs=0 invalidTxs=0
+emintdnode2    | I[2020-07-22|07:47:23.936] Committed state                              module=state height=3 txs=0 appHash=6B042D4D833132DC649332810EA388FED8D3DDD211DA12BA515BC411354A819E
+emintdnode1    | I[2020-07-22|07:47:07.358] starting ABCI with Tendermint                module=main 
+emintdnode1    | E[2020-07-22|07:47:07.904] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 11186e7dd7aa0dfc96048b492c4320f734a1940c@192.168.10.4:26656"
+emintdnode1    | E[2020-07-22|07:47:07.905] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 668f4d838fcf8832a387295bc73bdbf265bf5026@192.168.10.5:26656"
+emintdnode1    | E[2020-07-22|07:47:07.905] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address fe56e598bacdcf57165f0cd9f9e54d4ee041616f@192.168.10.2:26656"
+emintdnode1    | E[2020-07-22|07:47:07.948] Error dialing peer                           module=p2p err="dial tcp 192.168.10.5:26656: connect: connection refused"
+emintdnode1    | I[2020-07-22|07:47:13.396] Executed block                               module=state height=1 validTxs=0 invalidTxs=0
+emintdnode1    | I[2020-07-22|07:47:13.400] Committed state                              module=state height=1 txs=0 appHash=C96935712F41C25AE97AA35C88636CDEC2080D34A4E15520DD6958D5E35BFBFD
+emintdnode1    | I[2020-07-22|07:47:18.614] Executed block                               module=state height=2 validTxs=0 invalidTxs=0
+emintdnode1    | I[2020-07-22|07:47:18.616] Committed state                              module=state height=2 txs=0 appHash=ABB24CA318A9B41D7F35AAEEA198EF91DBF2A263B2E271C6161FF4563B188DEA
 ```
 
 ### Stop Testnet
@@ -171,7 +228,7 @@ Each `./build/nodeN` directory is mounted to the `/emintd` directory in each con
 
 ### Logging
 
-Logs are saved under each `./build/nodeN/emintd/gaia.log`. You can also watch logs
+Logs are saved under each `./build/nodeN/emintd/emintd.log`. You can also watch logs
 directly via Docker, for example:
 
 ```bash

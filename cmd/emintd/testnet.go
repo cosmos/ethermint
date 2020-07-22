@@ -87,7 +87,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	}
 
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
-	cmd.Flags().StringP(flagOutputDir, "o", "./local_testnet", "Directory to store initialization data for the testnet")
+	cmd.Flags().StringP(flagOutputDir, "o", "./build", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
 	cmd.Flags().String(flagNodeDaemonHome, "emintd", "Home directory of the node's daemon configuration")
 	cmd.Flags().String(flagNodeCLIHome, "emintcli", "Home directory of the node's cli configuration")
