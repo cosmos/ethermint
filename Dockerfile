@@ -15,7 +15,7 @@ COPY . .
 RUN make build-ethermint-linux
 
 # Final image
-FROM golang:1.13 as final
+FROM golang:1.14 as final
 
 RUN apt-get update
 
