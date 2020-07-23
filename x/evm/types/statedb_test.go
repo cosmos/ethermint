@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -612,5 +613,53 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 		}
 
 		suite.Require().NotNil(acc, tc.name)
+	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
+	testCase := []struct {
+		name       string
+		address    ethcmn.Address
+		malleate   func()
+		expStorage types.Storage
+		expPass    bool
+	}{
+		{
+			"aggregate state",
+			suite.address,
+			func() {
+				for i := 0; i < 5; i++ {
+					key := ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i)))
+					value := ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i)))
+					suite.stateDB.SetState(suite.address, key, value)
+				}
+				suite.stateDB.Finalise(false) // commit state
+			},
+			types.Storage{
+				types.NewState(ethcmn.BytesToHash([]byte("key0")), ethcmn.BytesToHash([]byte("value0"))),
+				types.NewState(ethcmn.BytesToHash([]byte("key1")), ethcmn.BytesToHash([]byte("value1"))),
+				types.NewState(ethcmn.BytesToHash([]byte("key2")), ethcmn.BytesToHash([]byte("value2"))),
+				types.NewState(ethcmn.BytesToHash([]byte("key3")), ethcmn.BytesToHash([]byte("value3"))),
+				types.NewState(ethcmn.BytesToHash([]byte("key4")), ethcmn.BytesToHash([]byte("value4"))),
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCase {
+		tc.malleate()
+
+		var storage types.Storage
+		err := suite.stateDB.ForEachStorage(tc.address, func(key, value ethcmn.Hash) bool {
+			storage = append(storage, types.NewState(key, value))
+			return false
+		})
+
+		if tc.expPass {
+			suite.Require().NoError(err)
+			suite.Require().Equal(tc.expStorage, storage)
+		} else {
+			suite.Require().Error(err)
+		}
 	}
 }
