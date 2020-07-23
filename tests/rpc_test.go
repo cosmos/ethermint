@@ -272,7 +272,7 @@ func TestEth_NewFilter(t *testing.T) {
 	param[0]["topics"] = []string{"0x0000000000000000000000000000000000000000000000000000000012341234"}
 	rpcRes := call(t, "eth_newFilter", param)
 
-	var ID hexutil.Bytes
+	var ID string
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 }
@@ -280,7 +280,7 @@ func TestEth_NewFilter(t *testing.T) {
 func TestEth_NewBlockFilter(t *testing.T) {
 	rpcRes := call(t, "eth_newBlockFilter", []string{})
 
-	var ID hexutil.Bytes
+	var ID string
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 }
@@ -288,13 +288,13 @@ func TestEth_NewBlockFilter(t *testing.T) {
 func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 	rpcRes := call(t, "eth_newBlockFilter", []string{})
 
-	var ID hexutil.Bytes
+	var ID string
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
 
-	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
+	changesRes := call(t, "eth_getFilterChanges", []string{ID})
 	var hashes []ethcmn.Hash
 	err = json.Unmarshal(changesRes.Result, &hashes)
 	require.NoError(t, err)
@@ -307,13 +307,11 @@ func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 	param[0]["topics"] = []string{}
 	rpcRes := call(t, "eth_newFilter", param)
 
-	var ID hexutil.Bytes
+	var ID string
 	err := json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	t.Log(ID.String())
-
-	changesRes := call(t, "eth_getFilterChanges", []string{ID.String()})
+	changesRes := call(t, "eth_getFilterChanges", []string{ID})
 
 	var logs []*ethtypes.Log
 	err = json.Unmarshal(changesRes.Result, &logs)
@@ -730,7 +728,7 @@ func TestEth_EstimateGas(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err)
 
-	require.Equal(t, hexutil.Bytes{0xf7, 0xa6}, gas)
+	require.Equal(t, hexutil.Bytes{0xf7, 0xa3}, gas)
 }
 
 func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
@@ -748,12 +746,12 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err)
 
-	require.Equal(t, hexutil.Uint64(0x1d46e), gas)
+	require.Equal(t, hexutil.Uint64(0x1d46b), gas)
 }
 
 func TestEth_ExportAccount(t *testing.T) {
 	param := []string{}
-	param = append(param, "0x1122334455667788990011223344556677889900")
+	param = append(param, "0x1122334455667788990011223344556677889901")
 	param = append(param, "latest")
 	rpcRes := call(t, "eth_exportAccount", param)
 
@@ -761,11 +759,13 @@ func TestEth_ExportAccount(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 
+	t.Log(res)
+
 	var account types.GenesisAccount
 	err = json.Unmarshal([]byte(res), &account)
 	require.NoError(t, err)
 
-	require.Equal(t, "0x1122334455667788990011223344556677889900", account.Address.Hex())
+	require.Equal(t, "0x1122334455667788990011223344556677889901", account.Address.Hex())
 	require.Equal(t, big.NewInt(0), account.Balance)
 	require.Equal(t, hexutil.Bytes(nil), account.Code)
 	require.Equal(t, types.Storage(nil), account.Storage)
@@ -802,6 +802,8 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	var res string
 	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
+
+	t.Log(res)
 
 	var account types.GenesisAccount
 	err = json.Unmarshal([]byte(res), &account)
