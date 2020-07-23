@@ -14,29 +14,29 @@ Learn how to connect a client to a running node. {synopsis}
 
 ### Command Line Interface
 
-Ethermint is integrated with a CLI client that can be used to send transactions and query the state from each module.
+Aragon-Chain is integrated with a CLI client that can be used to send transactions and query the state from each module.
 
 ```bash
 # available query commands
-emintcli query -h
+aragoncli query -h
 
 # available transaction commands
-emintcli tx -h
+aragoncli tx -h
 ```
 
 ### Client Servers
 
-The Ethermint client supports both [REST endpoints](https://cosmos.network/rpc) from the SDK and Ethereum's [JSON-RPC](https://eth.wiki/json-rpc/API).
+The Aragon-Chain client supports both [REST endpoints](https://cosmos.network/rpc) from the SDK and Ethereum's [JSON-RPC](https://eth.wiki/json-rpc/API).
 
 #### REST and Tendermint RPC
 
-Ethermint exposes REST endpoints for all the integrated Cosmos-SDK modules. This makes it easier for wallets and block explorers to interact with the proof-of-stake logic.
+Aragon-Chain exposes REST endpoints for all the integrated Cosmos-SDK modules. This makes it easier for wallets and block explorers to interact with the proof-of-stake logic.
 
-To run the REST Server, you need to run the Ethermint daemon (`emintd`) and then execute (in another
+To run the REST Server, you need to run the Aragon-Chain daemon (`aragond`) and then execute (in another
 process):
 
 ```bash
-emintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace
+aragoncli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace
 ```
 
 You should see the logs from the REST and the RPC server.
@@ -48,7 +48,7 @@ I[2020-07-17|16:54:35.037] Starting RPC HTTP server on 127.0.0.1:8545   module=r
 
 #### Ethereum JSON-RPC server
 
-Ethermint also supports most of the standard web3 [JSON-RPC
+Aragon-Chain also supports most of the standard web3 [JSON-RPC
 APIs](https://eth.wiki/json-rpc/API) to connect with existing web3 tooling.
 
 ::: tip

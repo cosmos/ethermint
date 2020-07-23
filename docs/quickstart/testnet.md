@@ -19,17 +19,17 @@ Learn how to deploy a local testnet or connect to an existing one {synopsis}
 If you want to start a network from scratch, you will need to start the genesis procedure.
 :::
 
-If you want to connect to an existing testnet, fetch the testnet's `genesis.json` file and copy it into the `emintd`'s config directory (i.e `$HOME/.emintd/config/genesis.json`).
+If you want to connect to an existing testnet, fetch the testnet's `genesis.json` file and copy it into the `aragond`'s config directory (i.e `$HOME/.aragond/config/genesis.json`).
 
 Then verify the correctness of the genesis configuration file:
 
 ```bash
-emintd validate-genesis
+aragond validate-genesis
 ```
 
 ### Add Seed Nodes
 
-Your node needs to know how to find peers. You'll need to add healthy seed nodes to `$HOME/.emintd/config/config.toml`. If those seeds aren't working, you can find more seeds and persistent peers on an existing explorer.
+Your node needs to know how to find peers. You'll need to add healthy seed nodes to `$HOME/.aragond/config/config.toml`. If those seeds aren't working, you can find more seeds and persistent peers on an existing explorer.
 
 For more information on seeds and peers, you can the Tendermint [P2P documentation](https://docs.tendermint.com/master/spec/p2p/peer.html).
 
@@ -39,29 +39,29 @@ The final step is to [start the nodes](./run_node.md#start-node). Once enough vo
 
 ## Testnet faucet
 
-Once the ethermint daemon is up and running, you can request tokens to your address using the `faucet` module:
+Once the aragon-chain daemon is up and running, you can request tokens to your address using the `faucet` module:
 
 ```bash
 # query your initial balance
-emintcli q bank balances $(emintcli keys show <mykey> -a)  
+aragoncli q bank balances $(aragoncli keys show <mykey> -a)  
 
 # send a tx to request tokens to your account address
-emintcli tx faucet request 100photon --from <mykey>
+aragoncli tx faucet request 100photon --from <mykey>
 
 # query your balance after the request
-emintcli q bank balances $(emintcli keys show <mykey> -a)
+aragoncli q bank balances $(aragoncli keys show <mykey> -a)
 ```
 
 You can also check to total amount funded by the faucet and the total supply of the chain via:
 
 ```bash
 # total amount funded by the faucet
-emintcli q faucet funded
+aragoncli q faucet funded
 
 # total supply
-emintcli q supply total
+aragoncli q supply total
 ```
 
 ## Next {hide}
 
-Learn about how to setup a [validator](./validator-setup.md) node on Ethermint {hide}
+Learn about how to setup a [validator](./validator-setup.md) node on Aragon-Chain {hide}

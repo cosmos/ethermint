@@ -17,8 +17,8 @@ make install
 Check that the binaries have been successfuly installed:
 
 ```bash
-emintd -h
-emintcli -h
+aragond -h
+aragoncli -h
 ```
 
 <!-- ## Docker -->

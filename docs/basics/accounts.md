@@ -4,13 +4,13 @@ order: 1
 
 # Accounts
 
-This document describes the in-built accounts system of Ethermint. {synopsis}
+This document describes the in-built accounts system of Aragon-Chain. {synopsis}
 
 ## Cosmos SDK Accounts
 
 <!-- TODO: -->
 
-## Ethermint Accounts
+## Aragon-Chain Accounts
 
 <!-- TODO: -->
 
@@ -18,4 +18,4 @@ This document describes the in-built accounts system of Ethermint. {synopsis}
 
 ## Next {hide}
 
-Learn about Ethermint [transactions](./transactions.md) {hide}
+Learn about Aragon-Chain [transactions](./transactions.md) {hide}
