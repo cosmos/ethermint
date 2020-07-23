@@ -18,10 +18,10 @@ Aragon-Chain is integrated with a CLI client that can be used to send transactio
 
 ```bash
 # available query commands
-emintcli query -h
+aragoncli query -h
 
 # available transaction commands
-emintcli tx -h
+aragoncli tx -h
 ```
 
 ### Client Servers
@@ -32,11 +32,11 @@ The Aragon-Chain client supports both [REST endpoints](https://cosmos.network/rp
 
 Aragon-Chain exposes REST endpoints for all the integrated Cosmos-SDK modules. This makes it easier for wallets and block explorers to interact with the proof-of-stake logic.
 
-To run the REST Server, you need to run the Aragon-Chain daemon (`emintd`) and then execute (in another
+To run the REST Server, you need to run the Aragon-Chain daemon (`aragond`) and then execute (in another
 process):
 
 ```bash
-emintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace
+aragoncli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace
 ```
 
 You should see the logs from the REST and the RPC server.

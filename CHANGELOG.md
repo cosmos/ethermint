@@ -65,8 +65,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* (rpc) [\#231](https://github.com/ChainSafe/ethermint/issues/231) Implement NewBlockFilter in rpc/filters.go which instantiates a polling block filter
-  * Polls for new blocks via BlockNumber rpc call; if block number changes, it requests the new block via GetBlockByNumber rpc call and adds it to its internal list of blocks
+* (rpc) [\#330](https://github.com/ChainSafe/ethermint/issues/330) Implement `PublicFilterAPI`'s `EventSystem` which subscribes to Tendermint events upon `Filter` creation.
+* (rpc) [\#231](https://github.com/ChainSafe/ethermint/issues/231) Implement `NewBlockFilter` in rpc/filters.go which instantiates a polling block filter
+  * Polls for new blocks via `BlockNumber` rpc call; if block number changes, it requests the new block via `GetBlockByNumber` rpc call and adds it to its internal list of blocks
   * Update uninstallFilter and getFilterChanges accordingly
   * uninstallFilter stops the polling goroutine
   * getFilterChanges returns the filter's internal list of block hashes and resets it
@@ -79,6 +80,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Bug Fixes
 
+* (rpc) [\#305](https://github.com/ChainSafe/ethermint/issues/305) Update eth_getTransactionCount to check for account existence before getting sequence and return 0 as the nonce if it doesn't exist.
 * (`x/evm`) [\#319](https://github.com/ChainSafe/ethermint/pull/319) Fix `SetBlockHash` that was setting the incorrect height during `BeginBlock`.
 * (x/evm) [\#176](https://github.com/ChainSafe/ethermint/issues/176) Updated Web3 transaction hash from using RLP hash. Now all transaction hashes exposed are amino hashes.
   * Removes `Hash()` (RLP) function from `MsgEthereumTx` to avoid confusion or misuse in future.

@@ -3,8 +3,9 @@ package keeper
 import (
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -226,6 +227,16 @@ func (k *Keeper) Prepare(ctx sdk.Context, thash, bhash ethcmn.Hash, txi int) {
 // CreateAccount calls CommitStateDB.CreateAccount using the passed in context
 func (k *Keeper) CreateAccount(ctx sdk.Context, addr ethcmn.Address) {
 	k.CommitStateDB.WithContext(ctx).CreateAccount(addr)
+}
+
+// UpdateAccounts calls CommitStateDB.UpdateAccounts using the passed in context
+func (k *Keeper) UpdateAccounts(ctx sdk.Context) {
+	k.CommitStateDB.WithContext(ctx).UpdateAccounts()
+}
+
+// ClearStateObjects calls CommitStateDB.ClearStateObjects using the passed in context
+func (k *Keeper) ClearStateObjects(ctx sdk.Context) {
+	k.CommitStateDB.WithContext(ctx).ClearStateObjects()
 }
 
 // Copy calls CommitStateDB.Copy using the passed in context

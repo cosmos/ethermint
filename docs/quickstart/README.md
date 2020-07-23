@@ -6,7 +6,7 @@ parent:
 
 # Quick Start
 
-This repository contains reference documentation on how to install and run an Etheremint full node.
+This repository contains reference documentation on how to install and run an Etheraragon full node.
 
 1. [Installation](./run_node.md)
 2. [Run a Node](./run_node.md)

@@ -7,6 +7,7 @@ import (
 
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -46,7 +47,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 // ExportGenesis exports genesis state
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
-	var ethGenAccounts []GenesisAccount
+	var ethGenAccounts []types.GenesisAccount
 	accounts := ak.GetAllAccounts(ctx)
 
 	var err error
@@ -58,16 +59,16 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := common.BytesToAddress(ethAccount.GetAddress().Bytes())
 
-		var storage []GenesisStorage
+		var storage types.Storage
 		err = k.CommitStateDB.ForEachStorage(addr, func(key, value common.Hash) bool {
-			storage = append(storage, NewGenesisStorage(key, value))
+			storage = append(storage, types.NewState(key, value))
 			return false
 		})
 		if err != nil {
 			panic(err)
 		}
 
-		genAccount := GenesisAccount{
+		genAccount := types.GenesisAccount{
 			Address: addr,
 			Balance: k.GetBalance(ctx, addr),
 			Code:    k.GetCode(ctx, addr),

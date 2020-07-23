@@ -8,8 +8,8 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'ChainSafe/aragon-chain',
-    docsRepo: 'ChainSafe/aragon-chain',
+    repo: 'ChainSafe/ethermint',
+    docsRepo: 'ChainSafe/ethermint',
     docsDir: 'docs',
     editLinks: true,
     // docs 1.0.168: custom true hides subpages searchbar
@@ -71,7 +71,7 @@ module.exports = {
           children: [
             {
               title: 'Aragon-Chain API Reference',
-              path: 'https://godoc.org/github.com/cosmos/aragon-chain'
+              path: 'https://godoc.org/github.com/cosmos/ethermint'
             },
             {
               title: 'Cosmos REST API Spec',
@@ -104,7 +104,7 @@ module.exports = {
       github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/ChainSafe/aragon-chain/edit/development/docs/README.md',
+        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',
         bg: '#F8F9FC'
       }
     },
@@ -117,7 +117,7 @@ module.exports = {
       services: [
         {
           service: 'github',
-          url: 'https://github.com/ChainSafe/aragon-chain'
+          url: 'https://github.com/ChainSafe/ethermint'
         },
         {
           service: 'twitter',
@@ -174,7 +174,7 @@ module.exports = {
           children: [
             {
               title: 'Contributing to the docs',
-              url: 'https://github.com/ChainSafe/aragon-chain/tree/development/docs'
+              url: 'https://github.com/ChainSafe/ethermint/tree/development/docs'
             },
             {
               title: 'Careers at Chainsafe',
@@ -182,7 +182,7 @@ module.exports = {
             },
             {
               title: 'Source code on GitHub',
-              url: 'https://github.com/Chainsafe/aragon-chain/blob/development/docs/DOCS_README.md'
+              url: 'https://github.com/Chainsafe/ethermint/blob/development/docs/DOCS_README.md'
             }
           ]
         }

@@ -52,9 +52,9 @@ aside: false
 ## Other Resources
 
 - **[Module Directory](../x/)**: Module implementations and their respective documentation.
-- **[Aragon-Chain API Reference](https://godoc.org/github.com/cosmos/aragon-chain)**: Godocs of Aragon-Chain.
+- **[Ethermint API Reference](https://godoc.org/github.com/cosmos/ethermint)**: Godocs of Ethermint.
 - **[REST API spec](https://cosmos.network/rpc/)**: List of REST endpoints to interact with an full-node through REST.
 
 ## Contribute
 
-See [this file](https://github.com/ChainSafe/aragon-chain/blob/development/docs/DOCS_README.md) for details of the build process and considerations when making changes.
+See [this file](https://github.com/ChainSafe/ethermint/blob/development/docs/DOCS_README.md) for details of the build process and considerations when making changes.
