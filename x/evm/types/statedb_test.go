@@ -444,12 +444,10 @@ func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
 	suite.Require().True(suite.stateDB.Empty(suite.address))
 
 	suite.stateDB.SetBalance(suite.address, big.NewInt(100))
-
 	suite.Require().False(suite.stateDB.Empty(suite.address))
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
-
 	testCase := []struct {
 		name    string
 		amount  *big.Int
