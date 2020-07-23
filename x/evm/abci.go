@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"fmt"
 	"math/big"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -45,7 +44,6 @@ func EndBlock(k Keeper, ctx sdk.Context, req abci.RequestEndBlock) []abci.Valida
 
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, ctx.BlockHeight(), bloom)
-	fmt.Println("SetBlockBloom", ctx.BlockHeight())
 
 	return []abci.ValidatorUpdate{}
 }

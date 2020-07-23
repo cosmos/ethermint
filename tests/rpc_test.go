@@ -117,6 +117,55 @@ func hexToBigInt(t *testing.T, in string) *big.Int {
 	return big.NewInt(0).SetBytes(b)
 }
 
+func TestBlockBloom(t *testing.T) {
+	hash := deployTestContractWithFunction(t)
+	receipt := waitForReceipt(t, hash)
+
+	number := receipt["blockNumber"].(string)
+	param := []interface{}{number, false}
+	rpcRes := call(t, "eth_getBlockByNumber", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+
+	lb := hexToBigInt(t, block["logsBloom"].(string))
+	require.NotEqual(t, big.NewInt(0), lb)
+	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
+}
+
+func TestEth_GetLogs_NoLogs(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	call(t, "eth_getLogs", param)
+}
+
+func TestEth_GetLogs_Topics_AB(t *testing.T) {
+	time.Sleep(time.Second)
+	rpcRes := call(t, "eth_blockNumber", []string{})
+
+	var res hexutil.Uint64
+	err := res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []string{helloTopic, worldTopic}
+	param[0]["fromBlock"] = res.String()
+
+	hash := deployTestContractWithFunction(t)
+	waitForReceipt(t, hash)
+
+	rpcRes = call(t, "eth_getLogs", param)
+
+	var logs []*ethtypes.Log
+	err = json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, len(logs))
+}
+
 func TestEth_protocolVersion(t *testing.T) {
 	expectedRes := hexutil.Uint(version.ProtocolVersion)
 
@@ -603,36 +652,36 @@ func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
 	// TODO: call test function, need tx receipts to determine contract address
 }
 
-func TestEth_GetLogs_NoLogs(t *testing.T) {
-	param := make([]map[string][]string, 1)
-	param[0] = make(map[string][]string)
-	param[0]["topics"] = []string{}
-	call(t, "eth_getLogs", param)
-}
+// func TestEth_GetLogs_NoLogs(t *testing.T) {
+// 	param := make([]map[string][]string, 1)
+// 	param[0] = make(map[string][]string)
+// 	param[0]["topics"] = []string{}
+// 	call(t, "eth_getLogs", param)
+// }
 
-func TestEth_GetLogs_Topics_AB(t *testing.T) {
-	rpcRes := call(t, "eth_blockNumber", []string{})
+// func TestEth_GetLogs_Topics_AB(t *testing.T) {
+// 	rpcRes := call(t, "eth_blockNumber", []string{})
 
-	var res hexutil.Uint64
-	err := res.UnmarshalJSON(rpcRes.Result)
-	require.NoError(t, err)
+// 	var res hexutil.Uint64
+// 	err := res.UnmarshalJSON(rpcRes.Result)
+// 	require.NoError(t, err)
 
-	param := make([]map[string]interface{}, 1)
-	param[0] = make(map[string]interface{})
-	param[0]["topics"] = []string{helloTopic, worldTopic}
-	param[0]["fromBlock"] = res.String()
+// 	param := make([]map[string]interface{}, 1)
+// 	param[0] = make(map[string]interface{})
+// 	param[0]["topics"] = []string{helloTopic, worldTopic}
+// 	param[0]["fromBlock"] = res.String()
 
-	hash := deployTestContractWithFunction(t)
-	waitForReceipt(t, hash)
+// 	hash := deployTestContractWithFunction(t)
+// 	waitForReceipt(t, hash)
 
-	rpcRes = call(t, "eth_getLogs", param)
+// 	rpcRes = call(t, "eth_getLogs", param)
 
-	var logs []*ethtypes.Log
-	err = json.Unmarshal(rpcRes.Result, &logs)
-	require.NoError(t, err)
+// 	var logs []*ethtypes.Log
+// 	err = json.Unmarshal(rpcRes.Result, &logs)
+// 	require.NoError(t, err)
 
-	require.Equal(t, 1, len(logs))
-}
+// 	require.Equal(t, 1, len(logs))
+// }
 
 func TestEth_PendingTransactionFilter(t *testing.T) {
 	rpcRes := call(t, "eth_newPendingTransactionFilter", []string{})
@@ -657,44 +706,6 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 	require.NoError(t, err, string(changesRes.Result))
 
 	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
-}
-
-func TestBlockBloom(t *testing.T) {
-	hash := deployTestContractWithFunction(t)
-	receipt := waitForReceipt(t, hash)
-
-	number := receipt["blockNumber"].(string)
-	t.Log(number)
-
-	param := []interface{}{number, false}
-	rpcRes := call(t, "eth_getBlockByNumber", param)
-
-	block := make(map[string]interface{})
-	err := json.Unmarshal(rpcRes.Result, &block)
-	require.NoError(t, err)
-
-	lb := hexToBigInt(t, block["logsBloom"].(string))
-	require.NotEqual(t, big.NewInt(0), lb)
-	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
-}
-
-func TestBlockBloom_Hash(t *testing.T) {
-	hash := deployTestContractWithFunction(t)
-	receipt := waitForReceipt(t, hash)
-
-	time.Sleep(time.Second * 3)
-
-	blockHash := receipt["blockHash"].(string)
-
-	param := []interface{}{blockHash, false}
-	rpcRes := call(t, "eth_getBlockByHash", param)
-
-	block := make(map[string]interface{})
-	err := json.Unmarshal(rpcRes.Result, &block)
-	require.NoError(t, err)
-
-	lb := hexToBigInt(t, block["logsBloom"].(string))
-	require.NotEqual(t, big.NewInt(0), lb)
 }
 
 func getNonce(t *testing.T) hexutil.Uint64 {
@@ -759,8 +770,6 @@ func TestEth_ExportAccount(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 
-	t.Log(res)
-
 	var account types.GenesisAccount
 	err = json.Unmarshal([]byte(res), &account)
 	require.NoError(t, err)
@@ -802,8 +811,6 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	var res string
 	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
-
-	t.Log(res)
 
 	var account types.GenesisAccount
 	err = json.Unmarshal([]byte(res), &account)
