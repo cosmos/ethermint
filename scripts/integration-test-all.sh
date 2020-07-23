@@ -143,7 +143,7 @@ if [[ -z $TEST || $TEST == "rpc" ]]; then
   for i in $(seq 1 "$TEST_QTD"); do
     HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"
     echo "going to test ethermint node $HOST_RPC ..."
-    MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -count=1
+    MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
 
     RPC_FAIL=$?
   done
