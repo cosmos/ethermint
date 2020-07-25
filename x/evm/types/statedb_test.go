@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -443,12 +444,10 @@ func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
 	suite.Require().True(suite.stateDB.Empty(suite.address))
 
 	suite.stateDB.SetBalance(suite.address, big.NewInt(100))
-
 	suite.Require().False(suite.stateDB.Empty(suite.address))
 }
 
 func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
-
 	testCase := []struct {
 		name    string
 		amount  *big.Int
@@ -612,5 +611,74 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 		}
 
 		suite.Require().NotNil(acc, tc.name)
+	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
+
+	var storage types.Storage
+
+	testCase := []struct {
+		name      string
+		malleate  func()
+		callback  func(key, value ethcmn.Hash) (stop bool)
+		expValues []ethcmn.Hash
+	}{
+		{
+			"aggregate state",
+			func() {
+				for i := 0; i < 5; i++ {
+					suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i))), ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i))))
+					suite.stateDB.Finalise(false) // commit state
+				}
+			},
+			func(key, value ethcmn.Hash) bool {
+				storage = append(storage, types.NewState(key, value))
+				return false
+			},
+			[]ethcmn.Hash{
+				ethcmn.BytesToHash([]byte("value0")),
+				ethcmn.BytesToHash([]byte("value1")),
+				ethcmn.BytesToHash([]byte("value2")),
+				ethcmn.BytesToHash([]byte("value3")),
+				ethcmn.BytesToHash([]byte("value4")),
+			},
+		},
+		// {
+		// 	"filter state",
+		// 	func() {
+		// 		suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
+		// 		suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("filterkey")), ethcmn.BytesToHash([]byte("filtervalue")))
+		// 		// suite.stateDB.Finalise(false) // commit state
+		// 	},
+		// 	func(key, value ethcmn.Hash) bool {
+		// 		if value == ethcmn.BytesToHash([]byte("filtervalue")) {
+		// 			storage = append(storage, types.NewState(key, value))
+		// 			return true
+		// 		}
+		// 		return false
+		// 	},
+		// 	[]ethcmn.Hash{
+		// 		ethcmn.BytesToHash([]byte("filtervalue")),
+		// 	},
+		// 	true,
+		// },
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			fmt.Println(tc.name)
+			suite.SetupTest() // reset
+			tc.malleate()
+
+			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
+			suite.Require().NoError(err)
+			// FIXME: only saves the first entry to state (i.e "value0")?
+			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
+			for i := range storage {
+				suite.Require().Equal(tc.expValues[i], storage[i].Value)
+			}
+		})
+		storage = types.Storage{}
 	}
 }
