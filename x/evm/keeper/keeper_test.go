@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -16,13 +15,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-)
-
-const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
-const hex = "0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68"
-
-var (
-	hash = ethcmn.FromHex(hex)
 )
 
 type KeeperTestSuite struct {
@@ -40,7 +32,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
-	suite.address = ethcmn.HexToAddress(addrHex)
+	suite.address = ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1")
 }
 
 func TestKeeperTestSuite(t *testing.T) {
@@ -48,6 +40,7 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) TestTransactionLogs() {
+	hash := ethcmn.FromHex("0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68")
 	ethHash := ethcmn.BytesToHash(hash)
 	log := &ethtypes.Log{
 		Address:     suite.address,
@@ -93,47 +86,67 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	suite.Require().Equal([]*ethtypes.Log{log}, txLogs[1].Logs)
 }
 
-func (suite *KeeperTestSuite) TestDBStorage() {
-	// Perform state transitions
-	suite.app.EvmKeeper.CreateAccount(suite.ctx, suite.address)
-	suite.app.EvmKeeper.SetBalance(suite.ctx, suite.address, big.NewInt(5))
-	suite.app.EvmKeeper.SetNonce(suite.ctx, suite.address, 4)
-	suite.app.EvmKeeper.SetState(suite.ctx, suite.address, ethcmn.HexToHash("0x2"), ethcmn.HexToHash("0x3"))
-	suite.app.EvmKeeper.SetCode(suite.ctx, suite.address, []byte{0x1})
+func (suite *KeeperTestSuite) TestBlockHash() {
+	testCase := []struct {
+		name    string
+		hash    []byte
+		expPass bool
+	}{
+		{
+			"valid hash",
+			[]byte{0x43, 0x32},
+			true,
+		},
+		{
+			"invalid hash",
+			[]byte{0x3, 0x2},
+			false,
+		},
+	}
 
-	// Test block hash mapping functionality
-	suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 7)
-	height, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
-	suite.Require().True(found)
-	suite.Require().Equal(int64(7), height)
+	for _, tc := range testCase {
+		if tc.expPass {
+			suite.app.EvmKeeper.SetBlockHash(suite.ctx, tc.hash, 7)
+			height, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, tc.hash)
+			suite.Require().True(found, tc.name)
+			suite.Require().Equal(int64(7), height, tc.name)
+		} else {
+			height, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, tc.hash)
+			suite.Require().False(found, tc.name)
+			suite.Require().Equal(int64(0), height, tc.name)
+		}
+	}
+}
 
-	suite.app.EvmKeeper.SetBlockHash(suite.ctx, []byte{0x43, 0x32}, 8)
+func (suite *KeeperTestSuite) TestBlockBloom() {
+	testCase := []struct {
+		name    string
+		height  int64
+		expPass bool
+	}{
+		{
+			"found bloom",
+			4,
+			true,
+		},
+		{
+			"missing bloom",
+			5,
+			false,
+		},
+	}
 
-	// Test block height mapping functionality
-	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
-	suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 4, testBloom)
-
-	// Get those state transitions
-	suite.Require().Equal(suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address).Cmp(big.NewInt(5)), 0)
-	suite.Require().Equal(suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address), uint64(4))
-	suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, suite.address, ethcmn.HexToHash("0x2")), ethcmn.HexToHash("0x3"))
-	suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, suite.address), []byte{0x1})
-
-	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
-	suite.Require().True(found)
-	suite.Require().Equal(height, int64(7))
-	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, []byte{0x43, 0x32})
-	suite.Require().True(found)
-	suite.Require().Equal(height, int64(8))
-
-	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
-	suite.Require().True(found)
-	suite.Require().Equal(bloom, testBloom)
-
-	// commit stateDB
-	_, err := suite.app.EvmKeeper.Commit(suite.ctx, false)
-	suite.Require().NoError(err, "failed to commit StateDB")
-
-	// simulate BaseApp EndBlocker commitment
-	suite.app.Commit()
+	for _, tc := range testCase {
+		if tc.expPass {
+			testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
+			suite.app.EvmKeeper.SetBlockBloom(suite.ctx, tc.height, testBloom)
+			bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, tc.height)
+			suite.Require().True(found, tc.name)
+			suite.Require().Equal(testBloom, bloom, tc.name)
+		} else {
+			bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, tc.height)
+			suite.Require().False(found, tc.name)
+			suite.Require().Equal(ethtypes.Bloom{}, bloom, tc.name)
+		}
+	}
 }

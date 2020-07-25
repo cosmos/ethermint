@@ -4,12 +4,16 @@ import (
 	"math/big"
 
 	"github.com/cosmos/ethermint/x/evm/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func (suite *KeeperTestSuite) TestQuerier() {
+	hex := "0x0d87a3a5f73140f46aac1bf419263e4e94e87c292f25007700ab7f2060e2af68"
+	hash := ethcmn.FromHex(hex)
+	addrHex := "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
 
 	testCases := []struct {
 		msg      string
@@ -21,7 +25,6 @@ func (suite *KeeperTestSuite) TestQuerier() {
 		{"balance", []string{types.QueryBalance, addrHex}, func() {
 			suite.app.EvmKeeper.SetBalance(suite.ctx, suite.address, big.NewInt(5))
 		}, true},
-		// {"balance fail", []string{types.QueryBalance, "0x01232"}, func() {}, false},
 		{"block number", []string{types.QueryBlockNumber, "0x0"}, func() {}, true},
 		{"storage", []string{types.QueryStorage, "0x0", "0x0"}, func() {}, true},
 		{"code", []string{types.QueryCode, "0x0"}, func() {}, true},
@@ -60,4 +63,8 @@ func (suite *KeeperTestSuite) TestQuerier() {
 			}
 		})
 	}
+}
+
+func (suite *KeeperTestSuite) TestProtocolVersion() {
+
 }
