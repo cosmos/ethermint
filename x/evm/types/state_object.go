@@ -142,9 +142,10 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
 	idx = len(so.dirtyStorage) - 1
 	so.keyToDirtyStorageIndex[key] = idx
-	idx = len(so.originStorage)
-	so.keyToOriginStorageIndex[key] = idx
+
 	so.originStorage = append(so.originStorage, State{})
+	idx = len(so.originStorage) - 1
+	so.keyToOriginStorageIndex[key] = idx
 }
 
 // SetCode sets the state object's code.
