@@ -1,5 +1,5 @@
 <!--
-order: 1
+order: 3
 -->
 
 # Remix
@@ -14,7 +14,7 @@ Set up a Remix Ethermint local development environment. {synopsis}
 
 [Remix](http://remix.ethereum.org/) is an in-browser IDE for [Solidity](https://github.com/ethereum/solidity) smart contracts. In this guide, we will learn how to deploy a contract to a running Ethermint network through Remix and interact with it.
 
-### Connect ethermint account to Remix
+## Connect Ethermint account to Remix
 
 First, follow the steps in the [Metamask guide](./metamask.md) to import your Ethermint private key into Metamask. Start the Ethermint daemon and rest server.
 
@@ -26,7 +26,7 @@ You should see your account show up in the left-hand panel.
 
 ![remix connected to ethermint](./img/remix_deploy.png)
 
-### Deploy and interact
+## Deploy and Interact
 
 Now that your account is connected, you are able to deploy the contract. Press the `Deploy` button. A metamask pop-up will appear asking you to confirm.  Confirm the transaction.  You should see a log for the deployment transaction in the ethermint daemon logs:
 
