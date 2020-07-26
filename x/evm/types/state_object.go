@@ -270,7 +270,7 @@ func (so *stateObject) commitState() {
 
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 	}
-	// clen storage as all entries are dirty
+	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
 }
 
