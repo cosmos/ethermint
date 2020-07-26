@@ -629,7 +629,6 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			func() {
 				for i := 0; i < 5; i++ {
 					suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i))), ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i))))
-					//suite.stateDB.Finalise(false) // commit state
 				}
 			},
 			func(key, value ethcmn.Hash) bool {
@@ -644,30 +643,27 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 				ethcmn.BytesToHash([]byte("value4")),
 			},
 		},
-		// {
-		// 	"filter state",
-		// 	func() {
-		// 		suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
-		// 		suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("filterkey")), ethcmn.BytesToHash([]byte("filtervalue")))
-		// 		// suite.stateDB.Finalise(false) // commit state
-		// 	},
-		// 	func(key, value ethcmn.Hash) bool {
-		// 		if value == ethcmn.BytesToHash([]byte("filtervalue")) {
-		// 			storage = append(storage, types.NewState(key, value))
-		// 			return true
-		// 		}
-		// 		return false
-		// 	},
-		// 	[]ethcmn.Hash{
-		// 		ethcmn.BytesToHash([]byte("filtervalue")),
-		// 	},
-		// 	true,
-		// },
+		{
+			"filter state",
+			func() {
+				suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
+				suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("filterkey")), ethcmn.BytesToHash([]byte("filtervalue")))
+			},
+			func(key, value ethcmn.Hash) bool {
+				if value == ethcmn.BytesToHash([]byte("filtervalue")) {
+					storage = append(storage, types.NewState(key, value))
+					return true
+				}
+				return false
+			},
+			[]ethcmn.Hash{
+				ethcmn.BytesToHash([]byte("filtervalue")),
+			},
+		},
 	}
 
 	for _, tc := range testCase {
 		suite.Run(tc.name, func() {
-			fmt.Println(tc.name)
 			suite.SetupTest() // reset
 			tc.malleate()
 			suite.stateDB.Finalise(false)
@@ -675,10 +671,12 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
-			vals := []ethcmn.Hash{}
+
+			vals := make([]ethcmn.Hash, len(storage))
 			for i := range storage {
-				vals = append(vals, storage[i].Value)
+				vals[i] = storage[i].Value
 			}
+
 			suite.Require().ElementsMatch(tc.expValues, vals)
 		})
 		storage = types.Storage{}
