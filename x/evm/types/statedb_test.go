@@ -629,7 +629,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			func() {
 				for i := 0; i < 5; i++ {
 					suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i))), ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i))))
-					suite.stateDB.Finalise(false) // commit state
+					//suite.stateDB.Finalise(false) // commit state
 				}
 			},
 			func(key, value ethcmn.Hash) bool {
@@ -670,14 +670,16 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			fmt.Println(tc.name)
 			suite.SetupTest() // reset
 			tc.malleate()
+			suite.stateDB.Finalise(false)
 
 			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
-			// FIXME: only saves the first entry to state (i.e "value0")?
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
+			vals := []ethcmn.Hash{}
 			for i := range storage {
-				suite.Require().Equal(tc.expValues[i], storage[i].Value)
+				vals = append(vals, storage[i].Value)
 			}
+			suite.Require().ElementsMatch(tc.expValues, vals)
 		})
 		storage = types.Storage{}
 	}
