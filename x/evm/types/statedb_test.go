@@ -112,7 +112,7 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBBalance() {
+func (suite *StateDBTestSuite) TestStateDB_Balance() {
 	testCase := []struct {
 		name     string
 		malleate func()
@@ -160,7 +160,17 @@ func (suite *StateDBTestSuite) TestStateDBNonce() {
 	suite.Require().Equal(nonce, suite.stateDB.GetNonce(suite.address))
 }
 
-func (suite *StateDBTestSuite) TestStateDBState() {
+func (suite *StateDBTestSuite) TestStateDB_Error() {
+	nonce := suite.stateDB.GetNonce(ethcmn.Address{})
+	suite.Require().Equal(0, int(nonce))
+	suite.Require().Error(suite.stateDB.Error())
+}
+
+func (suite *StateDBTestSuite) TestStateDB_Database() {
+	suite.Require().Nil(suite.stateDB.Database())
+}
+
+func (suite *StateDBTestSuite) TestStateDB_State() {
 	key := ethcmn.BytesToHash([]byte("foo"))
 	val := ethcmn.BytesToHash([]byte("bar"))
 	suite.stateDB.SetState(suite.address, key, val)
@@ -196,7 +206,7 @@ func (suite *StateDBTestSuite) TestStateDBState() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBCode() {
+func (suite *StateDBTestSuite) TestStateDB_Code() {
 	testCase := []struct {
 		name     string
 		address  ethcmn.Address
@@ -233,7 +243,7 @@ func (suite *StateDBTestSuite) TestStateDBCode() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBLogs() {
+func (suite *StateDBTestSuite) TestStateDB_Logs() {
 	testCase := []struct {
 		name string
 		log  ethtypes.Log
@@ -279,16 +289,15 @@ func (suite *StateDBTestSuite) TestStateDBLogs() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBPreimage() {
+func (suite *StateDBTestSuite) TestStateDB_Preimage() {
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	preimage := []byte("preimage")
 
 	suite.stateDB.AddPreimage(hash, preimage)
-
 	suite.Require().Equal(preimage, suite.stateDB.Preimages()[hash])
 }
 
-func (suite *StateDBTestSuite) TestStateDBRefund() {
+func (suite *StateDBTestSuite) TestStateDB_Refund() {
 	testCase := []struct {
 		name      string
 		addAmount uint64
@@ -332,7 +341,7 @@ func (suite *StateDBTestSuite) TestStateDBRefund() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
+func (suite *StateDBTestSuite) TestStateDB_CreateAccount() {
 	prevBalance := big.NewInt(12)
 
 	testCase := []struct {
@@ -365,7 +374,7 @@ func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
+func (suite *StateDBTestSuite) TestStateDB_ClearStateObj() {
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -378,7 +387,7 @@ func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
 	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
-func (suite *StateDBTestSuite) TestStateDBReset() {
+func (suite *StateDBTestSuite) TestStateDB_Reset() {
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -392,7 +401,7 @@ func (suite *StateDBTestSuite) TestStateDBReset() {
 	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
+func (suite *StateDBTestSuite) TestSuiteDB_Prepare() {
 	thash := ethcmn.BytesToHash([]byte("thash"))
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 1
@@ -403,7 +412,7 @@ func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
 	suite.Require().Equal(bhash, suite.stateDB.BlockHash())
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
+func (suite *StateDBTestSuite) TestSuiteDB_CopyState() {
 	testCase := []struct {
 		name string
 		log  ethtypes.Log
@@ -440,14 +449,14 @@ func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
 	}
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
+func (suite *StateDBTestSuite) TestSuiteDB_Empty() {
 	suite.Require().True(suite.stateDB.Empty(suite.address))
 
 	suite.stateDB.SetBalance(suite.address, big.NewInt(100))
 	suite.Require().False(suite.stateDB.Empty(suite.address))
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
+func (suite *StateDBTestSuite) TestSuiteDB_Suicide() {
 	testCase := []struct {
 		name    string
 		amount  *big.Int
@@ -599,6 +608,8 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 
 		if !tc.expPass {
 			suite.Require().Error(err, tc.name)
+			hash := suite.stateDB.GetCommittedState(suite.address, ethcmn.BytesToHash([]byte("key")))
+			suite.Require().NotEqual(ethcmn.Hash{}, hash, tc.name)
 			continue
 		}
 
@@ -613,9 +624,23 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 		suite.Require().NotNil(acc, tc.name)
 	}
 }
+func (suite *StateDBTestSuite) TestCommitStateDB_GetCommittedState() {
+	hash := suite.stateDB.GetCommittedState(ethcmn.Address{}, ethcmn.BytesToHash([]byte("key")))
+	suite.Require().Equal(ethcmn.Hash{}, hash)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_Snapshot() {
+	id := suite.stateDB.Snapshot()
+	suite.Require().NotPanics(func() {
+		suite.stateDB.RevertToSnapshot(id)
+	})
+
+	suite.Require().Panics(func() {
+		suite.stateDB.RevertToSnapshot(-1)
+	}, "invalid revision should panic")
+}
 
 func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
-
 	var storage types.Storage
 
 	testCase := []struct {
