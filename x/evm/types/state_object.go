@@ -143,6 +143,10 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
 	idx = len(so.dirtyStorage) - 1
 	so.keyToDirtyStorageIndex[key] = idx
+
+	so.originStorage = append(so.originStorage, State{})
+	idx = len(so.originStorage) - 1
+	so.keyToOriginStorageIndex[key] = idx
 }
 
 // SetCode sets the state object's code.
@@ -273,7 +277,7 @@ func (so *stateObject) commitState() {
 
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 	}
-
+	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
 }
 

@@ -7,6 +7,23 @@ on:
     branches:
       - development
 jobs:
+  test-rpc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: technote-space/get-diff-action@v1
+        id: git_diff
+        with:
+          SUFFIX_FILTER: |
+            .go
+            .mod
+            .sum
+      - name: test-rpc
+        run: |
+          make test-rpc
+        if: "env.GIT_DIFF != ''"
+
   split-test-files:
     runs-on: ubuntu-latest
     steps:
@@ -177,22 +194,6 @@ jobs:
           fail_ci_if_error: true
         if: "env.GIT_DIFF != ''"
 
-  rpc-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
-        id: git_diff
-        with:
-          SUFFIX_FILTER: |
-            .go
-            .mod
-            .sum
-      - name: rpc-test
-        run: |
-          make test-rpc
-        if: "env.GIT_DIFF != ''"
   test-importer:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -208,5 +209,4 @@ jobs:
       - name: test-importer
         run: |
           make test-import
-          rm -rf importer/tmp
         if: "env.GIT_DIFF != ''"
