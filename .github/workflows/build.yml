@@ -11,6 +11,7 @@ jobs:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - uses: actions/checkout@v2
       - uses: technote-space/get-diff-action@v1
         id: git_diff
         with:
