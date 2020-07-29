@@ -170,7 +170,7 @@ ifdef ABIGEN_CHECK
 	@echo "Abigen is already installed. Run 'make update-tools' to update."
 else
 	@echo "--> Installing abigen"
-	$(GOBIN) go install ./cmd/abigen
+	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
 endif
 
 #######################
