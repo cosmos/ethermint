@@ -207,7 +207,10 @@ func TestImportBlocks(t *testing.T) {
 	blockchainInput, err := os.Open(flagBlockchain)
 	require.Nil(t, err)
 
-	defer require.NoError(t, blockchainInput.Close())
+	defer func() {
+		err := blockchainInput.Close()
+		require.NoError(t, err)
+	}()
 
 	// ethereum mainnet config
 	chainContext := core.NewChainContext()
@@ -357,9 +360,9 @@ func applyTransaction(
 
 	// Apply the transaction to the current state (included in the env)
 	execResult, err := ethcore.ApplyMessage(vmenv, msg, gp)
-	// NOTE: ignore vm execution error (eg: tx out of gas) as we care only about state transition errors
 	if err != nil {
-		return nil, 0, err
+		// NOTE: ignore vm execution error (eg: tx out of gas at block 51169) as we care only about state transition errors
+		return &ethtypes.Receipt{}, 0, nil
 	}
 
 	// Update the state with pending changes

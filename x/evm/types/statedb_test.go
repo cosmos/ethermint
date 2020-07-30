@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -57,164 +58,323 @@ func (suite *StateDBTestSuite) SetupTest() {
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 	suite.stateObject = suite.stateDB.GetOrNewStateObject(suite.address)
 }
-
 func (suite *StateDBTestSuite) TestBloomFilter() {
 	// Prepare db for logs
 	tHash := ethcmn.BytesToHash([]byte{0x1})
 	suite.stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
-
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
-
-	// Generate and add a log to test
 	log := ethtypes.Log{Address: contractAddress}
-	suite.stateDB.AddLog(&log)
 
-	// Get log from db
-	logs, err := suite.stateDB.GetLogs(tHash)
-	suite.Require().NoError(err)
-	suite.Require().Len(logs, 1)
-	suite.Require().Equal(log, *logs[0])
+	testCase := []struct {
+		name     string
+		malleate func()
+		numLogs  int
+		isBloom  bool
+	}{
+		{
+			"no logs",
+			func() {},
+			0,
+			false,
+		},
+		{
+			"add log",
+			func() {
+				suite.stateDB.AddLog(&log)
+			},
+			1,
+			false,
+		},
+		{
+			"bloom",
+			func() {},
+			0,
+			true,
+		},
+	}
 
-	// get logs bloom from the log
-	bloomInt := ethtypes.LogsBloom(logs)
-	bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
-
-	// Check to make sure bloom filter will succeed on
-	suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress))
-	suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))))
+	for _, tc := range testCase {
+		tc.malleate()
+		logs, err := suite.stateDB.GetLogs(tHash)
+		if !tc.isBloom {
+			suite.Require().NoError(err, tc.name)
+			suite.Require().Len(logs, tc.numLogs, tc.name)
+			if len(logs) != 0 {
+				suite.Require().Equal(log, *logs[0], tc.name)
+			}
+		} else {
+			// get logs bloom from the log
+			bloomInt := ethtypes.LogsBloom(logs)
+			bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+			suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress), tc.name)
+			suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))), tc.name)
+		}
+	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBBalance() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
+func (suite *StateDBTestSuite) TestStateDB_Balance() {
+	testCase := []struct {
+		name     string
+		malleate func()
+		balance  *big.Int
+	}{
+		{
+			"set balance",
+			func() {
+				suite.stateDB.SetBalance(suite.address, big.NewInt(100))
+			},
+			big.NewInt(100),
+		},
+		{
+			"sub balance",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(100))
+			},
+			big.NewInt(0),
+		},
+		{
+			"add balance",
+			func() {
+				suite.stateDB.AddBalance(suite.address, big.NewInt(200))
+			},
+			big.NewInt(200),
+		},
+		{
+			"sub more than balance",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(300))
+			},
+			big.NewInt(-100),
+		},
+	}
 
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-	value := big.NewInt(100)
-	suite.stateDB.SetBalance(addr, value)
-	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
-
-	suite.stateDB.SubBalance(addr, value)
-	suite.Require().Equal(big.NewInt(0), suite.stateDB.GetBalance(addr))
-
-	suite.stateDB.AddBalance(addr, value)
-	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
+	for _, tc := range testCase {
+		tc.malleate()
+		suite.Require().Equal(tc.balance, suite.stateDB.GetBalance(suite.address), tc.name)
+	}
 }
 
 func (suite *StateDBTestSuite) TestStateDBNonce() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-
 	nonce := uint64(123)
-	suite.stateDB.SetNonce(addr, nonce)
-
-	suite.Require().Equal(nonce, suite.stateDB.GetNonce(addr))
+	suite.stateDB.SetNonce(suite.address, nonce)
+	suite.Require().Equal(nonce, suite.stateDB.GetNonce(suite.address))
 }
 
-func (suite *StateDBTestSuite) TestStateDBState() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
+func (suite *StateDBTestSuite) TestStateDB_Error() {
+	nonce := suite.stateDB.GetNonce(ethcmn.Address{})
+	suite.Require().Equal(0, int(nonce))
+	suite.Require().Error(suite.stateDB.Error())
+}
 
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+func (suite *StateDBTestSuite) TestStateDB_Database() {
+	suite.Require().Nil(suite.stateDB.Database())
+}
+
+func (suite *StateDBTestSuite) TestStateDB_State() {
 	key := ethcmn.BytesToHash([]byte("foo"))
 	val := ethcmn.BytesToHash([]byte("bar"))
+	suite.stateDB.SetState(suite.address, key, val)
 
-	suite.stateDB.SetState(addr, key, val)
-
-	suite.Require().Equal(val, suite.stateDB.GetState(addr, key))
-}
-
-func (suite *StateDBTestSuite) TestStateDBCode() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
-
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-	code := []byte("foobar")
-
-	suite.stateDB.SetCode(addr, code)
-
-	suite.Require().Equal(code, suite.stateDB.GetCode(addr))
-
-	codelen := len(code)
-	suite.Require().Equal(codelen, suite.stateDB.GetCodeSize(addr))
-}
-
-func (suite *StateDBTestSuite) TestStateDBLogs() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
-
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-
-	hash := ethcmn.BytesToHash([]byte("hash"))
-	log := ethtypes.Log{
-		Address:     addr,
-		Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
-		Data:        []byte("data"),
-		BlockNumber: 1,
-		TxHash:      ethcmn.Hash{},
-		TxIndex:     1,
-		BlockHash:   ethcmn.Hash{},
-		Index:       1,
-		Removed:     false,
+	testCase := []struct {
+		name    string
+		address ethcmn.Address
+		key     ethcmn.Hash
+		value   ethcmn.Hash
+	}{
+		{
+			"found state",
+			suite.address,
+			ethcmn.BytesToHash([]byte("foo")),
+			ethcmn.BytesToHash([]byte("bar")),
+		},
+		{
+			"state not found",
+			suite.address,
+			ethcmn.BytesToHash([]byte("key")),
+			ethcmn.Hash{},
+		},
+		{
+			"object not found",
+			ethcmn.Address{},
+			ethcmn.BytesToHash([]byte("foo")),
+			ethcmn.Hash{},
+		},
 	}
-	logs := []*ethtypes.Log{&log}
-
-	err = suite.stateDB.SetLogs(hash, logs)
-	suite.Require().NoError(err)
-	dbLogs, err := suite.stateDB.GetLogs(hash)
-	suite.Require().NoError(err)
-	suite.Require().Equal(logs, dbLogs)
-
-	suite.stateDB.DeleteLogs(hash)
-	dbLogs, err = suite.stateDB.GetLogs(hash)
-	suite.Require().NoError(err)
-	suite.Require().Empty(dbLogs)
-
-	suite.stateDB.AddLog(&log)
-	suite.Require().Equal(logs, suite.stateDB.AllLogs())
-
-	//resets state but checking to see if storekey still persists.
-	err = suite.stateDB.Reset(hash)
-	suite.Require().NoError(err)
-	suite.Require().Equal(logs, suite.stateDB.AllLogs())
+	for _, tc := range testCase {
+		value := suite.stateDB.GetState(tc.address, tc.key)
+		suite.Require().Equal(tc.value, value, tc.name)
+	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBPreimage() {
+func (suite *StateDBTestSuite) TestStateDB_Code() {
+	testCase := []struct {
+		name     string
+		address  ethcmn.Address
+		code     []byte
+		malleate func()
+	}{
+		{
+			"no stored code for state object",
+			suite.address,
+			nil,
+			func() {},
+		},
+		{
+			"existing address",
+			suite.address,
+			[]byte("code"),
+			func() {
+				suite.stateDB.SetCode(suite.address, []byte("code"))
+			},
+		},
+		{
+			"state object not found",
+			ethcmn.Address{},
+			nil,
+			func() {},
+		},
+	}
+
+	for _, tc := range testCase {
+		tc.malleate()
+
+		suite.Require().Equal(tc.code, suite.stateDB.GetCode(tc.address), tc.name)
+		suite.Require().Equal(len(tc.code), suite.stateDB.GetCodeSize(tc.address), tc.name)
+	}
+}
+
+func (suite *StateDBTestSuite) TestStateDB_Logs() {
+	testCase := []struct {
+		name string
+		log  ethtypes.Log
+	}{
+		{
+			"state db log",
+			ethtypes.Log{
+				Address:     suite.address,
+				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+				Data:        []byte("data"),
+				BlockNumber: 1,
+				TxHash:      ethcmn.Hash{},
+				TxIndex:     1,
+				BlockHash:   ethcmn.Hash{},
+				Index:       1,
+				Removed:     false,
+			},
+		},
+	}
+
+	for _, tc := range testCase {
+		hash := ethcmn.BytesToHash([]byte("hash"))
+		logs := []*ethtypes.Log{&tc.log}
+
+		err := suite.stateDB.SetLogs(hash, logs)
+		suite.Require().NoError(err, tc.name)
+		dbLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
+		suite.Require().Equal(logs, dbLogs, tc.name)
+
+		suite.stateDB.DeleteLogs(hash)
+		dbLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
+		suite.Require().Empty(dbLogs, tc.name)
+
+		suite.stateDB.AddLog(&tc.log)
+		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+
+		//resets state but checking to see if storekey still persists.
+		err = suite.stateDB.Reset(hash)
+		suite.Require().NoError(err, tc.name)
+		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+	}
+}
+
+func (suite *StateDBTestSuite) TestStateDB_Preimage() {
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	preimage := []byte("preimage")
 
 	suite.stateDB.AddPreimage(hash, preimage)
-
 	suite.Require().Equal(preimage, suite.stateDB.Preimages()[hash])
 }
 
-func (suite *StateDBTestSuite) TestStateDBRefund() {
-	value := uint64(100)
+func (suite *StateDBTestSuite) TestStateDB_Refund() {
+	testCase := []struct {
+		name      string
+		addAmount uint64
+		subAmount uint64
+		expRefund uint64
+		expPanic  bool
+	}{
+		{
+			"refund 0",
+			0, 0, 0,
+			false,
+		},
+		{
+			"refund positive amount",
+			100, 0, 100,
+			false,
+		},
+		{
+			"refund panic",
+			100, 200, 100,
+			true,
+		},
+	}
 
-	suite.stateDB.AddRefund(value)
-	suite.Require().Equal(value, suite.stateDB.GetRefund())
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset
 
-	suite.stateDB.SubRefund(value)
-	suite.Require().Equal(uint64(0), suite.stateDB.GetRefund())
+			suite.stateDB.AddRefund(tc.addAmount)
+			suite.Require().Equal(tc.addAmount, suite.stateDB.GetRefund())
+
+			if tc.expPanic {
+				suite.Panics(func() {
+					suite.stateDB.SubRefund(tc.subAmount)
+				})
+			} else {
+				suite.stateDB.SubRefund(tc.subAmount)
+				suite.Require().Equal(tc.expRefund, suite.stateDB.GetRefund())
+			}
+		})
+	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBCreateAcct() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
+func (suite *StateDBTestSuite) TestStateDB_CreateAccount() {
+	prevBalance := big.NewInt(12)
 
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+	testCase := []struct {
+		name     string
+		address  ethcmn.Address
+		malleate func()
+	}{
+		{
+			"existing account",
+			suite.address,
+			func() {
+				suite.stateDB.AddBalance(suite.address, prevBalance)
+			},
+		},
+		{
+			"new account",
+			ethcmn.HexToAddress("0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"),
+			func() {
+				prevBalance = big.NewInt(0)
+			},
+		},
+	}
 
-	suite.stateDB.CreateAccount(addr)
-	suite.Require().True(suite.stateDB.Exist(addr))
+	for _, tc := range testCase {
+		tc.malleate()
 
-	value := big.NewInt(100)
-	suite.stateDB.AddBalance(addr, value)
-
-	suite.stateDB.CreateAccount(addr)
-	suite.Require().Equal(value, suite.stateDB.GetBalance(addr))
+		suite.stateDB.CreateAccount(tc.address)
+		suite.Require().True(suite.stateDB.Exist(tc.address), tc.name)
+		suite.Require().Equal(prevBalance, suite.stateDB.GetBalance(tc.address), tc.name)
+	}
 }
 
-func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
+func (suite *StateDBTestSuite) TestStateDB_ClearStateObj() {
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -227,27 +387,21 @@ func (suite *StateDBTestSuite) TestStateDBClearStateOjb() {
 	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
-func (suite *StateDBTestSuite) TestStateDBReset() {
+func (suite *StateDBTestSuite) TestStateDB_Reset() {
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
-	hash := ethcmn.BytesToHash([]byte("hash"))
-
 	suite.stateDB.CreateAccount(addr)
 	suite.Require().True(suite.stateDB.Exist(addr))
 
-	err = suite.stateDB.Reset(hash)
+	err = suite.stateDB.Reset(ethcmn.BytesToHash(nil))
 	suite.Require().NoError(err)
 	suite.Require().False(suite.stateDB.Exist(addr))
 }
 
-func (suite *StateDBTestSuite) TestStateDBUpdateAcct() {
-
-}
-
-func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
+func (suite *StateDBTestSuite) TestSuiteDB_Prepare() {
 	thash := ethcmn.BytesToHash([]byte("thash"))
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 1
@@ -258,71 +412,98 @@ func (suite *StateDBTestSuite) TestSuiteDBPrepare() {
 	suite.Require().Equal(bhash, suite.stateDB.BlockHash())
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBCopyState() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
-
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-
-	hash := ethcmn.BytesToHash([]byte("hash"))
-	log := ethtypes.Log{
-		Address:     addr,
-		Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
-		Data:        []byte("data"),
-		BlockNumber: 1,
-		TxHash:      ethcmn.Hash{},
-		TxIndex:     1,
-		BlockHash:   ethcmn.Hash{},
-		Index:       1,
-		Removed:     false,
+func (suite *StateDBTestSuite) TestSuiteDB_CopyState() {
+	testCase := []struct {
+		name string
+		log  ethtypes.Log
+	}{
+		{
+			"copy state",
+			ethtypes.Log{
+				Address:     suite.address,
+				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+				Data:        []byte("data"),
+				BlockNumber: 1,
+				TxHash:      ethcmn.Hash{},
+				TxIndex:     1,
+				BlockHash:   ethcmn.Hash{},
+				Index:       1,
+				Removed:     false,
+			},
+		},
 	}
-	logs := []*ethtypes.Log{&log}
 
-	err = suite.stateDB.SetLogs(hash, logs)
-	suite.Require().NoError(err)
+	for _, tc := range testCase {
+		hash := ethcmn.BytesToHash([]byte("hash"))
+		logs := []*ethtypes.Log{&tc.log}
 
-	copyDB := suite.stateDB.Copy()
+		err := suite.stateDB.SetLogs(hash, logs)
+		suite.Require().NoError(err, tc.name)
 
-	copiedDBLogs, err := copyDB.GetLogs(hash)
-	suite.Require().NoError(err)
-	suite.Require().Equal(logs, copiedDBLogs)
-	suite.Require().Equal(suite.stateDB.Exist(addr), copyDB.Exist(addr))
+		copyDB := suite.stateDB.Copy()
+
+		copiedDBLogs, err := copyDB.GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
+		suite.Require().Equal(logs, copiedDBLogs, tc.name)
+		suite.Require().Equal(suite.stateDB.Exist(suite.address), copyDB.Exist(suite.address), tc.name)
+	}
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBEmpty() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
+func (suite *StateDBTestSuite) TestSuiteDB_Empty() {
+	suite.Require().True(suite.stateDB.Empty(suite.address))
 
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-
-	suite.Require().True(suite.stateDB.Empty(addr))
-
-	suite.stateDB.SetBalance(addr, big.NewInt(100))
-
-	suite.Require().False(suite.stateDB.Empty(addr))
+	suite.stateDB.SetBalance(suite.address, big.NewInt(100))
+	suite.Require().False(suite.stateDB.Empty(suite.address))
 }
 
-func (suite *StateDBTestSuite) TestSuiteDBSuicide() {
-	priv, err := crypto.GenerateKey()
-	suite.Require().NoError(err)
+func (suite *StateDBTestSuite) TestSuiteDB_Suicide() {
+	testCase := []struct {
+		name    string
+		amount  *big.Int
+		expPass bool
+		delete  bool
+	}{
+		{
+			"suicide zero balance",
+			big.NewInt(0),
+			false, false,
+		},
+		{
+			"suicide with balance",
+			big.NewInt(100),
+			true, false,
+		},
+		{
+			"delete",
+			big.NewInt(0),
+			true, true,
+		},
+	}
 
-	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+	for _, tc := range testCase {
+		if tc.delete {
+			_, err := suite.stateDB.Commit(tc.delete)
+			suite.Require().NoError(err, tc.name)
+			suite.Require().False(suite.stateDB.Exist(suite.address), tc.name)
+			continue
+		}
 
-	suicide := suite.stateDB.Suicide(addr)
-	suite.Require().False(suicide)
-	suite.Require().False(suite.stateDB.HasSuicided(addr))
+		if tc.expPass {
+			suite.stateDB.SetBalance(suite.address, tc.amount)
+			suicide := suite.stateDB.Suicide(suite.address)
+			suite.Require().True(suicide, tc.name)
+			suite.Require().True(suite.stateDB.HasSuicided(suite.address), tc.name)
+		} else {
+			//Suicide only works for an account with non-zero balance/nonce
+			priv, err := crypto.GenerateKey()
+			suite.Require().NoError(err)
 
-	//Suicide only works for an account with non-zero balance/nonce
-	suite.stateDB.SetBalance(addr, big.NewInt(100))
-	suicide = suite.stateDB.Suicide(addr)
-
-	suite.Require().True(suicide)
-	suite.Require().True(suite.stateDB.HasSuicided(addr))
-
-	delete := true
-	_, err = suite.stateDB.Commit(delete)
-	suite.Require().NoError(err)
-	suite.Require().False(suite.stateDB.Exist(addr))
+			addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+			suicide := suite.stateDB.Suicide(addr)
+			suite.Require().False(suicide, tc.name)
+			suite.Require().False(suite.stateDB.HasSuicided(addr), tc.name)
+		}
+	}
 }
 
 func (suite *StateDBTestSuite) TestCommitStateDB_Commit() {
@@ -427,6 +608,8 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 
 		if !tc.expPass {
 			suite.Require().Error(err, tc.name)
+			hash := suite.stateDB.GetCommittedState(suite.address, ethcmn.BytesToHash([]byte("key")))
+			suite.Require().NotEqual(ethcmn.Hash{}, hash, tc.name)
 			continue
 		}
 
@@ -439,5 +622,88 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 		}
 
 		suite.Require().NotNil(acc, tc.name)
+	}
+}
+func (suite *StateDBTestSuite) TestCommitStateDB_GetCommittedState() {
+	hash := suite.stateDB.GetCommittedState(ethcmn.Address{}, ethcmn.BytesToHash([]byte("key")))
+	suite.Require().Equal(ethcmn.Hash{}, hash)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_Snapshot() {
+	id := suite.stateDB.Snapshot()
+	suite.Require().NotPanics(func() {
+		suite.stateDB.RevertToSnapshot(id)
+	})
+
+	suite.Require().Panics(func() {
+		suite.stateDB.RevertToSnapshot(-1)
+	}, "invalid revision should panic")
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
+	var storage types.Storage
+
+	testCase := []struct {
+		name      string
+		malleate  func()
+		callback  func(key, value ethcmn.Hash) (stop bool)
+		expValues []ethcmn.Hash
+	}{
+		{
+			"aggregate state",
+			func() {
+				for i := 0; i < 5; i++ {
+					suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i))), ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i))))
+				}
+			},
+			func(key, value ethcmn.Hash) bool {
+				storage = append(storage, types.NewState(key, value))
+				return false
+			},
+			[]ethcmn.Hash{
+				ethcmn.BytesToHash([]byte("value0")),
+				ethcmn.BytesToHash([]byte("value1")),
+				ethcmn.BytesToHash([]byte("value2")),
+				ethcmn.BytesToHash([]byte("value3")),
+				ethcmn.BytesToHash([]byte("value4")),
+			},
+		},
+		{
+			"filter state",
+			func() {
+				suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
+				suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("filterkey")), ethcmn.BytesToHash([]byte("filtervalue")))
+			},
+			func(key, value ethcmn.Hash) bool {
+				if value == ethcmn.BytesToHash([]byte("filtervalue")) {
+					storage = append(storage, types.NewState(key, value))
+					return true
+				}
+				return false
+			},
+			[]ethcmn.Hash{
+				ethcmn.BytesToHash([]byte("filtervalue")),
+			},
+		},
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset
+			tc.malleate()
+			suite.stateDB.Finalise(false)
+
+			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
+			suite.Require().NoError(err)
+			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
+
+			vals := make([]ethcmn.Hash, len(storage))
+			for i := range storage {
+				vals[i] = storage[i].Value
+			}
+
+			suite.Require().ElementsMatch(tc.expValues, vals)
+		})
+		storage = types.Storage{}
 	}
 }
