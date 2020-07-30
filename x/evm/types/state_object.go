@@ -141,6 +141,10 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
 	idx = len(so.dirtyStorage) - 1
 	so.keyToDirtyStorageIndex[key] = idx
+
+	so.originStorage = append(so.originStorage, State{})
+	idx = len(so.originStorage) - 1
+	so.keyToOriginStorageIndex[key] = idx
 }
 
 // SetCode sets the state object's code.
@@ -241,9 +245,8 @@ func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
-	for i, state := range so.dirtyStorage {
+	for _, state := range so.dirtyStorage {
 		delete(so.keyToDirtyStorageIndex, state.Key)
-		so.dirtyStorage = append(so.dirtyStorage[:i], so.dirtyStorage[i+1:]...)
 
 		// skip no-op changes, persist actual changes
 		idx, ok := so.keyToOriginStorageIndex[state.Key]
@@ -267,6 +270,8 @@ func (so *stateObject) commitState() {
 
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 	}
+	// clean storage as all entries are dirty
+	so.dirtyStorage = Storage{}
 }
 
 // commitCode persists the state object's code to the KVStore.

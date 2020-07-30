@@ -16,7 +16,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
@@ -292,7 +291,6 @@ func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 		return len(so.code)
 	}
 
-	// TODO: we may need to cache these lookups directly
 	return len(so.Code(nil))
 }
 
@@ -746,13 +744,8 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 			continue
 		}
 
-		_, content, _, err := rlp.Split(value.Bytes())
-		if err != nil {
-			return err
-		}
-
 		// check if iteration stops
-		if cb(key, ethcmn.BytesToHash(content)) {
+		if cb(key, value) {
 			return nil
 		}
 	}
