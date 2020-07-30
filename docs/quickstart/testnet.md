@@ -104,19 +104,13 @@ The ports for each node are found in this table:
 | `emintnode2` | `26661`  | `26662`       |
 | `emintnode3` | `26663`  | `26664`       |
 
-To update the binary, just rebuild it and restart the nodes:
+To update the binary, just rebuild it and restart the nodes
 
 ```bash
 make localnet-start
 ```
 
-Start the testnet using Docker compose:
-
-```bash
-docker-compose up -d
-```
-
-You will see:
+The command above  command will run containers in the background using Docker compose. You will see the network being created:
 
 ```bash
 ...
@@ -127,28 +121,6 @@ Creating emintdnode1 ... done
 Creating emintdnode3 ... done
 ```
 
-In order to see the logs of a particular node, you can use the command:
-```bash
-docker exec emintdnode0 tail emintd.log
-```
-
-The logs will look like:
-
-```bash
-I[2020-07-29|17:33:52.452] starting ABCI with Tendermint                module=main 
-E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 272a247b837653cf068d39efd4c407ffbd9a0e6f@192.168.10.5:26656"
-E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 3e05d3637b7ebf4fc0948bbef01b54d670aa810a@192.168.10.4:26656"
-E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 689f8606ede0b26ad5b79ae244c14cc67ab4efe7@192.168.10.3:26656"
-I[2020-07-29|17:33:58.828] Executed block                               module=state height=88 validTxs=0 invalidTxs=0
-I[2020-07-29|17:33:58.830] Committed state                              module=state height=88 txs=0 appHash=90CC5FA53CF8B5EC49653A14DA20888AD81C92FCF646F04D501453FD89FCC791
-I[2020-07-29|17:34:04.032] Executed block                               module=state height=89 validTxs=0 invalidTxs=0
-I[2020-07-29|17:34:04.034] Committed state                              module=state height=89 txs=0 appHash=0B54C4DB1A0DACB1EEDCD662B221C048C826D309FD2A2F31FF26BAE8D2D7D8D7
-I[2020-07-29|17:34:09.381] Executed block                               module=state height=90 validTxs=0 invalidTxs=0
-I[2020-07-29|17:34:09.383] Committed state                              module=state height=90 txs=0 appHash=75FD1EE834F0669D5E717C812F36B21D5F20B3CCBB45E8B8D415CB9C4513DE51
-I[2020-07-29|17:34:14.700] Executed block                               module=state height=91 validTxs=0 invalidTxs=0
-```
-
-** disregard the `Can't add peer's address to addrbook` warning. As long as the blocks are being produced and the block hashes are the same for each node, there should not be any issues.
 
 ### Stop Testnet
 
@@ -213,8 +185,49 @@ Each `./build/nodeN` directory is mounted to the `/emintd` directory in each con
 
 ### Logging
 
-Logs are saved under each `./build/nodeN/emintd/emintd.log`. You can also watch logs
-directly via Docker, for example:
+In order to see the logs of a particular node you can use the following command:
+
+```bash
+# node 0: daemon logs
+docker exec emintdnode0 tail emintd.log
+
+# node 0: REST & RPC logs
+docker exec emintdnode0 tail emintcli.log
+```
+
+The logs for the daemon will look like:
+
+```bash
+I[2020-07-29|17:33:52.452] starting ABCI with Tendermint                module=main
+E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 272a247b837653cf068d39efd4c407ffbd9a0e6f@192.168.10.5:26656"
+E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 3e05d3637b7ebf4fc0948bbef01b54d670aa810a@192.168.10.4:26656"
+E[2020-07-29|17:33:53.394] Can't add peer's address to addrbook         module=p2p err="Cannot add non-routable address 689f8606ede0b26ad5b79ae244c14cc67ab4efe7@192.168.10.3:26656"
+I[2020-07-29|17:33:58.828] Executed block                               module=state height=88 validTxs=0 invalidTxs=0
+I[2020-07-29|17:33:58.830] Committed state                              module=state height=88 txs=0 appHash=90CC5FA53CF8B5EC49653A14DA20888AD81C92FCF646F04D501453FD89FCC791
+I[2020-07-29|17:34:04.032] Executed block                               module=state height=89 validTxs=0 invalidTxs=0
+I[2020-07-29|17:34:04.034] Committed state                              module=state height=89 txs=0 appHash=0B54C4DB1A0DACB1EEDCD662B221C048C826D309FD2A2F31FF26BAE8D2D7D8D7
+I[2020-07-29|17:34:09.381] Executed block                               module=state height=90 validTxs=0 invalidTxs=0
+I[2020-07-29|17:34:09.383] Committed state                              module=state height=90 txs=0 appHash=75FD1EE834F0669D5E717C812F36B21D5F20B3CCBB45E8B8D415CB9C4513DE51
+I[2020-07-29|17:34:14.700] Executed block                               module=state height=91 validTxs=0 invalidTxs=0
+```
+
+::: tip
+You can disregard the `Can't add peer's address to addrbook` warning. As long as the blocks are
+being produced and the app hashes are the same for each node, there should not be any issues.
+:::
+
+Whereas the logs for the REST & RPC server would look like:
+
+```bash
+I[2020-07-30|09:39:17.488] Starting application REST service (chain-id: "7305661614933169792")... module=rest-server
+I[2020-07-30|09:39:17.488] Starting RPC HTTP server on 127.0.0.1:8545   module=rest-server
+...
+```
+
+#### Follow Logs
+
+You can also watch logs as they are produced via Docker with the `--follow` (`-f`) flag, for
+example:
 
 ```bash
 docker logs -f emintdnode0
