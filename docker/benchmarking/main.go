@@ -16,6 +16,7 @@ func main() {
 	app.Commands = []cli.Command{
 		benchmark.SendTx,
 		benchmark.Analyze,
+		benchmark.AddGenesis,
 	}
 	err := app.Run(os.Args)
 	if err != nil {
