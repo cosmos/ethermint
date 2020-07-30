@@ -8,5 +8,6 @@ COPY . /ethermint
 WORKDIR /ethermint
 
 RUN make install
+RUN cd /ethermint/docker/benchmarking && go get && go build
 
 ENTRYPOINT ["/bin/bash"]

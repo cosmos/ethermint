@@ -8,13 +8,13 @@ bash init.sh 2> /dev/null
 
 sleep 10
 
-./benchmarking s -c $1
+../benchmarking s -c $1
 
 sleep 30
 tmux kill-session -t resource_recorder
 
 START=$(cat start.txt)
 END=$(cat end.txt)
-./benchmarking a -s $START -e $END
+../benchmarking a -s $START -e $END
 
 rm start.txt end.txt

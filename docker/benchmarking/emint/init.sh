@@ -30,9 +30,6 @@ emintcli keys add $FKEY
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 emintd init $MONIKER --chain-id $CHAINID
 
-# Use a custom genesis with pre-generated keys
-cp ./benchmark_ethmint_genesis.json $HOME/.emintd/config/genesis.json
-
 # Allocate genesis accounts (cosmos formatted addresses)
 emintd add-genesis-account $(emintcli keys show $FKEY -a) 1000000000000000000photon,1000000000000000000stake
 
