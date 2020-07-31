@@ -39,6 +39,10 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
+func init() {
+	crypto.RegisterCodec(authtypes.ModuleCdc)
+}
+
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
@@ -622,7 +626,8 @@ type Transaction struct {
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
-	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
+	// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -929,7 +934,6 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		// authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
 		accRet := authtypes.NewAccountRetriever(e.cliCtx)
 
 		err = accRet.EnsureExists(from)
