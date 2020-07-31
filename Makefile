@@ -73,6 +73,9 @@ docker:
 	docker cp ethermint:/usr/bin/emintd ./build/ ; \
 	docker cp ethermint:/usr/bin/emintcli ./build/
 
+docker-localnet:
+	# build the image
+	docker build -f ./networks/local/ethermintnode/Dockerfile . -t emintd/node
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###
@@ -266,12 +269,9 @@ build-docker-local-ethermint:
 # Run a 4-node testnet locally
 localnet-start: localnet-stop
 	mkdir -p ./build/
-	docker rmi -f ethermint-build-linux
-	docker build --rm -t ethermint-build-linux . ; \
-	container_id=$$(docker create ethermint-build-linux) ; \
-	docker container start $${container_id} ;
+	@$(MAKE) docker-localnet
 
-	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermint-build-linux "emintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
+	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z emintd/node "emintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
 	docker-compose up -d
 
 localnet-stop:

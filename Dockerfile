@@ -1,32 +1,30 @@
-FROM golang:stretch as build-env
+FROM golang:alpine AS build-env
 
-# Install minimum necessary dependencies
-ENV PACKAGES curl make git libc-dev bash gcc
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y $PACKAGES
+# Set up dependencies
+ENV PACKAGES git build-base
 
 # Set working directory for the build
-WORKDIR /go/src/github.com/ChainSafe/ethermint
+WORKDIR /go/src/github.com/Chainsafe/ethermint
+
+# Install dependencies
+RUN apk add --update $PACKAGES
 
 # Add source files
 COPY . .
 
-# build Ethermint
-RUN make build-ethermint-linux
+# Make the binary
+RUN make build
 
 # Final image
-FROM golang:1.14 as final
+FROM alpine
 
-WORKDIR /
-
-RUN apt-get update
+# Install ca-certificates
+RUN apk add --update ca-certificates
+WORKDIR /root
 
 # Copy over binaries from the build-env
-COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintd /usr/bin/emintd
-COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintcli /usr/bin/emintcli
-COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/scripts/start.sh /
+COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintd /usr/bin/emintd
+COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintcli /usr/bin/emintcli
 
-EXPOSE 26656 26657 1317 8545
-
-# Run emintd by default, omit entrypoint to ease using container with emintcli
-ENTRYPOINT ["/bin/bash", "-c"]
+# Run emintd by default
+CMD ["emintd"]

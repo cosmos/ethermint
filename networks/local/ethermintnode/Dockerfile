@@ -1,23 +1,32 @@
-#FROM alpine:3.10.2
-#
-#RUN apk update && \
-#    apk upgrade && \
-#    apk --no-cache add curl jq file
+FROM golang:stretch as build-env
 
-# Changed from Alpine to Ubuntu because the keyring PR is linking to libc
-# Alpine uses muslc instead of libc
+# Install minimum necessary dependencies
+ENV PACKAGES curl make git libc-dev bash gcc
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y $PACKAGES
 
-FROM ubuntu:18.04
+# Set working directory for the build
+WORKDIR /go/src/github.com/ChainSafe/ethermint
 
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get -y install curl jq file
+# Add source files
+COPY . .
 
-VOLUME [ /emintd ]
-WORKDIR /emintd
-EXPOSE 26656 26657 1317
-ENTRYPOINT ["/usr/bin/wrapper.sh"]
-CMD ["start"]
-STOPSIGNAL SIGTERM
+# build Ethermint
+RUN make build-ethermint-linux
 
-COPY wrapper.sh /usr/bin/wrapper.sh
+# Final image
+FROM golang:1.14 as final
+
+WORKDIR /
+
+RUN apt-get update
+
+# Copy over binaries from the build-env
+COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintd /usr/bin/emintd
+COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/build/emintcli /usr/bin/emintcli
+COPY --from=build-env /go/src/github.com/ChainSafe/ethermint/scripts/start.sh /
+
+EXPOSE 26656 26657 1317 8545
+
+# Run emintd by default, omit entrypoint to ease using container with emintcli
+ENTRYPOINT ["/bin/bash", "-c"]
