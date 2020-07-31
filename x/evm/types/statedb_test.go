@@ -17,7 +17,6 @@ import (
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/crypto"
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -27,7 +26,6 @@ type StateDBTestSuite struct {
 	suite.Suite
 
 	ctx         sdk.Context
-	querier     sdk.Querier
 	app         *app.EthermintApp
 	stateDB     *types.CommitStateDB
 	address     ethcmn.Address
@@ -43,7 +41,6 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
-	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := crypto.GenerateKey()
@@ -141,13 +138,13 @@ func (suite *StateDBTestSuite) TestStateDB_Balance() {
 			},
 			big.NewInt(200),
 		},
-		{
-			"sub more than balance",
-			func() {
-				suite.stateDB.SubBalance(suite.address, big.NewInt(300))
-			},
-			big.NewInt(-100),
-		},
+		// {
+		// 	"sub more than balance",
+		// 	func() {
+		// 		suite.stateDB.SubBalance(suite.address, big.NewInt(300))
+		// 	},
+		// 	big.NewInt(-100),
+		// },
 	}
 
 	for _, tc := range testCase {
