@@ -97,7 +97,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 	}
 
 	// TODO: is keyring.Secp256k1 the correct algorithm?
-	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().String(), keyring.English, password, keyring.Secp256k1)
+	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().Format(time.RFC3339), keyring.English, password, keyring.Secp256k1)
 	return common.BytesToAddress(info.GetPubKey().Address().Bytes()), err
 }
 
