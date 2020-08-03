@@ -810,14 +810,3 @@ func TestEth_GetBlockByNumber(t *testing.T) {
 	require.Equal(t, "0x0", block["extraData"].(string))
 	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
 }
-
-func TestEth_GetBlockByNumber_Farther(t *testing.T) {
-	param := []interface{}{"0x1b", true}
-	rpcRes := call(t, "eth_getBlockByNumber", param)
-
-	block := make(map[string]interface{})
-	err := json.Unmarshal(rpcRes.Result, &block)
-	require.NoError(t, err)
-	require.Equal(t, "0x0", block["extraData"].(string))
-	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
-}
