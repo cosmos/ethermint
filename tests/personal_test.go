@@ -45,3 +45,17 @@ func TestPersonal_EcRecover(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(addr), ecrecoverRes[:])
 }
+
+func TestPersonal_NewAccount(t *testing.T) {
+	rpcRes := call(t, "personal_newAccount", []string{""})
+	var addr common.Address
+	err := json.Unmarshal(rpcRes.Result, &addr)
+	require.NoError(t, err)
+	t.Log(addr.Hex())
+
+	rpcRes = call(t, "personal_listAccounts", []string{})
+	var res []hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &res)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(res))
+}

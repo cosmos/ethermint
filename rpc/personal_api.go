@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -49,6 +50,7 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
 			e.cliCtx.Input,
+			keyring.WithKeygenFunc(emintcrypto.EthermintKeygenFunc),
 		)
 		if err != nil {
 			return nil, err
@@ -89,7 +91,14 @@ func (e *PersonalEthAPI) LockAccount(addr common.Address) bool {
 
 // NewAccount will create a new account and returns the address for the new account.
 func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
-	return common.Address{}, nil
+	_, err := e.getKeybaseInfo()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	// TODO: is keyring.Secp256k1 the correct algorithm?
+	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().String(), keyring.English, password, keyring.Secp256k1)
+	return common.BytesToAddress(info.GetPubKey().Address().Bytes()), err
 }
 
 // UnlockAccount will unlock the account associated with the given address with
