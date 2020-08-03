@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
@@ -26,4 +27,21 @@ func TestPersonal_Sign(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 65, len(res))
 	// TODO: check that signature is same as with geth, requires importing a key
+}
+
+func TestPersonal_EcRecover(t *testing.T) {
+	addr := hexutil.Bytes(getAddress(t))
+	data := hexutil.Bytes{0x88}
+	rpcRes := call(t, "personal_sign", []interface{}{data, addr, ""})
+
+	var res hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &res)
+	require.NoError(t, err)
+	require.Equal(t, 65, len(res))
+
+	rpcRes = call(t, "personal_ecRecover", []interface{}{data, res})
+	var ecrecoverRes common.Address
+	err = json.Unmarshal(rpcRes.Result, &ecrecoverRes)
+	require.NoError(t, err)
+	require.Equal(t, []byte(addr), ecrecoverRes[:])
 }

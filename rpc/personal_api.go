@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 
 	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
@@ -16,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -130,7 +132,7 @@ func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr comm
 		return nil, err
 	}
 
-	sig[64] += 27 // transform V from 0/1 to 27/28
+	sig[crypto.RecoveryIDOffset] += 27 // transform V from 0/1 to 27/28
 	return sig, nil
 }
 
@@ -145,5 +147,17 @@ func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr comm
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecove
 func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (common.Address, error) {
-	return common.Address{}, nil
+	if len(sig) != crypto.SignatureLength {
+		return common.Address{}, fmt.Errorf("signature must be %d bytes long", crypto.SignatureLength)
+	}
+	if sig[crypto.RecoveryIDOffset] != 27 && sig[crypto.RecoveryIDOffset] != 28 {
+		return common.Address{}, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+	}
+	sig[crypto.RecoveryIDOffset] -= 27 // Transform yellow paper V from 27/28 to 0/1
+
+	rpk, err := crypto.SigToPub(accounts.TextHash(data), sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return crypto.PubkeyToAddress(*rpk), nil
 }
