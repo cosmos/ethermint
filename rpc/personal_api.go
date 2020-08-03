@@ -23,15 +23,17 @@ import (
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
 	cliCtx      sdkcontext.CLIContext
+	ethAPI      *PublicEthAPI
 	nonceLock   *AddrLocker
 	keys        []emintcrypto.PrivKeySecp256k1
 	keybaseLock sync.Mutex
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
+func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
 	return &PersonalEthAPI{
 		cliCtx:    cliCtx,
+		ethAPI:    ethAPI,
 		nonceLock: nonceLock,
 		keys:      keys,
 	}
@@ -101,7 +103,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails.
 func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTxArgs, passwd string) (common.Hash, error) {
-	return common.Hash{}, nil
+	return e.ethAPI.SendTransaction(args)
 }
 
 // Sign calculates an Ethereum ECDSA signature for:
