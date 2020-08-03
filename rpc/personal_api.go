@@ -1,25 +1,27 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
-	"github.com/spf13/viper"
 	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
+	"github.com/spf13/viper"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
-	cliCtx    sdkcontext.CLIContext
-	nonceLock *AddrLocker
+	cliCtx      sdkcontext.CLIContext
+	nonceLock   *AddrLocker
 	keys        []emintcrypto.PrivKeySecp256k1
 	keybaseLock sync.Mutex
 }
@@ -29,8 +31,29 @@ func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, nonceLock *AddrLocker, keys
 	return &PersonalEthAPI{
 		cliCtx:    cliCtx,
 		nonceLock: nonceLock,
-		keys: keys,
+		keys:      keys,
 	}
+}
+
+func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
+	e.keybaseLock.Lock()
+	defer e.keybaseLock.Unlock()
+
+	if e.cliCtx.Keybase == nil {
+		keybase, err := keyring.NewKeyring(
+			sdk.KeyringServiceName(),
+			viper.GetString(flags.FlagKeyringBackend),
+			viper.GetString(flags.FlagHome),
+			e.cliCtx.Input,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		e.cliCtx.Keybase = keybase
+	}
+
+	return e.cliCtx.Keybase.List()
 }
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
@@ -41,29 +64,11 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 
 // ListAccounts will return a list of addresses for accounts this node manages.
 func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
-	e.keybaseLock.Lock()
 	addrs := []common.Address{}
-
-	if e.cliCtx.Keybase == nil {
-		keybase, err := keyring.NewKeyring(
-			sdk.KeyringServiceName(),
-			viper.GetString(flags.FlagKeyringBackend),
-			viper.GetString(flags.FlagHome),
-			e.cliCtx.Input,
-		)
-		if err != nil {
-			return addrs, err
-		}
-
-		e.cliCtx.Keybase = keybase
-	}
-
-	infos, err := e.cliCtx.Keybase.List()
+	infos, err := e.getKeybaseInfo()
 	if err != nil {
 		return addrs, err
 	}
-
-	e.keybaseLock.Unlock()
 
 	for _, info := range infos {
 		addressBytes := info.GetPubKey().Address().Bytes()
@@ -98,7 +103,7 @@ func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTx
 }
 
 // Sign calculates an Ethereum ECDSA signature for:
-// keccack256("\x19Ethereum Signed Message:\n" + len(message) + message))
+// keccak256("\x19Ethereum Signed Message:\n" + len(message) + message))
 //
 // Note, the produced signature conforms to the secp256k1 curve R, S and V values,
 // where the V value will be 27 or 28 for legacy reasons.
@@ -107,7 +112,26 @@ func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTx
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
 func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
-	return nil, nil
+	infos, err := e.getKeybaseInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	name := ""
+	for _, info := range infos {
+		addressBytes := info.GetPubKey().Address().Bytes()
+		if bytes.Equal(addressBytes, addr[:]) {
+			name = info.GetName()
+		}
+	}
+
+	sig, _, err := e.cliCtx.Keybase.Sign(name, passwd, accounts.TextHash(data))
+	if err != nil {
+		return nil, err
+	}
+
+	sig[64] += 27 // transform V from 0/1 to 27/28
+	return sig, nil
 }
 
 // EcRecover returns the address for the account that was used to create the signature.
