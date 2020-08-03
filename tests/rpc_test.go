@@ -1,12 +1,3 @@
-// This is a test utility for Ethermint's Web3 JSON-RPC services.
-//
-// To run these tests please first ensure you have the emintd running
-// and have started the RPC service with `emintcli rest-server`.
-//
-// You can configure the desired ETHERMINT_NODE_HOST and ETHERMINT_INTEGRATION_TEST_MODE
-//
-// to have it running
-
 package tests
 
 import (
@@ -240,7 +231,7 @@ func TestEth_coinbase(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Logf("Got coinbase block proposer: %s\n", res.String())
-	require.NotEqual(t, zeroAddress.String(), res.String(), "expected: %s got: %s\n", zeroAddress.String(), res.String())
+	require.NotEqual(t, zeroAddress.String(), res.String(), "expected: not %s got: %s\n", zeroAddress.String(), res.String())
 }
 
 func TestEth_GetBalance(t *testing.T) {
@@ -811,6 +802,17 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 
 func TestEth_GetBlockByNumber(t *testing.T) {
 	param := []interface{}{"0x1", false}
+	rpcRes := call(t, "eth_getBlockByNumber", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+	require.Equal(t, "0x0", block["extraData"].(string))
+	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
+}
+
+func TestEth_GetBlockByNumber_Farther(t *testing.T) {
+	param := []interface{}{"0x1b", true}
 	rpcRes := call(t, "eth_getBlockByNumber", param)
 
 	block := make(map[string]interface{})

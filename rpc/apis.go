@@ -39,7 +39,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, keys []emintcrypto.PrivKeySecp256k1) 
 		{
 			Namespace: PersonalNamespace,
 			Version:   apiVersion,
-			Service:   NewPersonalEthAPI(cliCtx, nonceLock),
+			Service:   NewPersonalEthAPI(cliCtx, nonceLock, keys),
 			Public:    false,
 		},
 		{

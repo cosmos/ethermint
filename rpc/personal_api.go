@@ -2,8 +2,15 @@ package rpc
 
 import (
 	"context"
+	"sync"
 
+	"github.com/spf13/viper"
 	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	params "github.com/cosmos/ethermint/rpc/args"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -13,13 +20,16 @@ import (
 type PersonalEthAPI struct {
 	cliCtx    sdkcontext.CLIContext
 	nonceLock *AddrLocker
+	keys        []emintcrypto.PrivKeySecp256k1
+	keybaseLock sync.Mutex
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, nonceLock *AddrLocker) *PersonalEthAPI {
+func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
 	return &PersonalEthAPI{
 		cliCtx:    cliCtx,
 		nonceLock: nonceLock,
+		keys: keys,
 	}
 }
 
@@ -30,8 +40,37 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 }
 
 // ListAccounts will return a list of addresses for accounts this node manages.
-func (e *PersonalEthAPI) ListAccounts() []common.Address {
-	return []common.Address{}
+func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
+	e.keybaseLock.Lock()
+	addrs := []common.Address{}
+
+	if e.cliCtx.Keybase == nil {
+		keybase, err := keyring.NewKeyring(
+			sdk.KeyringServiceName(),
+			viper.GetString(flags.FlagKeyringBackend),
+			viper.GetString(flags.FlagHome),
+			e.cliCtx.Input,
+		)
+		if err != nil {
+			return addrs, err
+		}
+
+		e.cliCtx.Keybase = keybase
+	}
+
+	infos, err := e.cliCtx.Keybase.List()
+	if err != nil {
+		return addrs, err
+	}
+
+	e.keybaseLock.Unlock()
+
+	for _, info := range infos {
+		addressBytes := info.GetPubKey().Address().Bytes()
+		addrs = append(addrs, common.BytesToAddress(addressBytes))
+	}
+
+	return addrs, nil
 }
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
@@ -54,7 +93,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 // SendTransaction will create a transaction from the given arguments and
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails.
-func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error) {
+func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTxArgs, passwd string) (common.Hash, error) {
 	return common.Hash{}, nil
 }
 
