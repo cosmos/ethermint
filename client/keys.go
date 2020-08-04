@@ -1,29 +1,27 @@
-package main
+package client
 
 import (
 	"bufio"
 	"io"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	emintCrypto "github.com/cosmos/ethermint/crypto"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/cosmos/ethermint/crypto"
 )
 
 const (
 	flagDryRun = "dry-run"
 )
 
-// keyCommands registers a sub-tree of commands to interact with
+// KeyCommands registers a sub-tree of commands to interact with
 // local private key storage.
-func keyCommands() *cobra.Command {
+func KeyCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keys",
 		Short: "Add or view local private keys",
@@ -33,8 +31,11 @@ func keyCommands() *cobra.Command {
     used by light-clients, full nodes, or any other application that
     needs to sign with a private key.`,
 	}
+
+	// support adding Ethereum supported keys
 	addCmd := clientkeys.AddKeyCommand()
 	addCmd.RunE = runAddCmd
+
 	cmd.AddCommand(
 		clientkeys.MnemonicKeyCommand(),
 		addCmd,
@@ -47,22 +48,9 @@ func keyCommands() *cobra.Command {
 		clientkeys.ParseKeyStringCommand(),
 		clientkeys.MigrateCommand(),
 		flags.LineBreak,
-		unsafeExportEthKeyCommand(),
+		UnsafeExportEthKeyCommand(),
 	)
 	return cmd
-}
-
-func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
-	if transient {
-		return keyring.NewInMemory(keyring.WithKeygenFunc(ethermintKeygenFunc)), nil
-	}
-
-	return keyring.NewKeyring(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		buf,
-		keyring.WithKeygenFunc(ethermintKeygenFunc))
 }
 
 func runAddCmd(cmd *cobra.Command, args []string) error {
@@ -75,6 +63,15 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 	return clientkeys.RunAddCmd(cmd, args, kb, inBuf)
 }
 
-func ethermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (crypto.PrivKey, error) {
-	return emintCrypto.PrivKeySecp256k1(bz), nil
+func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
+	if transient {
+		return keyring.NewInMemory(keyring.WithKeygenFunc(crypto.EthermintKeygenFunc)), nil
+	}
+
+	return keyring.NewKeyring(
+		sdk.KeyringServiceName(),
+		viper.GetString(flags.FlagKeyringBackend),
+		viper.GetString(flags.FlagHome),
+		buf,
+		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc))
 }
