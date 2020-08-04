@@ -74,7 +74,6 @@ docker:
 	docker cp ethermint:/usr/bin/emintcli ./build/
 
 docker-localnet:
-# build the image
 	docker build -f ./networks/local/ethermintnode/Dockerfile . -t emintd/node
 
 ###############################################################################
