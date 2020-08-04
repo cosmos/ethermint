@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bufio"
@@ -19,9 +19,9 @@ const (
 	flagDryRun = "dry-run"
 )
 
-// keyCommands registers a sub-tree of commands to interact with
+// KeyCommands registers a sub-tree of commands to interact with
 // local private key storage.
-func keyCommands() *cobra.Command {
+func KeyCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keys",
 		Short: "Add or view local private keys",
@@ -31,8 +31,11 @@ func keyCommands() *cobra.Command {
     used by light-clients, full nodes, or any other application that
     needs to sign with a private key.`,
 	}
+
+	// support adding Ethereum supported keys
 	addCmd := clientkeys.AddKeyCommand()
 	addCmd.RunE = runAddCmd
+
 	cmd.AddCommand(
 		clientkeys.MnemonicKeyCommand(),
 		addCmd,
@@ -45,9 +48,19 @@ func keyCommands() *cobra.Command {
 		clientkeys.ParseKeyStringCommand(),
 		clientkeys.MigrateCommand(),
 		flags.LineBreak,
-		unsafeExportEthKeyCommand(),
+		UnsafeExportEthKeyCommand(),
 	)
 	return cmd
+}
+
+func runAddCmd(cmd *cobra.Command, args []string) error {
+	inBuf := bufio.NewReader(cmd.InOrStdin())
+	kb, err := getKeybase(viper.GetBool(flagDryRun), inBuf)
+	if err != nil {
+		return err
+	}
+
+	return clientkeys.RunAddCmd(cmd, args, kb, inBuf)
 }
 
 func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
@@ -62,14 +75,4 @@ func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
 		buf,
 		keys.WithKeygenFunc(crypto.EthermintKeygenFunc),
 	)
-}
-
-func runAddCmd(cmd *cobra.Command, args []string) error {
-	inBuf := bufio.NewReader(cmd.InOrStdin())
-	kb, err := getKeybase(viper.GetBool(flagDryRun), inBuf)
-	if err != nil {
-		return err
-	}
-
-	return clientkeys.RunAddCmd(cmd, args, kb, inBuf)
 }
