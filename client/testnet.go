@@ -29,12 +29,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
+	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -118,8 +117,8 @@ func InitTestnet(
 
 	var (
 		genAccounts []authexported.GenesisAccount
-		genBalances []banktypes.Balance
-		genFiles    []string
+		// genBalances []bank.Balance
+		genFiles []string
 	)
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -201,7 +200,7 @@ func InitTestnet(
 			sdk.NewCoin(types.DenomDefault, accStakingTokens),
 		)
 
-		// genBalances = append(genBalances, banktypes.Balance{Address: addr, Coins: coins})
+		// genBalances = append(genBalances, bank.Balance{Address: addr, Coins: coins})
 		genAccounts = append(genAccounts, types.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
@@ -241,7 +240,7 @@ func InitTestnet(
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
 
-	if err := initGenFiles(cdc, mbm, chainID, genAccounts, genBalances, genFiles, numValidators); err != nil {
+	if err := initGenFiles(cdc, mbm, chainID, genAccounts, genFiles, numValidators); err != nil {
 		return err
 	}
 
@@ -259,7 +258,7 @@ func InitTestnet(
 
 func initGenFiles(
 	cdc *codec.Codec, mbm module.BasicManager, chainID string,
-	genAccounts []authexported.GenesisAccount, genBalances []banktypes.Balance,
+	genAccounts []authexported.GenesisAccount,
 	genFiles []string, numValidators int,
 ) error {
 
@@ -273,11 +272,11 @@ func initGenFiles(
 	appGenState[authtypes.ModuleName] = cdc.MustMarshalJSON(authGenState)
 
 	// set the balances in the genesis state
-	var bankGenState banktypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[banktypes.ModuleName], &bankGenState)
+	// var bankGenState bank.GenesisState
+	// cdc.MustUnmarshalJSON(appGenState[bank.ModuleName], &bankGenState)
 
-	bankGenState.Balances = genBalances
-	appGenState[banktypes.ModuleName] = cdc.MustMarshalJSON(bankGenState)
+	// bankGenState.Balances = genBalances
+	// appGenState[bank.ModuleName] = cdc.MustMarshalJSON(bankGenState)
 
 	var stakingGenState stakingtypes.GenesisState
 	cdc.MustUnmarshalJSON(appGenState[stakingtypes.ModuleName], &stakingGenState)
@@ -291,17 +290,17 @@ func initGenFiles(
 	govGenState.DepositParams.MinDeposit[0].Denom = types.DenomDefault
 	appGenState[govtypes.ModuleName] = cdc.MustMarshalJSON(govGenState)
 
-	var mintGenState minttypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[minttypes.ModuleName], &mintGenState)
+	var mintGenState mint.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[mint.ModuleName], &mintGenState)
 
 	mintGenState.Params.MintDenom = types.DenomDefault
-	appGenState[minttypes.ModuleName] = cdc.MustMarshalJSON(mintGenState)
+	appGenState[mint.ModuleName] = cdc.MustMarshalJSON(mintGenState)
 
-	var crisisGenState crisistypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[crisistypes.ModuleName], &crisisGenState)
+	var crisisGenState crisis.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[crisis.ModuleName], &crisisGenState)
 
 	crisisGenState.ConstantFee.Denom = types.DenomDefault
-	appGenState[crisistypes.ModuleName] = cdc.MustMarshalJSON(crisisGenState)
+	appGenState[crisis.ModuleName] = cdc.MustMarshalJSON(crisisGenState)
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)
 	if err != nil {
@@ -327,7 +326,7 @@ func collectGenFiles(
 	cdc *codec.Codec, config *tmconfig.Config, chainID string,
 	nodeIDs []string, valPubKeys []tmcrypto.PubKey,
 	numValidators int, outputDir, nodeDirPrefix, nodeDaemonHome string,
-	genBalIterator banktypes.GenesisBalancesIterator,
+	genAccIterator authtypes.GenesisAccountIterator,
 ) error {
 
 	var appState json.RawMessage
@@ -349,7 +348,7 @@ func collectGenFiles(
 			return err
 		}
 
-		nodeAppState, err := genutil.GenAppStateFromConfig(cdc, config, initCfg, *genDoc, genBalIterator)
+		nodeAppState, err := genutil.GenAppStateFromConfig(cdc, config, initCfg, *genDoc, genAccIterator)
 		if err != nil {
 			return err
 		}
