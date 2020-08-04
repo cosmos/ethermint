@@ -236,12 +236,15 @@ docker logs -f emintdnode0
 ### Interact With the Testnet
 
 #### Ethereum JSON RPC & Websocket Ports
-To interact with the testnet via ws  or rpc/api, you will send your request to the corresponding ports:
+
+To interact with the testnet via WebSockets or RPC/API, you will send your request to the corresponding ports:
+
 | Eth JSON-RPC | Eth WS | 
 |--------------|--------|
 |    `8545`    | `8546` |
 
 You can send a curl command such as:
+
 ```bash
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" 192.162.10.1:8545
 ```
@@ -249,7 +252,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1
 The IP address will be the public IP of the docker container.
 :::
 
-Additional instructions on how to interact with the websocket can be found [here](https://github.com/ChainSafe/ethermint/blob/development/docs/quickstart/events.md#ethereum-websocket).
+Additional instructions on how to interact with the WebSocket can be found on the [events documentation](./events.md#ethereum-websocket).
 
 ### Keys & Accounts
 
