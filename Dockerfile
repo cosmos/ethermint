@@ -1,30 +1,19 @@
-FROM golang:alpine AS build-env
+FROM golang:1.14
 
-# Set up dependencies
-ENV PACKAGES git build-base
+RUN apt-get update && apt-get install -y \
+  make curl jq tmux
 
-# Set working directory for the build
-WORKDIR /go/src/github.com/Chainsafe/ethermint
+RUN apt-get update && apt-get install -f -y \
+  npm protobuf-compiler
 
-# Install dependencies
-RUN apk add --update $PACKAGES
 
-# Add source files
-COPY . .
+RUN npm install -g solc
+RUN mv /usr/local/bin/solcjs /usr/local/bin/solc
 
-# Make the binary
-RUN make build
+COPY . /ethermint
 
-# Final image
-FROM alpine
+WORKDIR /ethermint
 
-# Install ca-certificates
-RUN apk add --update ca-certificates
-WORKDIR /root
+RUN make install
 
-# Copy over binaries from the build-env
-COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintd /usr/bin/emintd
-COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintcli /usr/bin/emintcli
-
-# Run emintd by default
-CMD ["emintd"]
+ENTRYPOINT ["/bin/bash"]

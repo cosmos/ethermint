@@ -123,6 +123,8 @@ func InitTestnet(
 		genFiles    []string
 	)
 
+	ips := []string{"159.203.42.139", "178.128.233.8", "165.227.35.15"}
+
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 	// generate private keys, node IDs, and initial transactions
 	for i := 0; i < numValidators; i++ {
@@ -146,11 +148,14 @@ func InitTestnet(
 
 		config.Moniker = nodeDirName
 
-		ip, err := getIP(i, startingIPAddress)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
+		ip := ips[i]
+
+		var err error
+		// ip, err := getIP(i, startingIPAddress)
+		// if err != nil {
+		// 	_ = os.RemoveAll(outputDir)
+		// 	return err
+		// }
 
 		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFiles(config)
 		if err != nil {
@@ -388,9 +393,9 @@ func calculateIP(ip string, i int) (string, error) {
 		return "", fmt.Errorf("%v: non ipv4 address", ip)
 	}
 
-	for j := 0; j < i; j++ {
-		ipv4[3]++
-	}
+	// for j := 0; j < i; j++ {
+	// 	ipv4[3]++
+	// }
 
 	return ipv4.String(), nil
 }
