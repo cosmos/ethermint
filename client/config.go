@@ -13,7 +13,7 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 )
 
-// InitConfig adds the chain-id flag to the persistent flags
+// InitConfig adds the chain-id, encoding and output flags to the persistent flag set.
 func InitConfig(cmd *cobra.Command) error {
 	home, err := cmd.PersistentFlags().GetString(cli.HomeFlag)
 	if err != nil {
@@ -40,7 +40,7 @@ func InitConfig(cmd *cobra.Command) error {
 	return viper.BindPFlag(cli.OutputFlag, cmd.PersistentFlags().Lookup(cli.OutputFlag))
 }
 
-// ValidateChainID wraps a cobra command with a RunE function with integer chain-id verification
+// ValidateChainID wraps a cobra command with a RunE function with base 10 integer chain-id verification.
 func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 	// Copy base run command to be used after chain verification
 	baseRunE := baseCmd.RunE

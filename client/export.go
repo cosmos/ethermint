@@ -19,7 +19,7 @@ import (
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
 
-// UnsafeExportEthKeyCommand exports a kwy with the given name as a private key in hex format.
+// UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
 func UnsafeExportEthKeyCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "unsafe-export-eth-key [name]",
