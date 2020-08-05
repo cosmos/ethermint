@@ -14,7 +14,7 @@ do
   geth --datadir "data" account new --password <(echo $PW)
   ACCT=$(geth --datadir "data" --nousb account list | cut -d\  -f3 | sed -e 's/^{//' | cut -d\  -f3 | sed -e 's/}//' | tail -1)
 
-  ../benchmarking gaa -ac $ACCT -am 10000000
+  ../benchmarking gaa -ac $ACCT -am 1000000000000000000
 
   UNLOCKACCTS+=$ACCT","
 

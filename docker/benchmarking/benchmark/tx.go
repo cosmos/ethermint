@@ -57,6 +57,7 @@ var (
 		Flags: []cli.Flag{
 			cli.IntFlag{Name: "duration, d", Value: 10000, Hidden: false, Usage: "test duration in seconds"},
 			cli.IntFlag{Name: "txcount, c", Value: 100, Hidden: false, Usage: "test transaction count"},
+			cli.StringFlag{Name: "protocol, p", Value: "emint", Hidden: false, Usage: "geth or emint"},
 		},
 	}
 	Analyze = cli.Command{
@@ -68,6 +69,7 @@ var (
 			cli.BoolFlag{Name: "verbose, v", Hidden: false, Usage: "Shows the additional details of analysis."},
 			cli.IntFlag{Name: "start, s", Usage: "Returns the metrics averaged from given start time."},
 			cli.IntFlag{Name: "end, e", Usage: "Returns the metrics averaged until given end time."},
+			cli.StringFlag{Name: "protocol, p", Value: "emint", Hidden: false, Usage: "geth or emint"},
 		},
 	}
 )
@@ -286,7 +288,7 @@ func sendTx(ctx *cli.Context) error {
 				testDuration.Stop()
 				receipts := getAllReceipts(hashes)
 
-				hashesf, err := os.Create("/ethermint/docker/benchmarking/emint/hashes.json")
+				hashesf, err := os.Create("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/hashes.json")
 				if err != nil {
 					return err
 				}
@@ -299,7 +301,7 @@ func sendTx(ctx *cli.Context) error {
 					return err
 				}
 
-				receiptsf, err := os.Create("/ethermint/docker/benchmarking/emint/receipts.json")
+				receiptsf, err := os.Create("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/receipts.json")
 				if err != nil {
 					return err
 				}
@@ -312,13 +314,13 @@ func sendTx(ctx *cli.Context) error {
 					return err
 				}
 
-				startTimef, err := os.Create("/ethermint/docker/benchmarking/emint/start.txt")
+				startTimef, err := os.Create("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/start.txt")
 				if err != nil {
 					return err
 				}
 				startTimef.Write([]byte(fmt.Sprintf("%d", startTime.Unix())))
 
-				endTimef, err := os.Create("/ethermint/docker/benchmarking/emint/end.txt")
+				endTimef, err := os.Create("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/end.txt")
 				if err != nil {
 					return err
 				}
@@ -385,7 +387,7 @@ func sendTx(ctx *cli.Context) error {
 }
 
 func analyze(ctx *cli.Context) error {
-	receiptsf, err := ioutil.ReadFile("/ethermint/docker/benchmarking/emint/receipts.json")
+	receiptsf, err := ioutil.ReadFile("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/receipts.json")
 	if err != nil {
 		fmt.Println("Unable to locate receipts.json file. Please run the sendtx command to generate this file.")
 		return err
@@ -457,7 +459,7 @@ func analyze(ctx *cli.Context) error {
 	}
 
 	// parse resource usage file
-	resourcef, err := os.Open("/ethermint/docker/benchmarking/emint/resource.log")
+	resourcef, err := os.Open("/ethermint/docker/benchmarking/" + ctx.String("protocol") + "/resource.log")
 	if err != nil {
 		fmt.Println("Unable to locate resource.log file. Please run the sendtx command to generate this file.")
 		return err
