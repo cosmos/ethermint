@@ -188,14 +188,49 @@ func average(resourcelist []float64, timestamplist []int, start, end int) float6
 	return sum / float64(end-start)
 }
 
-func calcTPS(transactions, timestamps []int) float64 {
+func calcTotalTPS(transactions, timestamps []int) float64 {
 	sum := 0
 	for _, val := range transactions {
 		sum += val
 	}
-	fmt.Println(timestamps[len(timestamps)-1])
-	fmt.Println(timestamps[0])
-	return float64(sum) / float64(timestamps[0]-timestamps[len(timestamps)-1])
+	return float64(sum) / float64(timestamps[len(timestamps)-2]-timestamps[len(timestamps)-1])
+}
+
+func calcRangedTps(transactions, timestamps []int, startTime, endTime int) float64 {
+	if endTime > timestamps[len(timestamps)-2] {
+		endTime = timestamps[len(timestamps)-2]
+	}
+	startBlockIndex := 0
+	endBlockIndex := 0
+	startTxIndex := 0
+	if startTime >= endTime {
+		return -1
+	}
+	for i, ts := range timestamps {
+		if startTime == ts {
+			startBlockIndex = i
+		}
+		if endTime == ts {
+			endBlockIndex = i
+		}
+	}
+	if startBlockIndex == len(timestamps)-1 {
+		startTxIndex = 0
+	} else {
+		startTxIndex = startBlockIndex + 1
+	}
+	endTxIndex := endBlockIndex + 1
+
+	sum := 0
+	if endTxIndex == startTxIndex {
+		sum = transactions[startTxIndex]
+	} else {
+		for i := startTxIndex; i <= endTxIndex-1; i++ {
+			sum += transactions[i]
+		}
+	}
+
+	return float64(sum) / float64(endTime-startTime)
 }
 
 func sendTx(ctx *cli.Context) error {
@@ -293,7 +328,7 @@ func sendTx(ctx *cli.Context) error {
 				}
 
 				log.Println(fmt.Sprintf("Test completed. Test duration: %d [ns]", endTime.UnixNano()-startTime.UnixNano()))
-				log.Println(fmt.Sprintf("Start time: %d [unix], End time: %d [unix]", startTime.Unix(), endTime.Unix()))
+				log.Println(fmt.Sprintf("Test Start Time: %d [unix], Test End Time: %d [unix]", startTime.Unix(), endTime.Unix()))
 
 				return nil
 			}
@@ -508,25 +543,23 @@ func analyze(ctx *cli.Context) error {
 	}
 
 	if ctx.Int("start") > 0 && ctx.Int("end") > 0 {
-		fmt.Println("start time set: ", ctx.Int("start"))
-		fmt.Println("end time set: ", ctx.Int("end"))
+		// fmt.Println("start time: ", ctx.Int("start"))
+		// fmt.Println("end time: ", ctx.Int("end"))
 
 		fmt.Println("Average CPU Usage [emintd]: ", average(emintdCPUUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
 		fmt.Println("Average RAM Usage [emintd]: ", average(emintdRAMUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
 		fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCPUUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 		fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRAMUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 
-		fmt.Println("TX per second (TPS): ", calcTPS(transactions, timestamps))
+		fmt.Println("Ranged TX per second (TPS): ", calcRangedTps(transactions, timestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println("-------------------------")
 	}
 
 	fmt.Println("Blocks with Tx: ", blocks)
-	fmt.Println("Block Timestamps: ", timestamps) //last two timestamps: first-1, last+1 block timestamp, respectively
+	fmt.Println("Block Timestamps: ", timestamps) //last two timestamps: first-1 block timestamp
 	fmt.Println("Transactions: ", transactions)
 	fmt.Println("Total Transactions: ", totalTx)
-
-	// take transactions, sum the array elements (from start to end)
-	// take diff of end and start timestamps
-	// tps := transactions / (end - start)
+	fmt.Println("Total TX per second (TPS): ", calcTotalTPS(transactions, timestamps))
 
 	return nil
 }
