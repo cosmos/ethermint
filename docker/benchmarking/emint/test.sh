@@ -9,7 +9,9 @@ sleep 10
 
 ../benchmarking s -c $1
 
+echo "cool-down period: 30 s"
 sleep 30
+
 tmux kill-session -t resource_recorder
 
 START=$(cat start.txt)
