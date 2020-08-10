@@ -20,7 +20,6 @@ PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = ethermintd
-ETHERMINT_CLI_BINARY = ethermintcli
 GO_MOD=GO111MODULE=on
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
@@ -28,18 +27,6 @@ SIMAPP = github.com/cosmos/ethermint/app
 RUNSIM = $(BINDIR)/runsim
 LEDGER_ENABLED ?= true
 
-ifeq ($(DETECTED_OS),)
-  ifeq ($(OS),Windows_NT)
-	  DETECTED_OS := windows
-  else
-	  UNAME_S = $(shell uname -s)
-    ifeq ($(UNAME_S),Darwin)
-	    DETECTED_OS := mac
-	  else
-	    DETECTED_OS := linux
-	  endif
-  endif
-endif
 export GO111MODULE = on
 
 # process build tags
@@ -83,7 +70,6 @@ build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
 		  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ETHERMINT_DAEMON_BINARY) \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ETHERMINT_CLI_BINARY) \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -105,17 +91,14 @@ all: tools verify install
 build: go.sum
 ifeq ($(OS), Windows_NT)
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(DETECTED_OS)/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(DETECTED_OS)/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
 else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(DETECTED_OS)/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(DETECTED_OS)/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
 endif
 	go build -mod=readonly ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)
 	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
 
 build-ethermint-linux: go.sum
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(MAKE) build-ethermint
@@ -124,7 +107,6 @@ build-ethermint-linux: go.sum
 
 install:
 	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_CLI_BINARY)
 
 clean:
 	@rm -rf ./build ./vendor
@@ -139,8 +121,7 @@ docker:
 	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
-	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
-	docker cp ethermint:/usr/bin/ethermintcli ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/ ; 
 
 docker-localnet:
 	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node

@@ -15,13 +15,20 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -31,12 +38,16 @@ import (
 	"github.com/cosmos/ethermint/client"
 	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/rpc"
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
 
-var invCheckPeriod uint
+var (
+	cdc            = codec.MakeCodec(app.ModuleBasics)
+	invCheckPeriod uint
+)
 
 func main() {
 	cobra.EnableCommandSorting = false
@@ -60,7 +71,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:               "ethermintd",
-		Short:             "Ethermint App Daemon (server)",
+		Short:             "Ethermint App",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 	// CLI commands to initialize the chain
@@ -79,6 +90,16 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, appCodec, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
+		clientrpc.StatusCommand(),
+		sdkclient.ConfigCmd(app.DefaultCLIHome),
+		queryCmd(cdc),
+		txCmd(cdc),
+		rpc.EmintServeCmd(cdc),
+		flags.LineBreak,
+		client.KeyCommands(),
+		flags.LineBreak,
+		version.Cmd,
+		flags.NewCompletionCmd(rootCmd, true),
 	)
 
 	// Tendermint node base commands
@@ -88,6 +109,10 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "EM", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+		return client.InitConfig(rootCmd)
+	}
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
@@ -115,4 +140,60 @@ func exportAppStateAndTMValidators(
 	emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
 
 	return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+}
+
+func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
+	queryCmd := &cobra.Command{
+		Use:     "query",
+		Aliases: []string{"q"},
+		Short:   "Querying subcommands",
+	}
+
+	queryCmd.AddCommand(
+		authcmd.GetAccountCmd(cdc),
+		flags.LineBreak,
+		authcmd.QueryTxsByEventsCmd(cdc),
+		authcmd.QueryTxCmd(cdc),
+		flags.LineBreak,
+	)
+
+	// add modules' query commands
+	app.ModuleBasics.AddQueryCommands(queryCmd, cdc)
+
+	return queryCmd
+}
+
+func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
+	txCmd := &cobra.Command{
+		Use:   "tx",
+		Short: "Transactions subcommands",
+	}
+
+	txCmd.AddCommand(
+		bankcmd.SendTxCmd(cdc),
+		flags.LineBreak,
+		authcmd.GetSignCommand(cdc),
+		authcmd.GetMultiSignCommand(cdc),
+		flags.LineBreak,
+		authcmd.GetBroadcastCommand(cdc),
+		authcmd.GetEncodeCommand(cdc),
+		authcmd.GetDecodeCommand(cdc),
+		flags.LineBreak,
+	)
+
+	// add modules' tx commands
+	app.ModuleBasics.AddTxCommands(txCmd, cdc)
+
+	// remove auth and bank commands as they're mounted under the root tx command
+	var cmdsToRemove []*cobra.Command
+
+	for _, cmd := range txCmd.Commands() {
+		if cmd.Use == auth.ModuleName || cmd.Use == bank.ModuleName {
+			cmdsToRemove = append(cmdsToRemove, cmd)
+		}
+	}
+
+	txCmd.RemoveCommand(cmdsToRemove...)
+
+	return txCmd
 }
