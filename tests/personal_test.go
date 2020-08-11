@@ -33,7 +33,6 @@ func TestPersonal_NewAccount(t *testing.T) {
 }
 
 func TestPersonal_Sign(t *testing.T) {
-	//addr := getAddress(t)
 	rpcRes := call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
 
 	var res hexutil.Bytes
@@ -44,7 +43,6 @@ func TestPersonal_Sign(t *testing.T) {
 }
 
 func TestPersonal_EcRecover(t *testing.T) {
-	//addr := hexutil.Bytes(getAddress(t))
 	data := hexutil.Bytes{0x88}
 	rpcRes := call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
 
