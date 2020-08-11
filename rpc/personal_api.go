@@ -144,10 +144,9 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 		return false, err
 	}
 
-	var ok bool
 	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
 	if !ok {
-		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+		return false, fmt.Errorf("invalid private key type: %T", privKey)
 	}
 
 	e.keys = append(e.keys, emintKey)
@@ -155,7 +154,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 }
 
 // SendTransaction will create a transaction from the given arguments and
-// tries to sign it with the key associated with args.To. If the given passwd isn't
+// tries to sign it with the key associated with args.To. If the given password isn't
 // able to decrypt the key it fails.
 func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTxArgs, passwd string) (common.Hash, error) {
 	return e.ethAPI.SendTransaction(args)
