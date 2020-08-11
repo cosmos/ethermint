@@ -87,13 +87,15 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 // LockAccount will lock the account associated with the given address when it's unlocked.
 func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 	for i, key := range e.keys {
-		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
-			tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
-			copy(tmp[:i], e.keys[:i])
-			copy(tmp[i:], e.keys[i+1:])
-			e.keys = tmp
-			return true
+		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+			continue
 		}
+		
+		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
+		copy(tmp[:i], e.keys[:i])
+		copy(tmp[i:], e.keys[i+1:])
+		e.keys = tmp
+		return true
 	}
 
 	return false
