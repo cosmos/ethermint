@@ -27,7 +27,7 @@ import (
 
 	"github.com/cosmos/ethermint/app/ante"
 	ethermintcodec "github.com/cosmos/ethermint/codec"
-	eminttypes "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 	"github.com/cosmos/ethermint/x/faucet"
 
@@ -37,14 +37,20 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
+func init() {
+	// set the address prefixes
+	config := sdk.GetConfig()
+	ethermint.SetBech32Prefixes(config)
+}
+
 const appName = "Ethermint"
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.emintcli")
+	DefaultCLIHome = os.ExpandEnv("$HOME/.ethermintcli")
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.emintd")
+	DefaultNodeHome = os.ExpandEnv("$HOME/.ethermintd")
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
@@ -176,7 +182,7 @@ func NewEthermintApp(
 
 	// use custom Ethermint account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], eminttypes.ProtoAccount,
+		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], ethermint.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		appCodec, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),

@@ -12,18 +12,89 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/make -f
+
+VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
+COMMIT := $(shell git log -1 --format='%H')
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
-COMMIT_HASH := $(shell git rev-parse --short HEAD)
-BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
-ETHERMINT_DAEMON_BINARY = emintd
-ETHERMINT_CLI_BINARY = emintcli
+ETHERMINT_DAEMON_BINARY = ethermintd
+ETHERMINT_CLI_BINARY = ethermintcli
 GO_MOD=GO111MODULE=on
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = github.com/cosmos/ethermint/app
 RUNSIM = $(BINDIR)/runsim
+LEDGER_ENABLED ?= true
+
+ifeq ($(DETECTED_OS),)
+  ifeq ($(OS),Windows_NT)
+	  DETECTED_OS := windows
+  else
+	  UNAME_S = $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+	    DETECTED_OS := mac
+	  else
+	    DETECTED_OS := linux
+	  endif
+  endif
+endif
+export GO111MODULE = on
+
+# process build tags
+
+build_tags = netgo
+ifeq ($(LEDGER_ENABLED),true)
+  ifeq ($(OS),Windows_NT)
+    GCCEXE = $(shell where gcc.exe 2> NUL)
+    ifeq ($(GCCEXE),)
+      $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
+    else
+      build_tags += ledger
+    endif
+  else
+    UNAME_S = $(shell uname -s)
+    ifeq ($(UNAME_S),OpenBSD)
+      $(warning OpenBSD detected, disabling ledger support (https://github.com/cosmos/cosmos-sdk/issues/1988))
+    else
+      GCC = $(shell command -v gcc 2> /dev/null)
+      ifeq ($(GCC),)
+        $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
+      else
+        build_tags += ledger
+      endif
+    endif
+  endif
+endif
+
+ifeq ($(WITH_CLEVELDB),yes)
+  build_tags += gcc
+endif
+build_tags += $(BUILD_TAGS)
+build_tags := $(strip $(build_tags))
+
+whitespace :=
+whitespace += $(whitespace)
+comma := ,
+build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
+
+# process linker flags
+
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
+		  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ETHERMINT_DAEMON_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ETHERMINT_CLI_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
+
+ifeq ($(WITH_CLEVELDB),yes)
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
+endif
+ldflags += $(LDFLAGS)
+ldflags := $(strip $(ldflags))
+
+BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 
 all: tools verify install
 
@@ -32,6 +103,13 @@ all: tools verify install
 ###############################################################################
 
 build: go.sum
+ifeq ($(OS), Windows_NT)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
+else
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
+endif
 	go build -mod=readonly ./...
 
 build-ethermint: go.sum
@@ -51,16 +129,7 @@ install:
 clean:
 	@rm -rf ./build ./vendor
 
-update-tools:
-	@echo "--> Updating vendor dependencies"
-	${GO_MOD} go get -u -v $(GOLINT) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
-	${GO_MOD} go get -u -v $(GOCILINT)
-
-verify:
-	@echo "--> Verifying dependencies have not been modified"
-	${GO_MOD} go mod verify
-
-docker:
+docker-build:
 	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
@@ -70,12 +139,11 @@ docker:
 	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
-	docker cp ethermint:/usr/bin/emintd ./build/ ; \
-	docker cp ethermint:/usr/bin/emintcli ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
+	docker cp ethermint:/usr/bin/ethermintcli ./build/
 
 docker-localnet:
-	# build the image
-	docker build -f ./networks/local/ethermintnode/Dockerfile . -t emintd/node
+	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###
@@ -268,11 +336,19 @@ build-docker-local-ethermint:
 
 # Run a 4-node testnet locally
 localnet-start: localnet-stop
+ifeq ($(OS),Windows_NT)
+	mkdir build &
+	@$(MAKE) docker-localnet
+
+	IF not exist "build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
+	docker-compose up -d
+else
 	mkdir -p ./build/
 	@$(MAKE) docker-localnet
 
-	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z emintd/node "emintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
+	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
 	docker-compose up -d
+endif
 
 localnet-stop:
 	docker-compose down
