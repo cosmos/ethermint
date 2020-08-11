@@ -66,10 +66,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
 	if transient {
 		return keyring.NewInMemory(
-			keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
-			keyring.WithDeriveFunc(crypto.DeriveKey),
-			keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
-			keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
+			crypto.EthSecp256k1Options()...,
 		), nil
 	}
 
@@ -78,9 +75,6 @@ func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		buf,
-		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
-		keyring.WithDeriveFunc(crypto.DeriveKey),
-		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
-		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
+		crypto.EthSecp256k1Options()...,
 	)
 }

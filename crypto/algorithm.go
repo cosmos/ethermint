@@ -27,6 +27,16 @@ const (
 //  - secp256k1 (Tendermint)
 var SupportedAlgorithms = []keyring.SigningAlgo{EthSecp256k1, keyring.Secp256k1}
 
+// EthSecp256k1Options defines a keyring options for the ethereum Secp256k1 curve.
+func EthSecp256k1Options() []keyring.KeybaseOption {
+	return []keyring.KeybaseOption{
+		keyring.WithKeygenFunc(EthermintKeygenFunc),
+		keyring.WithDeriveFunc(DeriveKey),
+		keyring.WithSupportedAlgos(SupportedAlgorithms),
+		keyring.WithSupportedAlgosLedger(SupportedAlgorithms),
+	}
+}
+
 func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keyring.SigningAlgo) ([]byte, error) {
 	switch algo {
 	case keyring.Secp256k1:
