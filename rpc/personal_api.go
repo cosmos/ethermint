@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -84,7 +85,17 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 }
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
-func (e *PersonalEthAPI) LockAccount(addr common.Address) bool {
+func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
+	for i, key := range e.keys {
+		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+			tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
+			copy(tmp[:i], e.keys[:i])
+			copy(tmp[i:], e.keys[i+1:])
+			e.keys = tmp
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -97,14 +108,50 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 
 	// TODO: is keyring.Secp256k1 the correct algorithm?
 	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().Format(time.RFC3339), keyring.English, password, keyring.Secp256k1)
-	return common.BytesToAddress(info.GetPubKey().Address().Bytes()), err
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(info.GetPubKey().Address().Bytes()), nil
 }
 
 // UnlockAccount will unlock the account associated with the given address with
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, duration *uint64) (bool, error) {
-	return false, nil
+	// TODO: use duration
+
+	infos, err := e.getKeybaseInfo()
+	if err != nil {
+		return false, err
+	}
+
+	name := ""
+	for _, info := range infos {
+		addressBytes := info.GetPubKey().Address().Bytes()
+		if bytes.Equal(addressBytes, addr[:]) {
+			name = info.GetName()
+		}
+	}
+
+	if name == "" {
+		return false, fmt.Errorf("cannot find key with given address")
+	}
+
+	// TODO: this only works on local keys
+	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	if err != nil {
+		return false, err
+	}
+
+	var ok bool
+	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	if !ok {
+		panic(fmt.Sprintf("invalid private key type: %T", privKey))
+	}
+
+	e.keys = append(e.keys, emintKey)
+	return true, nil
 }
 
 // SendTransaction will create a transaction from the given arguments and

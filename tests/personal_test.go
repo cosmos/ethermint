@@ -52,11 +52,48 @@ func TestPersonal_NewAccount(t *testing.T) {
 	var addr common.Address
 	err := json.Unmarshal(rpcRes.Result, &addr)
 	require.NoError(t, err)
-	t.Log(addr.Hex())
 
 	rpcRes = call(t, "personal_listAccounts", []string{})
 	var res []hexutil.Bytes
 	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
+}
+
+func TestPersonal_LockAccount(t *testing.T) {
+	addr := hexutil.Bytes(getAddress(t))
+	rpcRes := call(t, "personal_lockAccount", []interface{}{addr})
+
+	var locked bool
+	err := json.Unmarshal(rpcRes.Result, &locked)
+	require.NoError(t, err)
+	require.True(t, locked)
+
+	_, err = callWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(addr), ""})
+	require.NotNil(t, err)
+}
+
+func TestPersonal_UnlockAccount(t *testing.T) {
+	pswd := "nootwashere"
+	rpcRes := call(t, "personal_newAccount", []string{pswd})
+	var addr common.Address
+	err := json.Unmarshal(rpcRes.Result, &addr)
+	require.NoError(t, err)
+
+	// try to sign, should be locked
+	_, err = callWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, ""})
+	require.NotNil(t, err)
+
+	rpcRes = call(t, "personal_unlockAccount", []interface{}{addr, ""})
+	var unlocked bool
+	err = json.Unmarshal(rpcRes.Result, &unlocked)
+	require.NoError(t, err)
+	require.True(t, unlocked)
+
+	// try to sign, should work now
+	rpcRes = call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, pswd})
+	var res hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &res)
+	require.NoError(t, err)
+	require.Equal(t, 65, len(res))
 }

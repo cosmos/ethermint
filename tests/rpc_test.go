@@ -100,6 +100,39 @@ func call(t *testing.T, method string, params interface{}) *Response {
 	return rpcRes
 }
 
+func callWithError(method string, params interface{}) (*Response, error) {
+	req, err := json.Marshal(createRequest(method, params))
+	if err != nil {
+		return nil, err
+	}
+
+	var rpcRes *Response
+	time.Sleep(1 * time.Second)
+	/* #nosec */
+	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
+	if err != nil {
+		return nil, err
+	}
+
+	decoder := json.NewDecoder(res.Body)
+	rpcRes = new(Response)
+	err = decoder.Decode(&rpcRes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	if rpcRes.Error != nil {
+		return nil, fmt.Errorf(rpcRes.Error.Message)
+	}
+
+	return rpcRes, nil
+}
+
 // turns a 0x prefixed hex string to a big.Int
 func hexToBigInt(t *testing.T, in string) *big.Int {
 	s := in[2:]
