@@ -58,7 +58,7 @@ func EthermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (tmcrypto.PrivKey,
 	return PrivKeySecp256k1(bz), nil
 }
 
-func DeriveSecp256k1(mnemonic string, bip39Passphrase, hdPath string) ([]byte, error) {
+func DeriveSecp256k1(mnemonic, bip39Passphrase, _ string) ([]byte, error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
 	if err != nil {
 		return nil, err

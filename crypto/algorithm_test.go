@@ -6,16 +6,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"github.com/cosmos/cosmos-sdk/tests"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
-
-func init() {
-	codec.RegisterCrypto(CryptoCodec)
-	keyring.RegisterCodec(CryptoCodec)
-}
 
 func TestKeyring(t *testing.T) {
 	dir, cleanup := tests.NewTestCaseDir(t)
@@ -37,4 +32,19 @@ func TestKeyring(t *testing.T) {
 	require.Equal(t, "foo", info.GetName())
 	require.Equal(t, "local", info.GetType().String())
 	require.Equal(t, EthSecp256k1, info.GetAlgo())
+
+	params := *hd.NewFundraiserParams(0, sdk.CoinType, 0)
+	hdPath := params.String()
+
+	bz, err := DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, EthSecp256k1)
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
+
+	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.Secp256k1)
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
+
+	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.SigningAlgo(""))
+	require.Error(t, err)
+	require.Empty(t, bz)
 }
