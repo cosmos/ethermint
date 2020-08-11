@@ -16,6 +16,7 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
 	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/crypto"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -104,6 +105,9 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (e
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
+		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
+		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 	)
 	if err != nil {
 		return

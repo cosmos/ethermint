@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/codec"
+	"github.com/cosmos/ethermint/crypto"
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
@@ -142,6 +143,9 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
+		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
+		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 	)
 	if err != nil {
 		return addresses, err
