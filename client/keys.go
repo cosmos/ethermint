@@ -16,8 +16,7 @@ import (
 )
 
 const (
-	flagDryRun  = "dry-run"
-	flagKeyAlgo = "algo"
+	flagDryRun = "dry-run"
 )
 
 // KeyCommands registers a sub-tree of commands to interact with
@@ -35,7 +34,6 @@ func KeyCommands() *cobra.Command {
 
 	// support adding Ethereum supported keys
 	addCmd := clientkeys.AddKeyCommand()
-	addCmd.Flags().String(flagKeyAlgo, string(crypto.EthSecp256k1), "Key signing algorithm to generate keys for")
 	addCmd.RunE = runAddCmd
 
 	cmd.AddCommand(
