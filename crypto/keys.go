@@ -3,6 +3,15 @@ package crypto
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
+	"crypto/hmac"
+	"crypto/sha512"
+
+	"github.com/tyler-smith/go-bip39"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -18,6 +27,17 @@ const (
 //  - secp256k1 (Tendermint)
 var SupportedAlgorithms = []keyring.SigningAlgo{EthSecp256k1, keyring.Secp256k1}
 
+func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keyring.SigningAlgo) ([]byte, error) {
+	switch algo {
+	case keyring.Secp256k1:
+		return keyring.StdDeriveKey(mnemonic, bip39Passphrase, hdPath, algo)
+	case EthSecp256k1:
+		return DeriveSecp256k1(mnemonic, bip39Passphrase, hdPath)
+	default:
+		return nil, errors.Wrap(keyring.ErrUnsupportedSigningAlgo, string(algo))
+	}
+}
+
 // EthermintKeygenFunc is the key generation function to generate secp256k1 ToECDSA
 // from ethereum.
 func EthermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (tmcrypto.PrivKey, error) {
@@ -26,4 +46,29 @@ func EthermintKeygenFunc(bz []byte, algo keyring.SigningAlgo) (tmcrypto.PrivKey,
 	}
 
 	return PrivKeySecp256k1(bz), nil
+}
+
+func DeriveSecp256k1(mnemonic string, bip39Passphrase, hdPath string) ([]byte, error) {
+	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	// HMAC the seed to produce the private key and chain code
+	mac := hmac.New(sha512.New, []byte("Bitcoin seed"))
+	_, err = mac.Write(seed)
+	if err != nil {
+		return nil, err
+	}
+
+	seed = mac.Sum(nil)
+
+	priv, err := ethcrypto.ToECDSA(seed[:32])
+	if err != nil {
+		return nil, err
+	}
+
+	derivedKey := PrivKeySecp256k1(ethcrypto.FromECDSA(priv))
+
+	return derivedKey, nil
 }

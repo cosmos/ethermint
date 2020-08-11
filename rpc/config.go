@@ -105,6 +105,7 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
 		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+		keyring.WithDeriveFunc(crypto.DeriveKey),
 		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 	)

@@ -166,6 +166,7 @@ func InitTestnet(
 			clientDir,
 			inBuf,
 			keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+			keyring.WithDeriveFunc(crypto.DeriveKey),
 			keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 			keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 		)

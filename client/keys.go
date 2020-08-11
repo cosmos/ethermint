@@ -67,6 +67,7 @@ func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
 	if transient {
 		return keyring.NewInMemory(
 			keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+			keyring.WithDeriveFunc(crypto.DeriveKey),
 			keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 			keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 		), nil
@@ -78,6 +79,7 @@ func getKeybase(transient bool, buf io.Reader) (keyring.Keybase, error) {
 		viper.GetString(flags.FlagHome),
 		buf,
 		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+		keyring.WithDeriveFunc(crypto.DeriveKey),
 		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 	)

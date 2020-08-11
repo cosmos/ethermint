@@ -143,6 +143,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
 		keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+		keyring.WithDeriveFunc(crypto.DeriveKey),
 		keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 		keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 	)

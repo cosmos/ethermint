@@ -63,6 +63,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					viper.GetString(flagClientHome),
 					inBuf,
 					keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+					keyring.WithDeriveFunc(crypto.DeriveKey),
 					keyring.WithSupportedAlgos(crypto.SupportedAlgorithms),
 					keyring.WithSupportedAlgosLedger(crypto.SupportedAlgorithms),
 				)
