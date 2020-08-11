@@ -39,6 +39,7 @@ var (
 	HOST = os.Getenv("HOST")
 
 	zeroString = "0x0"
+	from       = []byte{}
 )
 
 type Request struct {
@@ -70,9 +71,31 @@ func TestMain(m *testing.M) {
 		HOST = "http://localhost:8545"
 	}
 
+	var err error
+	from, err = getAddress()
+	if err != nil {
+		fmt.Printf("failed to get account: %s\n", err)
+		os.Exit(1)
+	}
+
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)
+}
+
+func getAddress() ([]byte, error) {
+	rpcRes, err := callWithError("eth_accounts", []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	var res []hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res[0], nil
 }
 
 func createRequest(method string, params interface{}) Request {
@@ -331,18 +354,8 @@ func TestEth_GetCode(t *testing.T) {
 	require.True(t, bytes.Equal(expectedRes, code), "expected: %X got: %X", expectedRes, code)
 }
 
-func getAddress(t *testing.T) []byte {
-	rpcRes := call(t, "eth_accounts", []string{})
-
-	var res []hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
-
-	return res[0]
-}
-
 func TestEth_SendTransaction_Transfer(t *testing.T) {
-	from := getAddress(t)
+	//from := getAddress(t)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -364,7 +377,7 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 }
 
 func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
-	from := getAddress(t)
+	//from := getAddress(t)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -452,7 +465,7 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 
 // sendTestTransaction sends a dummy transaction
 func sendTestTransaction(t *testing.T) hexutil.Bytes {
-	from := getAddress(t)
+	//from := getAddress(t)
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
@@ -485,7 +498,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 
 // deployTestContract deploys a contract that emits an event in the constructor
 func deployTestContract(t *testing.T) (hexutil.Bytes, map[string]interface{}) {
-	from := getAddress(t)
+	//from := getAddress(t)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -616,7 +629,7 @@ func deployTestContractWithFunction(t *testing.T) hexutil.Bytes {
 
 	bytecode := "0x608060405234801561001057600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a260d08061004d6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b8160008190555080827ff3ca124a697ba07e8c5e80bebcfcc48991fc16a63170e8a9206e30508960d00360405160405180910390a3505056fea265627a7a723158201d94d2187aaf3a6790527b615fcc40970febf0385fa6d72a2344848ebd0df3e964736f6c63430005110032"
 
-	from := getAddress(t)
+	//from := getAddress(t)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -731,7 +744,7 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 }
 
 func getNonce(t *testing.T) hexutil.Uint64 {
-	from := getAddress(t)
+	//from := getAddress(t)
 	param := []interface{}{hexutil.Bytes(from), "latest"}
 	rpcRes := call(t, "eth_getTransactionCount", param)
 
@@ -742,7 +755,7 @@ func getNonce(t *testing.T) hexutil.Uint64 {
 }
 
 func TestEth_EstimateGas(t *testing.T) {
-	from := getAddress(t)
+	//from := getAddress(t)
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
@@ -758,7 +771,7 @@ func TestEth_EstimateGas(t *testing.T) {
 }
 
 func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
-	from := getAddress(t)
+	//from := getAddress(t)
 	bytecode := "0x608060405234801561001057600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a260d08061004d6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b8160008190555080827ff3ca124a697ba07e8c5e80bebcfcc48991fc16a63170e8a9206e30508960d00360405160405180910390a3505056fea265627a7a723158201d94d2187aaf3a6790527b615fcc40970febf0385fa6d72a2344848ebd0df3e964736f6c63430005110032"
 
 	param := make([]map[string]string, 1)
@@ -772,7 +785,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err)
 
-	require.Equal(t, hexutil.Uint64(0x1d46b), gas)
+	require.Equal(t, hexutil.Uint64(0x1cab2), gas)
 }
 
 func TestEth_ExportAccount(t *testing.T) {
@@ -803,7 +816,7 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	// call function to set storage
 	calldata := "0xeb8ac92100000000000000000000000000000000000000000000000000000000000000630000000000000000000000000000000000000000000000000000000000000000"
 
-	from := getAddress(t)
+	//from := getAddress(t)
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
