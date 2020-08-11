@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -125,20 +124,12 @@ func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTx
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
 func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
-	infos, err := e.getKeybaseInfo()
-	if err != nil {
-		return nil, err
+	key, ok := checkKeyInKeyring(e.keys, addr)
+	if !ok {
+		return nil, fmt.Errorf("cannot find key with given address")
 	}
 
-	name := ""
-	for _, info := range infos {
-		addressBytes := info.GetPubKey().Address().Bytes()
-		if bytes.Equal(addressBytes, addr[:]) {
-			name = info.GetName()
-		}
-	}
-
-	sig, _, err := e.cliCtx.Keybase.Sign(name, passwd, accounts.TextHash(data))
+	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
 	if err != nil {
 		return nil, err
 	}
