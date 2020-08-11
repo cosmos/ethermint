@@ -9,8 +9,8 @@ var CryptoCodec = codec.New()
 
 // Amino encoding names
 const (
-	PrivKeyAminoName = "crypto/PrivKeySecp256k1"
-	PubKeyAminoName  = "crypto/PubKeySecp256k1"
+	PrivKeyAminoName = "ethermint/PrivKeySecp256k1"
+	PubKeyAminoName  = "ethermint/PubKeySecp256k1"
 )
 
 func init() {
