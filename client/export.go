@@ -34,7 +34,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				viper.GetString(flags.FlagKeyringBackend),
 				viper.GetString(flags.FlagHome),
 				inBuf,
-				keys.WithKeygenFunc(crypto.EthermintKeygenFunc),
+				crypto.EthSecp256k1Options()...,
 			)
 			if err != nil {
 				return err

@@ -164,7 +164,7 @@ func InitTestnet(
 			keyringBackend,
 			clientDir,
 			inBuf,
-			keys.WithKeygenFunc(crypto.EthermintKeygenFunc),
+			crypto.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return err
