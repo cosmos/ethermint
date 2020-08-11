@@ -50,7 +50,7 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
 			e.cliCtx.Input,
-			keyring.WithKeygenFunc(emintcrypto.EthermintKeygenFunc),
+			emintcrypto.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return nil, err
@@ -90,7 +90,7 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			continue
 		}
-		
+
 		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
 		copy(tmp[:i], e.keys[:i])
 		copy(tmp[i:], e.keys[i+1:])
@@ -108,8 +108,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	// TODO: is keyring.Secp256k1 the correct algorithm?
-	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().Format(time.RFC3339), keyring.English, password, keyring.Secp256k1)
+	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().Format(time.RFC3339), keyring.English, password, emintcrypto.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
