@@ -45,7 +45,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	accountName := viper.GetString(flagUnlockKey)
 	accountNames := strings.Split(accountName, ",")
 
-	var emintKeys []crypto.PrivKeySecp256k1
+	var keys []crypto.PrivKeySecp256k1
 	if len(accountName) > 0 {
 		var err error
 		inBuf := bufio.NewReader(os.Stdin)
@@ -64,13 +64,13 @@ func registerRoutes(rs *lcd.RestServer) {
 			}
 		}
 
-		emintKeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
+		keys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	apis := GetRPCAPIs(rs.CliCtx, emintKeys)
+	apis := GetRPCAPIs(rs.CliCtx, keys)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -120,7 +120,7 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 		// With keyring keybase, password is not required as it is pulled from the OS prompt
 		privKey, err := keybase.ExportPrivateKeyObject(acc, passphrase)
 		if err != nil {
-			return nil, err
+			return []crypto.PrivKeySecp256k1{}, err
 		}
 
 		var ok bool
