@@ -65,11 +65,11 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
 func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
-	key, err := crypto.HexToECDSA(privkey)
+	_, err := crypto.HexToECDSA(privkey)
 	if err != nil {
 		return common.Address{}, err
 	}
-	
+
 	return common.Address{}, nil
 }
 
