@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -27,17 +29,26 @@ type PersonalEthAPI struct {
 	ethAPI      *PublicEthAPI
 	nonceLock   *AddrLocker
 	keys        []emintcrypto.PrivKeySecp256k1
+	keyInfos    []keyring.Info
 	keybaseLock sync.Mutex
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
 func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
-	return &PersonalEthAPI{
+	api := &PersonalEthAPI{
 		cliCtx:    cliCtx,
 		ethAPI:    ethAPI,
 		nonceLock: nonceLock,
 		keys:      keys,
 	}
+
+	infos, err := api.getKeybaseInfo()
+	if err != nil {
+		return api
+	}
+
+	api.keyInfos = infos
+	return api
 }
 
 func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
@@ -76,12 +87,7 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 // ListAccounts will return a list of addresses for accounts this node manages.
 func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 	addrs := []common.Address{}
-	infos, err := e.getKeybaseInfo()
-	if err != nil {
-		return addrs, err
-	}
-
-	for _, info := range infos {
+	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
 		addrs = append(addrs, common.BytesToAddress(addressBytes))
 	}
@@ -113,12 +119,19 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	info, _, err := e.cliCtx.Keybase.CreateMnemonic("key_"+time.Now().Format(time.RFC3339), keyring.English, password, emintcrypto.EthSecp256k1)
+	name := "key_" + time.Now().Format(time.RFC3339)
+	info, _, err := e.cliCtx.Keybase.CreateMnemonic(name, keyring.English, password, emintcrypto.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
 
-	return common.BytesToAddress(info.GetPubKey().Address().Bytes()), nil
+	e.keyInfos = append(e.keyInfos, info)
+
+	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
+	log.Printf("Your new key was generated\t\taddress=0x%x", addr)
+	log.Printf("Please backup your key file!\tpath=%s", os.Getenv("HOME")+"/.ethermintcli/"+name)
+	log.Println("Please remember your password!")
+	return addr, nil
 }
 
 // UnlockAccount will unlock the account associated with the given address with
@@ -127,13 +140,8 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, duration *uint64) (bool, error) {
 	// TODO: use duration
 
-	infos, err := e.getKeybaseInfo()
-	if err != nil {
-		return false, err
-	}
-
 	name := ""
-	for _, info := range infos {
+	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
 		if bytes.Equal(addressBytes, addr[:]) {
 			name = info.GetName()
