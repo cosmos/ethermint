@@ -47,6 +47,7 @@ var (
 	flagNodeDaemonHome    = "node-daemon-home"
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
+	flagKeyAlgo           = "algo"
 )
 
 const nodeDirPerm = 0755
@@ -76,10 +77,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 			nodeCLIHome, _ := cmd.Flags().GetString(flagNodeCLIHome)
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
+			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, keyringBackend, numValidators,
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, keyringBackend, algo, numValidators,
 			)
 		},
 	}
@@ -93,16 +95,27 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", types.DenomDefault), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photon,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-
+	cmd.Flags().String(flagKeyAlgo, string(crypto.EthSecp256k1), "Key signing algorithm to generate keys for")
 	return cmd
 }
 
 // InitTestnet initializes the testnet configuration
 func InitTestnet(
-	cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
-	mbm module.BasicManager, genAccIterator authtypes.GenesisAccountIterator,
-	outputDir, chainID, minGasPrices, nodeDirPrefix, nodeDaemonHome,
-	nodeCLIHome, startingIPAddress, keyringBackend string, numValidators int,
+	cmd *cobra.Command,
+	config *tmconfig.Config,
+	cdc *codec.Codec,
+	mbm module.BasicManager,
+	genAccIterator authtypes.GenesisAccountIterator,
+	outputDir,
+	chainID,
+	minGasPrices,
+	nodeDirPrefix,
+	nodeDaemonHome,
+	nodeCLIHome,
+	startingIPAddress,
+	keyringBackend,
+	algo string,
+	numValidators int,
 ) error {
 
 	if chainID == "" {
@@ -175,7 +188,7 @@ func InitTestnet(
 		)
 
 		keyPass := clientkeys.DefaultKeyPass
-		addr, secret, err := server.GenerateSaveCoinKey(kb, nodeDirName, keyPass, true)
+		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo))
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -320,6 +333,27 @@ func initGenFiles(
 		}
 	}
 	return nil
+}
+
+// GenerateSaveCoinKey returns the address of a public key, along with the secret
+// phrase to recover the private key.
+func GenerateSaveCoinKey(keybase keys.Keybase, keyName, keyPass string, overwrite bool, algo keys.SigningAlgo) (sdk.AccAddress, string, error) {
+	// ensure no overwrite
+	if !overwrite {
+		_, err := keybase.Get(keyName)
+		if err == nil {
+			return sdk.AccAddress([]byte{}), "", fmt.Errorf(
+				"key already exists, overwrite is disabled")
+		}
+	}
+
+	// generate a private key, with recovery phrase
+	info, secret, err := keybase.CreateMnemonic(keyName, keys.English, keyPass, algo)
+	if err != nil {
+		return sdk.AccAddress([]byte{}), "", err
+	}
+
+	return sdk.AccAddress(info.GetPubKey().Address()), secret, nil
 }
 
 func collectGenFiles(
