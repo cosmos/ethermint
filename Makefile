@@ -347,7 +347,7 @@ else
 	@$(MAKE) docker-localnet
 
 	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
-	docker-compose up -d
+	docker-compose up
 endif
 
 localnet-stop:
