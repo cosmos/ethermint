@@ -1,8 +1,8 @@
 #!/bin/bash
 
-tmux kill-session -t resource_recorder 1> /dev/null; tmux new -s resource_recorder -d; tmux send-keys -t resource_recorder "while true; do (date '+%s' && ps -e -o pcpu,pmem,args --sort=pcpu | grep \"emint\" | grep -v grep | cut -d\" \" -f1-5 | tail) >> resource.log; sleep 1; done" C-m
+tmux kill-session -t resource_recorder 1> /dev/null; tmux new -s resource_recorder -d; tmux send-keys -t resource_recorder "while true; do (date '+%s' && ps -e -o pcpu,pmem,args --sort=pcpu | grep \"ethermint\" | grep -v grep | cut -d\" \" -f1-5 | tail) >> resource.log; sleep 1; done" C-m
 
-go get && go build
+cd .. && go get && go build && cd emint
 bash init.sh 2> /dev/null
 
 sleep 10

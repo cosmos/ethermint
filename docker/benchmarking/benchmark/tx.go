@@ -515,11 +515,11 @@ func analyze(ctx *cli.Context) error {
 					process:       spl[3],
 				})
 
-			if spl[3] == "emintd" {
+			if spl[3] == "ethermintd" {
 				emintdCPUUsage = append(emintdCPUUsage, cpu)
 				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
-			} else if spl[3] == "emintcli" {
+			} else if spl[3] == "ethermintcli" {
 				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
 				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
@@ -545,11 +545,11 @@ func analyze(ctx *cli.Context) error {
 					process:       spl[2],
 				})
 
-			if spl[2] == "emintd" {
+			if spl[2] == "ethermintd" {
 				emintdCPUUsage = append(emintdCPUUsage, cpu)
 				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
-			} else if spl[2] == "emintcli" {
+			} else if spl[2] == "ethermintcli" {
 				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
 				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
