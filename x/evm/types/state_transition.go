@@ -103,6 +103,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
+	if st.Recipient != nil {
+		fmt.Printf("BEFORE recipient=0x%x\n", *st.Recipient)
+		csdb.ForEachStorage(*st.Recipient, func(key, value common.Hash) bool {
+			fmt.Printf("key=0x%x\nvalue=0x%x\n", key, value)
+			return false
+		})
+	}
+
 	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")
@@ -205,6 +213,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 			GasLimit:    gasLimit,
 			GasRefunded: leftOverGas,
 		},
+	}
+
+	if st.Recipient != nil {
+		fmt.Printf("AFTER recipient=0x%x\n", *st.Recipient)
+		csdb.ForEachStorage(*st.Recipient, func(key, value common.Hash) bool {
+			fmt.Printf("key=0x%x\nvalue=0x%x\n", key, value)
+			return false
+		})
 	}
 
 	// TODO: Refund unused gas here, if intended in future

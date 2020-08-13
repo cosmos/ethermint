@@ -119,6 +119,8 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
+	fmt.Printf("SetState address=0x%x\nkey=0x%x\nvalue=0x%x\n", so.address, prefixKey, value)
+
 	// since the new value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
 		account:   &so.address,
