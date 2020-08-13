@@ -75,6 +75,7 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
+// Currently, this is not implemented since the feature is not supported by the keyring.
 func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
 	_, err := crypto.HexToECDSA(privkey)
 	if err != nil {
@@ -96,6 +97,7 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 }
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
+// It removes the key corresponding to the given address from the API's local keys.
 func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 	for i, key := range e.keys {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
@@ -119,7 +121,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	name := "key_" + time.Now().Format(time.RFC3339)
+	name := "key_" + time.Now().UTC().Format(time.RFC3339)
 	info, _, err := e.cliCtx.Keybase.CreateMnemonic(name, keyring.English, password, emintcrypto.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
@@ -137,7 +139,8 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // UnlockAccount will unlock the account associated with the given address with
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
-func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, duration *uint64) (bool, error) {
+// It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
+func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) {
 	// TODO: use duration
 
 	name := ""
