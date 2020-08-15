@@ -28,18 +28,18 @@ SIMAPP = github.com/cosmos/ethermint/app
 RUNSIM = $(BINDIR)/runsim
 LEDGER_ENABLED ?= true
 
-ifeq ($(DETECTED_OS),)
-  ifeq ($(OS),Windows_NT)
-	  DETECTED_OS := windows
+
+ifeq ($(OS),Windows_NT)
+  DETECTED_OS := windows
+else
+  UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    DETECTED_OS := mac
   else
-	  UNAME_S = $(shell uname -s)
-    ifeq ($(UNAME_S),Darwin)
-	    DETECTED_OS := mac
-	  else
-	    DETECTED_OS := linux
-	  endif
+    DETECTED_OS := linux
   endif
 endif
+export DETECTED_OS
 export GO111MODULE = on
 
 # process build tags
