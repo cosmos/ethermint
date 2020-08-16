@@ -119,7 +119,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
-	fmt.Printf("SetState address=0x%x\nkey=0x%x\nvalue=0x%x\n", so.address, prefixKey, value)
+	fmt.Printf("SetState address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, value)
 
 	// since the new value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
@@ -137,16 +137,21 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 	if ok {
 		so.dirtyStorage[idx].Value = value
 		return
+	} else {
+		// create new entry
+		so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
+		idx = len(so.dirtyStorage) - 1
+		so.keyToDirtyStorageIndex[key] = idx
 	}
 
-	// create new entry
-	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
-	idx = len(so.dirtyStorage) - 1
-	so.keyToDirtyStorageIndex[key] = idx
-
-	so.originStorage = append(so.originStorage, State{})
-	idx = len(so.originStorage) - 1
-	so.keyToOriginStorageIndex[key] = idx
+	idx, ok = so.keyToOriginStorageIndex[key]
+	if ok {
+		so.originStorage[idx].Value = value
+	} else {
+		so.originStorage = append(so.originStorage, NewState(key, value))
+		idx = len(so.originStorage) - 1
+		so.keyToOriginStorageIndex[key] = idx
+	}
 }
 
 // SetCode sets the state object's code.
@@ -244,6 +249,7 @@ func (so *stateObject) markSuicided() {
 
 // commitState commits all dirty storage to a KVStore.
 func (so *stateObject) commitState() {
+	fmt.Printf("commitState address=0x%x\n", so.address)
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
@@ -346,11 +352,14 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
+		fmt.Printf("GetState dirty storage address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, so.dirtyStorage[idx].Value)
 		return so.dirtyStorage[idx].Value
 	}
 
 	// otherwise return the entry's original value
-	return so.GetCommittedState(db, key)
+	value := so.GetCommittedState(db, key)
+	fmt.Printf("GetState address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, value)
+	return value
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
@@ -362,13 +371,18 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {
+		fmt.Printf("GetCommittedState origin storage idx=%d address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", idx, so.address, prefixKey, so.originStorage[idx].Value)
 		return so.originStorage[idx].Value
 	}
 
-	if len(so.originStorage) == 0 {
-		so.originStorage = append(so.originStorage, NewState(prefixKey, ethcmn.Hash{}))
-		so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
+	if idx >= len(so.originStorage) {
+		panic(fmt.Sprintf("cannot get originStorage for stateObject 0x%x at idx=%d", so.address, idx))
 	}
+
+	// if len(so.originStorage) == 0 {
+	// 	so.originStorage = append(so.originStorage, NewState(prefixKey, ethcmn.Hash{}))
+	// 	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
+	// }
 
 	state := so.originStorage[idx]
 
