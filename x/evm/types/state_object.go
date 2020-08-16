@@ -119,8 +119,6 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
-	fmt.Printf("SetState address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, value)
-
 	// since the new value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
 		account:   &so.address,
@@ -138,21 +136,11 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 		so.dirtyStorage[idx].Value = value
 		return
 	}
-	//} else {
+
 	// create new entry
 	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
 	idx = len(so.dirtyStorage) - 1
 	so.keyToDirtyStorageIndex[key] = idx
-	//}
-
-	// idx, ok = so.keyToOriginStorageIndex[key]
-	// if ok {
-	// 	so.originStorage[idx].Value = value
-	// } else {
-	// so.originStorage = append(so.originStorage, NewState(key, value))
-	// idx = len(so.originStorage) - 1
-	// so.keyToOriginStorageIndex[key] = idx
-	//}
 }
 
 // SetCode sets the state object's code.
@@ -250,7 +238,6 @@ func (so *stateObject) markSuicided() {
 
 // commitState commits all dirty storage to a KVStore.
 func (so *stateObject) commitState() {
-	fmt.Printf("commitState address=0x%x\n", so.address)
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
@@ -260,7 +247,6 @@ func (so *stateObject) commitState() {
 		// delete empty values from the store
 		if (state.Value == ethcmn.Hash{}) {
 			store.Delete(state.Key.Bytes())
-			//continue
 		}
 
 		delete(so.keyToDirtyStorageIndex, state.Key)
@@ -268,6 +254,11 @@ func (so *stateObject) commitState() {
 		// skip no-op changes, persist actual changes
 		idx, ok := so.keyToOriginStorageIndex[state.Key]
 		if !ok {
+			continue
+		}
+
+		if (state.Value == ethcmn.Hash{}) {
+			delete(so.keyToOriginStorageIndex, state.Key)
 			continue
 		}
 
@@ -352,13 +343,11 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
-		fmt.Printf("GetState dirty storage address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, so.dirtyStorage[idx].Value)
 		return so.dirtyStorage[idx].Value
 	}
 
 	// otherwise return the entry's original value
 	value := so.GetCommittedState(db, key)
-	fmt.Printf("GetState address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", so.address, prefixKey, value)
 	return value
 }
 
@@ -371,19 +360,12 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {
-		fmt.Printf("GetCommittedState origin storage idx=%d address=0x%x\n\tkey=0x%x\n\tvalue=0x%x\n", idx, so.address, prefixKey, so.originStorage[idx].Value)
 		return so.originStorage[idx].Value
 	}
 
-	//if len(so.originStorage) == 0 {}
-	state := NewState(prefixKey, ethcmn.Hash{})
-	// so.originStorage = append(so.originStorage, state)
-	// so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	//}
-
-	//state := so.originStorage[idx]
-
 	// otherwise load the value from the KVStore
+	state := NewState(prefixKey, ethcmn.Hash{})
+
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
@@ -392,7 +374,6 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 		state.Value.SetBytes(rawValue)
 	}
 
-	//so.originStorage[idx] = state
 	so.originStorage = append(so.originStorage, state)
 	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
 	return state.Value
