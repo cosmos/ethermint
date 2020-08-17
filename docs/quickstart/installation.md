@@ -17,8 +17,8 @@ make install
 Check that the binaries have been successfuly installed:
 
 ```bash
-emintd -h
-emintcli -h
+ethermintd -h
+ethermintcli -h
 ```
 
 ## Docker
@@ -26,15 +26,15 @@ emintcli -h
 You can build Ethermint using Docker by running:
 
 ```bash
-make docker
+make docker-build
 ```
 
 This will install the binaries on the `./build` directory. Now, check that the binaries have been
 successfuly installed:
 
 ```bash
-emintd -h
-emintcli -h
+ethermintd -h
+ethermintcli -h
 ```
 
 ## Releases

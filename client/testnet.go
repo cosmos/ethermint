@@ -48,6 +48,7 @@ var (
 	flagNodeDaemonHome    = "node-daemon-home"
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
+	flagKeyAlgo           = "algo"
 )
 
 const nodeDirPerm = 0755
@@ -64,7 +65,7 @@ necessary files (private validator, genesis, config, etc.).
 
 Note, strict routability for addresses is turned off in the config file.`,
 
-		Example: "emintd testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
+		Example: "ethermintd testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			config := ctx.Config
 
@@ -77,10 +78,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 			nodeCLIHome, _ := cmd.Flags().GetString(flagNodeCLIHome)
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
+			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 
 			return InitTestnet(
 				cmd, config, cdc, mbm, genBalIterator, outputDir, chainID, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, keyringBackend, numValidators,
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, keyringBackend, algo, numValidators,
 			)
 		},
 	}
@@ -88,22 +90,33 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
 	cmd.Flags().StringP(flagOutputDir, "o", "./build", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
-	cmd.Flags().String(flagNodeDaemonHome, "emintd", "Home directory of the node's daemon configuration")
-	cmd.Flags().String(flagNodeCLIHome, "emintcli", "Home directory of the node's cli configuration")
+	cmd.Flags().String(flagNodeDaemonHome, "ethermintd", "Home directory of the node's daemon configuration")
+	cmd.Flags().String(flagNodeCLIHome, "ethermintcli", "Home directory of the node's cli configuration")
 	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", types.DenomDefault), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photon,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-
+	cmd.Flags().String(flagKeyAlgo, string(crypto.EthSecp256k1), "Key signing algorithm to generate keys for")
 	return cmd
 }
 
 // InitTestnet initializes the testnet configuration
 func InitTestnet(
-	cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
-	mbm module.BasicManager, genBalIterator banktypes.GenesisBalancesIterator,
-	outputDir, chainID, minGasPrices, nodeDirPrefix, nodeDaemonHome,
-	nodeCLIHome, startingIPAddress, keyringBackend string, numValidators int,
+	cmd *cobra.Command,
+	config *tmconfig.Config,
+	cdc *codec.Codec,
+	mbm module.BasicManager,
+	genBalIterator banktypes.GenesisBalancesIterator,
+	outputDir,
+	chainID,
+	minGasPrices,
+	nodeDirPrefix,
+	nodeDaemonHome,
+	nodeCLIHome,
+	startingIPAddress,
+	keyringBackend,
+	algo string,
+	numValidators int,
 ) error {
 
 	if chainID == "" {
@@ -170,7 +183,7 @@ func InitTestnet(
 			keyringBackend,
 			clientDir,
 			inBuf,
-			keyring.WithKeygenFunc(crypto.EthermintKeygenFunc),
+			crypto.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return err
@@ -181,7 +194,7 @@ func InitTestnet(
 		)
 
 		keyPass := clientkeys.DefaultKeyPass
-		addr, secret, err := server.GenerateSaveCoinKey(kb, nodeDirName, keyPass, true)
+		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keyring.SigningAlgo(algo))
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -326,6 +339,27 @@ func initGenFiles(
 		}
 	}
 	return nil
+}
+
+// GenerateSaveCoinKey returns the address of a public key, along with the secret
+// phrase to recover the private key.
+func GenerateSaveCoinKey(keybase keyring.Keybase, keyName, keyPass string, overwrite bool, algo keyring.SigningAlgo) (sdk.AccAddress, string, error) {
+	// ensure no overwrite
+	if !overwrite {
+		_, err := keybase.Get(keyName)
+		if err == nil {
+			return sdk.AccAddress([]byte{}), "", fmt.Errorf(
+				"key already exists, overwrite is disabled")
+		}
+	}
+
+	// generate a private key, with recovery phrase
+	info, secret, err := keybase.CreateMnemonic(keyName, keyring.English, keyPass, algo)
+	if err != nil {
+		return sdk.AccAddress([]byte{}), "", err
+	}
+
+	return sdk.AccAddress(info.GetPubKey().Address()), secret, nil
 }
 
 func collectGenFiles(
