@@ -313,7 +313,7 @@ func TestEth_GetBalance(t *testing.T) {
 
 func TestEth_GetStorageAt(t *testing.T) {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	rpcRes := call(t, "eth_getStorageAt", []string{addrA, string(addrAStoreKey), zeroString})
+	rpcRes := call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(addrAStoreKey), zeroString})
 
 	var storage hexutil.Bytes
 	err := storage.UnmarshalJSON(rpcRes.Result)
@@ -327,7 +327,7 @@ func TestEth_GetStorageAt(t *testing.T) {
 func TestEth_GetProof(t *testing.T) {
 	params := make([]interface{}, 3)
 	params[0] = addrA
-	params[1] = []string{string(addrAStoreKey)}
+	params[1] = []string{fmt.Sprint(addrAStoreKey)}
 	params[2] = "latest"
 	rpcRes := call(t, "eth_getProof", params)
 	require.NotNil(t, rpcRes)
