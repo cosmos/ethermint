@@ -268,7 +268,6 @@
 
     &__icon {
       position: absolute;
-      top: 1rem;
       left: 1.25rem;
       font-size: 1.5rem;
       display: flex;
@@ -347,9 +346,9 @@
 
     &__wrapper {
       display: grid;
-      grid-auto-flow: column;
-      grid-template-columns: 30% 1fr;
+      grid-auto-flow: row;
       gap: 1.25rem;
+      text-align: center;
     }
 
     &:before {
@@ -499,6 +498,7 @@
 
       &__wrapper {
         grid-template-columns: 3rem 1fr;
+        text-align: start;
       }
 
       &__h1 {
