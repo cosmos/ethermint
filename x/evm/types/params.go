@@ -101,6 +101,7 @@ func DefaultParams() Params {
 	}
 }
 
+// String implements the fmt.Stringer interface
 func (p Params) String() string {
 	out, _ := yaml.Marshal(p)
 	return string(out)
@@ -126,8 +127,8 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	}
 }
 
-// ValidateBasic performs basic validation on evm parameters.
-func (p Params) ValidateBasic() error {
+// Validate performs basic validation on evm parameters.
+func (p Params) Validate() error {
 	if err := validateInt(p.HomesteadBlock); err != nil {
 		return fmt.Errorf("%s: %w", homesteadBlock, err)
 	}

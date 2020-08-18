@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	"github.com/cosmos/ethermint/x/evm/types"
 
@@ -21,7 +22,8 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc *codec.Codec
+	cdc        *codec.Codec
+	paramSpace paramtypes.Subspace
 	// Store key required for the EVM Prefix KVStore. It is required by:
 	// - storing Account's Storage State
 	// - storing Account's Code
@@ -39,10 +41,16 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, ak types.AccountKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, ak types.AccountKeeper, bk types.BankKeeper,
 ) Keeper {
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
 	return Keeper{
 		cdc:           cdc,
+		paramSpace:    paramSpace,
 		storeKey:      storeKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak, bk),
 		TxCount:       0,

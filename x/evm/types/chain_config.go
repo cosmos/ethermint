@@ -8,19 +8,22 @@ import (
 )
 
 // GenerateChainConfig returns an Ethereum chainconfig for EVM state transitions
-func GenerateChainConfig(chainID *big.Int) *params.ChainConfig {
-	// TODO: Update chainconfig to take in parameters for fork blocks
+func GenerateChainConfig(chainID *big.Int, parameters Params) *params.ChainConfig {
 	return &params.ChainConfig{
 		ChainID:             chainID,
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport:      true,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
+		HomesteadBlock:      parameters.HomesteadBlock.BigInt(),
+		DAOForkBlock:        parameters.DAOForkBlock.BigInt(),
+		DAOForkSupport:      parameters.DAOForkSupport,
+		EIP150Block:         parameters.EIP150Block.BigInt(),
+		EIP150Hash:          common.HexToHash(parameters.EIP150Hash),
+		EIP155Block:         parameters.EIP155Block.BigInt(),
+		EIP158Block:         parameters.EIP158Block.BigInt(),
+		ByzantiumBlock:      parameters.ByzantiumBlock.BigInt(),
+		ConstantinopleBlock: parameters.ConstantinopleBlock.BigInt(),
+		PetersburgBlock:     parameters.PetersburgBlock.BigInt(),
+		IstanbulBlock:       parameters.IstanbulBlock.BigInt(),
+		MuirGlacierBlock:    parameters.MuirGlacierBlock.BigInt(),
+		YoloV1Block:         parameters.YoloV1Block.BigInt(),
+		EWASMBlock:          parameters.EWASMBlock.BigInt(),
 	}
 }

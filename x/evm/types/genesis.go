@@ -15,6 +15,7 @@ type (
 	GenesisState struct {
 		Accounts []GenesisAccount  `json:"accounts"`
 		TxsLogs  []TransactionLogs `json:"txs_logs"`
+		Params   Params            `json:"params"`
 	}
 
 	// GenesisAccount defines an account to be initialized in the genesis state.
@@ -51,6 +52,7 @@ func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Accounts: []GenesisAccount{},
 		TxsLogs:  []TransactionLogs{},
+		Params:   DefaultParams(),
 	}
 }
 
@@ -80,5 +82,5 @@ func (gs GenesisState) Validate() error {
 		seenTxs[tx.Hash.String()] = true
 	}
 
-	return nil
+	return gs.Params.Validate()
 }
