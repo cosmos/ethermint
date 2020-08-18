@@ -773,7 +773,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err)
 
-	require.Equal(t, hexutil.Uint64(0x1cab2), gas)
+	require.Equal(t, hexutil.Uint64(0x1d7ac), gas)
 }
 
 func TestEth_ExportAccount(t *testing.T) {
