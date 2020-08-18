@@ -33,4 +33,4 @@ require (
 )
 
 // forked SDK to avoid breaking changes
-replace github.com/cosmos/cosmos-sdk => github.com/Chainsafe/cosmos-sdk v0.34.4-0.20200811134358-723463e1daec
+replace github.com/cosmos/cosmos-sdk => github.com/Chainsafe/cosmos-sdk v0.34.4-0.20200818140608-c36255272967
