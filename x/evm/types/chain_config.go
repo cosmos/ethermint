@@ -24,6 +24,6 @@ func GenerateChainConfig(chainID *big.Int, parameters Params) *params.ChainConfi
 		IstanbulBlock:       parameters.IstanbulBlock.BigInt(),
 		MuirGlacierBlock:    parameters.MuirGlacierBlock.BigInt(),
 		YoloV1Block:         parameters.YoloV1Block.BigInt(),
-		EWASMBlock:          parameters.EWASMBlock.BigInt(),
+		EWASMBlock:          nil,
 	}
 }

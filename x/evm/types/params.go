@@ -207,8 +207,9 @@ func validateHash(i interface{}) error {
 	}
 
 	bz := common.FromHex(hex)
-	if len(bz) != common.HashLength {
-		return fmt.Errorf("invalid hash length, expected 32, got %d", len(bz))
+	lenHex := len(bz)
+	if lenHex > 0 && lenHex != common.HashLength {
+		return fmt.Errorf("invalid hash length, expected %d, got %d", common.HashLength, lenHex)
 	}
 
 	return nil
