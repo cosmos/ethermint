@@ -14,6 +14,10 @@ import (
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
+func init() {
+	crypto.RegisterCodec(types.ModuleCdc)
+}
+
 const (
 	// TODO: Use this cost per byte through parameter or overriding NewConsumeGasForTxSizeDecorator
 	// which currently defaults at 10, if intended

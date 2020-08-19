@@ -39,9 +39,9 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-func init() {
-	crypto.RegisterCodec(authtypes.ModuleCdc)
-}
+// func init() {
+// 	crypto.RegisterCodec(authtypes.ModuleCdc)
+// }
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
