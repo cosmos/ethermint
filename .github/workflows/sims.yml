@@ -30,11 +30,11 @@ jobs:
       - uses: actions/setup-go@v2.1.2
       - name: install runsim
         run: |
-          export GO111MODULE="on" && go get github.com/cosmos/tools/cmd/runsim@v1.0.0
+          make runsim
       - uses: actions/cache@v2.1.1
         with:
           path: ~/go/bin
-          key: ${{ runner.os }}-go-runsim-binary
+          key: ${{ runner.os }}-go-runsim-binar
 
   test-sim-nondeterminism:
     runs-on: ubuntu-latest

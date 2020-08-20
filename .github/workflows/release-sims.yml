@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: install runsim
         run: |
-          export GO111MODULE="on" && go get github.com/cosmos/tools/cmd/runsim@v1.0.0
+          make runsim
       - uses: actions/cache@v2.1.1
         with:
           path: ~/go/bin
