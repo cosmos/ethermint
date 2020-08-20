@@ -4,27 +4,27 @@ KEY="mykey"
 CHAINID=8
 MONIKER="localtestnet"
 
-# remove existing daemon and client
+# remove existing daemon and dent
 rm -rf ~/.ethermint*
 
 make install
 
-ethermintcli config keyring-backend test
+ethermintd config keyring-backend test
 
-# Set up config for CLI
-ethermintcli config chain-id $CHAINID
-ethermintcli config output json
-ethermintcli config indent true
-ethermintcli config trust-node true
+# Set up config for d
+ethermintd config chain-id $CHAINID
+ethermintd config output json
+ethermintd config indent true
+ethermintd config trust-node true
 
 # if $KEY exists it should be deleted
-ethermintcli keys add $KEY --algo "eth_secp256k1"
+ethermintd keys add $KEY --algo "eth_secp256k1"
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 ethermintd init $MONIKER --chain-id $CHAINID
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000photon,1000000000000000000stake
+ethermintd add-genesis-account $(ethermintd keys show $KEY -a) 1000000000000000000photon,1000000000000000000stake
 
 # Sign genesis transaction
 ethermintd gentx --name $KEY --keyring-backend test
@@ -37,7 +37,7 @@ cat  $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_fa
 
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
-echo -e "ethermintcli tx faucet request 100photon --from $KEY\n"
+echo -e "ethermintd tx faucet request 100photon --from $KEY\n"
 
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
@@ -45,7 +45,7 @@ ethermintd validate-genesis
 
 # Command to run the rest server in a different terminal/window
 echo -e '\nrun the following command in a different terminal/window to run the REST server and JSON-RPC:'
-echo -e "ethermintcli rest-server --laddr \"tcp://localhost:8545\" --unlock-key $KEY --chain-id $CHAINID --trace\n"
+echo -e "ethermintd rest-server --laddr \"tcp://localhost:8545\" --unlock-key $KEY --chain-id $CHAINID --trace\n"
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace

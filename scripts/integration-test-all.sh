@@ -73,18 +73,18 @@ arrcli=()
 
 init_func() {
   echo "create and add new keys"
-  "$PWD"/build/ethermintcli config keyring-backend test --home "$DATA_CLI_DIR$i"
-  "$PWD"/build/ethermintcli keys add $KEY"$i" --home "$DATA_CLI_DIR$i" --no-backup --chain-id $CHAINID --algo "eth_secp256k1"
+  "$PWD"/build/ethermind config keyring-backend test --home "$DATA_CLI_DIR$i"
+  "$PWD"/build/ethermind keys add $KEY"$i" --home "$DATA_CLI_DIR$i" --no-backup --chain-id $CHAINID --algo "eth_secp256k1"
   echo "init Ethermint with moniker=$MONIKER and chain-id=$CHAINID"
   "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
-  echo "init ethermintcli with chain-id=$CHAINID and config it trust-node true"
-  "$PWD"/build/ethermintcli config chain-id $CHAINID --home "$DATA_CLI_DIR$i"
-  "$PWD"/build/ethermintcli config output json --home "$DATA_CLI_DIR$i"
-  "$PWD"/build/ethermintcli config indent true --home "$DATA_CLI_DIR$i"
-  "$PWD"/build/ethermintcli config trust-node true --home "$DATA_CLI_DIR$i"
+  echo "init ethermind with chain-id=$CHAINID and config it trust-node true"
+  "$PWD"/build/ethermind config chain-id $CHAINID --home "$DATA_CLI_DIR$i"
+  "$PWD"/build/ethermind config output json --home "$DATA_CLI_DIR$i"
+  "$PWD"/build/ethermind config indent true --home "$DATA_CLI_DIR$i"
+  "$PWD"/build/ethermind config trust-node true --home "$DATA_CLI_DIR$i"
   echo "prepare genesis: Allocate genesis accounts"
   "$PWD"/build/ethermintd add-genesis-account \
-  "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a --home "$DATA_CLI_DIR$i" )" 1000000000000000000photon,1000000000000000000stake \
+  "$("$PWD"/build/ethermind keys show "$KEY$i" -a --home "$DATA_CLI_DIR$i" )" 1000000000000000000photon,1000000000000000000stake \
   --home "$DATA_DIR$i" --home-client "$DATA_CLI_DIR$i"
   echo "prepare genesis: Sign genesis transaction"
   "$PWD"/build/ethermintd gentx --name $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --home-client "$DATA_CLI_DIR$i"
@@ -109,13 +109,13 @@ start_func() {
 
 start_cli_func() {
   echo "starting ethermint node $i in background ..."
-  "$PWD"/build/ethermintcli rest-server --unlock-key $KEY"$i" --chain-id $CHAINID --trace \
+  "$PWD"/build/ethermind rest-server --unlock-key $KEY"$i" --chain-id $CHAINID --trace \
   --laddr "tcp://localhost:$RPC_PORT$i" --node tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
   --home "$DATA_CLI_DIR$i" --read-timeout 30 --write-timeout 30 \
   >"$DATA_CLI_DIR"/cli"$i".log 2>&1 & disown
 
   ETHERMINT_CLI_PID=$!
-  echo "started ethermintcli node, pid=$ETHERMINT_CLI_PID"
+  echo "started ethermind node, pid=$ETHERMINT_CLI_PID"
   # add PID to array
   arrcli+=("$ETHERMINT_CLI_PID")
 }
