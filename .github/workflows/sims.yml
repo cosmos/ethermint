@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - sims
+      - development
 
 jobs:
   cleanup-runs:
