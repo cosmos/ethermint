@@ -211,8 +211,8 @@ test-sim-multi-seed-short: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
 
-.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
-	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed
+.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-import-export test-sim-after-import \
+	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-long test-sim-multi-seed-short
 
 .PHONY: build install update-tools tools godocs clean format lint \
 test-cli test-race test-unit test test-import
