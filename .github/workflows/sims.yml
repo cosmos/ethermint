@@ -5,6 +5,7 @@ on:
   pull_request:
   push:
     branches:
+      - sims
       - development
 
 jobs:
