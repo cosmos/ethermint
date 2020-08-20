@@ -190,24 +190,29 @@ test-sim-custom-genesis-fast:
 	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
 		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
 
-test-sim-import-export: runsim
+test-sim-import-export:
+	@$(MAKE) tools
 	@echo "Running Ethermint import/export simulation. This may take several minutes..."
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
 
-test-sim-after-import: runsim
+test-sim-after-import:
+	@$(MAKE) tools
 	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
 
-test-sim-custom-genesis-multi-seed: runsim
+test-sim-custom-genesis-multi-seed:
+	@$(MAKE) tools
 	@echo "Running multi-seed custom genesis simulation..."
 	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
 	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
 
-test-sim-multi-seed-long: runsim
+test-sim-multi-seed-long:
+	@$(MAKE) tools
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
 
-test-sim-multi-seed-short: runsim
+test-sim-multi-seed-short:
+	@$(MAKE) tools
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
 
