@@ -40,10 +40,11 @@ export DETECTED_OS
 export GO111MODULE = on
 
 ##########################################
-# Find OS and Go environment						 #
-# GO contains the Go binary						   #
-# FS contains the OS file separator			 #
+# Find OS and Go environment
+# GO contains the Go binary
+# FS contains the OS file separator
 ##########################################
+
 ifeq ($(OS),Windows_NT)
   GO := $(shell where go.exe 2> NUL)
   FS := "\\"
@@ -172,6 +173,7 @@ docker-localnet:
 
 TOOLS_DESTDIR  ?= $(GOPATH)/bin
 RUNSIM         = $(TOOLS_DESTDIR)/runsim
+
 # Install the runsim binary with a temporary workaround of entering an outside
 # directory as the "go get" command ignores the -mod option and will polute the
 # go.{mod, sum} files.
@@ -228,24 +230,24 @@ test-sim-custom-genesis-fast:
 
 test-sim-import-export: runsim
 	@echo "Running application import/export simulation. This may take several minutes..."
-	runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppImportExport
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppImportExport
 
 test-sim-after-import: runsim
 	@echo "Running application simulation-after-import. This may take several minutes..."
-	runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppSimulationAfterImport
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppSimulationAfterImport
 
 test-sim-custom-genesis-multi-seed: runsim
 	@echo "Running multi-seed custom genesis simulation..."
 	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
 
 test-sim-multi-seed-long: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
-	runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 500 50 TestFullAppSimulation
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 500 50 TestFullAppSimulation
 
 test-sim-multi-seed-short: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
-	runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
 .PHONY: test test-unit test-race test-import test-rpc
 
