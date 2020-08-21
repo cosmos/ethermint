@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-go@v2.1.2
       - name: install runsim
         run: |
-          make runsim
+          export GO111MODULE="on" && go get github.com/cosmos/tools/cmd/runsim@v1.0.0
       - uses: actions/cache@v2.1.1
         with:
           path: ~/go/bin
