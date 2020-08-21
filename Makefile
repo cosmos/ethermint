@@ -21,12 +21,9 @@ DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = ethermintd
 ETHERMINT_CLI_BINARY = ethermintcli
-GOPATH ?= $(shell $(GO) env GOPATH)
 GO_MOD=GO111MODULE=on
-BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
-RUNSIM = $(BINDIR)/runsim
 LEDGER_ENABLED ?= true
 
 ifeq ($(OS),Windows_NT)
@@ -58,6 +55,10 @@ endif
 ifeq ($(GO),)
   $(error could not find go. Is it in PATH? $(GO))
 endif
+
+GOPATH ?= $(shell $(GO) env GOPATH)
+BINDIR ?= $(GOPATH)/bin
+RUNSIM = $(BINDIR)/runsim
 
 
 # process build tags
