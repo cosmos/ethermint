@@ -21,6 +21,7 @@ DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = ethermintd
 ETHERMINT_CLI_BINARY = ethermintcli
+GOPATH ?= $(shell $(GO) env GOPATH)
 GO_MOD=GO111MODULE=on
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
@@ -40,6 +41,24 @@ ifeq ($(UNAME_S),Darwin)
 endif
 export DETECTED_OS
 export GO111MODULE = on
+
+##########################################
+# Find OS and Go environment						 #
+# GO contains the Go binary						   #
+# FS contains the OS file separator			 #
+##########################################
+ifeq ($(OS),Windows_NT)
+  GO := $(shell where go.exe 2> NUL)
+  FS := "\\"
+else
+  GO := $(shell command -v go 2> /dev/null)
+  FS := "/"
+endif
+
+ifeq ($(GO),)
+  $(error could not find go. Is it in PATH? $(GO))
+endif
+
 
 # process build tags
 
@@ -150,6 +169,8 @@ docker-localnet:
 ###                          Tools & Dependencies                           ###
 ###############################################################################
 
+TOOLS_DESTDIR  ?= $(GOPATH)/bin
+RUNSIM         = $(TOOLS_DESTDIR)/runsi
 # Install the runsim binary with a temporary workaround of entering an outside
 # directory as the "go get" command ignores the -mod option and will polute the
 # go.{mod, sum} files.
