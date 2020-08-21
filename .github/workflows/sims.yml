@@ -1,6 +1,7 @@
 name: Sims
 # Sims workflow runs multiple types of simulations (nondeterminism, import-export, after-import, multi-seed-short)
-# This workflow will run on all Pull Requests, if a .go, .mod or .sum file have been changed
+# This workflow will run on all Pull Requests, if a .go, .mod or .sum file have been changed.
+# The simulations can be skipped if the commit message contains the 'skip-sims' string.
 on:
   pull_request:
   push:

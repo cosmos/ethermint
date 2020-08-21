@@ -1,6 +1,7 @@
 name: Release Sims
-# Release Sims workflow runs long-lived (multi-seed & large block size) simulations
+# Release Sims workflow runs long-lived (multi-seed & large block size) simulations of 500 blocks.
 # This workflow only runs on a pull request when the branch contains rc** (rc1/vX.X.x)
+# This release workflow *cannot* be skipped with the 'skip-sims' commit message.
 on:
   pull_request:
     branches:
