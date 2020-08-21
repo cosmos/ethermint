@@ -171,7 +171,7 @@ docker-localnet:
 ###############################################################################
 
 TOOLS_DESTDIR  ?= $(GOPATH)/bin
-RUNSIM         = $(TOOLS_DESTDIR)/runsi
+RUNSIM         = $(TOOLS_DESTDIR)/runsim
 # Install the runsim binary with a temporary workaround of entering an outside
 # directory as the "go get" command ignores the -mod option and will polute the
 # go.{mod, sum} files.
