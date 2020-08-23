@@ -35,11 +35,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+## [Unreleased]
+
 ## [v0.1.0] - 2020-08-23
 
 ### Improvements
 
-* (sdk) [\#386](https://github.com/ChainSafe/ethermint/pull/386) Bump Cosmos SDK version to [v0.39.0](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.0)
+* (sdk) [\#386](https://github.com/ChainSafe/ethermint/pull/386) Bump Cosmos SDK version to [v0.39.1](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1)
 * (`x/evm`) [\#181](https://github.com/ChainSafe/ethermint/issues/181) Updated EVM module to the recommended module structure.
 * (app) [\#188](https://github.com/ChainSafe/ethermint/issues/186)  Misc cleanup:
   * (`x/evm`) Rename `EthereumTxMsg` --> `MsgEthereumTx` and `EmintMsg` --> `MsgEthermint` for consistency with SDK standards
