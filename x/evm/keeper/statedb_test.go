@@ -96,13 +96,6 @@ func (suite *KeeperTestSuite) TestStateDB_Balance() {
 			},
 			big.NewInt(200),
 		},
-		// {
-		// 	"sub more than balance",
-		// 	func() {
-		// 		suite.app.EvmKeeper.SubBalance(suite.address, big.NewInt(300))
-		// 	},
-		// 	big.NewInt(-100),
-		// },
 	}
 
 	for _, tc := range testCase {
@@ -484,13 +477,6 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Commit() {
 			},
 			false, true,
 		},
-		// {
-		// 	"faled to update state object",
-		// 	func() {
-		// 		suite.app.EvmKeeper.SubBalance(suite.address, big.NewInt(10))
-		// 	},
-		// 	false, false,
-		// },
 	}
 
 	for _, tc := range testCase {
@@ -548,13 +534,6 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 			},
 			false, true,
 		},
-		// {
-		// 	"faled to update state object",
-		// 	func() {
-		// 		suite.app.EvmKeeper.SubBalance(suite.address, big.NewInt(10))
-		// 	},
-		// 	false, false,
-		// },
 	}
 
 	for _, tc := range testCase {

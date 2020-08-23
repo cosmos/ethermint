@@ -14,7 +14,6 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -40,12 +39,12 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, ak types.AccountKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, ak types.AccountKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak, bk),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -111,7 +110,7 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 
 	txsLogs := []types.TransactionLogs{}
 	for ; iterator.Valid(); iterator.Next() {
-		hash := ethcmn.BytesToHash(iterator.Key())
+		hash := common.BytesToHash(iterator.Key())
 		var logs []*ethtypes.Log
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
 

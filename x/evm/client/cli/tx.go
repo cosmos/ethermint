@@ -27,7 +27,7 @@ import (
 )
 
 // GetTxCmd defines the CLI commands regarding evm module transactions
-func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	evmTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "EVM transaction subcommands",
@@ -82,7 +82,6 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
-			// authclient.Codec = ethermintcodec.NewAppCodec(cdc)
 			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
@@ -135,7 +134,6 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 
-			// authclient.Codec = ethermintcodec.NewAppCodec(cdc)
 			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")

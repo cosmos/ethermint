@@ -62,7 +62,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetTxCmd Gets the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(types.ModuleName, cdc)
+	return cli.GetTxCmd(cdc)
 }
 
 //____________________________________________________________________________

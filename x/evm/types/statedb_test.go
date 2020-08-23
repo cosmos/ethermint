@@ -138,13 +138,6 @@ func (suite *StateDBTestSuite) TestStateDB_Balance() {
 			},
 			big.NewInt(200),
 		},
-		// {
-		// 	"sub more than balance",
-		// 	func() {
-		// 		suite.stateDB.SubBalance(suite.address, big.NewInt(300))
-		// 	},
-		// 	big.NewInt(-100),
-		// },
 	}
 
 	for _, tc := range testCase {
@@ -527,13 +520,6 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Commit() {
 			},
 			false, true,
 		},
-		// {
-		// 	"faled to update state object",
-		// 	func() {
-		// 		suite.stateDB.SubBalance(suite.address, big.NewInt(10))
-		// 	},
-		// 	false, false,
-		// },
 	}
 
 	for _, tc := range testCase {
@@ -591,13 +577,6 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 			},
 			false, true,
 		},
-		// {
-		// 	"faled to update state object",
-		// 	func() {
-		// 		suite.stateDB.SubBalance(suite.address, big.NewInt(10))
-		// 	},
-		// 	false, false,
-		// },
 	}
 
 	for _, tc := range testCase {

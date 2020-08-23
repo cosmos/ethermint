@@ -22,8 +22,6 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	_ = acc.SetCoins(sdk.NewCoins(balance))
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-	// suite.app.BankKeeper.SetBalance(suite.ctx, addr, balance)
-
 	priv, err := crypto.GenerateKey()
 	suite.Require().NoError(err)
 	recipient := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -106,24 +104,6 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			},
 			false,
 		},
-		// {
-		// 	"failed to Finalize",
-		// 	func() {},
-		// 	types.StateTransition{
-		// 		AccountNonce: 123,
-		// 		Price:        big.NewInt(10),
-		// 		GasLimit:     11,
-		// 		Recipient:    &recipient,
-		// 		Amount:       big.NewInt(-5000),
-		// 		Payload:      []byte("data"),
-		// 		ChainID:      big.NewInt(1),
-		// 		Csdb:         suite.stateDB,
-		// 		TxHash:       &ethcmn.Hash{},
-		// 		Sender:       suite.address,
-		// 		Simulate:     false,
-		// 	},
-		// 	false,
-		// },
 		{
 			"nil gas price",
 			func() {

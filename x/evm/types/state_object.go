@@ -65,7 +65,6 @@ type stateObject struct {
 	dbErr   error
 	stateDB *CommitStateDB
 	account *types.EthAccount
-	// balance sdk.Int
 
 	keyToOriginStorageIndex map[ethcmn.Hash]int
 	keyToDirtyStorageIndex  map[ethcmn.Hash]int
@@ -94,10 +93,9 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	return &stateObject{
-		stateDB: db,
-		account: ethermintAccount,
-		// balance:                 balance,
-		address:                 ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
+		stateDB:                 db,
+		account:                 ethermintAccount,
+		address:                 ethermintAccount.EthAddress(),
 		originStorage:           Storage{},
 		dirtyStorage:            Storage{},
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
@@ -190,7 +188,6 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 	if amt.IsZero() {
 		return
 	}
-	// newBalance := so.balance.Sub(amt)
 	newBalance := so.account.GetCoins().AmountOf(types.DenomDefault).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
@@ -202,7 +199,6 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
 		prev:    so.account.GetCoins().AmountOf(types.DenomDefault),
-		// prev:    so.balance,
 	})
 
 	so.setBalance(amt)
@@ -210,7 +206,6 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 func (so *stateObject) setBalance(amount sdk.Int) {
 	so.account.SetBalance(amount)
-	// so.balance = amount
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
@@ -297,7 +292,6 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	// balance := so.balance.BigInt()
 	balance := so.account.Balance().BigInt()
 	if balance == nil {
 		return zeroBalance
@@ -414,7 +408,6 @@ func (so *stateObject) empty() bool {
 		(so.account != nil &&
 			so.account.Sequence == 0 &&
 			(balace.BigInt() == nil || balace.IsZero()) &&
-			// (so.balance.BigInt() == nil || so.balance.IsZero()) &&
 			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 

@@ -130,8 +130,7 @@ func InitTestnet(
 
 	var (
 		genAccounts []authexported.GenesisAccount
-		// genBalances []bank.Balance
-		genFiles []string
+		genFiles    []string
 	)
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -213,7 +212,6 @@ func InitTestnet(
 			sdk.NewCoin(types.DenomDefault, accStakingTokens),
 		)
 
-		// genBalances = append(genBalances, bank.Balance{Address: addr, Coins: coins})
 		genAccounts = append(genAccounts, types.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
@@ -283,13 +281,6 @@ func initGenFiles(
 
 	authGenState.Accounts = genAccounts
 	appGenState[authtypes.ModuleName] = cdc.MustMarshalJSON(authGenState)
-
-	// set the balances in the genesis state
-	// var bankGenState bank.GenesisState
-	// cdc.MustUnmarshalJSON(appGenState[bank.ModuleName], &bankGenState)
-
-	// bankGenState.Balances = genBalances
-	// appGenState[bank.ModuleName] = cdc.MustMarshalJSON(bankGenState)
 
 	var stakingGenState stakingtypes.GenesisState
 	cdc.MustUnmarshalJSON(appGenState[stakingtypes.ModuleName], &stakingGenState)

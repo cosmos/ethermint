@@ -14,7 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -119,13 +118,11 @@ func (suite *JournalTestSuite) setup() {
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
-	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
 
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak, bk).WithContext(suite.ctx)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak).WithContext(suite.ctx)
 }
 
 func TestJournalTestSuite(t *testing.T) {
@@ -148,7 +145,6 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			resetObjectChange{
 				prev: &stateObject{
 					address: suite.address,
-					// balance: sdk.OneInt(),
 				},
 			},
 		},

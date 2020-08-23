@@ -193,7 +193,6 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// validate sender has enough funds to pay for gas cost
-	// balance := avd.bk.GetBalance(ctx, acc.GetAddress(), emint.DenomDefault)
 	balance := sdk.Coin{Denom: emint.DenomDefault, Amount: acc.GetCoins().AmountOf(emint.DenomDefault)}
 	if balance.Amount.BigInt().Cmp(msgEthTx.Cost()) < 0 {
 		return ctx, sdkerrors.Wrapf(

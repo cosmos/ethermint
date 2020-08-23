@@ -27,9 +27,5 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	ethermint.RegisterCodec(cdc)
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
-	// since auth client doesn't use the ethermint account type, we need to set
-	// our codec instead.
-	// authclient.Codec = cdc
-
 	return cdc
 }

@@ -39,10 +39,6 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-// func init() {
-// 	crypto.RegisterCodec(authtypes.ModuleCdc)
-// }
-
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
@@ -206,7 +202,6 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
-	// authclient.Codec = codec.NewAppCodec(ctx.Codec)
 	accRet := authtypes.NewAccountRetriever(ctx)
 
 	err := accRet.EnsureExists(from)
