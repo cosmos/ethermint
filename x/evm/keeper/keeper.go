@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosmos/ethermint/x/evm/types"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -119,4 +120,18 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 		txsLogs = append(txsLogs, txLog)
 	}
 	return txsLogs
+}
+
+// GetAccountStorage return state storage associated with an account
+func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
+	storage := types.Storage{}
+	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
+		storage = append(storage, types.NewState(key, value))
+		return false
+	})
+	if err != nil {
+		return types.Storage{}, err
+	}
+
+	return storage, nil
 }
