@@ -64,7 +64,7 @@ docker build -t node1 .
 To connect to an existing testnet, fetch the testnet's `genesis.json` file and copy it into the docker images config directory (i.e `$HOME/.ethermintd/config/genesis.json`).
 
 ```bash
-docker cp node1:$HOME/.ethermintd/config/genesis.json $HOME/.ethermintd/config/genesis.json `
+docker cp node1:$HOME/.ethermintd/config/genesis.json local path to genesis.json `
 ```
 
 ```bash
