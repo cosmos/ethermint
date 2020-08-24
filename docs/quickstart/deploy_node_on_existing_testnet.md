@@ -1,5 +1,5 @@
 <!--
-order: 8
+order: 9
 -->
 
 # Deploy node to existing testnet
@@ -10,7 +10,7 @@ Learn how to deploy a node to Digital Ocean and connect to public testnet
 
 - [Install Ethermint](./installation.md) {prereq}
 - [Start Testnet](./testnet.md) {prereq}
-<!-- - [Deploy Testnet to DigitalOcean]() {prereq} -->
+- [Deploy Testnet to DigitalOcean](./testnet_on_digitalocean.md) {prereq}
 
 
 ## Deploy node to Digital Ocean
