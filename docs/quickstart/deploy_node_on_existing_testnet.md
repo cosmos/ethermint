@@ -15,59 +15,52 @@ Learn how to deploy a node to Digital Ocean and connect to public testnet
 
 ## Deploy node to Digital Ocean
 
-### Create a Digital Ocean account and Generate personal access token
-
-Head over to https://www.digitalocean.com/ and create an account.
-
-Click the API navigation.
-
-In the Personal Access Tokens section, click Generate new token.
-
-Give your token a name, and click the Generate Token button.
-
-Once it’s created, copy it and create an environment variable.
-
 ### Create a Droplet
 
-We will use the docker-machine command, which should already be installed on your development machine if you have been working with Docker.
+Create a new droplet using the same steps in [Deploy Testnet to DigitalOcean](./testnet_on_digitalocean.md). 
 
-::: tip
- Type docker-machine into a terminal, if you get an error you may need to install it yourself.
-:::
+Once this new droplet is created make sure to get its IP address to be used in the next steps.
 
-Run command 
-```bash 
-docker-machine create --digitalocean-size "s-2vcpu-4gb" --driver digitalocean --digitalocean-access-token PERSONAL_ACCESS_TOKEN machine-name
-```
---digitalocean-size "s-2vcpu-4gb" creates an image with 2 CPUs and 4 GB of RAM — you can use any size you feel is appropriate
+### Connect to Droplet
 
-machine-name is the name of our droplet
+Click on the started Droplet, and you'll see details about it. At the moment, we're interested in the IP address - this is the address that the Droplet is at on the internet.
 
-You can verify if it was created successfully with `docker-machine ls`
+To access it, we'll need to connect to it using our previously created private key. From the same folder as that private key, run:
 
-You should see something like
 ```bash
-machine-name * digitalocean Running tcp://152.63.254.5:2376 v18.05.0-ce
+$ ssh -i digital-ocean-key root@<IP_ADDRESS>
 ```
 
-### Deploy Node
-Use docker-machine use command to select your remote machine: `docker-machine use machine-name`
+Now you are connected to the droplet. 
 
-Now execute these commands to run a container on that machine:
+### Install Ethermint
+
+Clone and build Ethermint in the droplet using `git`:
+
 ```bash
-# build the image
-docker build -t node1 .
+git clone https://github.com/ChainSafe/ethermint.git
+cd ethermint
+make install
+```
+
+Check that the binaries have been successfuly installed:
+
+```bash
+ethermintd -h
+ethermintcli -h
 ```
 
 #### Copy the Genesis File
 
-To connect to an existing testnet, fetch the testnet's `genesis.json` file and copy it into the docker images config directory (i.e `$HOME/.ethermintd/config/genesis.json`).
+To connect the node to the existing testnet, fetch the testnet's `genesis.json` file and copy it into the new droplets config directory (i.e `$HOME/.ethermintd/config/genesis.json`).
 
+To do this ssh into both the testnet droplet and the new node droplet. 
+
+On your local machine copy the genesis.json file from the testnet droplet to the new droplet using 
 ```bash
-docker cp node1:$HOME/.ethermintd/config/genesis.json local path to genesis.json `
+scp -3 root@<TESTNET_IP_ADDRESS>:$HOME/.ethermintd/config/genesis.json root@<NODE_IP_ADDRESS>:$HOME/.ethermintd/config/genesis.json
 ```
 
-```bash
-# run the container on the remote machine
-docker run -d node1 ethermintd start
-```
+### Start the Node
+
+Once the genesis file is copied over run `ethermind start` inside the node droplet. 
