@@ -65,7 +65,6 @@ type stateObject struct {
 	dbErr   error
 	stateDB *CommitStateDB
 	account *types.EthAccount
-	balance sdk.Int
 
 	keyToOriginStorageIndex map[ethcmn.Hash]int
 	keyToDirtyStorageIndex  map[ethcmn.Hash]int
@@ -81,7 +80,8 @@ type stateObject struct {
 	deleted   bool
 }
 
-func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
+	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -95,8 +95,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sd
 	return &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
-		balance:                 balance,
-		address:                 ethcmn.BytesToAddress(ethermintAccount.GetAddress().Bytes()),
+		address:                 ethermintAccount.EthAddress(),
 		originStorage:           Storage{},
 		dirtyStorage:            Storage{},
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
@@ -141,10 +140,6 @@ func (so *stateObject) setState(key, value ethcmn.Hash) {
 	so.dirtyStorage = append(so.dirtyStorage, NewState(key, value))
 	idx = len(so.dirtyStorage) - 1
 	so.keyToDirtyStorageIndex[key] = idx
-
-	so.originStorage = append(so.originStorage, State{})
-	idx = len(so.originStorage) - 1
-	so.keyToOriginStorageIndex[key] = idx
 }
 
 // SetCode sets the state object's code.
@@ -181,7 +176,8 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	newBalance := so.balance.Add(amt)
+	// newBalance := so.balance.Add(amt)
+	newBalance := so.account.GetCoins().AmountOf(types.DenomDefault).Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -192,7 +188,7 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 	if amt.IsZero() {
 		return
 	}
-	newBalance := so.balance.Sub(amt)
+	newBalance := so.account.GetCoins().AmountOf(types.DenomDefault).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -202,14 +198,14 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.balance,
+		prev:    so.account.GetCoins().AmountOf(types.DenomDefault),
 	})
 
 	so.setBalance(amt)
 }
 
 func (so *stateObject) setBalance(amount sdk.Int) {
-	so.balance = amount
+	so.account.SetBalance(amount)
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
@@ -240,12 +236,20 @@ func (so *stateObject) markSuicided() {
 	so.suicided = true
 }
 
-// commitState commits all dirty storage to a KVStore.
+// commitState commits all dirty storage to a KVStore and resets
+// the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
 	for _, state := range so.dirtyStorage {
+		// NOTE: key is already prefixed from GetStorageByAddressKey
+
+		// delete empty values from the store
+		if (state.Value == ethcmn.Hash{}) {
+			store.Delete(state.Key.Bytes())
+		}
+
 		delete(so.keyToDirtyStorageIndex, state.Key)
 
 		// skip no-op changes, persist actual changes
@@ -254,20 +258,16 @@ func (so *stateObject) commitState() {
 			continue
 		}
 
+		if (state.Value == ethcmn.Hash{}) {
+			delete(so.keyToOriginStorageIndex, state.Key)
+			continue
+		}
+
 		if state.Value == so.originStorage[idx].Value {
 			continue
 		}
 
 		so.originStorage[idx].Value = state.Value
-
-		// NOTE: key is already prefixed from GetStorageByAddressKey
-
-		// delete empty values from the store
-		if (state.Value == ethcmn.Hash{}) {
-			store.Delete(state.Key.Bytes())
-			continue
-		}
-
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 	}
 	// clean storage as all entries are dirty
@@ -292,7 +292,7 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	balance := so.balance.BigInt()
+	balance := so.account.Balance().BigInt()
 	if balance == nil {
 		return zeroBalance
 	}
@@ -348,7 +348,8 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	}
 
 	// otherwise return the entry's original value
-	return so.GetCommittedState(db, key)
+	value := so.GetCommittedState(db, key)
+	return value
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
@@ -363,14 +364,9 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 		return so.originStorage[idx].Value
 	}
 
-	if len(so.originStorage) == 0 {
-		so.originStorage = append(so.originStorage, NewState(prefixKey, ethcmn.Hash{}))
-		so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	}
-
-	state := so.originStorage[idx]
-
 	// otherwise load the value from the KVStore
+	state := NewState(prefixKey, ethcmn.Hash{})
+
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
@@ -379,7 +375,8 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 		state.Value.SetBytes(rawValue)
 	}
 
-	so.originStorage[idx] = state
+	so.originStorage = append(so.originStorage, state)
+	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
 	return state.Value
 }
 
@@ -392,7 +389,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newStateObject(db, so.account, so.balance)
+	newStateObj := newStateObject(db, so.account)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
@@ -406,10 +403,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
+	balace := so.account.Balance()
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&
-			(so.balance.BigInt() == nil || so.balance.IsZero()) &&
+			(balace.BigInt() == nil || balace.IsZero()) &&
 			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 

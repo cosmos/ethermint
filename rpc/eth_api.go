@@ -7,14 +7,11 @@ import (
 	"log"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/codec"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
@@ -34,11 +31,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -46,14 +43,14 @@ import (
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
 	backend     Backend
-	keys        []emintcrypto.PrivKeySecp256k1
+	keys        []crypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
 	keybaseLock sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
-	key []emintcrypto.PrivKeySecp256k1) *PublicEthAPI {
+	key []crypto.PrivKeySecp256k1) *PublicEthAPI {
 
 	return &PublicEthAPI{
 		cliCtx:    cliCtx,
@@ -137,11 +134,12 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	keybase, err := keyring.NewKeyring(
+	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
+		crypto.EthSecp256k1Options()...,
 	)
 	if err != nil {
 		return addresses, err
@@ -204,8 +202,7 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
-	authclient.Codec = codec.NewAppCodec(ctx.Codec)
-	accRet := authtypes.NewAccountRetriever(authclient.Codec, ctx)
+	accRet := authtypes.NewAccountRetriever(ctx)
 
 	err := accRet.EnsureExists(from)
 	if err != nil {
@@ -294,7 +291,7 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 	return string(res), nil
 }
 
-func checkKeyInKeyring(keys []emintcrypto.PrivKeySecp256k1, address common.Address) (key emintcrypto.PrivKeySecp256k1, exist bool) {
+func checkKeyInKeyring(keys []crypto.PrivKeySecp256k1, address common.Address) (key crypto.PrivKeySecp256k1, exist bool) {
 	if len(keys) > 0 {
 		for _, key := range keys {
 			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
@@ -523,7 +520,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	var simResponse sdk.SimulationResponse
-	if err := jsonpb.Unmarshal(strings.NewReader(string(res)), &simResponse); err != nil {
+	if err := ctx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
 		return nil, err
 	}
 
@@ -624,7 +621,8 @@ type Transaction struct {
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
-	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
+	// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -931,8 +929,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		authclient.Codec = codec.NewAppCodec(e.cliCtx.Codec)
-		accRet := authtypes.NewAccountRetriever(authclient.Codec, e.cliCtx)
+		accRet := authtypes.NewAccountRetriever(e.cliCtx)
 
 		err = accRet.EnsureExists(from)
 		if err != nil {

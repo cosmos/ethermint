@@ -7,15 +7,8 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
 
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
-
-func init() {
-	authtypes.RegisterKeyTypeCodec(PubKeySecp256k1{}, PubKeyAminoName)
-	authtypes.RegisterKeyTypeCodec(PrivKeySecp256k1{}, PrivKeyAminoName)
-}
 
 // ----------------------------------------------------------------------------
 // secp256k1 Private Key
@@ -45,7 +38,7 @@ func (privkey PrivKeySecp256k1) PubKey() tmcrypto.PubKey {
 
 // Bytes returns the raw ECDSA private key bytes.
 func (privkey PrivKeySecp256k1) Bytes() []byte {
-	return cryptoCodec.MustMarshalBinaryBare(privkey)
+	return CryptoCodec.MustMarshalBinaryBare(privkey)
 }
 
 // Sign creates a recoverable ECDSA signature on the secp256k1 curve over the
@@ -87,7 +80,7 @@ func (key PubKeySecp256k1) Address() tmcrypto.Address {
 
 // Bytes returns the raw bytes of the ECDSA public key.
 func (key PubKeySecp256k1) Bytes() []byte {
-	bz, err := cryptoCodec.MarshalBinaryBare(key)
+	bz, err := CryptoCodec.MarshalBinaryBare(key)
 	if err != nil {
 		panic(err)
 	}
