@@ -8,7 +8,7 @@ Learn how to deploy and connect a node in the cloud to public testnet. {synopsis
 
 ## Pre-requisite Readings
 
-- [Deploy Testnet on cloud](./testnet_on_cloud.md) {suggestion}
+- [Deploy Testnet on cloud](./testnet_on_cloud.md) {prereq}
 
 
 ## Deploy node to Digital Ocean
