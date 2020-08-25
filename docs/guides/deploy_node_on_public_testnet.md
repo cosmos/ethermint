@@ -1,23 +1,21 @@
 <!--
-order: 9
+order: 5
 -->
 
 # Deploy node to existing testnet
 
-Learn how to deploy a node to Digital Ocean and connect to public testnet
+Learn how to deploy and connect a node in the cloud to public testnet. {synopsis}
 
 ## Pre-requisite Readings
 
-- [Install Ethermint](./installation.md) {prereq}
-- [Start Testnet](./testnet.md) {prereq}
-- [Deploy Testnet to DigitalOcean](./testnet_on_digitalocean.md) {prereq}
+- [Deploy Testnet on cloud](./testnet_on_cloud.md) {suggestion}
 
 
 ## Deploy node to Digital Ocean
 
 ### Create a Droplet
 
-Create a new droplet using the same steps in [Deploy Testnet to DigitalOcean](./testnet_on_digitalocean.md). 
+Create a new droplet using the same steps in [Deploy Testnet on cloud](./testnet_on_cloud.md). 
 
 Once this new droplet is created make sure to get its IP address to be used in the next steps.
 
@@ -38,9 +36,7 @@ Now you are connected to the droplet.
 Clone and build Ethermint in the droplet using `git`:
 
 ```bash
-git clone https://github.com/ChainSafe/ethermint.git
-cd ethermint
-make install
+go install https://github.com/ChainSafe/ethermint.git
 ```
 
 Check that the binaries have been successfuly installed:
@@ -57,6 +53,7 @@ To connect the node to the existing testnet, fetch the testnet's `genesis.json` 
 To do this ssh into both the testnet droplet and the new node droplet. 
 
 On your local machine copy the genesis.json file from the testnet droplet to the new droplet using 
+
 ```bash
 scp -3 root@<TESTNET_IP_ADDRESS>:$HOME/.ethermintd/config/genesis.json root@<NODE_IP_ADDRESS>:$HOME/.ethermintd/config/genesis.json
 ```
