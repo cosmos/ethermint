@@ -30,7 +30,7 @@ ethermintcli init $MONIKER --chain-id $CHAINID
 cp ./benchmark_ethmint_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(emintcli keys show $FKEY -a) 1000000000000000000photon,1000000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $FKEY -a) 1000000000000000000photon,1000000000000000000stake
 
 # Sign genesis transaction
 ethermintd gentx --name $FKEY --keyring-backend test
