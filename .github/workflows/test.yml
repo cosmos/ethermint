@@ -7,6 +7,23 @@ on:
     branches:
       - development
 jobs:
+  test-rpc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: technote-space/get-diff-action@v3.0.1
+        id: git_diff
+        with:
+          SUFFIX_FILTER: |
+            .go
+            .mod
+            .sum
+      - name: test-rpc
+        run: |
+          make test-rpc
+        if: "env.GIT_DIFF != ''"
+
   split-test-files:
     runs-on: ubuntu-latest
     steps:
@@ -39,7 +56,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
+      - uses: technote-space/get-diff-action@v3.0.1
         id: git_diff
         with:
           SUFFIX_FILTER: |
@@ -75,7 +92,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
+      - uses: technote-space/get-diff-action@v3.0.1
         id: git_diff
         with:
           SUFFIX_FILTER: |
@@ -111,7 +128,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
+      - uses: technote-space/get-diff-action@v3.0.1
         id: git_diff
         with:
           SUFFIX_FILTER: |
@@ -147,7 +164,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
+      - uses: technote-space/get-diff-action@v3.0.1
         id: git_diff
         with:
           SUFFIX_FILTER: |
@@ -177,36 +194,19 @@ jobs:
           fail_ci_if_error: true
         if: "env.GIT_DIFF != ''"
 
-  rpc-tests:
+  test-importer:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v1
+      - uses: technote-space/get-diff-action@v3.0.1
         id: git_diff
         with:
           SUFFIX_FILTER: |
             .go
             .mod
             .sum
-      - name: rpc-test
+      - name: test-importer
         run: |
-          make test-rpc
+          make test-import
         if: "env.GIT_DIFF != ''"
-  # TODO: remove tmp dir to fix this
-  # test-importer:
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 10
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: technote-space/get-diff-action@v1
-  #       id: git_diff
-  #       with:
-  #         SUFFIX_FILTER: |
-  #           .go
-  #           .mod
-  #           .sum
-  #     - name: importer-test
-  #       run: |
-  #         make test-import
-  #       if: "env.GIT_DIFF != ''"

@@ -1,8 +1,6 @@
 package evm
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	emint "github.com/cosmos/ethermint/types"
@@ -37,33 +35,31 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 	}
 
 	// set storage to store
-	err = k.Finalise(ctx, true)
+	// NOTE: don't delete empty object to prevent import-export simulation failure
+	err = k.Finalise(ctx, false)
 	if err != nil {
 		panic(err)
 	}
+
 	return []abci.ValidatorUpdate{}
 }
 
-// ExportGenesis exports genesis state
+// ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
 	accounts := ak.GetAllAccounts(ctx)
 
-	var err error
 	for _, account := range accounts {
+
 		ethAccount, ok := account.(*emint.EthAccount)
 		if !ok {
 			continue
 		}
 
-		addr := common.BytesToAddress(ethAccount.GetAddress().Bytes())
+		addr := ethAccount.EthAddress()
 
-		var storage types.Storage
-		err = k.CommitStateDB.ForEachStorage(addr, func(key, value common.Hash) bool {
-			storage = append(storage, types.NewState(key, value))
-			return false
-		})
+		storage, err := k.GetAccountStorage(ctx, addr)
 		if err != nil {
 			panic(err)
 		}

@@ -12,170 +12,194 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/make -f
+
+VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
+COMMIT := $(shell git log -1 --format='%H')
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
-COMMIT_HASH := $(shell git rev-parse --short HEAD)
-BUILD_FLAGS = -tags netgo -ldflags "-X github.com/cosmos/ethermint/version.GitCommit=${COMMIT_HASH}"
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
-ETHERMINT_DAEMON_BINARY = emintd
-ETHERMINT_CLI_BINARY = emintcli
+ETHERMINT_DAEMON_BINARY = ethermintd
+ETHERMINT_CLI_BINARY = ethermintcli
 GO_MOD=GO111MODULE=on
+BUILDDIR ?= $(CURDIR)/build
+SIMAPP = ./app
+LEDGER_ENABLED ?= true
+
+ifeq ($(OS),Windows_NT)
+  DETECTED_OS := windows
+else
+  UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	DETECTED_OS := mac
+  else
+	DETECTED_OS := linux
+  endif
+endif
+export DETECTED_OS
+export GO111MODULE = on
+
+##########################################
+# Find OS and Go environment
+# GO contains the Go binary
+# FS contains the OS file separator
+##########################################
+
+ifeq ($(OS),Windows_NT)
+  GO := $(shell where go.exe 2> NUL)
+  FS := "\\"
+else
+  GO := $(shell command -v go 2> /dev/null)
+  FS := "/"
+endif
+
+ifeq ($(GO),)
+  $(error could not find go. Is it in PATH? $(GO))
+endif
+
+GOPATH ?= $(shell $(GO) env GOPATH)
 BINDIR ?= $(GOPATH)/bin
-SIMAPP = github.com/cosmos/ethermint/app
 RUNSIM = $(BINDIR)/runsim
+
+
+# process build tags
+
+build_tags = netgo
+ifeq ($(LEDGER_ENABLED),true)
+  ifeq ($(OS),Windows_NT)
+    GCCEXE = $(shell where gcc.exe 2> NUL)
+    ifeq ($(GCCEXE),)
+      $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
+    else
+      build_tags += ledger
+    endif
+  else
+    UNAME_S = $(shell uname -s)
+    ifeq ($(UNAME_S),OpenBSD)
+      $(warning OpenBSD detected, disabling ledger support (https://github.com/cosmos/cosmos-sdk/issues/1988))
+    else
+      GCC = $(shell command -v gcc 2> /dev/null)
+      ifeq ($(GCC),)
+        $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
+      else
+        build_tags += ledger
+      endif
+    endif
+  endif
+endif
+
+ifeq ($(WITH_CLEVELDB),yes)
+  build_tags += gcc
+endif
+build_tags += $(BUILD_TAGS)
+build_tags := $(strip $(build_tags))
+
+whitespace :=
+whitespace += $(whitespace)
+comma := ,
+build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
+
+# process linker flags
+
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
+		  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ETHERMINT_DAEMON_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ETHERMINT_CLI_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
+
+ifeq ($(WITH_CLEVELDB),yes)
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
+endif
+ldflags += $(LDFLAGS)
+ldflags := $(strip $(ldflags))
+
+BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 
 all: tools verify install
 
-#######################
-### Build / Install ###
-#######################
+###############################################################################
+###                                  Build                                  ###
+###############################################################################
 
-build:
-ifeq ($(OS),Windows_NT)
-	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/emintd
-	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/emintcli
+build: go.sum
+ifeq ($(OS), Windows_NT)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
 else
-	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/emintd/
-	${GO_MOD} go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/emintcli/
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
 endif
+	go build -mod=readonly ./...
+
+build-ethermint: go.sum
+	mkdir -p $(BUILDDIR)
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
+
+build-ethermint-linux: go.sum
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(MAKE) build-ethermint
+
+.PHONY: build build-ethermint build-ethermint-linux
 
 install:
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/emintd
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/emintcli
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_CLI_BINARY)
 
 clean:
 	@rm -rf ./build ./vendor
 
-update-tools:
-	@echo "--> Updating vendor dependencies"
-	${GO_MOD} go get -u -v $(GOLINT) $(UNCONVERT) $(INEFFASSIGN) $(MISSPELL) $(ERRCHECK) $(UNPARAM)
-	${GO_MOD} go get -u -v $(GOCILINT)
+.PHONY: install clean
 
-verify:
-	@echo "--> Verifying dependencies have not been modified"
-	${GO_MOD} go mod verify
+docker-build:
+	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
+	# update old container
+	docker rm ethermint
+	# create a new container from the latest image
+	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
+	# move the binaries to the ./build directory
+	mkdir -p ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
+	docker cp ethermint:/usr/bin/ethermintcli ./build/
 
+docker-localnet:
+	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node
 
-############################
-### Tools / Dependencies ###
-############################
+###############################################################################
+###                          Tools & Dependencies                           ###
+###############################################################################
 
-##########################################################
-### TODO: Move tool depedencies to a separate makefile ###
-##########################################################
-
-GOLINT = github.com/tendermint/lint/golint
-GOCILINT = github.com/golangci/golangci-lint/cmd/golangci-lint
-UNCONVERT = github.com/mdempsky/unconvert
-INEFFASSIGN = github.com/gordonklaus/ineffassign
-MISSPELL = github.com/client9/misspell/cmd/misspell
-ERRCHECK = github.com/kisielk/errcheck
-UNPARAM = mvdan.cc/unparam
-STRINGER = golang.org/x/tools/cmd/stringer
-GOBINDATA = github.com/kevinburke/go-bindata/go-bindata
-GENCODEC = github.com/fjl/gencodec
-PROTOCGENGO = github.com/golang/protobuf/protoc-gen-go
-
-GOLINT_CHECK := $(shell command -v golint 2> /dev/null)
-GOCILINT_CHECK := $(shell command -v golangci-lint 2> /dev/null)
-UNCONVERT_CHECK := $(shell command -v unconvert 2> /dev/null)
-INEFFASSIGN_CHECK := $(shell command -v ineffassign 2> /dev/null)
-MISSPELL_CHECK := $(shell command -v misspell 2> /dev/null)
-ERRCHECK_CHECK := $(shell command -v errcheck 2> /dev/null)
-UNPARAM_CHECK := $(shell command -v unparam 2> /dev/null)
-STRINGER_CHECK := $(shell command -v stringer 2> /dev/null)
-GOBINDATA_CHECK := $(shell command -v go-bindata 2> /dev/null)
-GENCODEC_CHECK := $(shell command -v gencodec 2> /dev/null)
-PROTOCGENGO_CHECK := $(shell command -v protoc-gen-go 2> /dev/null)
-ABIGEN_CHECK := $(shell command -v abigen 2> /dev/null)
-
+TOOLS_DESTDIR  ?= $(GOPATH)/bin
+RUNSIM         = $(TOOLS_DESTDIR)/runsim
 
 # Install the runsim binary with a temporary workaround of entering an outside
 # directory as the "go get" command ignores the -mod option and will polute the
 # go.{mod, sum} files.
 #
 # ref: https://github.com/golang/go/issues/30515
+runsim: $(RUNSIM)
 $(RUNSIM):
 	@echo "Installing runsim..."
 	@(cd /tmp && ${GO_MOD} go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
 
-tools: $(RUNSIM)
-ifdef GOLINT_CHECK
-	@echo "Golint is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing golint"
-	${GO_MOD} go get -v $(GOLINT)
-endif
-ifdef GOCILINT_CHECK
-	@echo "golangci-lint is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing golangci-lint"
-	${GO_MOD} go get -v $(GOCILINT)
-endif
-ifdef UNCONVERT_CHECK
-	@echo "Unconvert is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing unconvert"
-	${GO_MOD} go get -v $(UNCONVERT)
-endif
-ifdef INEFFASSIGN_CHECK
-	@echo "Ineffassign is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing ineffassign"
-	${GO_MOD} go get -v $(INEFFASSIGN)
-endif
-ifdef MISSPELL_CHECK
-	@echo "misspell is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing misspell"
-	${GO_MOD} go get -v $(MISSPELL)
-endif
-ifdef ERRCHECK_CHECK
-	@echo "errcheck is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing errcheck"
-	${GO_MOD} go get -v $(ERRCHECK)
-endif
-ifdef UNPARAM_CHECK
-	@echo "unparam is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing unparam"
-	${GO_MOD} go get -v $(UNPARAM)
-endif
-ifdef STRINGER_CHECK
-	@echo "Stringer is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing stringer"
-	$(GOBIN) go get -u $(STRINGER)
-endif
-ifdef GOBINDATA_CHECK
-	@echo "Go-bindata is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing go-bindata"
-	$(GOBIN) go get -u $(GOBINDATA)
-endif
-ifdef GENCODEC_CHECK
-	@echo "Gencodec is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing gencodec"
-	$(GOBIN) go get -u $(GENCODEC)
-endif
-ifdef PROTOCGENGO_CHECK
-	@echo "Protoc-gen-go is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing protoc-gen-go"
-	$(GOBIN) go get -u $(PROTOCGENGO)
-endif
-ifdef ABIGEN_CHECK
-	@echo "Abigen is already installed. Run 'make update-tools' to update."
-else
-	@echo "--> Installing abigen"
-	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
-endif
+tools: tools-stamp
+tools-stamp: runsim
+	# Create dummy file to satisfy dependency and avoid
+	# rebuilding when this Makefile target is hit twice
+	# in a row.
+	touch $@
 
-#######################
-### Testing / Misc. ###
-#######################
+tools-clean:
+	rm -f $(RUNSIM)
+	rm -f tools-stamp
+
+.PHONY: runsim tools tools-stamp tools-clean
+
+###############################################################################
+###                           Tests & Simulation                            ###
+###############################################################################
 
 test: test-unit
 
@@ -188,22 +212,47 @@ test-race:
 test-import:
 	@go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
 	--blockchain blockchain --timeout=10m
+	rm -rf importer/tmp
 
 test-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
-godocs:
-	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
-	godoc -http=:6060
+test-sim-nondeterminism:
+	@echo "Running non-determinism test..."
+	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
 
-docker:
-	docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
-	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${COMMIT_HASH}
+test-sim-custom-genesis-fast:
+	@echo "Running custom genesis simulation..."
+	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
+		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
 
+test-sim-import-export: runsim
+	@echo "Running application import/export simulation. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppImportExport
 
-.PHONY: build install update-tools tools godocs clean format lint \
-test-cli test-race test-unit test test-import
+test-sim-after-import: runsim
+	@echo "Running application simulation-after-import. This may take several minutes..."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppSimulationAfterImport
+
+test-sim-custom-genesis-multi-seed: runsim
+	@echo "Running multi-seed custom genesis simulation..."
+	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+
+test-sim-multi-seed-long: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 500 50 TestFullAppSimulation
+
+test-sim-multi-seed-short: runsim
+	@echo "Running multi-seed application simulation. This may take awhile!"
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
+
+.PHONY: test test-unit test-race test-import test-rpc
+
+.PHONY: test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-import-export test-sim-after-import \
+	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-short
 
 test-contract:
 	@type "npm" 2> /dev/null || (echo 'Please install node.js and npm by running "make tools"' && exit 1)
@@ -211,7 +260,6 @@ test-contract:
 	@type "protoc" 2> /dev/null || (echo 'Please install protoc by running "make tools"' && exit 1)
 	@type "abigen" 2> /dev/null || (echo 'Please install abigen by running "make tools"' && exit 1)
 	bash scripts/contract-test.sh
-
 
 
 ###############################################################################
@@ -302,50 +350,10 @@ proto-update-deps:
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
 
-#######################
-### Simulations     ###
-#######################
 
-test-sim-nondeterminism:
-	@echo "Running non-determinism test..."
-	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
-		-NumBlocks=100 -BlockSize=200 -Commit=true -Period=0 -v -timeout 24h
-
-test-sim-custom-genesis-fast:
-	@echo "Running custom genesis simulation..."
-	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
-	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.emintd/config/genesis.json \
-		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
-
-test-sim-import-export: runsim
-	@echo "Running Ethermint import/export simulation. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppImportExport
-
-test-sim-after-import: runsim
-	@echo "Running Ethermint simulation-after-import. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 25 5 TestAppSimulationAfterImport
-
-test-sim-custom-genesis-multi-seed: runsim
-	@echo "Running multi-seed custom genesis simulation..."
-	@echo "By default, ${HOME}/.emintd/config/genesis.json will be used."
-	@$(BINDIR)/runsim -Jobs=4 -Genesis=${HOME}/.emintd/config/genesis.json 400 5 TestFullAppSimulation
-
-test-sim-multi-seed-long: runsim
-	@echo "Running multi-seed application simulation. This may take awhile!"
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 500 50 TestFullAppSimulation
-
-test-sim-multi-seed-short: runsim
-	@echo "Running multi-seed application simulation. This may take awhile!"
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) 50 10 TestFullAppSimulation
-
-.PHONY: runsim test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-fast sim-import-export \
-	test-sim-simulation-after-import test-sim-custom-genesis-multi-seed test-sim-multi-seed \
-
-
-
-#######################
-###  Documentation  ###
-#######################
+###############################################################################
+###                              Documentation                              ###
+###############################################################################
 
 # Start docs site at localhost:8080
 docs-serve:
@@ -358,3 +366,55 @@ docs-build:
 	@cd docs && \
 	npm install && \
 	npm run build
+
+godocs:
+	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
+	godoc -http=:6060
+
+###############################################################################
+###                                Localnet                                 ###
+###############################################################################
+
+build-docker-local-ethermint:
+	@$(MAKE) -C networks/local
+
+# Run a 4-node testnet locally
+localnet-start: localnet-stop
+ifeq ($(OS),Windows_NT)
+	mkdir build &
+	@$(MAKE) docker-localnet
+
+	IF not exist "build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
+	docker-compose up -d
+else
+	mkdir -p ./build/
+	@$(MAKE) docker-localnet
+
+	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
+	docker-compose up -d
+endif
+
+localnet-stop:
+	docker-compose down
+
+# clean testnet
+localnet-clean:
+	docker-compose down
+	sudo rm -rf build/*
+
+ # reset testnet
+localnet-unsafe-reset:
+	docker-compose down
+ifeq ($(OS),Windows_NT)
+	@docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node0/ethermintd"
+	@docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node1/ethermintd"
+	@docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node2/ethermintd"
+	@docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node3/ethermintd"
+else
+	@docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node0/ethermintd"
+	@docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node1/ethermintd"
+	@docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node2/ethermintd"
+	@docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd unsafe-reset-all --home=/ethermint/node3/ethermintd"
+endif
+
+.PHONY: build-docker-local-ethermint localnet-start localnet-stop
