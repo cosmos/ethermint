@@ -255,6 +255,11 @@ test-sim-multi-seed-short: runsim
 	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-short
 
 test-contract:
+	$(GOBIN) go get -u golang.org/x/tools/cmd/stringer
+	$(GOBIN) go get -u github.com/kevinburke/go-bindata/go-bindata
+	$(GOBIN) go get -u github.com/fjl/gencodec
+	$(GOBIN) go get -u github.com/golang/protobuf/protoc-gen-go
+	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
 	@type "npm" 2> /dev/null || (echo 'Please install node.js and npm by running "make tools"' && exit 1)
 	@type "solc" 2> /dev/null || (echo 'Please install solc by running "make tools"' && exit 1)
 	@type "protoc" 2> /dev/null || (echo 'Please install protoc by running "make tools"' && exit 1)
