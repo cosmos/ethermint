@@ -23,10 +23,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+
+	"github.com/cosmos/ethermint/x/simulation"
 )
 
 func init() {
@@ -66,11 +67,22 @@ func TestFullAppSimulation(t *testing.T) {
 	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
+	ops := simapp.SimulationOperations(app, app.Codec(), config)
+
+	simOps := make([]simulation.WeightedOperation, len(ops))
+	for i := range ops {
+		simOps[i] = simulation.NewWeightedOperation(ops[i].Weight, ops[i].Op)
+	}
+
 	// run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		simOps,
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -98,11 +110,22 @@ func TestAppImportExport(t *testing.T) {
 	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
+	ops := simapp.SimulationOperations(app, app.Codec(), config)
+
+	simOps := make([]simulation.WeightedOperation, len(ops))
+	for i := range ops {
+		simOps[i] = simulation.NewWeightedOperation(ops[i].Weight, ops[i].Op)
+	}
+
 	// Run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		simOps,
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -186,11 +209,22 @@ func TestAppSimulationAfterImport(t *testing.T) {
 	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
+	ops := simapp.SimulationOperations(app, app.Codec(), config)
+
+	simOps := make([]simulation.WeightedOperation, len(ops))
+	for i := range ops {
+		simOps[i] = simulation.NewWeightedOperation(ops[i].Weight, ops[i].Op)
+	}
+
 	// Run randomized simulation
 	stopEarly, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		simOps,
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -230,10 +264,21 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		AppStateBytes: appState,
 	})
 
+	ops = simapp.SimulationOperations(newApp, newApp.Codec(), config)
+
+	simOps = make([]simulation.WeightedOperation, len(ops))
+	for i := range ops {
+		simOps[i] = simulation.NewWeightedOperation(ops[i].Weight, ops[i].Op)
+	}
+
 	_, _, err = simulation.SimulateFromSeed(
-		t, os.Stdout, newApp.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(newApp, newApp.Codec(), config),
-		newApp.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		newApp.BaseApp,
+		simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		simOps,
+		newApp.ModuleAccountAddrs(),
+		config,
 	)
 	require.NoError(t, err)
 }
@@ -272,10 +317,21 @@ func TestAppStateDeterminism(t *testing.T) {
 			config.Seed, i+1, numTimesToRunPerSeed,
 		)
 
+		ops := simapp.SimulationOperations(app, app.Codec(), config)
+
+		simOps := make([]simulation.WeightedOperation, len(ops))
+		for i := range ops {
+			simOps[i] = simulation.NewWeightedOperation(ops[i].Weight, ops[i].Op)
+		}
+
 		_, _, err := simulation.SimulateFromSeed(
-			t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-			simapp.SimulationOperations(app, app.Codec(), config),
-			app.ModuleAccountAddrs(), config,
+			t,
+			os.Stdout,
+			app.BaseApp,
+			simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+			simOps,
+			app.ModuleAccountAddrs(),
+			config,
 		)
 		require.NoError(t, err)
 
