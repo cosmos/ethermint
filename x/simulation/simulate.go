@@ -53,7 +53,7 @@ func SimulateFromSeed(
 ) (stopEarly bool, exportedParams simulation.Params, err error) {
 
 	// in case we have to end early, don't os.Exit so that we can run cleanup code.
-	testingMode, t, b := getTestingMode(tb)
+	testingMode, _, b := getTestingMode(tb)
 	fmt.Fprintf(w, "Starting SimulateFromSeed with randomness created with seed %d\n", int(config.Seed))
 
 	r := rand.New(rand.NewSource(config.Seed))
@@ -121,7 +121,7 @@ func SimulateFromSeed(
 	logWriter := simulation.NewLogWriter(testingMode)
 
 	blockSimulator := createBlockSimulator(
-		testingMode, tb, t, w, params, eventStats.Tally,
+		testingMode, tb, w, params, eventStats.Tally,
 		ops, operationQueue, timeOperationQueue, logWriter, config)
 
 	if !testingMode {
@@ -241,7 +241,7 @@ type blockSimFn func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context,
 
 // Returns a function to simulate blocks. Written like this to avoid constant
 // parameters being passed everytime, to minimize memory overhead.
-func createBlockSimulator(testingMode bool, tb testing.TB, t *testing.T, w io.Writer, params simulation.Params,
+func createBlockSimulator(testingMode bool, tb testing.TB, w io.Writer, params simulation.Params,
 	event func(route, op, evResult string), ops WeightedOperations,
 	operationQueue simulation.OperationQueue, timeOperationQueue []simulation.FutureOperation,
 	logWriter simulation.LogWriter, config simulation.Config) blockSimFn {
