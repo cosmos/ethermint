@@ -12,7 +12,7 @@ pkill -f "ethermint*"
 type "ethermintd" 2> /dev/null || make install
 type "ethermintcli" 2> /dev/null || make install
 
-emintcli config keyring-backend test
+ethermintcli config keyring-backend test
 
 # Set up config for CLI
 ethermintcli config chain-id $CHAINID
@@ -24,10 +24,9 @@ ethermintcli config trust-node true
 ethermintcli keys add $FKEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-ethermintcli init $MONIKER --chain-id $CHAINID
+ethermintd init $MONIKER --chain-id $CHAINID
 
-# Use a custom genesis with pre-generated keys
-cp ./benchmark_ethmint_genesis.json $HOME/.ethermintd/config/genesis.json
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
 ethermintd add-genesis-account $(ethermintcli keys show $FKEY -a) 1000000000000000000photon,1000000000000000000stake
@@ -41,12 +40,12 @@ ethermintd collect-gentxs
 # Run this to ensure everything worked and that the genesis file is setup correctly
 ethermintd validate-genesis
 
-# Start the node (remove the --pruning=nothing flag if historical queries are not needed) in background and log to emintd.log
+# Start the node (remove the --pruning=nothing flag if historical queries are not needed) in background and log to file
 ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
 
 sleep 1
 
-# Start the rest server with unlocked faucet key in background and log to emintcli.log 
+# Start the rest server with unlocked faucet key in background and log to file
 ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $FKEY --chain-id $CHAINID --trace > ethermintcli.log &
 
 solc --abi contracts/counter/counter.sol --bin -o contracts/counter
@@ -71,5 +70,13 @@ ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accou
 
 echo $ACCT
 
+
+curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$ACCT'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+
+PRIVKEY=$(ethermintcli keys unsafe-export-eth-key faucet)
+
+echo $PRIVKEY
+
 ## need to get the private key from the account in order to check this functionality.
-# cd contracts/counter && go get && go build && ./counter $ACCT
+cd contracts/counter && go get && go build 
+#&& ./counter $ACCT
