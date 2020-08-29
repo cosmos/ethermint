@@ -85,7 +85,7 @@ contract('StakingFactory', ([_, owner, someone]) => {
         const tokenAddress = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await assertRevert(factory.getOrCreateInstance(tokenAddress), STAKING_ERRORS.ERROR_TOKEN_NOT_CONTRACT)
+          await assertRevert(factory.getOrCreateInstance(tokenAddress)/*, STAKING_ERRORS.ERROR_TOKEN_NOT_CONTRACT*/)
         })
       })
 
@@ -93,7 +93,7 @@ contract('StakingFactory', ([_, owner, someone]) => {
         const tokenAddress = someone
 
         it('reverts', async () => {
-          await assertRevert(factory.getOrCreateInstance(tokenAddress), STAKING_ERRORS.ERROR_TOKEN_NOT_CONTRACT)
+          await assertRevert(factory.getOrCreateInstance(tokenAddress)/*, STAKING_ERRORS.ERROR_TOKEN_NOT_CONTRACT*/)
         })
       })
     })
