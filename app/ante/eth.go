@@ -96,7 +96,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	minGasPrices := ctx.MinGasPrices()
 
 	// check that fee provided is greater than the minimum
-	// NOTE: we only check if photons are present in min gas prices. It is up to the
+	// NOTE: we only check if aphotons are present in min gas prices. It is up to the
 	// sender if they want to send additional fees in other denominations.
 	var hasEnoughFees bool
 	if fee.Amount.GTE(minGasPrices.AmountOf(emint.DenomDefault)) {
@@ -193,7 +193,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// validate sender has enough funds to pay for gas cost
-	balance := avd.bk.GetBalance(ctx, acc.GetAddress(), emint.DenomDefault)
+	balance := sdk.Coin{Denom: emint.DenomDefault, Amount: acc.GetCoins().AmountOf(emint.DenomDefault)}
 	if balance.Amount.BigInt().Cmp(msgEthTx.Cost()) < 0 {
 		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrInsufficientFunds,
@@ -344,12 +344,6 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// additional gas from being deducted.
 	gasMeter := ctx.GasMeter()
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-
-	// no need to increment sequence on RecheckTx mode
-	if ctx.IsReCheckTx() && !simulate {
-		ctx = ctx.WithGasMeter(gasMeter)
-		return next(ctx, tx, simulate)
-	}
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

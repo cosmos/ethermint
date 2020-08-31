@@ -17,11 +17,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/store"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -42,18 +42,18 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)
-	appCodec := codec.NewAppCodec(cdc)
 
 	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
 	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
 
-	keyring.CryptoCdc = cdc
+	keys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
 	genutiltypes.ModuleCdc = cdc
 	clientkeys.KeysCdc = cdc
 
 	config := sdk.GetConfig()
 	ethermint.SetBech32Prefixes(config)
+	ethermint.SetBip44CoinType(config)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
@@ -68,16 +68,16 @@ func main() {
 		client.ValidateChainID(
 			genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome),
 		),
-		genutilcli.CollectGenTxsCmd(ctx, cdc, bank.GenesisBalancesIterator{}, app.DefaultNodeHome),
+		genutilcli.CollectGenTxsCmd(ctx, cdc, auth.GenesisAccountIterator{}, app.DefaultNodeHome),
 		genutilcli.MigrateGenesisCmd(ctx, cdc),
 		genutilcli.GenTxCmd(
-			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, bank.GenesisBalancesIterator{},
+			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{},
 			app.DefaultNodeHome, app.DefaultCLIHome,
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
-		client.TestnetCmd(ctx, cdc, app.ModuleBasics, bank.GenesisBalancesIterator{}),
+		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
-		AddGenesisAccountCmd(ctx, cdc, appCodec, app.DefaultNodeHome, app.DefaultCLIHome),
+		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
 	)
 
@@ -95,24 +95,31 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return app.NewEthermintApp(logger, db, traceStore, true, 0,
-		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))))
+	return app.NewEthermintApp(
+		logger,
+		db,
+		traceStore,
+		true,
+		map[int64]bool{},
+		0,
+		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))),
+		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
+		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
+	)
 }
 
 func exportAppStateAndTMValidators(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
+	ethermintApp := app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, 0)
+
 	if height != -1 {
-		emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-		err := emintApp.LoadHeight(height)
+		err := ethermintApp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
 		}
-		return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-
-	return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }

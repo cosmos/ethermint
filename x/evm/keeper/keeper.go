@@ -14,7 +14,7 @@ import (
 
 	"github.com/cosmos/ethermint/x/evm/types"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -41,7 +41,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, ak types.AccountKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, ak types.AccountKeeper,
 ) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -52,7 +52,7 @@ func NewKeeper(
 		cdc:           cdc,
 		paramSpace:    paramSpace,
 		storeKey:      storeKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak, bk),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -118,7 +118,7 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 
 	txsLogs := []types.TransactionLogs{}
 	for ; iterator.Valid(); iterator.Next() {
-		hash := ethcmn.BytesToHash(iterator.Key())
+		hash := common.BytesToHash(iterator.Key())
 		var logs []*ethtypes.Log
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
 
@@ -127,4 +127,18 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 		txsLogs = append(txsLogs, txLog)
 	}
 	return txsLogs
+}
+
+// GetAccountStorage return state storage associated with an account
+func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
+	storage := types.Storage{}
+	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
+		storage = append(storage, types.NewState(key, value))
+		return false
+	})
+	if err != nil {
+		return types.Storage{}, err
+	}
+
+	return storage, nil
 }
