@@ -2,20 +2,32 @@
 order: 4
 -->
 
-# <img src="./photon.png" width="25"> Photon
+# Photon
 
-Learn about Ethermints Denomination
+Learn about the Photon, Ethermint's staking token. {synopsis}
 
-## Base Denemination
+## Introduction
 
-Ethermint uses Atto Photon as the base Denomination to maintain parity with Ethereum.
+::: tip
+The photon's initial distribution and supply is still TBD and will be announced in the future.
+:::
+
+The photon is the staking token used in Ethermint.
+
+## Base Denomination
+
+Ethermint uses [Atto](https://en.wikipedia.org/wiki/Atto-) Photon as the base denomination to maintain parity with Ethereum.
 
 ```
-1 photon = 1×10⁻¹⁸ APhoton
+1 photon = 1×10⁻¹⁸ aphoton
 ```
 
-This matches Ethereum denomination of
+This matches Ethereum denomination of:
 
 ```
 1 ETH = 1x10⁻¹⁸ wei
 ```
+
+## Next {hide}
+
+Learn about the [encoding](./../core/encoding.md) formats used on Ethermint {hide}
