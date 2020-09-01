@@ -260,10 +260,10 @@ test-contract:
 	$(GOBIN) go get -u github.com/fjl/gencodec
 	$(GOBIN) go get -u github.com/golang/protobuf/protoc-gen-go
 	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
-	@type "npm" 2> /dev/null || (echo 'Please install node.js and npm by running "make tools"' && exit 1)
-	@type "solc" 2> /dev/null || (echo 'Please install solc by running "make tools"' && exit 1)
-	@type "protoc" 2> /dev/null || (echo 'Please install protoc by running "make tools"' && exit 1)
-	@type "abigen" 2> /dev/null || (echo 'Please install abigen by running "make tools"' && exit 1)
+	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
+	@type "solc" 2> /dev/null || (echo 'Solc does not exist. Please install solc."' && exit 1)
+	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc.' && exit 1)
+	@type "abigen" 2> /dev/null || (echo 'Failed to install abigen. Pleae reinstall abigen.' && exit 1)
 	bash scripts/contract-test.sh
 
 

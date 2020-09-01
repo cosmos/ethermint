@@ -1,60 +1,153 @@
 package main
 
 import (
-	"context"
-	"crypto/ecdsa"
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"math/big"
+	"net/http"
+	"os"
+	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+var (
+	HOST = os.Getenv("HOST")
+)
+
+type Request struct {
+	Version string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	ID      int         `json:"id"`
+}
+
+type RPCError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+type Response struct {
+	Error  *RPCError       `json:"error"`
+	ID     int             `json:"id"`
+	Result json.RawMessage `json:"result,omitempty"`
+}
+
+func createRequest(method string, params interface{}) Request {
+	return Request{
+		Version: "2.0",
+		Method:  method,
+		Params:  params,
+		ID:      1,
+	}
+}
+
+func getTransactionReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
+	param := []string{hash.String()}
+	rpcRes, err := call("eth_getTransactionReceipt", param)
+	if err != nil {
+		return nil, err
+	}
+
+	receipt := make(map[string]interface{})
+	err = json.Unmarshal(rpcRes.Result, &receipt)
+	if err != nil {
+		return nil, err
+	}
+
+	return receipt, nil
+}
+
+func waitForReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
+	for i := 0; i < 10; i++ {
+		receipt, err := getTransactionReceipt(hash)
+		if receipt != nil {
+			return receipt, err
+		} else if err != nil {
+			return nil, err
+		}
+
+		time.Sleep(time.Second)
+	}
+	return nil, errors.New("Cound not find transaction on chain.")
+}
+
+func call(method string, params interface{}) (*Response, error) {
+	if HOST == "" {
+		HOST = "http://localhost:8545"
+	}
+
+	req, err := json.Marshal(createRequest(method, params))
+	if err != nil {
+		return nil, err
+	}
+
+	var rpcRes *Response
+	time.Sleep(1000000 * time.Nanosecond)
+	/* #nosec */
+	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
+	if err != nil {
+		return nil, err
+	}
+
+	decoder := json.NewDecoder(res.Body)
+	rpcRes = new(Response)
+	err = decoder.Decode(&rpcRes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcRes, nil
+}
+
 func main() {
-	client, err := ethclient.Dial("http://localhost:8545")
+	dat, err := ioutil.ReadFile("/ethermint/contracts/counter/counter_sol.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// replace with os.Args[1]
-	// privateKey, err := crypto.HexToECDSA(os.Args[1])
-	privateKey, err := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = os.Args[1]
+	param[0]["data"] = string(dat)
+
+	txRpcRes, err := call("eth_sendTransaction", param)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Fatal("error casting public key to ECDSA")
+	var hash hexutil.Bytes
+	err = json.Unmarshal(txRpcRes.Result, &hash)
+	if err != nil {
+		log.Fatal(err)
 	}
+	fmt.Println("Contract TX hash: ", hash)
 
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	receipt, err := waitForReceipt(hash)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
+	/*
+		//test for bad hash
+		testhash, err := hexutil.Decode("0xe146d95c74a48e730bf825c2a3dcbce8122b8a463bc15bcbb38b9c195402f0a5")
+		if err != nil {
+			log.Fatal(err)
+		}
+		receipt, err := waitForReceipt(testhash)
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
 
-	auth := bind.NewKeyedTransactor(privateKey)
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)     // in wei
-	auth.GasLimit = uint64(300000) // in units
-	auth.GasPrice = gasPrice
-
-	address, tx, instance, err := DeployCounter(auth, client)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(address.Hex())   // 0x147B8eb97fD247D06C4006D269c90C1908Fb5D54
-	fmt.Println(tx.Hash().Hex()) // 0xdae8ba5444eefdc99f4d45cd0c4f24056cba6a02cefbf78066ef9f4188ff7dc0
-
-	_ = instance
+	fmt.Println("receipt: ", receipt)
 }
