@@ -49,7 +49,7 @@ type ExecutionResult struct {
 	GasInfo GasInfo
 }
 
-func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, params Params) *vm.EVM {
+func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, config ChainConfig) *vm.EVM {
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
@@ -63,13 +63,13 @@ func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit 
 		GasPrice:    gasPrice,
 	}
 
-	return vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID, params), vm.Config{})
+	return vm.NewEVM(context, csdb, config.EthereumConfig(st.ChainID), vm.Config{})
 }
 
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, params Params) (*ExecutionResult, error) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*ExecutionResult, error) {
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true, false)
@@ -108,7 +108,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, params Params) (*Executi
 		return nil, errors.New("gas price cannot be nil")
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, params)
+	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config)
 
 	var (
 		ret             []byte

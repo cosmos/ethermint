@@ -8,6 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	emint "github.com/cosmos/ethermint/types"
 
@@ -42,6 +43,7 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
+	paramSpace params.Subspace
 	accountKeeper AccountKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
@@ -86,11 +88,12 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, ak AccountKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
+		paramSpace: paramSpace,
 		accountKeeper:        ak,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -109,6 +112,12 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
+
+// SetParams sets the evm parameters to the param space.
+func (csdb *CommitStateDB) SetParams(params Params) {
+	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
+}
+
 
 // SetBalance sets the balance of an account.
 func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
@@ -236,6 +245,13 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
+
+
+// GetParams returns the total set of evm parameters.
+func (csdb *CommitStateDB) GetParams() (params Params) {
+	csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+	return params
+}
 
 // GetBalance retrieves the balance from the given address or 0 if object not
 // found.

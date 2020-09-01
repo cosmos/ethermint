@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/cosmos/ethermint/x/evm/types"
 
@@ -23,7 +23,6 @@ import (
 type Keeper struct {
 	// Amino codec
 	cdc        *codec.Codec
-	paramSpace paramtypes.Subspace
 	// Store key required for the EVM Prefix KVStore. It is required by:
 	// - storing Account's Storage State
 	// - storing Account's Code
@@ -31,6 +30,7 @@ type Keeper struct {
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
 	storeKey      sdk.StoreKey
+	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
@@ -41,18 +41,18 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, ak types.AccountKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper,
 ) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
+	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return Keeper{
 		cdc:           cdc,
-		paramSpace:    paramSpace,
 		storeKey:      storeKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -141,4 +141,27 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 	}
 
 	return storage, nil
+}
+
+
+// GetChainConfig gets block height from block consensus hash
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	// get from an empty key that's already prefixed by KeyPrefixChainConfig
+	bz := store.Get([]byte{})
+	if len(bz) == 0 {
+		return types.ChainConfig{}, false
+	}
+
+	var config types.ChainConfig
+	k.cdc.MustUnmarshalBinaryBare(bz, config)
+	return config, true
+}
+
+// SetChainConfig sets the mapping from block consensus hash to block height
+func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	bz := k.cdc.MustMarshalBinaryBare(config)
+	// get to an empty key that's already prefixed by KeyPrefixChainConfig
+	store.Set([]byte{}, bz)
 }

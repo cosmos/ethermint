@@ -26,6 +26,7 @@ var (
 	KeyPrefixLogs      = []byte{0x03}
 	KeyPrefixCode      = []byte{0x04}
 	KeyPrefixStorage   = []byte{0x05}
+	KeyPrefixChainConfig   = []byte{0x06}
 )
 
 // BloomKey defines the store key for a block Bloom
