@@ -221,3 +221,22 @@ func TestChainConfigValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestChainConfig_String(t *testing.T) {
+	configStr := `homestead_block: "0"
+dao_fork_block: "0"
+dao_fork_support: true
+eip150_block: "0"
+eip150_hash: 0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0
+eip155_block: "0"
+eip158_block: "0"
+byzantium_block: "0"
+constantinople_block: "0"
+petersburg_block: "0"
+istanbul_block: "-1"
+muir_glacier_block: "-1"
+yoloV1_block: "-1"
+ewasm_block: "-1"
+`
+	require.Equal(t, configStr, DefaultChainConfig().String())
+}
