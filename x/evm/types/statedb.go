@@ -732,9 +732,11 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	// copied, the loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range csdb.stateObjectsDirty {
-		if idx, exist := state.addressToObjectIndex[addr]; exist {
-			state.setStateObject(csdb.stateObjects[idx].stateObject.deepCopy(state))
-			delete(state.stateObjectsDirty, addr)
+		if _, exist := state.addressToObjectIndex[addr]; !exist {
+			if idx, ok := csdb.addressToObjectIndex[addr]; ok {
+				state.setStateObject(csdb.stateObjects[idx].stateObject.deepCopy(state))
+				delete(state.stateObjectsDirty, addr)
+			}
 		}
 	}
 
