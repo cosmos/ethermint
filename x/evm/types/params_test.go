@@ -21,7 +21,7 @@ func TestParamsValidate(t *testing.T) {
 		{
 			"empty",
 			Params{},
-			false,
+			true,
 		},
 		{
 			"invalid evm denom",

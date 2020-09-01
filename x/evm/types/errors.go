@@ -12,4 +12,7 @@ var (
 	
 	// ErrChainConfigNotFound returns an error if the chain config cannot be found on the store.
 	ErrChainConfigNotFound = sdkerrors.Register(ModuleName, 3, "chain configuration not found")
+
+	// ErrInvalidChainConfig returns an error resulting from an invalid ChainConfig.
+	ErrInvalidChainConfig = sdkerrors.Register(ModuleName, 4, "invalid chain configuration")
 )

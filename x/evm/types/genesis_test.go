@@ -122,6 +122,7 @@ func TestValidateGenesis(t *testing.T) {
 						},
 					},
 				},
+				Params: DefaultParams(),
 			},
 			expPass: true,
 		},
@@ -224,6 +225,13 @@ func TestValidateGenesis(t *testing.T) {
 					},
 				},
 				TxsLogs: []TransactionLogs{NewTransactionLogs(ethcmn.Hash{}, nil)},
+			},
+			expPass: false,
+		},
+		{
+			name: "invalid params",
+			genState: GenesisState{
+				Params: Params{},
 			},
 			expPass: false,
 		},
