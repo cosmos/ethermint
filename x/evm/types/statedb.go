@@ -703,8 +703,8 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 		paramSpace:           csdb.paramSpace,
 		accountKeeper:        csdb.accountKeeper,
 		stateObjects:         make([]stateEntry, len(csdb.journal.dirties)),
-		addressToObjectIndex: make(map[ethcmn.Address]int, len(csdb.journal.dirties)),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}, len(csdb.journal.dirties)),
+		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
 		refund:               csdb.refund,
 		logSize:              csdb.logSize,
 		preimages:            make(map[ethcmn.Hash][]byte),
@@ -724,6 +724,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 				stateObject: csdb.stateObjects[idx].stateObject.deepCopy(state),
 			}
 			state.stateObjectsDirty[dirty.address] = struct{}{}
+			state.addressToObjectIndex[dirty.address] = i
 		}
 	}
 
