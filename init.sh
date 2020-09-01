@@ -18,13 +18,13 @@ ethermintcli config indent true
 ethermintcli config trust-node true
 
 # if $KEY exists it should be deleted
-ethermintcli keys add $KEY --algo "eth_secp256k1"
+ethermintcli keys add $KEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 ethermintd init $MONIKER --chain-id $CHAINID
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000photon,1000000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000aphoton,1000000000000000000stake
 
 # Sign genesis transaction
 ethermintd gentx --name $KEY --keyring-backend test
@@ -37,7 +37,7 @@ cat  $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_fa
 
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
-echo -e "ethermintcli tx faucet request 100photon --from $KEY\n"
+echo -e "ethermintcli tx faucet request 100aphoton --from $KEY\n"
 
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
