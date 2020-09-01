@@ -47,7 +47,7 @@ cat  $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_fa
 
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
-echo -e "ethermintcli tx faucet request 100photon --from $VAL_KEY\n"
+echo -e "ethermintcli tx faucet request 100aphoton --from $VAL_KEY\n"
 
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
