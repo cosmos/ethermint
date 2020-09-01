@@ -822,7 +822,7 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
-	if idx, found := csdb.addressToObjectIndex[addr]; found {
+	if idx, found := csdb.addressToObjectIndex[addr]; found && idx < len(csdb.stateObjects) {
 		// prefer 'live' (cached) objects
 		if so := csdb.stateObjects[idx].stateObject; so != nil {
 			if so.deleted {
@@ -848,7 +848,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	if idx, found := csdb.addressToObjectIndex[so.Address()]; found {
+	if idx, found := csdb.addressToObjectIndex[so.Address()]; found && idx < len(csdb.stateObjects) {
 		// update the existing object
 		csdb.stateObjects[idx].stateObject = so
 		return
