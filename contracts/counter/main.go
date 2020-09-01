@@ -73,7 +73,7 @@ func waitForReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
 
 		time.Sleep(time.Second)
 	}
-	return nil, errors.New("Cound not find transaction on chain.")
+	return nil, errors.New("cound not find transaction on chain")
 }
 
 func call(method string, params interface{}) (*Response, error) {
@@ -120,13 +120,13 @@ func main() {
 	param[0]["from"] = os.Args[1]
 	param[0]["data"] = string(dat)
 
-	txRpcRes, err := call("eth_sendTransaction", param)
+	txRPCRes, err := call("eth_sendTransaction", param)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var hash hexutil.Bytes
-	err = json.Unmarshal(txRpcRes.Result, &hash)
+	err = json.Unmarshal(txRPCRes.Result, &hash)
 	if err != nil {
 		log.Fatal(err)
 	}
