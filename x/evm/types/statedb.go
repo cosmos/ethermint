@@ -471,7 +471,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 			}
 		}
 
-		csdb.stateObjectsDirty[dirty.address] = struct{}{}
+		delete(csdb.stateObjectsDirty, dirty.address)
 	}
 
 	// invalidate journal because reverting across transactions is not allowed
@@ -702,7 +702,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 		storeKey:             csdb.storeKey,
 		paramSpace:           csdb.paramSpace,
 		accountKeeper:        csdb.accountKeeper,
-		stateObjects:         make([]stateEntry, len(csdb.journal.dirties)),
+		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
 		refund:               csdb.refund,
@@ -712,19 +712,19 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	}
 
 	// copy the dirty states, logs, and preimages
-	for i, dirty := range csdb.journal.dirties {
+	for _, dirty := range csdb.journal.dirties {
 		// There is a case where an object is in the journal but not in the
 		// stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we
 		// need to check for nil.
 		//
 		// Ref: https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527
 		if idx, exist := csdb.addressToObjectIndex[dirty.address]; exist {
-			state.stateObjects[i] = stateEntry{
+			state.stateObjects = append(state.stateObjects, stateEntry{
 				address:     dirty.address,
 				stateObject: csdb.stateObjects[idx].stateObject.deepCopy(state),
-			}
-			state.stateObjectsDirty[dirty.address] = struct{}{}
-			state.addressToObjectIndex[dirty.address] = i
+			})
+			delete(state.stateObjectsDirty, dirty.address)
+			state.addressToObjectIndex[dirty.address] = len(state.stateObjects) - 1
 		}
 	}
 
@@ -732,9 +732,9 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	// copied, the loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range csdb.stateObjectsDirty {
-		if idx, exist := state.addressToObjectIndex[addr]; !exist {
+		if idx, exist := state.addressToObjectIndex[addr]; exist {
 			state.setStateObject(csdb.stateObjects[idx].stateObject.deepCopy(state))
-			state.stateObjectsDirty[addr] = struct{}{}
+			delete(state.stateObjectsDirty, addr)
 		}
 	}
 
@@ -822,8 +822,7 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
-	idx, found := csdb.addressToObjectIndex[addr]
-	if found {
+	if idx, found := csdb.addressToObjectIndex[addr]; found {
 		// prefer 'live' (cached) objects
 		if so := csdb.stateObjects[idx].stateObject; so != nil {
 			if so.deleted {
@@ -849,8 +848,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	idx, found := csdb.addressToObjectIndex[so.Address()]
-	if found {
+	if idx, found := csdb.addressToObjectIndex[so.Address()]; found {
 		// update the existing object
 		csdb.stateObjects[idx].stateObject = so
 		return
