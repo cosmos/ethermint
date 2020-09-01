@@ -32,9 +32,9 @@ echo $USER2_MNEMONIC | ethermintcli keys add $USER2_KEY --recover
 ethermintd init $MONIKER --chain-id $CHAINID
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $VAL_KEY -a) 1000000000000000000000photon,10000000000000000stake
-ethermintd add-genesis-account $(ethermintcli keys show $USER1_KEY -a) 1000000000000000000000photon,10000000000000000stake
-ethermintd add-genesis-account $(ethermintcli keys show $USER2_KEY -a) 1000000000000000000000photon,10000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $VAL_KEY -a) 1000000000000000000000aphoton,10000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $USER1_KEY -a) 1000000000000000000000aphoton,10000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $USER2_KEY -a) 1000000000000000000000aphoton,10000000000000000stake
 
 # Sign genesis transaction
 ethermintd gentx --name $VAL_KEY --keyring-backend test
