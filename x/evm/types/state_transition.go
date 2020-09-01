@@ -101,7 +101,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
-	evmDenom := st.Csdb.GetParams().EvmDenom
+	evmDenom := csdb.GetParams().EvmDenom
 	gasPrice := ctx.MinGasPrices().AmountOf(evmDenom)
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")

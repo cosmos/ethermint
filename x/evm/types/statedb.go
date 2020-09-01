@@ -43,7 +43,7 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
-	paramSpace params.Subspace
+	paramSpace    params.Subspace
 	accountKeeper AccountKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
@@ -93,7 +93,7 @@ func NewCommitStateDB(
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
-		paramSpace: paramSpace,
+		paramSpace:           paramSpace,
 		accountKeeper:        ak,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -117,7 +117,6 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 func (csdb *CommitStateDB) SetParams(params Params) {
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
 }
-
 
 // SetBalance sets the balance of an account.
 func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
@@ -245,7 +244,6 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
-
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() (params Params) {
@@ -702,6 +700,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 	state := &CommitStateDB{
 		ctx:                  csdb.ctx,
 		storeKey:             csdb.storeKey,
+		paramSpace:           csdb.paramSpace,
 		accountKeeper:        csdb.accountKeeper,
 		stateObjects:         make([]stateEntry, len(csdb.journal.dirties)),
 		addressToObjectIndex: make(map[ethcmn.Address]int, len(csdb.journal.dirties)),
