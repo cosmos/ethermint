@@ -101,12 +101,12 @@ func trapSignals() {
 }
 
 // nolint: interfacer
-func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper) {
+func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, paramsSpace params.Subspace) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 
-	stateDB := evmtypes.NewCommitStateDB(ctx, storeKey, ak)
+	stateDB := evmtypes.NewCommitStateDB(ctx, storeKey, paramsSpace, ak)
 
 	// sort the addresses and insertion of key/value pairs matters
 	genAddrs := make([]string, len(genBlock.Alloc))
@@ -182,6 +182,7 @@ func TestImportBlocks(t *testing.T) {
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
 	// Set specific supspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	evmSubspace := paramsKeeper.Subspace(evmtypes.DefaultParamspace)
 	ak := auth.NewAccountKeeper(cdc, accKey, authSubspace, types.ProtoAccount)
 
 	// mount stores
@@ -197,7 +198,7 @@ func TestImportBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	// set and test genesis block
-	createAndTestGenesis(t, cms, ak)
+	createAndTestGenesis(t, cms, ak, evmSubspace)
 
 	// open blockchain export file
 	blockchainInput, err := os.Open(flagBlockchain)
@@ -242,7 +243,7 @@ func TestImportBlocks(t *testing.T) {
 		ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
 		ctx = ctx.WithBlockHeight(int64(block.NumberU64()))
 
-		stateDB := createStateDB(ctx, ak)
+		stateDB := createStateDB(ctx, ak, evmSubspace)
 
 		if chainConfig.DAOForkSupport && chainConfig.DAOForkBlock != nil && chainConfig.DAOForkBlock.Cmp(block.Number()) == 0 {
 			applyDAOHardFork(stateDB)
@@ -277,8 +278,8 @@ func TestImportBlocks(t *testing.T) {
 }
 
 // nolint: interfacer
-func createStateDB(ctx sdk.Context, ak auth.AccountKeeper) *evmtypes.CommitStateDB {
-	return evmtypes.NewCommitStateDB(ctx, storeKey, ak)
+func createStateDB(ctx sdk.Context, ak auth.AccountKeeper, paramsSpace params.Subspace) *evmtypes.CommitStateDB {
+	return evmtypes.NewCommitStateDB(ctx, storeKey, paramsSpace, ak)
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining

@@ -30,7 +30,6 @@ func TestParamsValidate(t *testing.T) {
 			},
 			true,
 		},
-	
 	}
 
 	for _, tc := range testCases {
@@ -46,4 +45,8 @@ func TestParamsValidate(t *testing.T) {
 
 func TestParamsValidatePriv(t *testing.T) {
 	require.Error(t, validateEVMDenom(false))
+}
+
+func TestParams_String(t *testing.T) {
+	require.Equal(t, "evm_denom: aphoton\n", DefaultParams().String())
 }
