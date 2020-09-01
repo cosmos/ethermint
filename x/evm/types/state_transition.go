@@ -10,8 +10,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 
-	emint "github.com/cosmos/ethermint/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -103,7 +101,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
-	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
+	evmDenom := st.Csdb.GetParams().EvmDenom
+	gasPrice := ctx.MinGasPrices().AmountOf(evmDenom)
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")
 	}

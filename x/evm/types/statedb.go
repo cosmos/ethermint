@@ -498,8 +498,9 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
+	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: emint.DenomDefault, Amount: sdk.NewIntFromBigInt(so.Balance())}
+	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewIntFromBigInt(so.Balance())}
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -639,9 +640,10 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
+		evmDenom := csdb.GetParams().EvmDenom
 		balance := sdk.Coin{
-			Denom:  emint.DenomDefault,
-			Amount: emintAcc.GetCoins().AmountOf(emint.DenomDefault),
+			Denom:  evmDenom,
+			Amount: emintAcc.GetCoins().AmountOf(evmDenom),
 		}
 
 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||

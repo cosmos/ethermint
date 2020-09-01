@@ -312,7 +312,7 @@ func NewEthermintApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.BankKeeper, app.SupplyKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 
 	if loadLatest {
