@@ -22,14 +22,14 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc        *codec.Codec
+	cdc *codec.Codec
 	// Store key required for the EVM Prefix KVStore. It is required by:
 	// - storing Account's Storage State
 	// - storing Account's Code
 	// - storing transaction Logs
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
-	storeKey      sdk.StoreKey
+	storeKey sdk.StoreKey
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
 	// Transaction counter in a block. Used on StateSB's Prepare function.
@@ -142,7 +142,6 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 	return storage, nil
 }
-
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {

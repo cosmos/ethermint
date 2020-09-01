@@ -123,14 +123,14 @@ func TestValidateGenesis(t *testing.T) {
 					},
 				},
 				ChainConfig: DefaultChainConfig(),
-				Params: DefaultParams(),
+				Params:      DefaultParams(),
 			},
 			expPass: true,
 		},
 		{
-			name: "empty genesis",
+			name:     "empty genesis",
 			genState: GenesisState{},
-			expPass: false,
+			expPass:  false,
 		},
 		{
 			name: "invalid genesis",
@@ -238,7 +238,7 @@ func TestValidateGenesis(t *testing.T) {
 			name: "invalid params",
 			genState: GenesisState{
 				ChainConfig: DefaultChainConfig(),
-				Params: Params{},
+				Params:      Params{},
 			},
 			expPass: false,
 		},
@@ -246,7 +246,7 @@ func TestValidateGenesis(t *testing.T) {
 			name: "invalid chain config",
 			genState: GenesisState{
 				ChainConfig: ChainConfig{},
-				Params: DefaultParams(),
+				Params:      DefaultParams(),
 			},
 			expPass: false,
 		},

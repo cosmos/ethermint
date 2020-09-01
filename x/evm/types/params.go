@@ -19,14 +19,12 @@ const (
 // Parameter keys
 var (
 	ParamStoreKeyEVMDenom = []byte("EVMDenom")
-
 )
 
 // ParamKeyTable returns the parameter key table.
 func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
-
 
 // Params defines the EVM module parameters
 type Params struct {

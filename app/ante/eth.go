@@ -72,7 +72,7 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 
 // EthMempoolFeeDecorator validates that sufficient fees have been provided that
 // meet a minimum threshold defined by the proposer (for mempool purposes during CheckTx).
-type EthMempoolFeeDecorator struct{
+type EthMempoolFeeDecorator struct {
 	evmKeeper EVMKeeper
 }
 
@@ -160,14 +160,14 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 // AccountVerificationDecorator validates an account balance checks
 type AccountVerificationDecorator struct {
-	ak auth.AccountKeeper
+	ak        auth.AccountKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewAccountVerificationDecorator creates a new AccountVerificationDecorator
 func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper) AccountVerificationDecorator {
 	return AccountVerificationDecorator{
-		ak: ak,
+		ak:        ak,
 		evmKeeper: ek,
 	}
 }
@@ -262,16 +262,16 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
 // gas consumption.
 type EthGasConsumeDecorator struct {
-	ak auth.AccountKeeper
-	sk types.SupplyKeeper
+	ak        auth.AccountKeeper
+	sk        types.SupplyKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
 func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
-		ak: ak,
-		sk: sk,
+		ak:        ak,
+		sk:        sk,
 		evmKeeper: ek,
 	}
 }

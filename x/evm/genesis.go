@@ -80,9 +80,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	config, _ := k.GetChainConfig(ctx)
 
 	return GenesisState{
-		Accounts: ethGenAccounts,
-		TxsLogs:  k.GetAllTxLogs(ctx),
+		Accounts:    ethGenAccounts,
+		TxsLogs:     k.GetAllTxLogs(ctx),
 		ChainConfig: config,
-		Params:   k.GetParams(ctx),
+		Params:      k.GetParams(ctx),
 	}
 }
