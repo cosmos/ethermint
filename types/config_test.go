@@ -36,8 +36,10 @@ func TestSetBech32Prefixes(t *testing.T) {
 func TestSetCoinType(t *testing.T) {
 	config := sdk.GetConfig()
 	require.Equal(t, sdk.CoinType, int(config.GetCoinType()))
+	require.Equal(t, sdk.FullFundraiserPath, config.GetFullFundraiserPath())
 
 	SetBip44CoinType(config)
 	require.Equal(t, Bip44CoinType, int(config.GetCoinType()))
 	require.Equal(t, sdk.GetConfig().GetCoinType(), config.GetCoinType())
+	require.Equal(t, sdk.GetConfig().GetFullFundraiserPath(), config.GetFullFundraiserPath())
 }

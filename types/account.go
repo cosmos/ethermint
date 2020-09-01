@@ -11,8 +11,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -79,7 +77,7 @@ func (acc *EthAccount) SetBalance(amt sdk.Int) {
 type ethermintAccountPretty struct {
 	Address       sdk.AccAddress `json:"address" yaml:"address"`
 	Coins         sdk.Coins      `json:"coins" yaml:"coins"`
-	PubKey        []byte         `json:"public_key" yaml:"public_key"`
+	PubKey        string         `json:"public_key" yaml:"public_key"`
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
 	CodeHash      string         `json:"code_hash" yaml:"code_hash"`
@@ -95,8 +93,10 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
 	}
 
-	if acc.PubKey != nil {
-		alias.PubKey = acc.PubKey.Bytes()
+	var err error
+	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+	if err != nil {
+		return nil, err
 	}
 
 	bz, err := yaml.Marshal(alias)
@@ -117,8 +117,10 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
 	}
 
-	if acc.PubKey != nil {
-		alias.PubKey = acc.PubKey.Bytes()
+	var err error
+	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return json.Marshal(alias)
@@ -132,17 +134,14 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		return err
 	}
 
-	if alias.PubKey != nil {
-		pubKey, err := tmamino.PubKeyFromBytes(alias.PubKey)
-		if err != nil {
-			return err
-		}
-
-		acc.BaseAccount.PubKey = pubKey
-	}
-
 	acc.BaseAccount.Coins = alias.Coins
 	acc.BaseAccount.Address = alias.Address
+
+	var err error
+	acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
+	if err != nil {
+		return err
+	}
 	acc.BaseAccount.AccountNumber = alias.AccountNumber
 	acc.BaseAccount.Sequence = alias.Sequence
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
