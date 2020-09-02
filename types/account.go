@@ -161,7 +161,7 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 }
 
 // String implements the fmt.Stringer interface
-func (acc *EthAccount) String() string {
+func (acc EthAccount) String() string {
 	out, _ := yaml.Marshal(acc)
 	return string(out)
 }
