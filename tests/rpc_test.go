@@ -754,11 +754,11 @@ func TestEth_EstimateGas(t *testing.T) {
 	require.NotNil(t, rpcRes)
 	require.NotEmpty(t, rpcRes.Result)
 
-	var gas hexutil.Bytes
+	var gas string
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err, string(rpcRes.Result))
 
-	require.Equal(t, "0xffdf", gas.String())
+	require.Equal(t, "0x1051d", gas)
 }
 
 func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
