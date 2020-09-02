@@ -79,7 +79,7 @@ func DefaultChainConfig() ChainConfig {
 		DAOForkBlock:        sdk.ZeroInt(),
 		DAOForkSupport:      true,
 		EIP150Block:         sdk.ZeroInt(),
-		EIP150Hash:          "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+		EIP150Hash:          common.Hash{}.String(),
 		EIP155Block:         sdk.ZeroInt(),
 		EIP158Block:         sdk.ZeroInt(),
 		ByzantiumBlock:      sdk.ZeroInt(),
@@ -147,7 +147,7 @@ func (cc ChainConfig) Validate() error {
 }
 
 func validateHash(hex string) error {
-	if strings.TrimSpace(hex) == "" {
+	if hex != "" && strings.TrimSpace(hex) == "" {
 		return sdkerrors.Wrapf(ErrInvalidChainConfig, "hash cannot be blank")
 	}
 

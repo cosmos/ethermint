@@ -3,11 +3,14 @@ package types
 import (
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
-const defaultEIP150Hash = "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"
+var defaultEIP150Hash = common.Hash{}.String()
 
 func TestChainConfigValidate(t *testing.T) {
 	testCases := []struct {
@@ -70,7 +73,7 @@ func TestChainConfigValidate(t *testing.T) {
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.OneInt(),
-				EIP150Hash:     "",
+				EIP150Hash:     "  ",
 			},
 			true,
 		},
@@ -227,7 +230,7 @@ func TestChainConfig_String(t *testing.T) {
 dao_fork_block: "0"
 dao_fork_support: true
 eip150_block: "0"
-eip150_hash: 0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0
+eip150_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
 eip155_block: "0"
 eip158_block: "0"
 byzantium_block: "0"
