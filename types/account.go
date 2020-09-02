@@ -94,9 +94,12 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	}
 
 	var err error
-	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
-	if err != nil {
-		return nil, err
+
+	if acc.PubKey != nil {
+		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bz, err := yaml.Marshal(alias)
@@ -118,9 +121,12 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	}
 
 	var err error
-	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
-	if err != nil {
-		return nil, err
+
+	if acc.PubKey != nil {
+		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return json.Marshal(alias)
@@ -128,23 +134,34 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals raw JSON bytes into an EthAccount.
 func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
-	acc.BaseAccount = &authtypes.BaseAccount{}
-	var alias ethermintAccountPretty
+	var (
+		alias ethermintAccountPretty
+		err   error
+	)
+
 	if err := json.Unmarshal(bz, &alias); err != nil {
 		return err
 	}
 
-	acc.BaseAccount.Coins = alias.Coins
-	acc.BaseAccount.Address = alias.Address
-
-	var err error
-	acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
-	if err != nil {
-		return err
+	acc.BaseAccount = &authtypes.BaseAccount{
+		Coins:         alias.Coins,
+		Address:       alias.Address,
+		AccountNumber: alias.AccountNumber,
+		Sequence:      alias.Sequence,
 	}
-	acc.BaseAccount.AccountNumber = alias.AccountNumber
-	acc.BaseAccount.Sequence = alias.Sequence
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
 
+	if alias.PubKey != "" {
+		acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// String implements the fmt.Stringer interface
+func (acc *EthAccount) String() string {
+	out, _ := yaml.Marshal(acc)
+	return string(out)
 }
