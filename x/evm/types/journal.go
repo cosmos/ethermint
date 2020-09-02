@@ -199,6 +199,12 @@ func (ch createObjectChange) revert(s *CommitStateDB) {
 	// remove from the slice
 	delete(s.addressToObjectIndex, *ch.account)
 
+	// if the slice contains one element, delete it
+	if len(s.stateObjects) == 1 {
+		s.stateObjects = []stateEntry{}
+		return
+	}
+
 	// move the elements one position left on the array
 	for i := idx + 1; i < len(s.stateObjects); i++ {
 		s.stateObjects[i-1] = s.stateObjects[i]
@@ -206,10 +212,8 @@ func (ch createObjectChange) revert(s *CommitStateDB) {
 		s.addressToObjectIndex[s.stateObjects[i].address] = i - 1
 	}
 
-	//  finally, delete the last element
-	if len(s.stateObjects) != 0 {
-		s.stateObjects = s.stateObjects[:len(s.stateObjects)-1]
-	}
+	//  finally, delete the last element of the slice to account for the removed object
+	s.stateObjects = s.stateObjects[:len(s.stateObjects)-1]
 }
 
 func (ch createObjectChange) dirtied() *ethcmn.Address {
@@ -306,9 +310,20 @@ func (ch addLogChange) dirtied() *ethcmn.Address {
 }
 
 func (ch addPreimageChange) revert(s *CommitStateDB) {
-	idx := s.hashToPreimageIndex[ch.hash]
+	idx, exists := s.hashToPreimageIndex[ch.hash]
+	if !exists {
+		// perform no-op
+		return
+	}
+
 	// remove from the slice
 	delete(s.hashToPreimageIndex, ch.hash)
+
+	// if the slice contains one element, delete it
+	if len(s.preimages) == 1 {
+		s.preimages = []preimageEntry{}
+		return
+	}
 
 	// move the elements one position left on the array
 	for i := idx + 1; i < len(s.preimages); i++ {
@@ -318,9 +333,8 @@ func (ch addPreimageChange) revert(s *CommitStateDB) {
 	}
 
 	//  finally, delete the last element
-	if len(s.preimages) != 0 {
-		s.preimages = s.preimages[:len(s.preimages)-1]
-	}
+
+	s.preimages = s.preimages[:len(s.preimages)-1]
 }
 
 func (ch addPreimageChange) dirtied() *ethcmn.Address {
