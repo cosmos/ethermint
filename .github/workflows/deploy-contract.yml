@@ -36,8 +36,8 @@ jobs:
           sudo make install
           sudo go env
           sudo echo $PATH
-          sudo export GOPATH=$HOME/go
-          sudo export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+          export GOPATH=$HOME/go
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
           sudo make contract-tools
           sudo make test-contract
         if: "env.GIT_DIFF != ''"
