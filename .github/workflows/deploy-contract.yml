@@ -43,15 +43,8 @@ jobs:
             .mod
             .sum
             .sol
-      - name: test-contract
+      - name: Test contract
         run: |
-          sudo make install
-          sudo go env
-          sudo echo $PATH
-          export GOPATH=$HOME/go
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          sudo which ethermintcli
-          sudo which ethermintd
           sudo make contract-tools
           sudo make test-contract
         if: "env.GIT_DIFF != ''"

@@ -9,22 +9,22 @@ MONIKER="localtestnet"
 rm -rf ~/.ethermint*
 pkill -f "ethermint*"
 
-type "ethermintd" 2> /dev/null || make install
-type "ethermintcli" 2> /dev/null || make install
+type "ethermintd" 2> /dev/null || make build-ethermint
+type "ethermintcli" 2> /dev/null || make build-ethermint
 
-ethermintcli config keyring-backend test
+"$PWD"/build/ethermintcli config keyring-backend test
 
 # Set up config for CLI
-ethermintcli config chain-id $CHAINID
-ethermintcli config output json
-ethermintcli config indent true
-ethermintcli config trust-node true
+"$PWD"/build/ethermintcli config chain-id $CHAINID
+"$PWD"/build/ethermintcli config output json
+"$PWD"/build/ethermintcli config indent true
+"$PWD"/build/ethermintcli config trust-node true
 
 # if $KEY exists it should be deleted
-ethermintcli keys add $KEY
+"$PWD"/build/ethermintcli keys add $KEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-ethermintd init $MONIKER --chain-id $CHAINID
+"$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID
 
 # Change parameter token denominations to aphoton
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
@@ -36,24 +36,24 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mi
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 100000000000000000000aphoton
+"$PWD"/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a)" 100000000000000000000aphoton
 
 # Sign genesis transaction
-ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
+"$PWD"/build/ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
-ethermintd collect-gentxs
+"$PWD"/build/ethermintd collect-gentxs
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
-ethermintd validate-genesis
+"$PWD"/build/ethermintd validate-genesis
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed) in background and log to file
-ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
+"$PWD"/build/ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
 
 sleep 1
 
 # Start the rest server with unlocked faucet key in background and log to file
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
+"$PWD"/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
 solcjs --abi tests-solidity/suites/basic/contracts/Counter.sol --bin -o tests-solidity/suites/basic/counter
 mv tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi tests-solidity/suites/basic/counter/counter_sol.abi
@@ -66,7 +66,7 @@ echo $ACCT
 
 curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$ACCT'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-PRIVKEY=$(ethermintcli keys unsafe-export-eth-key $KEY)
+PRIVKEY="$("$PWD"/build/ethermintcli keys unsafe-export-eth-key $KEY)"
 
 echo $PRIVKEY
 
