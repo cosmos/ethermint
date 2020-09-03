@@ -223,7 +223,7 @@ endif
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
 	@apt-get install -f -y protobuf-compiler
-	@sudo npm install -g solc@0.5.11
+	@npm install -g solc@0.5.11
 else
 	@echo "solcjs already installed; skipping..."
 endif

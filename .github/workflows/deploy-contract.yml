@@ -33,6 +33,6 @@ jobs:
             .sol
       - name: test-contract
         run: |
-          make contract-tools
-          make test-contract
+          sudo make contract-tools
+          sudo make test-contract
         if: "env.GIT_DIFF != ''"
