@@ -12,19 +12,19 @@ pkill -f "ethermint*"
 type "ethermintd" 2> /dev/null || make build-ethermint
 type "ethermintcli" 2> /dev/null || make build-ethermint
 
-"$PWD"/build/ethermintcli config keyring-backend test
+$PWD/build/ethermintcli config keyring-backend test
 
 # Set up config for CLI
-"$PWD"/build/ethermintcli config chain-id $CHAINID
-"$PWD"/build/ethermintcli config output json
-"$PWD"/build/ethermintcli config indent true
-"$PWD"/build/ethermintcli config trust-node true
+$PWD/build/ethermintcli config chain-id $CHAINID
+$PWD/build/ethermintcli config output json
+$PWD/build/ethermintcli config indent true
+$PWD/build/ethermintcli config trust-node true
 
 # if $KEY exists it should be deleted
-"$PWD"/build/ethermintcli keys add $KEY
+$PWD/build/ethermintcli keys add $KEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-"$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID
+$PWD/build/ethermintd init $MONIKER --chain-id $CHAINID
 
 # Change parameter token denominations to aphoton
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
@@ -55,7 +55,7 @@ sleep 1
 # Start the rest server with unlocked faucet key in background and log to file
 $PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
-solcjs --abi $PWD/ethermint/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter/
+solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter/
 mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
 mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
 
