@@ -110,7 +110,7 @@ func call(method string, params interface{}) (*Response, error) {
 }
 
 func main() {
-	dat, err := ioutil.ReadFile("/ethermint/contracts/counter/counter_sol.bin")
+	dat, err := ioutil.ReadFile("/ethermint/tests-solidity/suites/basic/counter/counter_sol.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func main() {
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = os.Args[1]
-	param[0]["data"] = string(dat)
+	param[0]["data"] = "0x" + string(dat)
 
 	txRPCRes, err := call("eth_sendTransaction", param)
 	if err != nil {

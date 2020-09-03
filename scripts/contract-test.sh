@@ -55,23 +55,9 @@ sleep 1
 # Start the rest server with unlocked faucet key in background and log to file
 ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
-solcjs --abi contracts/counter/counter.sol --bin -o contracts/counter
-mv contracts/counter/contracts_counter_counter_sol_Counter.abi contracts/counter/counter_sol.abi
-mv contracts/counter/contracts_counter_counter_sol_Counter.bin contracts/counter/counter_sol.bin
-abigen --bin=contracts/counter/counter_sol.bin --abi=contracts/counter/counter_sol.abi --pkg=main --out=contracts/counter/counter.go
-sed -i '1s/^/0x/' contracts/counter/counter_sol.bin
-
-# sleep 5
-
-# TXHASH=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"'$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)'", "data":"'$(cat contracts/abi_bin/contracts_counter_sol_Counter.bin)'"}],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
-
-# echo $TXHASH
-
-# sleep 5
-
-# CONTRACTTX=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["'$TXHASH'"],"id":1}' -H "Content-Type: application/json" http://localhost:8545)
-
-# echo $CONTRACTTX
+solcjs --abi tests-solidity/suites/basic/contracts/Counter.sol --bin -o tests-solidity/suites/basic/counter
+mv tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi tests-solidity/suites/basic/counter/counter_sol.abi
+mv tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin tests-solidity/suites/basic/counter/counter_sol.bin
 
 ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
 
@@ -85,4 +71,4 @@ PRIVKEY=$(ethermintcli keys unsafe-export-eth-key $KEY)
 echo $PRIVKEY
 
 ## need to get the private key from the account in order to check this functionality.
-cd contracts/counter && go get && go build && ./counter $ACCT
+cd tests-solidity/suites/basic/ && go get && go run main.go $ACCT
