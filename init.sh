@@ -33,10 +33,10 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mi
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000aphoton
+ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 100000000000000000000aphoton
 
 # Sign genesis transaction
-ethermintd gentx --name $KEY --keyring-backend test
+ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
 ethermintd collect-gentxs

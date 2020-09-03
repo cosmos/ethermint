@@ -36,10 +36,10 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mi
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000aphoton,1000000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 100000000000000000000aphoton
 
 # Sign genesis transaction
-ethermintd gentx --name $KEY --keyring-backend test
+ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
 ethermintd collect-gentxs
@@ -55,7 +55,7 @@ sleep 1
 # Start the rest server with unlocked faucet key in background and log to file
 ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
-solc --abi contracts/counter/counter.sol --bin -o contracts/counter
+solcjs --abi contracts/counter/counter.sol --bin -o contracts/counter
 mv contracts/counter/contracts_counter_counter_sol_Counter.abi contracts/counter/counter_sol.abi
 mv contracts/counter/contracts_counter_counter_sol_Counter.bin contracts/counter/counter_sol.bin
 abigen --bin=contracts/counter/counter_sol.bin --abi=contracts/counter/counter_sol.abi --pkg=main --out=contracts/counter/counter.go
