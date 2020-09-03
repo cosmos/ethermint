@@ -27,5 +27,6 @@ jobs:
             .sol
       - name: test-contract
         run: |
+          make contract-tools
           make test-contract
         if: "env.GIT_DIFF != ''"
