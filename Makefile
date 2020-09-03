@@ -217,6 +217,18 @@ test-import:
 test-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
+test-contract:
+	$(GOBIN) go get -u golang.org/x/tools/cmd/stringer
+	$(GOBIN) go get -u github.com/kevinburke/go-bindata/go-bindata
+	$(GOBIN) go get -u github.com/fjl/gencodec
+	$(GOBIN) go get -u github.com/golang/protobuf/protoc-gen-go
+	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
+	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
+	@type "solc" 2> /dev/null || (echo 'Solc does not exist. Please install solc."' && exit 1)
+	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc.' && exit 1)
+	@type "abigen" 2> /dev/null || (echo 'Failed to install abigen. Pleae reinstall abigen.' && exit 1)
+	bash scripts/contract-test.sh
+
 test-sim-nondeterminism:
 	@echo "Running non-determinism test..."
 	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
@@ -249,23 +261,10 @@ test-sim-multi-seed-short: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
-.PHONY: test test-unit test-race test-import test-rpc
+.PHONY: test test-unit test-race test-import test-rpc test-contract
 
 .PHONY: test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-import-export test-sim-after-import \
 	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-short
-
-test-contract:
-	$(GOBIN) go get -u golang.org/x/tools/cmd/stringer
-	$(GOBIN) go get -u github.com/kevinburke/go-bindata/go-bindata
-	$(GOBIN) go get -u github.com/fjl/gencodec
-	$(GOBIN) go get -u github.com/golang/protobuf/protoc-gen-go
-	$(GOBIN) go install github.com/ethereum/go-ethereum/cmd/abigen
-	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
-	@type "solc" 2> /dev/null || (echo 'Solc does not exist. Please install solc."' && exit 1)
-	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc.' && exit 1)
-	@type "abigen" 2> /dev/null || (echo 'Failed to install abigen. Pleae reinstall abigen.' && exit 1)
-	bash scripts/contract-test.sh
-
 
 ###############################################################################
 ###                                Linting                                  ###
