@@ -36,28 +36,28 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mi
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-"$PWD"/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a)" 100000000000000000000aphoton
+$PWD/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a)" 100000000000000000000aphoton
 
 # Sign genesis transaction
-"$PWD"/build/ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
+$PWD/build/ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
-"$PWD"/build/ethermintd collect-gentxs
+$PWD/build/ethermintd collect-gentxs
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
-"$PWD"/build/ethermintd validate-genesis
+$PWD/build/ethermintd validate-genesis
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed) in background and log to file
-"$PWD"/build/ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
+$PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
 
 sleep 1
 
 # Start the rest server with unlocked faucet key in background and log to file
-"$PWD"/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
+$PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
-solcjs --abi tests-solidity/suites/basic/contracts/Counter.sol --bin -o tests-solidity/suites/basic/counter
-mv tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi tests-solidity/suites/basic/counter/counter_sol.abi
-mv tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin tests-solidity/suites/basic/counter/counter_sol.bin
+solcjs --abi $PWD/ethermint/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter/
+mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
+mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
 
 ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
 
