@@ -222,7 +222,7 @@ endif
 
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
-	@apt-get install -f -y npm protobuf-compiler
+	@apt-get install -f -y protobuf-compiler
 	@sudo npm install -g solc@0.5.11
 else
 	@echo "solcjs already installed; skipping..."
@@ -262,7 +262,7 @@ test-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
 
 test-contract:
-	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm using make contract-tools."' && exit 1)
+	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
 	@type "solcjs" 2> /dev/null || (echo 'Solcjs does not exist. Please install solcjs using make contract-tools."' && exit 1)
 	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc using make contract-tools.' && exit 1)
 	@type "abigen" 2> /dev/null || (echo 'Failed to install abigen. Pleae reinstall abigen using make contract-tools.' && exit 1)
