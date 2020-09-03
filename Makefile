@@ -213,13 +213,6 @@ else
 	@echo "protoc-gen-go already installed; skipping..."
 endif
 
-ifeq (, $(shell which abigen))
-	@echo "Installing abigen..."
-	@go install github.com/ethereum/go-ethereum/cmd/abigen
-else
-	@echo "abigen already installed; skipping..."
-endif
-
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
 	@apt-get install -f -y protobuf-compiler
@@ -265,7 +258,6 @@ test-contract:
 	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
 	@type "solcjs" 2> /dev/null || (echo 'Solcjs does not exist. Please install solcjs using make contract-tools."' && exit 1)
 	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc using make contract-tools.' && exit 1)
-	@type "abigen" 2> /dev/null || (echo 'Failed to install abigen. Pleae reinstall abigen using make contract-tools.' && exit 1)
 	bash scripts/contract-test.sh
 
 test-sim-nondeterminism:
