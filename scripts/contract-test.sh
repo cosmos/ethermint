@@ -6,7 +6,7 @@ CHAINID=123321
 MONIKER="localtestnet"
 
 # stop and remove existing daemon and client data and process(es)
-rm -rf ~/.ethermint*
+rm -rf $PWD/.ethermint*
 pkill -f "ethermint*"
 
 type "ethermintd" 2> /dev/null || make build-ethermint
@@ -55,14 +55,15 @@ sleep 1
 # Start the rest server with unlocked faucet key in background and log to file
 $PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
 
-solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter/
-mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
-mv $PWD/tests-solidity/suites/basic/counter/tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
+solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter
+#delete below if works
+ls $PWD/tests-solidity/suites/basic/counter
+mv $PWD/tests-solidity/suites/basic/counter/_ethermint_tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
+mv $PWD/tests-solidity/suites/basic/counter/_ethermint_tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
 
 ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
 
 echo $ACCT
-
 
 curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$ACCT'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
