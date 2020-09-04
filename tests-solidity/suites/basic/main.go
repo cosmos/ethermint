@@ -16,7 +16,7 @@ import (
 
 var (
 	HOST = os.Getenv("HOST")
-	HOME = os.Getenv("HOME")
+	HOME = os.Getenv("PWD")
 )
 
 type Request struct {
