@@ -111,7 +111,7 @@ func call(method string, params interface{}) (*Response, error) {
 }
 
 func main() {
-	dat, err := ioutil.ReadFile(HOME + "/ethermint/tests-solidity/suites/basic/counter/counter_sol.bin")
+	dat, err := ioutil.ReadFile(HOME + "/tests-solidity/suites/basic/counter/counter_sol.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
