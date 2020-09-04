@@ -40,10 +40,8 @@ func EthSecp256k1Options() []keys.KeybaseOption {
 func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) ([]byte, error) {
 	switch algo {
 	case keys.Secp256k1:
-		fmt.Println("deriving keys.Secp256k1")
 		return keys.StdDeriveKey(mnemonic, bip39Passphrase, hdPath, algo)
 	case EthSecp256k1:
-		fmt.Println("deriving EthSecp256k1")
 		return DeriveSecp256k1(mnemonic, bip39Passphrase, hdPath)
 	default:
 		return nil, errors.Wrap(keys.ErrUnsupportedSigningAlgo, string(algo))
