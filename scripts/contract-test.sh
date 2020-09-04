@@ -58,8 +58,8 @@ $PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key 
 solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter
 #delete below if works
 ls $PWD/tests-solidity/suites/basic/counter
-mv $PWD/tests-solidity/suites/basic/counter/_ethermint_tests-solidity_suites_basic_contracts_Counter_sol_Counter.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
-mv $PWD/tests-solidity/suites/basic/counter/_ethermint_tests-solidity_suites_basic_contracts_Counter_sol_Counter.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
+mv $PWD/tests-solidity/suites/basic/counter/*.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
+mv $PWD/tests-solidity/suites/basic/counter/*.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin
 
 ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
 
