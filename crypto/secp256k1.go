@@ -58,6 +58,7 @@ func (privkey PrivKeySecp256k1) Equals(other tmcrypto.PrivKey) bool {
 }
 
 // ToECDSA returns the ECDSA private key as a reference to ecdsa.PrivateKey type.
+// The function will panic if the private key is invalid.
 func (privkey PrivKeySecp256k1) ToECDSA() *ecdsa.PrivateKey {
 	key, err := ethcrypto.ToECDSA(privkey)
 	if err != nil {
@@ -71,11 +72,12 @@ func (privkey PrivKeySecp256k1) ToECDSA() *ecdsa.PrivateKey {
 
 var _ tmcrypto.PubKey = (*PubKeySecp256k1)(nil)
 
-// PubKeySecp256k1 defines a type alias for an ecdsa.PublicKey that implements
-// Tendermint's PubKey interface.
+// PubKeySecp256k1 defines a type alias for an ecdsa.PublicKey that implements Tendermint's PubKey
+// interface. It represents the 33-byte compressed public key format.
 type PubKeySecp256k1 []byte
 
 // Address returns the address of the ECDSA public key.
+// The function will panic if the public key is invalid.
 func (key PubKeySecp256k1) Address() tmcrypto.Address {
 	pubk, err := ethcrypto.DecompressPubkey(key)
 	if err != nil {
@@ -86,6 +88,7 @@ func (key PubKeySecp256k1) Address() tmcrypto.Address {
 }
 
 // Bytes returns the raw bytes of the ECDSA public key.
+// The function panics if the key cannot be marshaled to bytes.
 func (key PubKeySecp256k1) Bytes() []byte {
 	bz, err := CryptoCodec.MarshalBinaryBare(key)
 	if err != nil {
