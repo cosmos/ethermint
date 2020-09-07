@@ -33,7 +33,7 @@ func GenerateKey() (PrivKeySecp256k1, error) {
 // PubKey returns the ECDSA private key's public key.
 func (privkey PrivKeySecp256k1) PubKey() tmcrypto.PubKey {
 	ecdsaPKey := privkey.ToECDSA()
-	return PubKeySecp256k1(ethcrypto.FromECDSAPub(&ecdsaPKey.PublicKey))
+	return PubKeySecp256k1(ethcrypto.CompressPubkey(&ecdsaPKey.PublicKey))
 }
 
 // Bytes returns the raw ECDSA private key bytes.
@@ -59,7 +59,10 @@ func (privkey PrivKeySecp256k1) Equals(other tmcrypto.PrivKey) bool {
 
 // ToECDSA returns the ECDSA private key as a reference to ecdsa.PrivateKey type.
 func (privkey PrivKeySecp256k1) ToECDSA() *ecdsa.PrivateKey {
-	key, _ := ethcrypto.ToECDSA(privkey)
+	key, err := ethcrypto.ToECDSA(privkey)
+	if err != nil {
+		panic(err)
+	}
 	return key
 }
 
@@ -74,7 +77,11 @@ type PubKeySecp256k1 []byte
 
 // Address returns the address of the ECDSA public key.
 func (key PubKeySecp256k1) Address() tmcrypto.Address {
-	pubk, _ := ethcrypto.UnmarshalPubkey(key)
+	pubk, err := ethcrypto.DecompressPubkey(key)
+	if err != nil {
+		panic(err)
+	}
+
 	return tmcrypto.Address(ethcrypto.PubkeyToAddress(*pubk).Bytes())
 }
 

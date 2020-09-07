@@ -95,3 +95,19 @@ func TestEthermintAccount_String(t *testing.T) {
 	require.Contains(t, accountStr, addr.String())
 	require.Contains(t, accountStr, bech32pubkey)
 }
+
+func TestEthermintAccount_MarshalJSON(t *testing.T) {
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	balance := sdk.NewCoins(sdk.NewCoin(DenomDefault, sdk.OneInt()))
+	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
+	ethAcc := &EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
+
+	bz, err := ethAcc.MarshalJSON()
+	require.NoError(t, err)
+
+	res := new(EthAccount)
+	err = res.UnmarshalJSON(bz)
+	require.NoError(t, err)
+	require.Equal(t, ethAcc, res)
+}
