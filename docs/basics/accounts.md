@@ -69,6 +69,10 @@ ethermintcli q auth account $(ethermintcli keys show <MYKEY> -a) -o text
 curl -X GET "<NODE_IP>/auth/accounts/eth1f8rqrfwut7ngkxwth0gt99h0lxnxsp09ngvzwl" -H "accept: application/json"
 ```
 
+::: tip
+The Cosmos SDK Keyring output (i.e `ethermintcli keys`) only supports addresses and public keys in Bech32 format.
+:::
+
 To retrieve the Ethereum hex address using Web3, use the JSON-RPC `eth_accounts` endpoint:
 
 ```bash
