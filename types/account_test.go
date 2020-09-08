@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 )
@@ -24,7 +24,7 @@ func init() {
 func TestEthermintAccountJSON(t *testing.T) {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	balance := sdk.NewCoins(sdk.NewCoin(DenomDefault, sdk.OneInt()))
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
 	ethAcc := EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
 
@@ -63,7 +63,7 @@ func TestSecpPubKeyJSON(t *testing.T) {
 func TestEthermintAccount_String(t *testing.T) {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	balance := sdk.NewCoins(sdk.NewCoin(DenomDefault, sdk.OneInt()))
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
 	ethAcc := EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
 
@@ -75,6 +75,7 @@ func TestEthermintAccount_String(t *testing.T) {
 
 	accountStr := fmt.Sprintf(`|
   address: %s
+  eth_address: %s
   coins:
   - denom: aphoton
     amount: "1"
@@ -82,7 +83,7 @@ func TestEthermintAccount_String(t *testing.T) {
   account_number: 10
   sequence: 50
   code_hash: "0102"
-`, addr, bech32pubkey)
+`, addr, ethAcc.EthAddress().String(), bech32pubkey)
 
 	require.Equal(t, accountStr, ethAcc.String())
 
@@ -99,15 +100,49 @@ func TestEthermintAccount_String(t *testing.T) {
 func TestEthermintAccount_MarshalJSON(t *testing.T) {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	balance := sdk.NewCoins(sdk.NewCoin(DenomDefault, sdk.OneInt()))
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
 	ethAcc := &EthAccount{BaseAccount: baseAcc, CodeHash: []byte{1, 2}}
 
 	bz, err := ethAcc.MarshalJSON()
 	require.NoError(t, err)
+	require.Contains(t, string(bz), ethAcc.EthAddress().String())
 
 	res := new(EthAccount)
 	err = res.UnmarshalJSON(bz)
 	require.NoError(t, err)
 	require.Equal(t, ethAcc, res)
+
+	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, pubkey)
+	require.NoError(t, err)
+
+	// test that the sdk.AccAddress is populated from the hex address
+	jsonAcc := fmt.Sprintf(
+		`{"address":"","eth_address":"%s","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		ethAcc.EthAddress().String(), bech32pubkey,
+	)
+
+	res = new(EthAccount)
+	err = res.UnmarshalJSON([]byte(jsonAcc))
+	require.NoError(t, err)
+	require.Equal(t, addr.String(), res.Address.String())
+
+	jsonAcc = fmt.Sprintf(
+		`{"address":"","eth_address":"","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		bech32pubkey,
+	)
+
+	res = new(EthAccount)
+	err = res.UnmarshalJSON([]byte(jsonAcc))
+	require.Error(t, err, "should fail if both address are empty")
+
+	// test that the sdk.AccAddress is populated from the hex address
+	jsonAcc = fmt.Sprintf(
+		`{"address": "%s","eth_address":"0x0000000000000000000000000000000000000000","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		ethAcc.Address.String(), bech32pubkey,
+	)
+
+	res = new(EthAccount)
+	err = res.UnmarshalJSON([]byte(jsonAcc))
+	require.Error(t, err, "should fail if addresses mismatch")
 }
