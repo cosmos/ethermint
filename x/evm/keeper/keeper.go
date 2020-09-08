@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"sync"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -37,9 +36,9 @@ type Keeper struct {
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
 	TxCount int
-	Bloom   *big.Int
-
-	mu sync.Mutex
+	// Bloom is a bloom filter that can be used to check if a block may contain log entries matching a
+	// filter.
+	Bloom *big.Int
 }
 
 // NewKeeper generates new evm module keeper
@@ -99,8 +98,6 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bool) {
 	fmt.Println("GetBlockBloom", height)
-	k.mu.Lock()
-	defer k.mu.Unlock()
 
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
@@ -121,8 +118,6 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bo
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
 	fmt.Println("SetBlockBloom", height, bloom)
-	k.mu.Lock()
-	defer k.mu.Unlock()
 
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
