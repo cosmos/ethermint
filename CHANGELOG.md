@@ -35,7 +35,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## [v0.2.0-rc3] - 2020-09-09
+## [v0.2.0] - 2020-09-09
 
 ### API Breaking
 
@@ -43,6 +43,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Improvements
 
+* (geth) [\#506](https://github.com/ChainSafe/ethermint/pull/506) Bump Geth version to [v1.9.21](https://github.com/ethereum/go-ethereum/releases/tag/v1.9.21)
 * (types) [\#504](https://github.com/ChainSafe/ethermint/pull/504) Unmarshal a JSON `EthAccount` using an Ethereum hex address in addition to Bech32.
 * (types) [\#503](https://github.com/ChainSafe/ethermint/pull/503) Add `--coin-denom` flag to testnet command that sets the given coin denomination to SDK and Ethermint parameters.
 * (types) [\#502](https://github.com/ChainSafe/ethermint/pull/502) `EthAccount` now also exposes the Ethereum hex address in `string` format to clients.
