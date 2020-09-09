@@ -60,10 +60,6 @@ func (acc EthAccount) Balance(denom string) sdk.Int {
 //
 // CONTRACT: assumes the denomination is valid.
 func (acc *EthAccount) SetBalance(denom string, amt sdk.Int) {
-	if amt.IsZero() {
-		return
-	}
-
 	coins := acc.GetCoins()
 	diff := amt.Sub(coins.AmountOf(denom))
 	switch {
@@ -73,6 +69,8 @@ func (acc *EthAccount) SetBalance(denom string, amt sdk.Int) {
 	case diff.IsNegative():
 		// Decrease coins to amount
 		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(denom, diff.Neg())))
+	default:
+		return
 	}
 
 	if err := acc.SetCoins(coins); err != nil {
