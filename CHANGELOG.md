@@ -35,7 +35,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## [v0.2.0-rc2] - 2020-09-08
+## [v0.2.0-rc3] - 2020-09-09
 
 ### API Breaking
 
