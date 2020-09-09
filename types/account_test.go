@@ -45,11 +45,26 @@ func TestAccountTestSuite(t *testing.T) {
 
 func (suite *AccountTestSuite) TestEthAccount_Balance() {
 
-	// testCases := []struct {
-	// 	name   string
-	// 	denom  string
-	// 	amount sdk.Int
-	// }{}
+	testCases := []struct {
+		name         string
+		denom        string
+		initialCoins sdk.Coins
+		amount       sdk.Int
+	}{
+		{"positive diff", types.AttoPhoton, sdk.Coins{}, sdk.OneInt()},
+		{"zero diff", types.AttoPhoton, sdk.Coins{}, sdk.ZeroInt()},
+		{"negative diff", types.AttoPhoton, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset values
+			suite.account.SetCoins(tc.initialCoins)
+
+			suite.account.SetBalance(tc.denom, tc.amount)
+			suite.Require().Equal(tc.amount, suite.account.Balance(tc.denom))
+		})
+	}
 
 }
 
