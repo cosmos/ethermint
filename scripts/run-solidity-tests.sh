@@ -1,6 +1,9 @@
 #!/bin/bash
 
 make install
+cp ./cmd/ethermintd $GOPATH/bin
+cp ./cmd/ethermintcli $GOPATH/bin
+
 cd tests-solidity
 
 if command -v yarn &> /dev/null; then
