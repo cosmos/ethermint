@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export GOBIN=$GOPATH/bin
 make install
 export PATH=$PATH:$GOPATH/bin
 
