@@ -1,8 +1,11 @@
 #!/bin/bash
 
-export GOBIN=$GOPATH/bin
-make install
+export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
+go build -o ./build/ethermintd ./cmd/ethermintd 
+go build -o ./build/ethermintcli ./cmd/ethermintcli
+cp ./build/ethermintd $GOPATH/bin
+cp ./build/ethermintcli $GOPATH/bin
 
 cd tests-solidity
 
