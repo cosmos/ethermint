@@ -172,6 +172,7 @@ func newMsgEthereumTx(
 	return MsgEthereumTx{Data: txData}
 }
 
+// String implements the fmt.Stringer interface
 func (msg MsgEthereumTx) String() string {
 	return msg.Data.String()
 }
@@ -362,7 +363,10 @@ func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 }
 
 // From loads the ethereum sender address from the sigcache and returns an
-// sdk.AccAddress from its bytes
+// sdk.AccAddress from its bytes.
+//
+// NOTE: if the sender address hasn't been cache, this function will return an
+// nil AccAddress.
 func (msg *MsgEthereumTx) From() sdk.AccAddress {
 	sc := msg.from.Load()
 	if sc == nil {

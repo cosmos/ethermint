@@ -1,16 +1,17 @@
 package client
 
 import (
-	"fmt"
-	"math/big"
 	"os"
 	"path"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/tendermint/tendermint/libs/cli"
+
+	"github.com/cosmos/cosmos-sdk/client/flags"
+
+	ethermint "github.com/cosmos/ethermint/types"
 )
 
 // InitConfig adds the chain-id, encoding and output flags to the persistent flag set.
@@ -49,10 +50,9 @@ func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 	validateFn := func(cmd *cobra.Command, args []string) error {
 		chainIDFlag := viper.GetString(flags.FlagChainID)
 
-		// Verify that the chain-id entered is a base 10 integer
-		_, ok := new(big.Int).SetString(chainIDFlag, 10)
-		if !ok {
-			return fmt.Errorf("invalid chainID: %s, must be base-10 integer format", chainIDFlag)
+		_, err := ethermint.ParseChainID(chainIDFlag)
+		if err != nil {
+			return err
 		}
 
 		return baseRunE(cmd, args)

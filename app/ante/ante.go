@@ -70,7 +70,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 // sigGasConsumer overrides the DefaultSigVerificationGasConsumer from the x/auth
 // module on the SDK. It doesn't allow ed25519 nor multisig thresholds.
 func sigGasConsumer(
-	meter sdk.GasMeter, sig []byte, pubkey tmcrypto.PubKey, params types.Params,
+	meter sdk.GasMeter, _ []byte, pubkey tmcrypto.PubKey, _ types.Params,
 ) error {
 	switch pubkey.(type) {
 	case crypto.PubKeySecp256k1:
@@ -82,47 +82,4 @@ func sigGasConsumer(
 	default:
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
 	}
-}
-
-// IncrementSequenceDecorator handles incrementing sequences of all signers.
-// Use the IncrementSequenceDecorator decorator to prevent replay attacks. Note,
-// there is no need to execute IncrementSequenceDecorator on RecheckTX since
-// CheckTx would already bump the sequence number.
-//
-// NOTE: Since CheckTx and DeliverTx state are managed separately, subsequent and
-// sequential txs orginating from the same account cannot be handled correctly in
-// a reliable way unless sequence numbers are managed and tracked manually by a
-// client. It is recommended to instead use multiple messages in a tx.
-type IncrementSequenceDecorator struct {
-	ak auth.AccountKeeper
-}
-
-func NewIncrementSequenceDecorator(ak auth.AccountKeeper) IncrementSequenceDecorator {
-	return IncrementSequenceDecorator{
-		ak: ak,
-	}
-}
-
-func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	// no need to increment sequence on RecheckTx
-	if ctx.IsReCheckTx() && !simulate {
-		return next(ctx, tx, simulate)
-	}
-
-	sigTx, ok := tx.(authante.SigVerifiableTx)
-	if !ok {
-		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
-	}
-
-	// increment sequence of all signers
-	for _, addr := range sigTx.GetSigners() {
-		acc := isd.ak.GetAccount(ctx, addr)
-		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
-			panic(err)
-		}
-
-		isd.ak.SetAccount(ctx, acc)
-	}
-
-	return next(ctx, tx, simulate)
 }

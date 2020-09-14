@@ -13,7 +13,7 @@ import (
 
 	"github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
 	"github.com/cosmos/ethermint/version"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -42,6 +42,7 @@ import (
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	cliCtx      context.CLIContext
+	chainID     *big.Int
 	backend     Backend
 	keys        []crypto.PrivKeySecp256k1
 	nonceLock   *AddrLocker
@@ -52,8 +53,14 @@ type PublicEthAPI struct {
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
 	key []crypto.PrivKeySecp256k1) *PublicEthAPI {
 
+	chainID, err := ethermint.ParseChainID(cliCtx.ChainID)
+	if err != nil {
+		panic(err)
+	}
+
 	return &PublicEthAPI{
 		cliCtx:    cliCtx,
+		chainID:   chainID,
 		backend:   backend,
 		keys:      key,
 		nonceLock: nonceLock,
@@ -412,7 +419,7 @@ type CallArgs struct {
 
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, overrides *map[common.Address]account) (hexutil.Bytes, error) {
-	simRes, err := e.doCall(args, blockNr, big.NewInt(emint.DefaultRPCGasLimit))
+	simRes, err := e.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -451,22 +458,9 @@ func (e *PublicEthAPI) doCall(
 		ctx = e.cliCtx.WithHeight(blockNr.Int64())
 	}
 
-	// Set sender address or use a default if none specified
-	var addr common.Address
-
-	if args.From == nil {
-		key, exist := checkKeyInKeyring(e.keys, *args.From)
-		if exist {
-			addr = common.BytesToAddress(key.PubKey().Address().Bytes())
-		}
-		// No error handled here intentionally to match geth behaviour
-	} else {
-		addr = *args.From
-	}
-
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
-	gas := uint64(emint.DefaultRPCGasLimit)
+	gas := uint64(ethermint.DefaultRPCGasLimit)
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
 	}
@@ -476,7 +470,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Set gas price using default or parameter if passed in
-	gasPrice := new(big.Int).SetUint64(emint.DefaultGasPrice)
+	gasPrice := new(big.Int).SetUint64(ethermint.DefaultGasPrice)
 	if args.GasPrice != nil {
 		gasPrice = args.GasPrice.ToInt()
 	}
@@ -494,21 +488,27 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Set destination address for call
-	var toAddr sdk.AccAddress
-	if args.To != nil {
-		toAddr = sdk.AccAddress(args.To.Bytes())
-	}
 
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
-		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
+	// NOTE: sender address will be derived from chain ID
+	msg := evmtypes.NewMsgEthereumTx(
+		0, args.To, value,
+		gas, gasPrice,
+		data,
+	)
 
-	// Generate tx to be used to simulate (signature isn't needed)
-	var stdSig authtypes.StdSignature
-	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	key, exist := checkKeyInKeyring(e.keys, *args.From)
+	if !exist {
+		return nil, fmt.Errorf("key from address %s couldn't be found on the keyring", args.From.String())
+	}
+
+	// sign the message using the private key
+	if err := msg.Sign(e.chainID, key.ToECDSA()); err != nil {
+		return nil, err
+	}
 
 	txEncoder := authclient.GetTxEncoder(ctx.Codec)
-	txBytes, err := txEncoder(tx)
+	txBytes, err := txEncoder(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +531,7 @@ func (e *PublicEthAPI) doCall(
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
-	simResponse, err := e.doCall(args, 0, big.NewInt(emint.DefaultRPCGasLimit))
+	simResponse, err := e.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
@@ -923,7 +923,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(emint.DefaultGasPrice)
+		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
 	}
 
 	if args.Nonce == nil {
