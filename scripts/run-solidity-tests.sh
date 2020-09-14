@@ -1,8 +1,7 @@
 #!/bin/bash
 
 make install
-cp ./cmd/ethermintd $GOPATH/bin
-cp ./cmd/ethermintcli $GOPATH/bin
+export PATH=$PATH:$GOPATH/bin
 
 cd tests-solidity
 
