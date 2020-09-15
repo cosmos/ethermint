@@ -2,8 +2,8 @@
 
 export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
-go build ./cmd/ethermintd 
-go build ./cmd/ethermintcli
+go build -o ./tests-solidity/ethermintd ./cmd/ethermintd 
+go build -o ./tests-solidity/ethermintcli ./cmd/ethermintcli
 
 cd tests-solidity
 
