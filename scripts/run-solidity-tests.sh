@@ -2,12 +2,8 @@
 
 export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
-go build -o ./build/ethermintd ./cmd/ethermintd 
-go build -o ./build/ethermintcli ./cmd/ethermintcli
-cp ./build/ethermintd $GOPATH/bin
-cp ./build/ethermintcli $GOPATH/bin
-
-ethermintd --help
+go build ./cmd/ethermintd 
+go build ./cmd/ethermintcli
 
 cd tests-solidity
 
