@@ -224,8 +224,8 @@ jobs:
             .mod
             .sum
       - name: test-solidity
-        run: go install ./cmd/ethermintd 
-        run: go install ./cmd/ethermintcli
         run: |
+          go install ./cmd/ethermintd 
+          go install ./cmd/ethermintcli
           make test-solidity
         if: "env.GIT_DIFF != ''"
