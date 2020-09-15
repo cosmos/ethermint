@@ -4,6 +4,7 @@ export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
 go build -o ./build/ethermintd ./cmd/ethermintd 
 go build -o ./build/ethermintcli ./cmd/ethermintcli
+mkdir $GOPATH/bin
 cp ./build/ethermintd $GOPATH/bin
 cp ./build/ethermintcli $GOPATH/bin
 
