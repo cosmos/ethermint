@@ -8,9 +8,6 @@ mkdir $GOPATH/bin
 cp ./build/ethermintd $GOPATH/bin
 cp ./build/ethermintcli $GOPATH/bin
 
-cd $GOPATH/bin
-ls
-echo  $GOPATH/bin/ethermintcli
 cd tests-solidity
 
 if command -v yarn &> /dev/null; then
