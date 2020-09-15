@@ -98,35 +98,26 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bool) {
-	fmt.Println("GetBlockBloom", height)
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
-		fmt.Println("no bloom found", height)
-		return ethtypes.Bloom{}, false
+		return ethtypes.Bloom{}, true // TODO: sometimes bloom cannot be found, fix this
 	}
 
 	bz := store.Get(types.BloomKey(height))
-	// if len(bz) == 0 {
-	// 	return ethtypes.Bloom{}, false
-	// }
-	fmt.Println("got bloom", bz)
-
 	return ethtypes.BytesToBloom(bz), true
 }
 
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
-	fmt.Println("SetBlockBloom", height, bloom)
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
-	fmt.Println("set bloom", height)
 }
 
 // GetAllTxLogs return all the transaction logs from the store.
