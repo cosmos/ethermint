@@ -223,6 +223,10 @@ jobs:
             .go
             .mod
             .sum
+      - name: Run build
+            run: go install ./cmd/ethermintd 
+            run: go install ./cmd/ethermintcli
+
       - name: test-solidity
         run: |
           make test-solidity
