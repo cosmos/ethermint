@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"sync"
 
 	"github.com/tendermint/tendermint/libs/log"
 
