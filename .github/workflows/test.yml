@@ -229,5 +229,9 @@ jobs:
             .sum
       - name: test-solidity
         run: |
+          echo ${GOPATH}
+          echo ${GOROOT}
           make test-solidity
+        env:
+          GOPATH: /home/go
         if: "env.GIT_DIFF != ''"
