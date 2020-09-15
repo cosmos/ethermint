@@ -38,8 +38,6 @@ type Keeper struct {
 	// on the KVStore or adding it as a field on the EVM genesis state.
 	TxCount int
 	Bloom   *big.Int
-
-	mu sync.Mutex
 }
 
 // NewKeeper generates new evm module keeper
@@ -98,9 +96,6 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bool) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
@@ -113,9 +108,6 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bo
 
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
 }
