@@ -1,10 +1,15 @@
 #!/bin/bash
 
-go install ./cmd/ethermintd 
-go install ./cmd/ethermintcli
+export GOPATH=~/go
+export PATH=$PATH:$GOPATH/bin
+go build -o ./build/ethermintd ./cmd/ethermintd 
+go build -o ./build/ethermintcli ./cmd/ethermintcli
+cp ./build/ethermintd $GOPATH/bin
+cp ./build/ethermintcli $GOPATH/bin
 
-echo "path " $GOPATH
-
+cd $GOPATH/bin
+ls
+echo  $GOPATH/bin/ethermintcli
 cd tests-solidity
 
 if command -v yarn &> /dev/null; then
