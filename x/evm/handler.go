@@ -62,26 +62,26 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 
 	// Prepare db for logs
 	// TODO: block hash
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
-
-	config, found := k.GetChainConfig(ctx)
-	if !found {
-		return nil, types.ErrChainConfigNotFound
+	if !st.Simulate {
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	// TODO: move to keeper
+	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		// update block bloom filter
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution
@@ -143,26 +143,25 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	}
 
 	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
-
-	config, found := k.GetChainConfig(ctx)
-	if !found {
-		return nil, types.ErrChainConfigNotFound
+	if !st.Simulate {
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	executionResult, err := st.TransitionDb(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution
