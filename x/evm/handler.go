@@ -64,11 +64,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	// TODO: block hash
 	if !st.Simulate {
 		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-		k.TxCount++
+		k.TxCount++	
 	}
 
-	// TODO: move to keeper
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +149,15 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	// Prepare db for logs
 	if !st.Simulate {
 		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-		k.TxCount++
+		k.TxCount++		
 	}
 
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
