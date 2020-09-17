@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -37,6 +39,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		case auth.StdTx:
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+				NewAccountSetupDecorator(ak),
 				authante.NewMempoolFeeDecorator(),
 				authante.NewValidateBasicDecorator(),
 				authante.NewValidateMemoDecorator(ak),
@@ -122,6 +125,38 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		}
 
 		isd.ak.SetAccount(ctx, acc)
+	}
+
+	return next(ctx, tx, simulate)
+}
+
+type AccountSetupDecorator struct {
+	ak auth.AccountKeeper
+}
+
+func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
+	return AccountSetupDecorator{
+		ak: ak,
+	}
+}
+
+func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	msgs := tx.GetMsgs()
+	if len(msgs) == 0 {
+		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
+	}
+
+	msg, ok := msgs[0].(evmtypes.MsgEthermint)
+	if !ok {
+		return next(ctx, tx, simulate)
+	}
+
+	acc := asd.ak.GetAccount(ctx, msg.From)
+	if acc == nil {
+		fmt.Println("failed to get account from keeper, creating new account")
+		info := asd.ak.NewAccountWithAddress(ctx, msg.From)
+		fmt.Println(info)
+		asd.ak.SetAccount(ctx, info)
 	}
 
 	return next(ctx, tx, simulate)

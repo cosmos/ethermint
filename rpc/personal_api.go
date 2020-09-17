@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	emintcrypto "github.com/cosmos/ethermint/crypto"
 	params "github.com/cosmos/ethermint/rpc/args"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,6 +25,7 @@ import (
 
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
+	logger      log.Logger
 	cliCtx      sdkcontext.CLIContext
 	ethAPI      *PublicEthAPI
 	nonceLock   *AddrLocker
@@ -36,6 +37,7 @@ type PersonalEthAPI struct {
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
 func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
 	api := &PersonalEthAPI{
+		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		cliCtx:    cliCtx,
 		ethAPI:    ethAPI,
 		nonceLock: nonceLock,
@@ -111,6 +113,18 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 		return true
 	}
 
+	for i, key := range e.ethAPI.keys {
+		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+			continue
+		}
+
+		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.ethAPI.keys)-1)
+		copy(tmp[:i], e.ethAPI.keys[:i])
+		copy(tmp[i:], e.ethAPI.keys[i+1:])
+		e.ethAPI.keys = tmp
+		return true
+	}
+
 	return false
 }
 
@@ -129,10 +143,23 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 
 	e.keyInfos = append(e.keyInfos, info)
 
+	// update ethAPI
+	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	if !ok {
+		return common.Address{}, fmt.Errorf("invalid private key type: %T", privKey)
+	}
+	e.ethAPI.keys = append(e.ethAPI.keys, emintKey)
+	e.logger.Debug("personal_newAccount", "address", fmt.Sprintf("0x%x", emintKey.PubKey().Address().Bytes()))
+
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
-	log.Printf("Your new key was generated\t\taddress=0x%x", addr)
-	log.Printf("Please backup your key file!\tpath=%s", os.Getenv("HOME")+"/.ethermintcli/"+name)
-	log.Println("Please remember your password!")
+	e.logger.Info("Your new key was generated", "address", addr)
+	e.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.ethermintcli/"+name)
+	e.logger.Info("Please remember your password!")
 	return addr, nil
 }
 
@@ -167,6 +194,9 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 	}
 
 	e.keys = append(e.keys, emintKey)
+	e.ethAPI.keys = append(e.ethAPI.keys, emintKey)
+	e.logger.Debug("personal_unlockAccount", "address", fmt.Sprintf("0x%x", emintKey.PubKey().Address().Bytes()))
+
 	return true, nil
 }
 

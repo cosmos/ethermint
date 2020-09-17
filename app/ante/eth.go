@@ -191,7 +191,11 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	acc := avd.ak.GetAccount(ctx, address)
 	if acc == nil {
-		return ctx, fmt.Errorf("account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address)
+		fmt.Println("AccountVerificationDecorator failed to get acc, creating new acc")
+		acc = avd.ak.NewAccountWithAddress(ctx, address)
+		fmt.Println(acc)
+		avd.ak.SetAccount(ctx, acc)
+		//return ctx, fmt.Errorf("account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address)
 	}
 
 	// on InitChain make sure account number == 0
@@ -245,6 +249,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 
 	acc := nvd.ak.GetAccount(ctx, address)
 	if acc == nil {
+		fmt.Println("NonceVerificationDecorator failed to get acc")
 		return ctx, fmt.Errorf("account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address)
 	}
 
@@ -302,6 +307,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	if senderAcc == nil {
+		fmt.Println("EthGasConsumeDecorator failed to get acc")
 		return ctx, fmt.Errorf("sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address)
 	}
 
