@@ -1006,11 +1006,6 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 			return nil, fmt.Errorf("cliCtx.Keybase is nil")
 		}
 
-		infos, _ := e.cliCtx.Keybase.List()
-		for _, info := range infos {
-			e.logger.Info("generateFromArgs", "key info", info, "name", info.GetName())
-		}
-
 		err = accRet.EnsureExists(from)
 		if err != nil {
 			// account doesn't exist
