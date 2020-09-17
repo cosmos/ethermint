@@ -1,8 +1,6 @@
 package ante
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -153,9 +151,7 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 
 	acc := asd.ak.GetAccount(ctx, msg.From)
 	if acc == nil {
-		fmt.Println("failed to get account from keeper, creating new account")
 		info := asd.ak.NewAccountWithAddress(ctx, msg.From)
-		fmt.Println(info)
 		asd.ak.SetAccount(ctx, info)
 	}
 

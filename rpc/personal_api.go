@@ -79,6 +79,7 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
 // encrypting it with the passphrase.
 // Currently, this is not implemented since the feature is not supported by the keys.
 func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
+	e.logger.Debug("personal_importRawKey", "error", "not implemented")
 	_, err := crypto.HexToECDSA(privkey)
 	if err != nil {
 		return common.Address{}, err
@@ -89,6 +90,7 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 
 // ListAccounts will return a list of addresses for accounts this node manages.
 func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
+	e.logger.Debug("personal_listAccounts")
 	addrs := []common.Address{}
 	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
@@ -101,6 +103,7 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 // LockAccount will lock the account associated with the given address when it's unlocked.
 // It removes the key corresponding to the given address from the API's local keys.
 func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
+	e.logger.Debug("personal_lockAccount", "address", address)
 	for i, key := range e.keys {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			continue
@@ -130,6 +133,7 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 
 // NewAccount will create a new account and returns the address for the new account.
 func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
+	e.logger.Debug("personal_newAccount")
 	_, err := e.getKeybaseInfo()
 	if err != nil {
 		return common.Address{}, err
@@ -168,6 +172,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // default of 300 seconds. It returns an indication if the account was unlocked.
 // It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
 func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) {
+	e.logger.Debug("personal_unlockAccount", "address", addr)
 	// TODO: use duration
 
 	name := ""
@@ -217,6 +222,8 @@ func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTx
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
 func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
+	e.logger.Debug("personal_sign", "data", data, "address", addr)
+
 	key, ok := checkKeyInKeyring(e.keys, addr)
 	if !ok {
 		return nil, fmt.Errorf("cannot find key with given address")
@@ -242,6 +249,8 @@ func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr comm
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecove
 func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (common.Address, error) {
+	e.logger.Debug("personal_ecRecover", "data", data, "sig", sig)
+
 	if len(sig) != crypto.SignatureLength {
 		return common.Address{}, fmt.Errorf("signature must be %d bytes long", crypto.SignatureLength)
 	}

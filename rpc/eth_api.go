@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -345,15 +344,7 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 
 func checkKeyInKeyring(keys []crypto.PrivKeySecp256k1, address common.Address) (key crypto.PrivKeySecp256k1, exist bool) {
 	if len(keys) > 0 {
-
-		logger := log.NewTMLogger(os.Stdout)
-
-		lstr := strings.ToLower(address.String())
-		address = common.HexToAddress(lstr)
-
-		logger.Info("checkKeyInKeyring", "check for key", address)
 		for _, key := range keys {
-			logger.Info("checkKeyInKeyring", "key", key.PubKey().Address())
 			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 				return key, true
 			}
@@ -392,7 +383,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 
 	key, exist := checkKeyInKeyring(e.keys, args.From)
 	if !exist {
-		e.logger.Error("failed to find key in keyring", "key", args.From)
+		e.logger.Debug("failed to find key in keyring", "key", args.From)
 		return common.Hash{}, keystore.ErrLocked
 	}
 
@@ -405,7 +396,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// Assemble transaction from fields
 	tx, err := e.generateFromArgs(args)
 	if err != nil {
-		e.logger.Error("failed to generate tx", "error", err)
+		e.logger.Debug("failed to generate tx", "error", err)
 		return common.Hash{}, err
 	}
 
@@ -419,7 +410,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 
 	// Sign transaction
 	if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
-		e.logger.Error("failed to sign tx", "error", err)
+		e.logger.Debug("failed to sign tx", "error", err)
 		return common.Hash{}, err
 	}
 
@@ -1007,22 +998,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 	}
 
 	if args.Nonce == nil {
-
 		// Get nonce (sequence) from account
-		// path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, args.From)
-
-		// e.logger.Info("generateFromArgs querying account")
-		// // query eth account at block height
-		// resBz, _, err := e.cliCtx.Query(path)
-		// if err != nil {
-		// 	return nil, err
-		// }
-
-		// var account evmtypes.QueryResAccount
-		// e.cliCtx.Codec.MustUnmarshalJSON(resBz, &account)
-
-		// nonce = account.Nonce + 1
-		// e.logger.Info("got nonce", "nonce", nonce)
 		from := sdk.AccAddress(args.From.Bytes())
 		accRet := authtypes.NewAccountRetriever(e.cliCtx)
 
