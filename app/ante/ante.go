@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"fmt"
+	"reflect"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/cosmos/ethermint/crypto"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+	faucettypes "github.com/cosmos/ethermint/x/faucet/types"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
@@ -144,15 +147,31 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
 	}
 
-	msg, ok := msgs[0].(evmtypes.MsgEthermint)
-	if !ok {
-		return next(ctx, tx, simulate)
-	}
+	var addr sdk.AccAddress
 
-	acc := asd.ak.GetAccount(ctx, msg.From)
-	if acc == nil {
-		info := asd.ak.NewAccountWithAddress(ctx, msg.From)
-		asd.ak.SetAccount(ctx, info)
+	for _, txMsg := range msgs {
+		switch msg := txMsg.(type) {
+		case evmtypes.MsgEthermint:
+			addr = msg.From
+		case faucettypes.MsgFund:
+			fmt.Println("got faucet.MsgFund")
+			addr = msg.Recipient
+		default:
+			fmt.Println(reflect.TypeOf(msg))
+			continue
+		}
+
+		// msg, ok := msgs[0].(evmtypes.MsgEthermint)
+		// if !ok {
+		// 	return next(ctx, tx, simulate)
+		// }
+
+		acc := asd.ak.GetAccount(ctx, addr)
+		if acc == nil {
+			info := asd.ak.NewAccountWithAddress(ctx, addr)
+			fmt.Println("creating new account", info)
+			asd.ak.SetAccount(ctx, info)
+		}	
 	}
 
 	return next(ctx, tx, simulate)

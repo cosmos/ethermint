@@ -2,8 +2,10 @@ package cli
 
 import (
 	"bufio"
+	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -12,7 +14,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 
+	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
 
@@ -44,6 +48,19 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 
+			var err error
+			cliCtx.Keybase, err = keys.NewKeyring(
+				sdk.KeyringServiceName(),
+				viper.GetString(flags.FlagKeyringBackend),
+				viper.GetString(flags.FlagHome),
+				cliCtx.Input,
+				crypto.EthSecp256k1Options()...,
+			)
+			if err != nil {
+				fmt.Println("failed to create keybase")
+				return err
+			}
+
 			amount, err := sdk.ParseCoins(args[0])
 			if err != nil {
 				return err
@@ -57,6 +74,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if err != nil {
+				fmt.Println("failed to create acc address")
 				return err
 			}
 
@@ -65,7 +83,18 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			accRet := auth.NewAccountRetriever(cliCtx)
+			err = accRet.EnsureExists(recipient)
+			if err != nil {
+				// account doesn't exist
+				return fmt.Errorf("nonexistent account %s: %s", recipient, err)
+			}
+
+			err = authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			if err != nil {
+				fmt.Println("failed to run request command:", err)
+			}
+			return err
 		},
 	}
 }
