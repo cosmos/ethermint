@@ -51,11 +51,14 @@ func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) 
 // EthermintKeygenFunc is the key generation function to generate secp256k1 ToECDSA
 // from ethereum.
 func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
-	if algo != EthSecp256k1 {
-		return nil, fmt.Errorf("signing algorithm must be %s, got %s", EthSecp256k1, algo)
+	switch algo {
+	case EthSecp256k1:
+		return PrivKeySecp256k1(bz), nil
+	case keys.Secp256k1:
+		return keys.SecpPrivKeyGen(bz), nil
+	default: 
+		return nil, fmt.Errorf("signing algorithm must be %s or %s, got %s", EthSecp256k1, keys.Secp256k1, algo)
 	}
-
-	return PrivKeySecp256k1(bz), nil
 }
 
 func DeriveSecp256k1(mnemonic, bip39Passphrase, _ string) ([]byte, error) {
