@@ -29,6 +29,19 @@ yarn test-ethermint
 
 ok=$?
 
+if (( $? != 0 )); then
+	echo "initializable test failed: exit code $?"
+fi
+
+cd ../initializable-buidler
+yarn test-ethermint
+
+ok=$(($? + $ok))
+
+if (( $? != 0 )); then
+	echo "initializable-buidler test failed: exit code $?"
+fi
+
 killall ethermintcli
 killall ethermintd
 
