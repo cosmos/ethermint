@@ -36,6 +36,11 @@ fi
 killall ethermintcli
 killall ethermintd
 
+echo "Script exited with code $ok"
+exit $ok
+
+# initializable-buidler fails on CI, re-add later
+
 ./../../init-test-node.sh > ethermintd.log &
 sleep 5
 ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key localkey,user1,user2 --chain-id 1337 --trace --wsport 8546 > ethermintcli.log &
