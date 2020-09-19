@@ -4,17 +4,104 @@ order: 5
 
 # Namespaces
 
-A list of the rpc methods, the parameters and an example response
+A list of the rpc methods, the parameters and an example response.
+
+## Json-RPC Methods
+- [web3_clientVersion](#web3_clientVersion)
+
+- [web3_sha3](#web3_sha3)
+
+- [net_version](#net_version)
+
+- [eth_protocolVersion](#eth_protocolVersion)
+
+- [eth_syncing](#eth_syncing)
+
+- [eth_gasPrice](#eth_gasPrice)
+
+- [eth_accounts](#eth_accounts)
+
+- [eth_blockNumber](#eth_blockNumber)
+
+- [eth_getBalance](#eth_getBalance)
+
+- [eth_getStorageAt](#eth_getStorageAt)
+
+- [eth_getTransactionCount](#eth_getTransactionCount)
+
+- [eth_getBlockTransactionCountByHash](#eth_getBlockTransactionCountByHash)
+
+- [eth_getBlockTransactionCountByNumber](#eth_getBlockTransactionCountByNumber)
+
+- [eth_getCode](#eth_getCode)
+
+- [eth_sign](#eth_sign)
+
+- [eth_sendTransaction](#eth_sendTransaction)
+
+- [eth_sendRawTransaction](#eth_sendRawTransaction)
+
+- [eth_call](#eth_call)
+
+- [eth_estimateGas](#eth_estimateGas)
+
+- [eth_getBlockByHash](#eth_getBlockByHash)
+
+- [eth_getBlockByNumber](#eth_getBlockByNumber)
+
+- [eth_getTransactionByHash](#eth_getTransactionByHash)
+
+- [eth_getTransactionByBlockHashAndIndex](#eth_getTransactionByBlockHashAndIndex)
+
+- [eth_getTransactionByBlockNumberAndIndex](#eth_getTransactionByBlockNumberAndIndex)
+
+- [eth_getTransactionReceipt](#eth_getTransactionReceipt)
+
+- [eth_newFilter](#eth_newFilter)
+
+- [eth_newBlockFilter](#eth_newBlockFilter)
+
+- [eth_newPendingTransactionFilter](#eth_newPendingTransactionFilter)
+
+- [eth_uninstallFilter](#eth_uninstallFilter)
+
+- [eth_getFilterChanges](#eth_getFilterChanges)
+
+- [eth_getFilterLogs](#eth_getFilterLogs)
+
+- [eth_getLogs](#eth_getLogs)
+
+## Unused Methods
+ - eth_mining
+ - eth_coinbase
+ - eth_hashrate
+ - eth_getUncleCountByBlockHash
+ - eth_getUncleCountByBlockNumber
+ - eth_getUncleByBlockHashAndIndex
+ - eth_getUncleByBlockNumberAndIndex
+
+## Methods that are not implemented
+ - net_peerCount 
+ - net_listening	
+ - eth_getTransactionbyBlockNumberAndIndex
+ - eth_getWork
+ - eth_submitWork
+ - eth_submitHashrate
+ - eth_getCompilers
+ - eth_compileLLL
+ - eth_compileSolidity
+ - eth_compileSerpent
+ - eth_signTransaction
 
 ## Web3 Methods
 
 ### web3_clientVersion
 
-Get the web3 client version
+Get the web3 client version.
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":67}'
+curl -X POST --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":67}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
  {"jsonrpc":"2.0","id":1,"result":"Ethermint/0.0.0+/linux/go1.14"}
@@ -22,11 +109,11 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],
 
 ### web3_sha3
 
-Returns Keccak-256 (not the standardized SHA3-256) of the given data
+Returns Keccak-256 (not the standardized SHA3-256) of the given data.
 
 #### Parameters
 
-the data to convert into a SHA3 hash
+- the data to convert into a SHA3 hash
 
 ```json
 // Request
@@ -35,7 +122,6 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"web3_sha3","params":["0x67656c6c
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x1b84adea42d5b7d192fd8a61a85b25abe0757e9a65cab1da470258914053823f"}
 ```
-
 
 ## Net Methods
 
@@ -79,7 +165,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}
 
 ### eth_gasPrice
 
-Returns the current gas price in aphotons
+Returns the current gas price in aphotons.
 
 ```json
 // Request
@@ -91,7 +177,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":1
 
 ### eth_accounts
 
-Returns array of all eth accounts
+Returns array of all eth accounts.
 
 ```json
 // Request
@@ -103,7 +189,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1
 
 ### eth_blockNumber
 
-Returns the current block height
+Returns the current block height.
 
 ```json
 // Request
@@ -115,11 +201,11 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id
 
 ### eth_getBalance
 
-Returns the account balance for a given account address and Block Number
+Returns the account balance for a given account address and Block Number.
 
 #### Parameters
 
-- Account addr
+- Accout Address
 
 - Block Number
 
@@ -134,13 +220,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x7bf
 
 ### eth_getStorageAt
 
-Returns the storage address for a given account address. // i need to learn how to find the address store key so i can get a real response
+Returns the storage address for a given account address. // i need to learn how to find the address store key so i can get a real response.
 
 #### Parameters
 
-- Account addr
+- Accout Address
 
-- address store key
+- Address Store Key
 
 - Block Number
 
@@ -154,11 +240,11 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["0x7
 
 ### eth_getTransactionCount
 
-Returns the total transaction for a given account address and Block Number
+Returns the total transaction for a given account address and Block Number.
 
 #### Parameters
 
-- Account addr
+- Accout Address
 
 - Block Number
 
@@ -172,7 +258,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params
 
 ### eth_getBlockTransactionCountByNumber
 
-Returns the total transaction count for a given block number
+Returns the total transaction count for a given block number.
 
 #### Parameters
 
@@ -208,7 +294,7 @@ Returns the code for a given account address and Block Number.
 
 #### Parameters
 
-- Account addr
+- Accout Address
 
 - Block Number
 
@@ -226,15 +312,15 @@ The sign method calculates an Ethereum specific signature with: sign(keccak256("
 
 By adding a prefix to the message makes the calculated signature recognisable as an Ethereum specific signature. This prevents misuse where a malicious DApp can sign arbitrary data (e.g. transaction) and use the signature to impersonate the victim.
 
-#### Parameters
-
-- Account addr 
-
-- Message to sign
-
 ::: warning 
 the address to sign with must be unlocked.
 :::
+
+#### Parameters
+
+- Account Address 
+
+- Message to sign
 
 ```json
 // Request
@@ -247,7 +333,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sign","params":["0x3b7252d00
 
 ### eth_sendTransaction
 
-Sends transaction from given account to a given account
+Sends transaction from given account to a given account.
 
 #### Parameters
 
@@ -326,7 +412,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_call","params":[{"from":"0x3
 
 ### eth_estimateGas
 
-Returns an estimate value of the gas required to send the transaction
+Returns an estimate value of the gas required to send the transaction.
 
 #### Parameters
 
@@ -384,7 +470,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["0
 
 ### eth_getTransactionByHash
 
-Returns transaction details given the ethereum tx something
+Returns transaction details given the ethereum tx something.
 
 #### Parameters
 
@@ -431,7 +517,7 @@ curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc
 
 ### eth_newFilter
 
-Create new filter using topics of some kind
+Create new filter using topics of some kind.
  
 #### Parameters
 
@@ -472,11 +558,11 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_newPendingTransactionFilter"
 
 ### eth_uninstallFilter
 
-Removes the filter with the given filter id. Returns true if the filter was successfully uninstalled, otherwise false
+Removes the filter with the given filter id. Returns true if the filter was successfully uninstalled, otherwise false.
 
 #### Parameters
 
-- The filter id.
+- The filter id
 
 ```json
 // Request
@@ -492,7 +578,7 @@ Polling method for a filter, which returns an array of logs which occurred since
 
 #### Parameters
 
-- The filter id.
+- The filter id
 
 ```json
 // Request
@@ -508,7 +594,7 @@ Polling method for a filter, which returns an array of logs which occurred since
 
 #### Parameters
 
-- The filter id.
+- The filter id
 
 ```json
 // Request
@@ -538,13 +624,13 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"topics"
 
 ### eth_getProof
 
-Returns an array of all logs matching a given filter object.
+Returns an array of all logs matching a given filter object. // I need to learn to get a store key so that i can get a real response
 
 #### Parameters
 
-- Account addr
+- Accout Address
 
-- address store key // I dont know how to find this
+- Address Store Key
 
 - Block Number
 
@@ -588,22 +674,3 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_unsubscribe","params":[],"id
 {"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"notifications not supported"}} // I dont know how to get this to work
 ```
 
-
-
-
-not implemented
- net_peerCount 
- net_listening	
- eth_getTransactionbyBlockNumberAndIndex
- eth_getWork
- eth_submitWork
- eth_submitHashrate
-
-not important 
- eth_mining
- eth_coinbase
- eth_hashrate
- eth_getUncleCountByBlockHash
- eth_getUncleCountByBlockNumber
- eth_getUncleByBlockHashAndIndex
- eth_getUncleByBlockNumberAndIndex
