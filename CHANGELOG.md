@@ -43,6 +43,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Improvements
 
+* (types) [\#504](https://github.com/ChainSafe/ethermint/pull/504) Unmarshal a JSON `EthAccount` using an Ethereum hex address in addition to Bech32.
 * (types) [\#503](https://github.com/ChainSafe/ethermint/pull/503) Add `--coin-denom` flag to testnet command that sets the given coin denomination to SDK and Ethermint parameters.
 * (types) [\#502](https://github.com/ChainSafe/ethermint/pull/502) `EthAccount` now also exposes the Ethereum hex address in `string` format to clients.
 * (types) [\#494](https://github.com/ChainSafe/ethermint/pull/494) Update `EthAccount` public key JSON type to `string`.
@@ -50,11 +51,14 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (`x/evm`) [\#458](https://github.com/ChainSafe/ethermint/pull/458) Define parameter for token denomination used for the EVM module.
 * (`x/evm`) [\#443](https://github.com/ChainSafe/ethermint/issues/443) Support custom Ethereum `ChainConfig` params.
 * (types) [\#434](https://github.com/ChainSafe/ethermint/issues/434) Update default denomination to Atto Photon (`aphoton`).
+* (types) [\#515](https://github.com/ChainSafe/ethermint/pull/515) Update minimum gas price to be 1.
 
 ### Bug Fixes
 
+* (types) [\#507](https://github.com/ChainSafe/ethermint/pull/507) Fix hardcoded `aphoton` on `EthAccount` balance getter and setter.
 * (`x/evm`) [\#496](https://github.com/ChainSafe/ethermint/pull/496) Fix bugs on `journal.revert` and `CommitStateDB.Copy`.
 * (types) [\#480](https://github.com/ChainSafe/ethermint/pull/480) Update [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) coin type to `60` to satisfy [EIP84](https://github.com/ethereum/EIPs/issues/84).
+* (types) [\#513](https://github.com/ChainSafe/ethermint/pull/513) Fix simulated transaction bug that was causing a consensus error by unintentionally affecting the state.
 
 ## [v0.1.0] - 2020-08-23
 
