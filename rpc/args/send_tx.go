@@ -1,6 +1,8 @@
 package args
 
 import (
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -19,4 +21,14 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data  *hexutil.Bytes `json:"data"`
 	Input *hexutil.Bytes `json:"input"`
+}
+
+func (args SendTxArgs) String() string {
+	if args.Data != nil {
+		return fmt.Sprintf("to=0x%x from=0x%x nonce=%d gasPrice=%d gasLimit=%d value=%d data=0x%x",
+			*args.To, args.From, args.Nonce, args.GasPrice, args.Gas, args.Value, args.Data)
+	}
+
+	return fmt.Sprintf("to=0x%x from=0x%x nonce=%d gasPrice=%d gasLimit=%d value=%d input=0x%x",
+		*args.To, args.From, args.Nonce, args.GasPrice, args.Gas, args.Value, args.Input)
 }

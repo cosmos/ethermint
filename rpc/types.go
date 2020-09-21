@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -64,4 +65,19 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 // Int64 converts block number to primitive type
 func (bn BlockNumber) Int64() int64 {
 	return (int64)(bn)
+}
+
+// CallArgs represents the arguments for a call.
+type CallArgs struct {
+	From     *common.Address `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *hexutil.Big    `json:"value"`
+	Data     *hexutil.Bytes  `json:"data"`
+}
+
+func (args CallArgs) String() string {
+	return fmt.Sprintf("to=0x%x from=0x%x gasPrice=%v gasLimit=%d value=%v data=0x%x",
+		*args.To, *args.From, args.GasPrice, args.Gas, args.Value, args.Data)
 }
