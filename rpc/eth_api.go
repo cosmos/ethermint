@@ -562,15 +562,32 @@ func (e *PublicEthAPI) doCall(
 		data = []byte(*args.Data)
 	}
 
-	// Set destination address for call
+	// Get nonce (sequence) from account
+	from := sdk.AccAddress(addr.Bytes())
+	accRet := authtypes.NewAccountRetriever(e.cliCtx)
+
+	if err := accRet.EnsureExists(from); err != nil {
+		// account doesn't exist
+		return nil, fmt.Errorf("nonexistent account %s: %w", addr.String(), err)
+	}
+
+	_, nonce, err := accRet.GetAccountNumberSequence(from)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create new call message
 	// NOTE: sender address will be derived from chain ID
 	msg := evmtypes.NewMsgEthereumTx(
-		0, args.To, value,
+		nonce, args.To, value,
 		gas, gasPrice,
 		data,
 	)
+
+	// perform client side validation of message
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
 
 	key, exist := checkKeyInKeyring(e.keys, addr)
 	if !exist {
@@ -1068,6 +1085,11 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 		gasLimit = (uint64)(*args.Gas)
 	}
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
+
+	// perform client side validation of message
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
 
 	return &msg, nil
 }
