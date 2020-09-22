@@ -292,7 +292,11 @@ test-sim-multi-seed-short: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
-.PHONY: test test-unit test-race test-import test-rpc test-contract
+test-solidity:
+	 @echo "Beginning solidity tests..."
+	 ./scripts/run-solidity-tests.sh
+
+.PHONY: test test-unit test-race test-import test-rpc test-contract test-solidity
 
 .PHONY: test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-import-export test-sim-after-import \
 	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-short
@@ -393,14 +397,14 @@ proto-update-deps:
 # Start docs site at localhost:8080
 docs-serve:
 	@cd docs && \
-	npm install && \
-	npm run serve
+	yarn install && \
+	yarn run serve
 
 # Build the site into docs/.vuepress/dist
 docs-build:
 	@cd docs && \
-	npm install && \
-	npm run build
+	yarn install && \
+	yarn run build
 
 godocs:
 	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
