@@ -38,6 +38,9 @@ func (msg MsgFund) ValidateBasic() error {
 	if msg.Recipient.Empty() {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "recipient %s", msg.Recipient.String())
 	}
+	if !msg.Amount.IsAllPositive() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.Amount.String())
+	}
 	return nil
 }
 
