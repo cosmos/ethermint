@@ -305,12 +305,12 @@ func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.U
 	return &n
 }
 
-// GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
+// GetUncleCountByBlockHash returns the number of uncles in the block identified by hash. Always zero.
 func (e *PublicEthAPI) GetUncleCountByBlockHash(hash common.Hash) hexutil.Uint {
 	return 0
 }
 
-// GetUncleCountByBlockNumber returns the number of uncles in the block idenfied by number. Always zero.
+// GetUncleCountByBlockNumber returns the number of uncles in the block identified by number. Always zero.
 func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.Uint {
 	return 0
 }

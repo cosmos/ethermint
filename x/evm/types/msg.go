@@ -311,6 +311,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
+// The returned address will be cached in the message from field if the verification is successful.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	signer := ethtypes.NewEIP155Signer(chainID)
 
@@ -370,10 +371,11 @@ func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 	return msg.Data.V, msg.Data.R, msg.Data.S
 }
 
-// From loads the ethereum sender address from the sigcache and returns an
-// sdk.AccAddress from its bytes.
+// From loads the ethereum sender address from the signature cache and returns an
+// sdk.AccAddress from its bytes. The address needs to be cached previously using
+// the VerifySig function.
 //
-// NOTE: if the sender address hasn't been cache, this function will return an
+// NOTE: if the sender address hasn't been cached, this function will return an
 // nil AccAddress.
 func (msg *MsgEthereumTx) From() sdk.AccAddress {
 	sc := msg.from.Load()

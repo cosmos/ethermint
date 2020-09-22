@@ -159,7 +159,7 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 	require.Equal(t, expectedMsg.Data, msg.Data)
 }
 
-func TestMsgEthereumTxSig(t *testing.T) {
+func TestMsgEthereumTx_SigVerification(t *testing.T) {
 	chainID := big.NewInt(3)
 
 	priv1, _ := crypto.GenerateKey()
@@ -170,21 +170,25 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	// require valid signature passes validation
 	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
 	err := msg.Sign(chainID, priv1.ToECDSA())
-	require.Nil(t, err)
+	require.NoError(t, err)
+	require.Nil(t, msg.From(), "account address shouldn't be cached")
 
 	signer, err := msg.VerifySig(chainID)
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
 	require.NotEqual(t, addr2, signer)
+	require.Equal(t, sdk.AccAddress(signer.Bytes()).String(), msg.From().String(), "account address should have been cached")
+	require.Equal(t, chainID.Int64(), msg.ChainID().Int64())
 
 	// require invalid chain ID fail validation
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
 	err = msg.Sign(chainID, priv1.ToECDSA())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
+	require.Nil(t, msg.From(), "account address shouldn't be cached")
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {
