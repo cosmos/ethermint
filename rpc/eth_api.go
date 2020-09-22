@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strconv"
 	"sync"
 
@@ -62,6 +63,7 @@ func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *Addr
 	api := &PublicEthAPI{
 		cliCtx:    cliCtx,
 		chainID:   chainID,
+		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		backend:   backend,
 		keys:      key,
 		nonceLock: nonceLock,
@@ -526,6 +528,7 @@ func (e *PublicEthAPI) doCall(
 		if err == nil && len(addrs) > 0 {
 			addr = addrs[0]
 		}
+		// No error handled here intentionally to match geth behaviour
 	} else {
 		addr = *args.From
 	}
@@ -569,9 +572,9 @@ func (e *PublicEthAPI) doCall(
 		data,
 	)
 
-	key, exist := checkKeyInKeyring(e.keys, *args.From)
+	key, exist := checkKeyInKeyring(e.keys, addr)
 	if !exist {
-		return nil, fmt.Errorf("key from address %s couldn't be found on the keyring", args.From.String())
+		return nil, fmt.Errorf("key from address %s couldn't be found on the keyring", addr.String())
 	}
 
 	// sign the message using the private key
