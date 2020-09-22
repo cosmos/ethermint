@@ -79,6 +79,11 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 
 			var faucet, recipient sdk.AccAddress
 
+			faucet, err = sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+
 			// if len(args[0]) < 42 {
 			// 	for _, info := range infos {
 			// 		if args[0] == info.GetName() {
