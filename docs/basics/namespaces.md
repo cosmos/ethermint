@@ -6,92 +6,57 @@ order: 5
 
 A list of the rpc methods, the parameters and an example response.
 
+:::Tip
+Block Number can be entered as a hash, "earliest", "latest" or "pending".
+:::
+
 ## Json-RPC Methods
-- [web3_clientVersion](#web3_clientVersion)
 
-- [web3_sha3](#web3_sha3)
-
-- [net_version](#net_version)
-
-- [eth_protocolVersion](#eth_protocolVersion)
-
-- [eth_syncing](#eth_syncing)
-
-- [eth_gasPrice](#eth_gasPrice)
-
-- [eth_accounts](#eth_accounts)
-
-- [eth_blockNumber](#eth_blockNumber)
-
-- [eth_getBalance](#eth_getBalance)
-
-- [eth_getStorageAt](#eth_getStorageAt)
-
-- [eth_getTransactionCount](#eth_getTransactionCount)
-
-- [eth_getBlockTransactionCountByHash](#eth_getBlockTransactionCountByHash)
-
-- [eth_getBlockTransactionCountByNumber](#eth_getBlockTransactionCountByNumber)
-
-- [eth_getCode](#eth_getCode)
-
-- [eth_sign](#eth_sign)
-
-- [eth_sendTransaction](#eth_sendTransaction)
-
-- [eth_sendRawTransaction](#eth_sendRawTransaction)
-
-- [eth_call](#eth_call)
-
-- [eth_estimateGas](#eth_estimateGas)
-
-- [eth_getBlockByHash](#eth_getBlockByHash)
-
-- [eth_getBlockByNumber](#eth_getBlockByNumber)
-
-- [eth_getTransactionByHash](#eth_getTransactionByHash)
-
-- [eth_getTransactionByBlockHashAndIndex](#eth_getTransactionByBlockHashAndIndex)
-
-- [eth_getTransactionByBlockNumberAndIndex](#eth_getTransactionByBlockNumberAndIndex)
-
-- [eth_getTransactionReceipt](#eth_getTransactionReceipt)
-
-- [eth_newFilter](#eth_newFilter)
-
-- [eth_newBlockFilter](#eth_newBlockFilter)
-
-- [eth_newPendingTransactionFilter](#eth_newPendingTransactionFilter)
-
-- [eth_uninstallFilter](#eth_uninstallFilter)
-
-- [eth_getFilterChanges](#eth_getFilterChanges)
-
-- [eth_getFilterLogs](#eth_getFilterLogs)
-
-- [eth_getLogs](#eth_getLogs)
-
-## Unused Methods
- - eth_mining
- - eth_coinbase
- - eth_hashrate
- - eth_getUncleCountByBlockHash
- - eth_getUncleCountByBlockNumber
- - eth_getUncleByBlockHashAndIndex
- - eth_getUncleByBlockNumberAndIndex
-
-## Methods that are not implemented
- - net_peerCount 
- - net_listening	
- - eth_getTransactionbyBlockNumberAndIndex
- - eth_getWork
- - eth_submitWork
- - eth_submitHashrate
- - eth_getCompilers
- - eth_compileLLL
- - eth_compileSolidity
- - eth_compileSerpent
- - eth_signTransaction
+| Method        | Implemented   |
+| ------------- |:-------------:|
+| [web3_clientVersion](#web3_clientVersion) | ✔ |
+| [web3_sha3](#web3_sha3) | ✔ |
+| [net_version](#net_version) | ✔ |
+| net_peerCount | |
+| net_listening | |
+| [eth_protocolVersion](#eth_protocolVersion) | ✔ |
+| [eth_syncing](#eth_syncing) | ✔ |
+| [eth_gasPrice](#eth_gasPrice) | ✔ |
+| [eth_accounts](#eth_accounts) | ✔ |
+| [eth_blockNumber](#eth_blockNumber) | ✔ |
+| [eth_getBalance](#eth_getBalance) | ✔ |
+| [eth_getStorageAt](#eth_getStorageAt) | ✔ |
+| [eth_getTransactionCount](#eth_getTransactionCount) | ✔ |
+| [eth_getBlockTransactionCountByNumber](#eth_getBlokTransactionCountByNumber) | ✔ |
+| [eth_getBlockTransactionCountByHash](#eth_getBlockTransactionCountByHash) | ✔ |
+| [eth_getCode](#eth_getCode) | ✔ |
+| [eth_sign](#eth_sign) | ✔ |
+| [eth_sendTransaction](#eth_sendTransaction) | ✔ |
+| [eth_sendRawTransaction](#eth_sendRawTransaction) | ✔ |
+| [eth_call](#eth_call) | ✔ |
+| [eth_estimateGas](#eth_estimateGas) | ✔ |
+| [eth_getBlockByNumber](#eth_getBlockByNumber) | ✔ |
+| [eth_getBlockByHash](#eth_getBlockByHash) | ✔ |
+| [eth_getTransactionByHash](#eth_getTransactionByHash) | ✔ |
+| [eth_getTransactionByBlockHashAndIndex](#eth_getTransactionByBlockHashAndIndex) | ✔ |
+| [eth_getTransactionReceipt](#eth_getTransactionReceipt) | ✔ |
+| [eth_newFilter](#eth_newFilter) | ✔ |
+| [eth_newBlockFilter](#eth_newBlockFilter) | ✔ |
+| [eth_newPendingTransactionFilter](#eth_newPendingTransactionFilter) | ✔ |
+| [eth_uninstallFilter](#eth_uninstallFilter) | ✔ |
+| [eth_getFilterChanges](#eth_getFilterChanges) | ✔ |
+| [eth_getLogs](#eth_getLogs) | ✔ |
+| [eth_subscribe](#eth_subscribe) | ✔ |
+| [eth_unsubscribe](#eth_unsubscribe) | ✔ |
+| eth_getTransactionbyBlockNumberAndIndex | |
+| eth_getWork | |
+| eth_submitWork | | 
+| eth_submitHashrate | |
+| eth_getCompilers | |
+| eth_compileLLL | |
+| eth_compileSolidity | |
+| eth_compileSerpent | |
+| eth_signTransaction | |
 
 ## Web3 Methods
 
@@ -113,7 +78,7 @@ Returns Keccak-256 (not the standardized SHA3-256) of the given data.
 
 #### Parameters
 
-- the data to convert into a SHA3 hash
+- The data to convert into a SHA3 hash
 
 ```json
 // Request
@@ -209,10 +174,9 @@ Returns the account balance for a given account address and Block Number.
 
 - Block Number
 
-
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x7bf7b17da59880d9bcca24915679668db75f9397", "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x36354d5575577c8000"}
@@ -220,19 +184,19 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x7bf
 
 ### eth_getStorageAt
 
-Returns the storage address for a given account address. // i need to learn how to find the address store key so i can get a real response.
+Returns the storage address for a given account address. // i need to learn how to find the address storage key so i can get a real response.
 
 #### Parameters
 
 - Accout Address
 
-- Address Store Key
+- Address Storage Key
 
 - Block Number
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["0x7bf7b17da59880d9bcca24915679668db75f9397", "0"  "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "0xb47cde69de5130ac4310768396858d7fc20ee04b75e353ac8d5a991f3fbf5691"  "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000000000000000000"}
@@ -330,7 +294,6 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sign","params":["0x3b7252d00
 {"jsonrpc":"2.0","id":1,"result":"0x909809c76ed2a5d38733de39207d0f411222b9b49c64a192bf649cb13f63f37b45acb4f6939facb4f1c277bc70fb00407564140c0f18600ac44388f2c1dfd1dc1b"}
 ```
 
-
 ### eth_sendTransaction
 
 Sends transaction from given account to a given account.
@@ -356,7 +319,7 @@ Sends transaction from given account to a given account.
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "to":"0x3b7252d007059ffc82d16d022da3cbf9992d2f70", "value":"0x16345785d8a0000", "gasLimit":"0x5208", "gasPrice":"0x55ae82600"}],"id":1}'  -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"0x3b7252d007059ffc82d16d022da3cbf9992d2f70", "to":"0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "value":"0x16345785d8a0000", "gasLimit":"0x5208", "gasPrice":"0x55ae82600"}],"id":1}'  -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x33653249db68ebe5c7ae36d93c9b2abc10745c80a72f591e296f598e2d4709f6"}
@@ -366,13 +329,15 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{
 
 Creates new message call transaction or a contract creation for signed transactions.
 
+You can get signed transaction data using the personal_sign method
+
 #### Parameters
 
 -  The signed transaction data
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":[I dont know how to get that],"id":1}'  -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xf9ff74c86aefeb5f6019d77280bbb44fb695b4d45cfe97e6eed7acd62905f4a85034d5c68ed25a2e7a8eeb9baf1b8401e4f865d92ec48c1763bf649e354d900b1c"],"id":1}'  -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000000000000000000"}
@@ -399,8 +364,6 @@ Executes a new message call immediately without creating a transaction on the bl
     data: DATA - (optional) Hash of the method signature and encoded parameters. For details see Ethereum Contract ABI in the Solidity documentation
 
 - Block number
-
-
 
 ```json
 // Request
@@ -432,16 +395,15 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_estimateGas","params":[{"fro
 {"jsonrpc":"2.0","id":1,"result":"0x1199b"}
 ```
 
-
 ### eth_getBlockByNumber
 
 Returns information about a block by block number.
 
 #### Parameters
 
-- QUANTITY|TAG - block number, or the string "earliest", "latest" or "pending", as in the default block parameter.
+- Block Number
 
-- Boolean - If true it returns the full transaction objects, if false only the hashes of the transactions.
+- If true it returns the full transaction objects, if false only the hashes of the transactions.
 
 ```json
 // Request
@@ -456,9 +418,9 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":[
 Returns the block info given the hash found in the command above and a bool.
 
 #### Parameters 
-- DATA, 32 Bytes - Hash of a block.
+- Hash of a block.
 
-- Boolean - If true it returns the full transaction objects, if false only the hashes of the transactions.
+- If true it returns the full transaction objects, if false only the hashes of the transactions.
 
 ```json
 // Request
@@ -474,14 +436,14 @@ Returns transaction details given the ethereum tx something.
 
 #### Parameters
 
-- DATA, 32 Bytes - hash of a transaction
+- hash of a transaction
 
 ```json
 // Request
-curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"],"id":1}'
-
+curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0xec5fa15e1368d6ac314f9f64118c5794f076f63c02e66f97ea5fe1de761a8973"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+ 
 // Result
-// no idea how to get this to work
+{"jsonrpc":"2.0","id":1,"result":{"blockHash":"0x7a7398cc11d9c4c8e6f53e0c73824297aceafdab62db9e4b867a0da694384864","blockNumber":"0x188","from":"0x3b7252d007059ffc82d16d022da3cbf9992d2f70","gas":"0x147ee","gasPrice":"0x3b9aca00","hash":"0xec5fa15e1368d6ac314f9f64118c5794f076f63c02e66f97ea5fe1de761a8973","input":"0x6dba746c","nonce":"0x18","to":"0xa655256f589060437e5ffe2246dec385d040f148","transactionIndex":"0x0","value":"0x0","v":"0xa96","r":"0x6db399d694a452fb4106419140a6e5dbbe6817743a0f6f695a651e6576e59a5e","s":"0x25dd6ab1f936d0280d2fed0caeb0ebe5b9a46de6d8cb08ad8fd2c88deb55fc31"}}
 ```
 
 ### eth_getTransactionByBlockHashAndIndex
@@ -490,13 +452,13 @@ Returns transaction details given the block hash and the transaction index.
 
 #### Parameters
 
-- DATA, 32 Bytes - hash of a block.
+- Hash of a block.
 
-- QUANTITY - integer of the transaction index position.
+- Transaction index position.
 
 ```json
 // Request
-curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0x1b9911f57c13e5160d567ea6cf5b545413f96b95e43ec6e02787043351fb2cc4", "0x0"],"id":1}'
+curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0x1b9911f57c13e5160d567ea6cf5b545413f96b95e43ec6e02787043351fb2cc4", "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":{"blockHash":"0x1b9911f57c13e5160d567ea6cf5b545413f96b95e43ec6e02787043351fb2cc4","blockNumber":"0xc","from":"0xddd64b4712f7c8f1ace3c145c950339eddaf221d","gas":"0x4c4b40","gasPrice":"0x3b9aca00","hash":"0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea615","input":"0x4f2be91f","nonce":"0x0","to":"0x439c697e0742a0ddb124a376efd62a72a94ac35a","transactionIndex":"0x0","value":"0x0","v":"0xa96","r":"0xced57d973e58b0f634f776d57daf41d3d3387ceb347a3a72ca0746e5ec2b709e","s":"0x384e89e209a5eb147a2bac3a4e399507400ac7b29cd155531f9d6203a89db3f2"}}
@@ -505,11 +467,14 @@ curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc
 ### eth_getTransactionReceipt
 
 Returns the receipt of a transaction by transaction hash.
- 
+
+#### Parameters
+
+- Hash of a transaction
 
 ```json
 // Request
-curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea614"],"id":1}'
+curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea614"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":{"blockHash":"0x1b9911f57c13e5160d567ea6cf5b545413f96b95e43ec6e02787043351fb2cc4","blockNumber":"0xc","contractAddress":"0x0000000000000000000000000000000000000000","cumulativeGasUsed":null,"from":"0xddd64b4712f7c8f1ace3c145c950339eddaf221d","gasUsed":"0x5289","logs":[{"address":"0x439c697e0742a0ddb124a376efd62a72a94ac35a","topics":["0x64a55044d1f2eddebe1b90e8e2853e8e96931cefadbfa0b2ceb34bee36061941"],"data":"0x0000000000000000000000000000000000000000000000000000000000000002","blockNumber":"0xc","transactionHash":"0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea615","transactionIndex":"0x0","blockHash":"0x0000000000000000000000000000000000000000000000000000000000000000","logIndex":"0x0","removed":false},{"address":"0x439c697e0742a0ddb124a376efd62a72a94ac35a","topics":["0x938d2ee5be9cfb0f7270ee2eff90507e94b37625d9d2b3a61c97d30a4560b829"],"data":"0x0000000000000000000000000000000000000000000000000000000000000002","blockNumber":"0xc","transactionHash":"0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea615","transactionIndex":"0x0","blockHash":"0x0000000000000000000000000000000000000000000000000000000000000000","logIndex":"0x1","removed":false}],"logsBloom":"0x00000000100000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000002000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000","status":"0x1","to":"0x439c697e0742a0ddb124a376efd62a72a94ac35a","transactionHash":"0xae64961cb206a9773a6e5efeb337773a6fd0a2085ce480a174135a029afea615","transactionIndex":"0x0"}}
@@ -521,11 +486,11 @@ Create new filter using topics of some kind.
  
 #### Parameters
 
-- DATA, 32 Bytes - hash of a transaction
+- hash of a transaction
 
 ```json
 // Request
-curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":[{"topics":["0x0000000000000000000000000000000000000000000000000000000012341234"]}],"id":1}'
+curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":[{"topics":["0x0000000000000000000000000000000000000000000000000000000012341234"]}],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0xdc714a4a2e3c39dc0b0b84d66a3ccb00"}
@@ -552,7 +517,7 @@ Creates a filter in the node, to notify when new pending transactions arrive.
 // Request
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_newPendingTransactionFilter","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-// Request
+// Result
 {"jsonrpc":"2.0","id":1,"result":"0x9daacfb5893d946997d3801ea18e9902"}
 ```
 
@@ -568,7 +533,7 @@ Removes the filter with the given filter id. Returns true if the filter was succ
 // Request
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_uninstallFilter","params":["0xb91b6608b61bf56288a661a1bd5eb34a"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-// Request
+// Result
 {"jsonrpc":"2.0","id":1,"result":true}
 ```
 
@@ -582,12 +547,12 @@ Polling method for a filter, which returns an array of logs which occurred since
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterChanges","params":["0xb91b6608b61bf56288a661a1bd5eb34a"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterChanges","params":["0x127e9eca4f7751fb4e5cb5291ad8b455"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-// Request
-{"jsonrpc":"2.0","id":1,"result":[]} // I need to find a result that isnt empty
+// Result
+{"jsonrpc":"2.0","id":1,"result":["0xc6f08d183a81e149896fc5317c872f9092068e88e956ca1864e9bd4c81c09b44","0x3ca6dfb5be15549d721d1b3d10c1bec50ed6217c9ac7b61df361fac9692a27e5","0x776fffac134171acb1ebf2e59856625501ad5ccc5c4c8fe0359e0d4dff8919f2","0x84123103704dbd738c089276ab2b04b5936330b24f6e78453c4ba8bf4848aaf9","0xffddbe5bd8e8aa41e44002daa9ea89ade9e6980a0d83f51d104cf16498827eca","0x53430e49963e8ae32605d8f22dec2e757a691e6436d593854ca4d9383eeab86a","0x975948058c9351a91fbec332ca00dda39d1a919f5f16b996a4c7e30c38ba423b","0x619e37e32024c8efef7f7220e6caff4ee1d682ea78b2ac91e0a6b30850dc0677","0x31a5d985a40d08303ac68000ce008df512bcd1a911c497415c97f0624b4a271a","0x91dcf1fce4503a8dbb3e6fb61073f25cd31d69c766ecba639fefde4436e59d07","0x606d9e0143cfdb410a6812c590a8135b5c6b5c59eec26d760d5cd930aa47257d","0xd3c00b859b29b20ba654415eef648ef58251389c73a138580db87675b0d5465f","0x954391f0eb50888be90489898016ebb54f750f612f3adec2a00854955d5e52d8","0x698905f06aff921a9e9fcef39b8b0d107747c3e6204d2ea79cf4c12debf8d253","0x9fcafec5721938a06eb8e2951ede4b6ef8fae54a8c8f85f3166ec9782a0032b5","0xaec6d3364e47a5716ba69e4705f3c705d017f81298859589591183bfea87be7a","0x91bf2ee13319b6eaca96ed89c126437b66c4df1b13560c6a9bb18556ee3b7e1f","0x4f426dc1fc0ea8149052033065b237892d2d34927b2d558ab50c5a7fb98d6e79","0xdd809fb07e5aab638fef5311371b4e2b27c9c9a6183fde0cdd2b7724f6d2a89b","0x7e12fc92ab953e233a304959a2a8474d96195e71efd9388fdceb1326a577811a","0x30618ef6b490c3cc9979c47163459db37c1a1e0aa5793c56accd417f9d89973b","0x614609f06ee24bae7408e45895b1a25e6b19a8159aeea7a95c9d1339d9ba286f","0x115ddc6d533620040791d241f01f1c5ae3d9d1a8f64b15af5e9793e4d9096e22","0xb7458c9323beeca2cd54f32a6af5671f3cd5a7a251aed9d82bdd6ebe5f56305b","0x573dd48a5ba7bf4cc3d49597cd7419f75ecc9897258f1ebadebd670446d0d358","0xcb6670918439f9698413b53f3b5336d82ca4be152fdefaacf45e052fff6262fc","0xf3fe2a8945abafd269ab97bfdc80b3dbff2202ffdce59a227f952874b966b230","0x989980707007533cc0840a079f77f261a2e818abae1a1ffd3af02f3fff1d35fd","0x886b6ae365fec996be8a9a2c31cf4cda97ff8352908be2c83f17abd66ef1591e","0xfd90df68706ef95a62b317de93d6899a9bd6c80416e42d007f5c30fcdedfce24","0x7af8491fbb0373886d9032bb74e0ef52ed9e100f260b79bd15f46126b38cbede","0x91d1e2cd55533cf7dd5de86c9aa73295e811b1279be193d429bbd6ba83810e16","0x6b65b3128c2104005a04923288fe2aa33a2477a4962bef70532f94cab582f2a7"]}
 ```
-
+<!-- 
 ### eth_getFilterLogs
 
 Polling method for a filter, which returns an array of logs which occurred since last poll.
@@ -598,11 +563,11 @@ Polling method for a filter, which returns an array of logs which occurred since
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterLogs","params":["0xb91b6608b61bf56288a661a1bd5eb34a"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterLogs","params":["0x127e9eca4f7751fb4e5cb5291ad8b455"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-// Request
-{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"filter 0x35b64c227ce30e84fc5c7bd347be380e doesn't have a LogsSubscription type: got 5"}} // I couldnt get one that didnt error
-```
+// Result
+{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"filter 0x35b64c227ce30e84fc5c7bd347be380e doesn't have a LogsSubscription type: got 5"}} 
+``` -->
 
 ### eth_getLogs
 
@@ -610,67 +575,63 @@ Returns an array of all logs matching a given filter object.
 
 #### Parameters
 
-- some string array of topics
+- Object containing: 
 
-- a block to check the logs from
+    fromBlock: QUANTITY|TAG - (optional, default: "latest") Integer block number, or "latest" for the last mined block or "pending", "earliest" for not yet mined transactions.
 
-```json
-// Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"topics":["0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898","0x0000000000000000000000000000000000000000000000000000000000000011"], "fromBlock":"earliest"}],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+    toBlock: QUANTITY|TAG - (optional, default: "latest") Integer block number, or "latest" for the last mined block or "pending", "earliest" for not yet mined transactions.
 
-// Request
-{"jsonrpc":"2.0","id":1,"result":[]} // I need to find a result that isnt empty
-```
+    address: DATA|Array, 20 Bytes - (optional) Contract address or a list of addresses from which logs should originate.
 
-### eth_getProof
-
-Returns an array of all logs matching a given filter object. // I need to learn to get a store key so that i can get a real response
-
-#### Parameters
-
-- Accout Address
-
-- Address Store Key
-
-- Block Number
+    topics: Array of DATA, - (optional) Array of 32 Bytes DATA topics. Topics are order-dependent. Each topic can also be an array of DATA with “or” options.
+    
+    blockhash: (optional, future) With the addition of EIP-234, blockHash will be a new filter option which restricts the logs returned to the single block with the 32-byte hash blockHash. Using blockHash is equivalent to fromBlock = toBlock = the block number with hash blockHash. If blockHash is present in in the filter criteria, then neither fromBlock nor toBlock are allowed.
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getProof","params":["0x3b7252d007059ffc82d16d022da3cbf9992d2f70", ["0"],  "latest"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"topics":["0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898","0x0000000000000000000000000000000000000000000000000000000000000011"], "fromBlock":"latest"}],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-// Request
-{"jsonrpc":"2.0","id":1,"result":{"address":"0x3b7252d007059ffc82d16d022da3cbf9992d2f70","accountProof":["ops:\u003ctype:\"iavl:v\" key:\"\\001;rR\\320\\007\\005\\237\\374\\202\\321m\\002-\\243\\313\\371\\231-/p\" data:\"\\224\\002\\n\\221\\002\\n)\\010\\n\\020\\016\\030\\331\\010* |{\\234\\221\\314\\354k\\335!\\256$z\\216\\004g\\360\\315\\026\\000F\\217\\305\\200\\244F\\t\\306\\320\\250GzH\\n)\\010\\010\\020\\t\\030\\331\\010* \\034\\365\\230\\241\\336\\341*V\\200K\\217\\356\\306$\\304\\300z\\371\\274\\007\\316\\320\\340\\303\\235\\\\\\266:lK\\351\\036\\n(\\010\\006\\020\\006\\030\\021* f\\202\\222\\247*\\021\\\"a\\n\\034\\311X\\370\\221\\210\\201-q\\n\\332.\\n\\024\\311C\u003e\\345\u003e\\342\\315\\330\\004\\n(\\010\\004\\020\\003\\030\\021\\\" \\260\\202\\254\\240d\\323?\\024\\32157\\244\\212V\\240\\211\\220\\354p\\326\\355\\220\\036%\\004\\177\\346\\273\\177\\037\\332\\312\\n(\\010\\002\\020\\002\\030\\021* 5d\\1776\\005\\023\\010n}b\\347\\202]A\\014\\270\\302!e\\025\\344$AP\u003e;\\\"t\\034\\322T9\\032;\\n\\025\\001;rR\\320\\007\\005\\237\\374\\202\\321m\\002-\\243\\313\\371\\231-/p\\022 \\031\\336\\005PS\\342\\016\\247\\\\8V\\210o\\313qJ\\220u\\206\\021g\\256\\367P\\362\\345\\363\\220\\374\\201\\307\\211\\030\\021\" \u003e ops:\u003ctype:\"multistore\" key:\"acc\" data:\"\\325\\004\\n\\322\\004\\n1\\n\\006supply\\022'\\n%\\010\\331\\010\\022 \\354V.\\325\\245\\002\\002\\345\\030\\267\\365\\343\\234\\306Q\\246\\210i\\024\\264\\310U\\202\\331\\222\\3719S\\227\\254\\037\\r\\n.\\n\\003gov\\022'\\n%\\010\\331\\010\\022 `\\315\\023|\\031b\\354\\254ac\\211\\326\\2004\\203?)!P\\234-(Z\\245\\365\\0259\\227\\316\\226\\212t\\n\\021\\n\\010evidence\\022\\005\\n\\003\\010\\331\\010\\n7\\n\\014distribution\\022'\\n%\\010\\331\\010\\022 y[\\202l\\000\\007I\\256\\024\\016\\225y\\023\\206=U$\\006\\204\\022e\\000qG\\326\\263\\223\\274n/i0\\n.\\n\\003acc\\022'\\n%\\010\\331\\010\\022 \\037\\267\\232\\201\\030\\262\\306\\307\\272s\\300\\211\\t\\263\\303\\025O\\362\\350|\\277\\323H\\354c\\310w\\276\\225V\\362\\n\\n\\020\\n\\007upgrade\\022\\005\\n\\003\\010\\331\\010\\n/\\n\\004main\\022'\\n%\\010\\331\\010\\022 \\261\\234\\360\\230\\264;\u003c}Ty\\237\\357\\tD\\252\\225\\t\\237\\202\\335\\302\\031\\372\\014\\200\\222\\344R\\242\\202\\277A\\n2\\n\\007staking\\022'\\n%\\010\\331\\010\\022 \\317\\263\\342\\230\\010D\\254$\\226\\250\\004\\274\\t_\\rpf\\235e1\\224\\265V\\204\\331}f\\276C\\033O\\217\\n1\\n\\006faucet\\022'\\n%\\010\\331\\010\\022 \\024u\\250\\316\\2506\\351\\376?\\236\\315\\376y\\226eeg\\313]\\230\\034\\376\\215n\\341!\\311\\274|\\251\\214\\006\\n/\\n\\004mint\\022'\\n%\\010\\331\\010\\022 f\\005\\307D\\206.K\\220\\0056yt\\000\\026\\n\\2476\\217\\254\\274u\\271\\\\\\221\\270O\\375\\034\\240\\024\\000y\\n1\\n\\006params\\022'\\n%\\010\\331\\010\\022 \\274I'\\344\\227\\213\\032\\347\\310\\257\\342H\\205\\225\\343\\346\\311\\337\\r\\340\\203\\327\\377\\317._\\301\\244\u0026{@\\335\\n.\\n\\003evm\\022'\\n%\\010\\331\\010\\022 \\220\\213\\010\\375\\365\\364\\037=\\266\\223\\273+\\031\\020\\237\\236Q\\220@R\\350\\262\\2437\\346\\033u\\021@8\\3207\\n3\\n\\010slashing\\022'\\n%\\010\\331\\010\\022 h\\335-\\021\\223\\337\\000X\\036\\364h\\202\\264~\\\\\\004='\\265\\206\\307\\262\\233\\204\\317\\246\\342b\\301\\021%e\" \u003e "],"balance":"0x36354d5575577c8000","codeHash":"0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","nonce":"0x8","storageHash":"0x0000000000000000000000000000000000000000000000000000000000000000","storageProof":[{"key":"0","value":"0x0","proof":[""]}]}}
+// Result
+{"jsonrpc":"2.0","id":1,"result":[]}
 ```
+
+## WebSocket Methods
+
+Read about websockets in [events](./../quickstart/events.md) {hide}
 
 ### eth_subscribe
 
-Returns an array of all logs matching a given filter object.
+subscribe using JSON-RPC notifications. This allows clients to wait for events instead of polling for them.
+
+It works by subscribing to particular events. The node will return a subscription id. For each event that matches the subscription a notification with relevant data is send together with the subscription id.
 
 #### Parameters
 
-- something
+- Subscription Name
+
+- Optional Arguments
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_subscribe","params":["newHeads", {}],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+{"id": 1, "method": "eth_subscribe", "params": ["newHeads", {"includeTransactions": true}]}
 
-// Request
-{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"notifications not supported"}} // I dont know how to get this to work
+// Result
+< {"jsonrpc":"2.0","result":"0x34da6f29e3e953af4d0c7c58658fd525","id":1}
 ```
 
 ### eth_unsubscribe
 
-Returns an array of all logs matching a given filter object.
+Unsubscribe from an event using the subscription id
 
 #### Parameters
 
-- something
+- Subscription ID
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_unsubscribe","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+{"id": 1, "method": "eth_unsubscribe", "params": ["0x34da6f29e3e953af4d0c7c58658fd525"]}
 
-// Request
-{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"notifications not supported"}} // I dont know how to get this to work
+// Result
+{"jsonrpc":"2.0","result":true,"id":1}
 ```
 
