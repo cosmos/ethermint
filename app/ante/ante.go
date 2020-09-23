@@ -5,6 +5,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/crypto"
@@ -38,6 +39,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 			anteHandler = sdk.ChainAnteDecorators(
 				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
 				NewEthMempoolFeeDecorator(evmKeeper),
+				authante.NewValidateBasicDecorator(),
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak, evmKeeper),
 				NewNonceVerificationDecorator(ak),
@@ -85,32 +87,42 @@ func sigGasConsumer(
 	}
 }
 
+// AccountSetupDecorator sets an account to state if it's not stored already. This only applies for MsgEthermint.
 type AccountSetupDecorator struct {
 	ak auth.AccountKeeper
 }
 
+// NewAccountSetupDecorator creates a new AccountSetupDecorator instance
 func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
 	return AccountSetupDecorator{
 		ak: ak,
 	}
 }
 
+// AnteHandle sets an account for MsgEthermint (evm) if the sender is registered.
+// NOTE: Since the account is set without any funds, the message execution will
+// fail if the validator requires a minimum fee > 0.
 func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	msgs := tx.GetMsgs()
 	if len(msgs) == 0 {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
 	}
 
-	msg, ok := msgs[0].(evmtypes.MsgEthermint)
-	if !ok {
-		return next(ctx, tx, simulate)
-	}
-
-	acc := asd.ak.GetAccount(ctx, msg.From)
-	if acc == nil {
-		info := asd.ak.NewAccountWithAddress(ctx, msg.From)
-		asd.ak.SetAccount(ctx, info)
+	for _, msg := range msgs {
+		if msgEthermint, ok := msg.(evmtypes.MsgEthermint); ok {
+			setupAccount(asd.ak, ctx, msgEthermint.From)
+		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func setupAccount(ak keeper.AccountKeeper, ctx sdk.Context, addr sdk.AccAddress) {
+	acc := ak.GetAccount(ctx, addr)
+	if acc != nil {
+		return
+	}
+
+	acc = ak.NewAccountWithAddress(ctx, addr)
+	ak.SetAccount(ctx, acc)
 }
