@@ -61,20 +61,9 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			fmt.Println("-- Keyring! -- ")
-
 			infos, err := cliCtx.Keybase.List()
 			if err != nil {
 				return err
-			}
-
-			for _, info := range infos {
-				cmd.Println("name: ", info.GetName())
-				fmt.Println("pubkey: ", info.GetPubKey())
-				fmt.Println("addr: ", info.GetAddress().String())
-				path, err := info.GetPath()
-				fmt.Println("path: ", path)
-				fmt.Println("err? ", err)
 			}
 
 			var faucet, recipient sdk.AccAddress
@@ -112,13 +101,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			fmt.Println("recipient: ", recipient)
-
-			fmt.Println("faucet addr: ", faucet)
-
 			accRet := auth.NewAccountRetriever(cliCtx)
-			fmt.Println("accRet: ", accRet)
-
 			err = accRet.EnsureExists(faucet)
 			if err != nil {
 				return fmt.Errorf("faucet account does not exist: %s", faucet)
@@ -128,8 +111,6 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-
-			fmt.Println("msg:", msg)
 
 			err = authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 			if err != nil {
