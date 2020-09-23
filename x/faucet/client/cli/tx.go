@@ -73,6 +73,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				for _, info := range infos {
 					if args[0] == info.GetName() {
 						faucet = info.GetAddress()
+						break
 					}
 				}
 			} else {
@@ -87,6 +88,7 @@ func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 				for _, info := range infos {
 					if args[1] == info.GetName() {
 						recipient = info.GetAddress()
+						break
 					}
 				}
 			} else {
