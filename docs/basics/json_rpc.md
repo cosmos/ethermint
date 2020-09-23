@@ -59,8 +59,8 @@ Check the JSON-RPC methods and namespaces supported on Ethermint. {synopsis}
 | `eth_compileSerpent`                                                              | Eth       |             |
 | `eth_signTransaction`                                                             | Eth       |             |
 
-:::Tip
-Block Number can be entered as a hash, `"earliest"`, `"latest"` or `"pending"`.
+:::tip
+Block Number can be entered as a Hex string, `"earliest"`, `"latest"` or `"pending"`.
 :::
 
 Below is a list of the RPC methods, the parameters and an example response from the namespaces.
