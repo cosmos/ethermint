@@ -1,4 +1,4 @@
-# ADR {ADR-NUMBER}: {TITLE}
+# ADR {XXX}: {TITLE}
 
 ## Changelog
 
