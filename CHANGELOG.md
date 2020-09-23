@@ -37,6 +37,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## Unreleased
 
+### State Machine Breaking
+
+* (`x/evm`) [\#511](https://github.com/ChainSafe/ethermint/pull/511) `MsgEthermint`, which implemented the `sdk.StdTx` interface and thus used a different `AnteHandler` validation, has been removed and replaced for `MsgEthereumTx`.
+
 ### API Breaking
 
 * (types) [\#503](https://github.com/ChainSafe/ethermint/pull/503) The `types.DenomDefault` constant for `"aphoton"` has been renamed to `types.AttoPhoton`.
