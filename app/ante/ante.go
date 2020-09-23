@@ -3,6 +3,7 @@ package ante
 import (
 	"fmt"
 	"reflect"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -171,7 +172,7 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 			info := asd.ak.NewAccountWithAddress(ctx, addr)
 			fmt.Println("creating new account", info)
 			asd.ak.SetAccount(ctx, info)
-		}	
+		}
 	}
 
 	return next(ctx, tx, simulate)
