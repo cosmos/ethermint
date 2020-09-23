@@ -2,61 +2,68 @@
 order: 5
 -->
 
-# Namespaces
+# JSON-RPC Server
 
-A list of the rpc methods, the parameters and an example response.
+Check the JSON-RPC methods and namespaces supported on Ethermint. {synopsis}
+
+## Pre-requisite Readings
+
+- [Ethereum JSON-RPC](https://eth.wiki/json-rpc/API) {prereq}
+- [Geth JSON-RPC APIs](https://geth.ethereum.org/docs/rpc/server) {prereq}
+
+## JSON-RPC Methods
+
+| Method                                                                            | Namespace | Implemented |
+|-----------------------------------------------------------------------------------|-----------|-------------|
+| [`web3_clientVersion`](#web3_clientVersion)                                       | Web3      | ✔           |
+| [`web3_sha3`](#web3_sha3)                                                         | Web3      | ✔           |
+| [`net_version`](#net_version)                                                     | Net       | ✔           |
+| `net_peerCount`                                                                   | Net       |             |
+| `net_listening`                                                                   | Net       |             |
+| [`eth_protocolVersion`](#eth_protocolVersion)                                     | Eth       | ✔           |
+| [`eth_syncing`](#eth_syncing)                                                     | Eth       | ✔           |
+| [`eth_gasPrice`](#eth_gasPrice)                                                   | Eth       | ✔           |
+| [`eth_accounts`](#eth_accounts)                                                   | Eth       | ✔           |
+| [`eth_blockNumber`](#eth_blockNumber)                                             | Eth       | ✔           |
+| [`eth_getBalance`](#eth_getBalance)                                               | Eth       | ✔           |
+| [`eth_getStorageAt`](#eth_getStorageAt)                                           | Eth       | ✔           |
+| [`eth_getTransactionCount`](#eth_getTransactionCount)                             | Eth       | ✔           |
+| [`eth_getBlockTransactionCountByNumber`](#eth_getBlokTransactionCountByNumber)    | Eth       | ✔           |
+| [`eth_getBlockTransactionCountByHash`](#eth_getBlockTransactionCountByHash)       | Eth       | ✔           |
+| [`eth_getCode`](#eth_getCode)                                                     | Eth       | ✔           |
+| [`eth_sign`](#eth_sign)                                                           | Eth       | ✔           |
+| [`eth_sendTransaction`](#eth_sendTransaction)                                     | Eth       | ✔           |
+| [`eth_sendRawTransaction`](#eth_sendRawTransaction)                               | Eth       | ✔           |
+| [`eth_call`](#eth_call)                                                           | Eth       | ✔           |
+| [`eth_estimateGas`](#eth_estimateGas)                                             | Eth       | ✔           |
+| [`eth_getBlockByNumber`](#eth_getBlockByNumber)                                   | Eth       | ✔           |
+| [`eth_getBlockByHash`](#eth_getBlockByHash)                                       | Eth       | ✔           |
+| [`eth_getTransactionByHash`](#eth_getTransactionByHash)                           | Eth       | ✔           |
+| [`eth_getTransactionByBlockHashAndIndex`](#eth_getTransactionByBlockHashAndIndex) | Eth       | ✔           |
+| [`eth_getTransactionReceipt`](#eth_getTransactionReceipt)                         | Eth       | ✔           |
+| [`eth_newFilter`](#eth_newFilter)                                                 | Eth       | ✔           |
+| [`eth_newBlockFilter`](#eth_newBlockFilter)                                       | Eth       | ✔           |
+| [`eth_newPendingTransactionFilter`](#eth_newPendingTransactionFilter)             | Eth       | ✔           |
+| [`eth_uninstallFilter`](#eth_uninstallFilter)                                     | Eth       | ✔           |
+| [`eth_getFilterChanges`](#eth_getFilterChanges)                                   | Eth       | ✔           |
+| [`eth_getLogs`](#eth_getLogs)                                                     | Eth       | ✔           |
+| [`eth_subscribe`](#eth_subscribe)                                                 | Websocket | ✔           |
+| [`eth_unsubscribe`](#eth_unsubscribe)                                             | Websocket | ✔           |
+| `eth_getTransactionbyBlockNumberAndIndex`                                         | Eth       |             |
+| `eth_getWork`                                                                     | Eth       |             |
+| `eth_submitWork`                                                                  | Eth       |             |
+| `eth_submitHashrate`                                                              | Eth       |             |
+| `eth_getCompilers`                                                                | Eth       |             |
+| `eth_compileLLL`                                                                  | Eth       |             |
+| `eth_compileSolidity`                                                             | Eth       |             |
+| `eth_compileSerpent`                                                              | Eth       |             |
+| `eth_signTransaction`                                                             | Eth       |             |
 
 :::Tip
-Block Number can be entered as a hash, "earliest", "latest" or "pending".
+Block Number can be entered as a hash, `"earliest"`, `"latest"` or `"pending"`.
 :::
 
-## Json-RPC Methods
-
-| Method        | Implemented   |
-| ------------- |:-------------:|
-| [web3_clientVersion](#web3_clientVersion) | ✔ |
-| [web3_sha3](#web3_sha3) | ✔ |
-| [net_version](#net_version) | ✔ |
-| net_peerCount | |
-| net_listening | |
-| [eth_protocolVersion](#eth_protocolVersion) | ✔ |
-| [eth_syncing](#eth_syncing) | ✔ |
-| [eth_gasPrice](#eth_gasPrice) | ✔ |
-| [eth_accounts](#eth_accounts) | ✔ |
-| [eth_blockNumber](#eth_blockNumber) | ✔ |
-| [eth_getBalance](#eth_getBalance) | ✔ |
-| [eth_getStorageAt](#eth_getStorageAt) | ✔ |
-| [eth_getTransactionCount](#eth_getTransactionCount) | ✔ |
-| [eth_getBlockTransactionCountByNumber](#eth_getBlokTransactionCountByNumber) | ✔ |
-| [eth_getBlockTransactionCountByHash](#eth_getBlockTransactionCountByHash) | ✔ |
-| [eth_getCode](#eth_getCode) | ✔ |
-| [eth_sign](#eth_sign) | ✔ |
-| [eth_sendTransaction](#eth_sendTransaction) | ✔ |
-| [eth_sendRawTransaction](#eth_sendRawTransaction) | ✔ |
-| [eth_call](#eth_call) | ✔ |
-| [eth_estimateGas](#eth_estimateGas) | ✔ |
-| [eth_getBlockByNumber](#eth_getBlockByNumber) | ✔ |
-| [eth_getBlockByHash](#eth_getBlockByHash) | ✔ |
-| [eth_getTransactionByHash](#eth_getTransactionByHash) | ✔ |
-| [eth_getTransactionByBlockHashAndIndex](#eth_getTransactionByBlockHashAndIndex) | ✔ |
-| [eth_getTransactionReceipt](#eth_getTransactionReceipt) | ✔ |
-| [eth_newFilter](#eth_newFilter) | ✔ |
-| [eth_newBlockFilter](#eth_newBlockFilter) | ✔ |
-| [eth_newPendingTransactionFilter](#eth_newPendingTransactionFilter) | ✔ |
-| [eth_uninstallFilter](#eth_uninstallFilter) | ✔ |
-| [eth_getFilterChanges](#eth_getFilterChanges) | ✔ |
-| [eth_getLogs](#eth_getLogs) | ✔ |
-| [eth_subscribe](#eth_subscribe) | ✔ |
-| [eth_unsubscribe](#eth_unsubscribe) | ✔ |
-| eth_getTransactionbyBlockNumberAndIndex | |
-| eth_getWork | |
-| eth_submitWork | | 
-| eth_submitHashrate | |
-| eth_getCompilers | |
-| eth_compileLLL | |
-| eth_compileSolidity | |
-| eth_compileSerpent | |
-| eth_signTransaction | |
+Below is a list of the RPC methods, the parameters and an example response from the namespaces.
 
 ## Web3 Methods
 
@@ -483,7 +490,7 @@ curl localhost:8545 -H "Content-Type:application/json" -X POST --data '{"jsonrpc
 ### eth_newFilter
 
 Create new filter using topics of some kind.
- 
+
 #### Parameters
 
 - hash of a transaction
@@ -552,6 +559,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getFilterChanges","params":[
 // Result
 {"jsonrpc":"2.0","id":1,"result":["0xc6f08d183a81e149896fc5317c872f9092068e88e956ca1864e9bd4c81c09b44","0x3ca6dfb5be15549d721d1b3d10c1bec50ed6217c9ac7b61df361fac9692a27e5","0x776fffac134171acb1ebf2e59856625501ad5ccc5c4c8fe0359e0d4dff8919f2","0x84123103704dbd738c089276ab2b04b5936330b24f6e78453c4ba8bf4848aaf9","0xffddbe5bd8e8aa41e44002daa9ea89ade9e6980a0d83f51d104cf16498827eca","0x53430e49963e8ae32605d8f22dec2e757a691e6436d593854ca4d9383eeab86a","0x975948058c9351a91fbec332ca00dda39d1a919f5f16b996a4c7e30c38ba423b","0x619e37e32024c8efef7f7220e6caff4ee1d682ea78b2ac91e0a6b30850dc0677","0x31a5d985a40d08303ac68000ce008df512bcd1a911c497415c97f0624b4a271a","0x91dcf1fce4503a8dbb3e6fb61073f25cd31d69c766ecba639fefde4436e59d07","0x606d9e0143cfdb410a6812c590a8135b5c6b5c59eec26d760d5cd930aa47257d","0xd3c00b859b29b20ba654415eef648ef58251389c73a138580db87675b0d5465f","0x954391f0eb50888be90489898016ebb54f750f612f3adec2a00854955d5e52d8","0x698905f06aff921a9e9fcef39b8b0d107747c3e6204d2ea79cf4c12debf8d253","0x9fcafec5721938a06eb8e2951ede4b6ef8fae54a8c8f85f3166ec9782a0032b5","0xaec6d3364e47a5716ba69e4705f3c705d017f81298859589591183bfea87be7a","0x91bf2ee13319b6eaca96ed89c126437b66c4df1b13560c6a9bb18556ee3b7e1f","0x4f426dc1fc0ea8149052033065b237892d2d34927b2d558ab50c5a7fb98d6e79","0xdd809fb07e5aab638fef5311371b4e2b27c9c9a6183fde0cdd2b7724f6d2a89b","0x7e12fc92ab953e233a304959a2a8474d96195e71efd9388fdceb1326a577811a","0x30618ef6b490c3cc9979c47163459db37c1a1e0aa5793c56accd417f9d89973b","0x614609f06ee24bae7408e45895b1a25e6b19a8159aeea7a95c9d1339d9ba286f","0x115ddc6d533620040791d241f01f1c5ae3d9d1a8f64b15af5e9793e4d9096e22","0xb7458c9323beeca2cd54f32a6af5671f3cd5a7a251aed9d82bdd6ebe5f56305b","0x573dd48a5ba7bf4cc3d49597cd7419f75ecc9897258f1ebadebd670446d0d358","0xcb6670918439f9698413b53f3b5336d82ca4be152fdefaacf45e052fff6262fc","0xf3fe2a8945abafd269ab97bfdc80b3dbff2202ffdce59a227f952874b966b230","0x989980707007533cc0840a079f77f261a2e818abae1a1ffd3af02f3fff1d35fd","0x886b6ae365fec996be8a9a2c31cf4cda97ff8352908be2c83f17abd66ef1591e","0xfd90df68706ef95a62b317de93d6899a9bd6c80416e42d007f5c30fcdedfce24","0x7af8491fbb0373886d9032bb74e0ef52ed9e100f260b79bd15f46126b38cbede","0x91d1e2cd55533cf7dd5de86c9aa73295e811b1279be193d429bbd6ba83810e16","0x6b65b3128c2104005a04923288fe2aa33a2477a4962bef70532f94cab582f2a7"]}
 ```
+
 <!-- 
 ### eth_getFilterLogs
 
@@ -575,7 +583,7 @@ Returns an array of all logs matching a given filter object.
 
 #### Parameters
 
-- Object containing: 
+- Object containing:
 
     fromBlock: QUANTITY|TAG - (optional, default: "latest") Integer block number, or "latest" for the last mined block or "pending", "earliest" for not yet mined transactions.
 
@@ -635,3 +643,6 @@ Unsubscribe from an event using the subscription id
 {"jsonrpc":"2.0","result":true,"id":1}
 ```
 
+## Next {hide}
+
+Learn about the [encoding](./../core/encoding.md) formats used on Ethermint {hide}
