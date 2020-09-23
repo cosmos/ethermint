@@ -306,7 +306,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	if senderAcc == nil {
-		sdkerrors.Wrapf(
+		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrUnknownAddress,
 			"sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
 		)
