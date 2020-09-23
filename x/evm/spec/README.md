@@ -23,7 +23,7 @@ This document defines the specification of the Ethereum Virtual Machine (EVM) as
 
 ## Module Architecture
 
-> **NOTE for auditors**: If you're not familiar with the overall module structure from
+> **NOTE:**: If you're not familiar with the overall module structure from
 the SDK modules, please check this [document](https://docs.cosmos.network/master/building-modules/structure.html) as
 prerequisite reading.
 
