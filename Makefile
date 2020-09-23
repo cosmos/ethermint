@@ -416,7 +416,7 @@ docs-serve:
 
 # Build the site into docs/.vuepress/dist
 docs-build:
-	@$(MAKE) docs-tools && \
+	@$(MAKE) docs-tools-stamp && \
 	cd docs && \
 	yarn install && \
 	yarn run build
