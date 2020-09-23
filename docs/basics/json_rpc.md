@@ -47,8 +47,6 @@ Check the JSON-RPC methods and namespaces supported on Ethermint. {synopsis}
 | [`eth_uninstallFilter`](#eth_uninstallFilter)                                     | Eth       | ✔           |
 | [`eth_getFilterChanges`](#eth_getFilterChanges)                                   | Eth       | ✔           |
 | [`eth_getLogs`](#eth_getLogs)                                                     | Eth       | ✔           |
-| [`eth_subscribe`](#eth_subscribe)                                                 | Websocket | ✔           |
-| [`eth_unsubscribe`](#eth_unsubscribe)                                             | Websocket | ✔           |
 | `eth_getTransactionbyBlockNumberAndIndex`                                         | Eth       |             |
 | `eth_getWork`                                                                     | Eth       |             |
 | `eth_submitWork`                                                                  | Eth       |             |
@@ -58,6 +56,15 @@ Check the JSON-RPC methods and namespaces supported on Ethermint. {synopsis}
 | `eth_compileSolidity`                                                             | Eth       |             |
 | `eth_compileSerpent`                                                              | Eth       |             |
 | `eth_signTransaction`                                                             | Eth       |             |
+| `eth_mining`                                                                      | Eth       |     N/A     |
+| `eth_coinbase`                                                                    | Eth       |     N/A     |
+| `eth_hashrate`                                                                    | Eth       |     N/A     |
+| `eth_getUncleCountByBlockHash`                                                    | Eth       |     N/A     |
+| `eth_getUncleCountByBlockNumber`                                                  | Eth       |     N/A     |
+| `eth_getUncleByBlockHashAndIndex`                                                 | Eth       |     N/A     |
+| `eth_getUncleByBlockNumberAndIndex`                                               | Eth       |     N/A     |
+| [`eth_subscribe`](#eth_subscribe)                                                 | Websocket | ✔           |
+| [`eth_unsubscribe`](#eth_unsubscribe)                                             | Websocket | ✔           |
 
 :::tip
 Block Number can be entered as a Hex string, `"earliest"`, `"latest"` or `"pending"`.
@@ -177,7 +184,7 @@ Returns the account balance for a given account address and Block Number.
 
 #### Parameters
 
-- Accout Address
+- Account Address
 
 - Block Number
 
@@ -195,15 +202,15 @@ Returns the storage address for a given account address. // i need to learn how 
 
 #### Parameters
 
-- Accout Address
+- Account Address
 
-- Address Storage Key
+- Integer of the position in the storage
 
 - Block Number
 
 ```json
 // Request
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "0xb47cde69de5130ac4310768396858d7fc20ee04b75e353ac8d5a991f3fbf5691"  "0x0"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["0x0f54f47bf9b8e317b214ccd6a7c3e38b893cd7f0", "0"  "latest"],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 // Result
 {"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000000000000000000"}
@@ -215,7 +222,7 @@ Returns the total transaction for a given account address and Block Number.
 
 #### Parameters
 
-- Accout Address
+- Account Address
 
 - Block Number
 
@@ -265,7 +272,7 @@ Returns the code for a given account address and Block Number.
 
 #### Parameters
 
-- Accout Address
+- Account Address
 
 - Block Number
 
