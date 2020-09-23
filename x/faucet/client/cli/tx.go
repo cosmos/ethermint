@@ -40,7 +40,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // GetCmdRequest is the CLI command to fund an address with the requested coins
 func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "request [faucet-address] [recipient-address] [amount] ",
+		Use:   "request [faucet-address] [recipient-address] [amount]",
 		Short: "request an address with the requested coins",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
