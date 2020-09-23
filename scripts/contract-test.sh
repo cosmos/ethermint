@@ -9,8 +9,7 @@ MONIKER="localtestnet"
 rm -rf $PWD/.ethermint*
 pkill -f "ethermint*"
 
-type "ethermintd" 2> /dev/null || make build-ethermint
-type "ethermintcli" 2> /dev/null || make build-ethermint
+make build-ethermint
 
 $PWD/build/ethermintcli config keyring-backend test
 
