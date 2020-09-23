@@ -36,7 +36,7 @@ func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Use:   "storage [account] [key]",
 		Short: "Gets storage for an account at a given key",
 		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			account, err := accountToHex(args[0])
@@ -65,7 +65,7 @@ func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Use:   "code [account]",
 		Short: "Gets code from an account",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			account, err := accountToHex(args[0])

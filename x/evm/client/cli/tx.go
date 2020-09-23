@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -87,9 +88,11 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
 
+			recipient := common.BytesToAddress(toAddr.Bytes())
+
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
-				sdk.NewInt(emint.DefaultGasPrice), data, from)
+			msg := types.NewMsgEthereumTx(seq, &recipient, big.NewInt(amount), txBldr.Gas(),
+				big.NewInt(emint.DefaultGasPrice), data)
 
 			err = msg.ValidateBasic()
 			if err != nil {
@@ -140,8 +143,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, nil, sdk.NewInt(amount), txBldr.Gas(),
-				sdk.NewInt(emint.DefaultGasPrice), data, from)
+			msg := types.NewMsgEthereumTxContract(seq, big.NewInt(amount), txBldr.Gas(), big.NewInt(emint.DefaultGasPrice), data)
 
 			err = msg.ValidateBasic()
 			if err != nil {
