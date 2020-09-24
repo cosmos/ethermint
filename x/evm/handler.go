@@ -28,13 +28,13 @@ func NewHandler(k Keeper) sdk.Handler {
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	intChainID, err := ethermint.ParseChainID(ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
 	// Verify signature and retrieve sender address
-	sender, err := msg.VerifySig(intChainID)
+	sender, err := msg.VerifySig(chainIDEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
+		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),

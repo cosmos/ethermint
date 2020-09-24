@@ -107,7 +107,7 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 // ChainId returns the chain's identifier in hex format
 func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
 	e.logger.Debug("eth_chainId")
-	return hexutil.Uint(uint(e.chainIDEpoch.Int64())), nil
+	return hexutil.Uint(uint(e.chainIDEpoch.Uint64())), nil
 }
 
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
@@ -403,13 +403,13 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// ChainID must be set as flag to send transaction
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(chainID, 10)
-	if !ok {
-		return common.Hash{}, fmt.Errorf("invalid chainID: %s, must be integer format", chainID)
+	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	if err != nil {
+		return common.Hash{}, err
 	}
 
 	// Sign transaction
-	if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
+	if err := tx.Sign(chainIDEpoch, key.ToECDSA()); err != nil {
 		e.logger.Debug("failed to sign tx", "error", err)
 		return common.Hash{}, err
 	}
