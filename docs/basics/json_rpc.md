@@ -733,6 +733,8 @@ Unsubscribe from an event using the subscription id
 {"jsonrpc":"2.0","result":true,"id":1}
 ```
 
+## Personal Methods
+
 ### personal_importRawKey
 
 Imports the given unencrypted private key (hex string) into the key store, encrypting it with the passphrase.
