@@ -17,12 +17,21 @@ var (
 )
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
-var IsValidChainID = ethermintChainID.MatchString
+func IsValidChainID(chainID string) bool {
+	if len(chainID) > 48 {
+		return false
+	}
+
+	return ethermintChainID.MatchString(chainID)
+}
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
 // chain-id in *big.Int format. The function returns an error if the chain-id has an invalid format
 func ParseChainID(chainID string) (*big.Int, error) {
 	chainID = strings.TrimSpace(chainID)
+	if len(chainID) > 48 {
+		return nil, sdkerrors.Wrapf(ErrInvalidChainID, "chain-id '%s' cannot exceed 48 chars", chainID)
+	}
 
 	matches := ethermintChainID.FindStringSubmatch(chainID)
 	if matches == nil || len(matches) != 3 || matches[1] == "" {

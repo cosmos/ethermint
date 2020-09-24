@@ -2,6 +2,7 @@ package types
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,9 @@ func TestParseChainID(t *testing.T) {
 		},
 		{
 			"empty chain ID", "", true, nil,
+		},
+		{
+			"long chain-id", "ethermint-" + strings.Repeat("1", 40), true, nil,
 		},
 	}
 
