@@ -38,6 +38,7 @@ import (
 
 	"github.com/cosmos/ethermint/crypto"
 	"github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
@@ -124,7 +125,11 @@ func InitTestnet(
 ) error {
 
 	if chainID == "" {
-		chainID = fmt.Sprintf("ethermint-%d", tmrand.Int63())
+		chainID = fmt.Sprintf("ethermint-%d", tmrand.Int63n(9999999999999)+1)
+	}
+
+	if !ethermint.IsValidChainID(chainID) {
+		return fmt.Errorf("invalid chain-id: %s", chainID)
 	}
 
 	if err := sdk.ValidateDenom(coinDenom); err != nil {
