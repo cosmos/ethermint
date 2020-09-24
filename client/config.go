@@ -8,8 +8,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/tendermint/tendermint/libs/cli"
+
+	"github.com/cosmos/cosmos-sdk/client/flags"
+
+	ethermint "github.com/cosmos/ethermint/types"
 )
 
 // InitConfig adds the chain-id, encoding and output flags to the persistent flag set.
