@@ -61,6 +61,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (ante) [\#525](https://github.com/ChainSafe/ethermint/pull/525) Add message validation decorator to `AnteHandler` for `MsgEthereumTx`.
 * (types) [\#507](https://github.com/ChainSafe/ethermint/pull/507) Fix hardcoded `aphoton` on `EthAccount` balance getter and setter.
+* (types) [\#501](https://github.com/ChainSafe/ethermint/pull/501) Fix bech32 encoding error by using the compressed ethereum secp256k1 public key.
 * (`x/evm`) [\#496](https://github.com/ChainSafe/ethermint/pull/496) Fix bugs on `journal.revert` and `CommitStateDB.Copy`.
 * (types) [\#480](https://github.com/ChainSafe/ethermint/pull/480) Update [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) coin type to `60` to satisfy [EIP84](https://github.com/ethereum/EIPs/issues/84).
 * (types) [\#513](https://github.com/ChainSafe/ethermint/pull/513) Fix simulated transaction bug that was causing a consensus error by unintentionally affecting the state.
