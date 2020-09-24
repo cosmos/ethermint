@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -43,31 +42,31 @@ import (
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
-	cliCtx      context.CLIContext
-	chainID     *big.Int
-	logger      log.Logger
-	backend     Backend
-	keys        []crypto.PrivKeySecp256k1
-	nonceLock   *AddrLocker
-	keybaseLock sync.Mutex
+	cliCtx       context.CLIContext
+	chainIDEpoch *big.Int
+	logger       log.Logger
+	backend      Backend
+	keys         []crypto.PrivKeySecp256k1
+	nonceLock    *AddrLocker
+	keybaseLock  sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
 	key []crypto.PrivKeySecp256k1) *PublicEthAPI {
 
-	chainID, err := ethermint.ParseChainID(cliCtx.ChainID)
+	epoch, err := ethermint.ParseChainID(cliCtx.ChainID)
 	if err != nil {
 		panic(err)
 	}
 
 	api := &PublicEthAPI{
-		cliCtx:    cliCtx,
-		chainID:   chainID,
-		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		backend:   backend,
-		keys:      key,
-		nonceLock: nonceLock,
+		cliCtx:       cliCtx,
+		chainIDEpoch: epoch,
+		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		backend:      backend,
+		keys:         key,
+		nonceLock:    nonceLock,
 	}
 
 	if err = api.getKeybaseInfo(); err != nil {
@@ -108,14 +107,7 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 // ChainId returns the chain's identifier in hex format
 func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
 	e.logger.Debug("eth_chainId")
-
-	// parse the chainID from a integer string
-	intChainID, err := strconv.ParseUint(e.cliCtx.ChainID, 0, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid chainID: %s, must be integer format", e.cliCtx.ChainID)
-	}
-
-	return hexutil.Uint(intChainID), nil
+	return hexutil.Uint(uint(e.chainIDEpoch.Int64())), nil
 }
 
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
@@ -596,7 +588,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// sign the message using the private key
-	if err := msg.Sign(e.chainID, key.ToECDSA()); err != nil {
+	if err := msg.Sign(e.chainIDEpoch, key.ToECDSA()); err != nil {
 		return nil, err
 	}
 

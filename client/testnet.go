@@ -124,7 +124,7 @@ func InitTestnet(
 ) error {
 
 	if chainID == "" {
-		chainID = fmt.Sprintf("%d", tmrand.Int63())
+		chainID = fmt.Sprintf("ethermint-%d", tmrand.Int63())
 	}
 
 	if err := sdk.ValidateDenom(coinDenom); err != nil {

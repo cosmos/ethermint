@@ -1,11 +1,9 @@
 package evm
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,9 +28,9 @@ func NewHandler(k Keeper) sdk.Handler {
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+	intChainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil, err
 	}
 
 	// Verify signature and retrieve sender address

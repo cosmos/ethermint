@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -48,11 +49,10 @@ func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 
 	// Function to replace command's RunE function
 	validateFn := func(cmd *cobra.Command, args []string) error {
-		chainIDFlag := viper.GetString(flags.FlagChainID)
+		chainID := viper.GetString(flags.FlagChainID)
 
-		_, err := ethermint.ParseChainID(chainIDFlag)
-		if err != nil {
-			return err
+		if !ethermint.IsValidChainID(chainID) {
+			return fmt.Errorf("invalid chain-id format: %s", chainID)
 		}
 
 		return baseRunE(cmd, args)
