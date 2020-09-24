@@ -10,6 +10,7 @@ import (
 
 func TestSetBech32Prefixes(t *testing.T) {
 	config := sdk.GetConfig()
+
 	require.Equal(t, sdk.Bech32PrefixAccAddr, config.GetBech32AccountAddrPrefix())
 	require.Equal(t, sdk.Bech32PrefixAccPub, config.GetBech32AccountPubPrefix())
 	require.Equal(t, sdk.Bech32PrefixValAddr, config.GetBech32ValidatorAddrPrefix())

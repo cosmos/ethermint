@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/ethermint/app"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/keeper"
+	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -45,7 +46,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 	suite.address = ethcmn.HexToAddress(addrHex)
 
-	balance := sdk.NewCoins(sdk.NewCoin(ethermint.DenomDefault, sdk.NewInt(0)))
+	balance := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.ZeroInt()))
 	acc := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
@@ -147,4 +148,16 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 
 	// simulate BaseApp EndBlocker commitment
 	suite.app.Commit()
+}
+
+func (suite *KeeperTestSuite) TestChainConfig() {
+	config, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
+	suite.Require().True(found)
+	suite.Require().Equal(types.DefaultChainConfig(), config)
+
+	config.EIP150Block = sdk.NewInt(100)
+	suite.app.EvmKeeper.SetChainConfig(suite.ctx, config)
+	newConfig, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
+	suite.Require().True(found)
+	suite.Require().Equal(config, newConfig)
 }

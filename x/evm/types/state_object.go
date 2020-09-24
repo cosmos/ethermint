@@ -176,8 +176,8 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	// newBalance := so.balance.Add(amt)
-	newBalance := so.account.GetCoins().AmountOf(types.DenomDefault).Add(amt)
+	evmDenom := so.stateDB.GetParams().EvmDenom
+	newBalance := so.account.GetCoins().AmountOf(evmDenom).Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -188,7 +188,9 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 	if amt.IsZero() {
 		return
 	}
-	newBalance := so.account.GetCoins().AmountOf(types.DenomDefault).Sub(amt)
+
+	evmDenom := so.stateDB.GetParams().EvmDenom
+	newBalance := so.account.GetCoins().AmountOf(evmDenom).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -196,16 +198,17 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 func (so *stateObject) SetBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
 
+	evmDenom := so.stateDB.GetParams().EvmDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.GetCoins().AmountOf(types.DenomDefault),
+		prev:    so.account.GetCoins().AmountOf(evmDenom),
 	})
 
-	so.setBalance(amt)
+	so.setBalance(evmDenom, amt)
 }
 
-func (so *stateObject) setBalance(amount sdk.Int) {
-	so.account.SetBalance(amount)
+func (so *stateObject) setBalance(denom string, amount sdk.Int) {
+	so.account.SetBalance(denom, amount)
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
@@ -292,7 +295,8 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	balance := so.account.Balance().BigInt()
+	evmDenom := so.stateDB.GetParams().EvmDenom
+	balance := so.account.Balance(evmDenom).BigInt()
 	if balance == nil {
 		return zeroBalance
 	}
@@ -403,7 +407,8 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	balace := so.account.Balance()
+	evmDenom := so.stateDB.GetParams().EvmDenom
+	balace := so.account.Balance(evmDenom)
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&

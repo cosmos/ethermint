@@ -1,12 +1,14 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -50,32 +52,35 @@ func (acc EthAccount) EthAddress() ethcmn.Address {
 // TODO: remove on SDK v0.40
 
 // Balance returns the balance of an account.
-func (acc EthAccount) Balance() sdk.Int {
-	return acc.GetCoins().AmountOf(DenomDefault)
+func (acc EthAccount) Balance(denom string) sdk.Int {
+	return acc.GetCoins().AmountOf(denom)
 }
 
-// SetBalance sets an account's balance of photons
-func (acc *EthAccount) SetBalance(amt sdk.Int) {
+// SetBalance sets an account's balance of the given coin denomination.
+//
+// CONTRACT: assumes the denomination is valid.
+func (acc *EthAccount) SetBalance(denom string, amt sdk.Int) {
 	coins := acc.GetCoins()
-	diff := amt.Sub(coins.AmountOf(DenomDefault))
+	diff := amt.Sub(coins.AmountOf(denom))
 	switch {
 	case diff.IsPositive():
 		// Increase coins to amount
-		coins = coins.Add(sdk.NewCoin(DenomDefault, diff))
+		coins = coins.Add(sdk.NewCoin(denom, diff))
 	case diff.IsNegative():
 		// Decrease coins to amount
-		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(DenomDefault, diff.Neg())))
+		coins = coins.Sub(sdk.NewCoins(sdk.NewCoin(denom, diff.Neg())))
 	default:
 		return
 	}
 
 	if err := acc.SetCoins(coins); err != nil {
-		panic(fmt.Errorf("could not set coins for address %s: %w", acc.EthAddress().String(), err))
+		panic(fmt.Errorf("could not set %s coins for address %s: %w", denom, acc.EthAddress().String(), err))
 	}
 }
 
 type ethermintAccountPretty struct {
 	Address       sdk.AccAddress `json:"address" yaml:"address"`
+	EthAddress    string         `json:"eth_address" yaml:"eth_address"`
 	Coins         sdk.Coins      `json:"coins" yaml:"coins"`
 	PubKey        string         `json:"public_key" yaml:"public_key"`
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
@@ -87,6 +92,7 @@ type ethermintAccountPretty struct {
 func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
+		EthAddress:    acc.EthAddress().String(),
 		Coins:         acc.Coins,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
@@ -94,9 +100,12 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 	}
 
 	var err error
-	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
-	if err != nil {
-		return nil, err
+
+	if acc.PubKey != nil {
+		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bz, err := yaml.Marshal(alias)
@@ -109,8 +118,15 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 
 // MarshalJSON returns the JSON representation of an EthAccount.
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
+	var ethAddress = ""
+
+	if acc.BaseAccount != nil && acc.Address != nil {
+		ethAddress = acc.EthAddress().String()
+	}
+
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
+		EthAddress:    ethAddress,
 		Coins:         acc.Coins,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
@@ -118,9 +134,12 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	}
 
 	var err error
-	alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
-	if err != nil {
-		return nil, err
+
+	if acc.PubKey != nil {
+		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return json.Marshal(alias)
@@ -128,23 +147,65 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals raw JSON bytes into an EthAccount.
 func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
-	acc.BaseAccount = &authtypes.BaseAccount{}
-	var alias ethermintAccountPretty
+	var (
+		alias ethermintAccountPretty
+		err   error
+	)
+
 	if err := json.Unmarshal(bz, &alias); err != nil {
 		return err
 	}
 
-	acc.BaseAccount.Coins = alias.Coins
-	acc.BaseAccount.Address = alias.Address
+	switch {
+	case !alias.Address.Empty() && alias.EthAddress != "":
+		// Both addresses provided. Verify correctness
+		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
+		ethAddressFromAccAddress := ethcmn.BytesToAddress(alias.Address.Bytes())
 
-	var err error
-	acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
+		if !bytes.Equal(ethAddress.Bytes(), alias.Address.Bytes()) {
+			err = sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidAddress,
+				"expected %s, got %s",
+				ethAddressFromAccAddress.String(), ethAddress.String(),
+			)
+		}
+
+	case !alias.Address.Empty() && alias.EthAddress == "":
+		// unmarshal sdk.AccAddress only. Do nothing here
+	case alias.Address.Empty() && alias.EthAddress != "":
+		// retrieve sdk.AccAddress from ethereum address
+		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
+		alias.Address = sdk.AccAddress(ethAddress.Bytes())
+	case alias.Address.Empty() && alias.EthAddress == "":
+		err = sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidAddress,
+			"account must contain address in Ethereum Hex or Cosmos Bech32 format",
+		)
+	}
+
 	if err != nil {
 		return err
 	}
-	acc.BaseAccount.AccountNumber = alias.AccountNumber
-	acc.BaseAccount.Sequence = alias.Sequence
+
+	acc.BaseAccount = &authtypes.BaseAccount{
+		Coins:         alias.Coins,
+		Address:       alias.Address,
+		AccountNumber: alias.AccountNumber,
+		Sequence:      alias.Sequence,
+	}
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
 
+	if alias.PubKey != "" {
+		acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// String implements the fmt.Stringer interface
+func (acc EthAccount) String() string {
+	out, _ := yaml.Marshal(acc)
+	return string(out)
 }

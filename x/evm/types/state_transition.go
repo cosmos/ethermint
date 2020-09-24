@@ -10,8 +10,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 
-	emint "github.com/cosmos/ethermint/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -49,7 +47,7 @@ type ExecutionResult struct {
 	GasInfo GasInfo
 }
 
-func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int) *vm.EVM {
+func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, config ChainConfig) *vm.EVM {
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
@@ -63,13 +61,13 @@ func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit 
 		GasPrice:    gasPrice,
 	}
 
-	return vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
+	return vm.NewEVM(context, csdb, config.EthereumConfig(st.ChainID), vm.Config{})
 }
 
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*ExecutionResult, error) {
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true, false)
@@ -103,12 +101,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
-	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
+	evmDenom := csdb.GetParams().EvmDenom
+	gasPrice := ctx.MinGasPrices().AmountOf(evmDenom)
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int)
+	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config)
 
 	var (
 		ret             []byte
@@ -119,9 +118,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	)
 
 	// Get nonce of account outside of the EVM
-	currentNonce := st.Csdb.GetNonce(st.Sender)
+	currentNonce := csdb.GetNonce(st.Sender)
 	// Set nonce of sender account before evm state transition for usage in generating Create address
-	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
+	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -144,7 +143,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	}
 
 	// Resets nonce to value pre state transition
-	st.Csdb.SetNonce(st.Sender, currentNonce)
+	csdb.SetNonce(st.Sender, currentNonce)
 
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
@@ -167,7 +166,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
-		if err := st.Csdb.Finalise(true); err != nil {
+		if err := csdb.Finalise(true); err != nil {
 			return nil, err
 		}
 	}

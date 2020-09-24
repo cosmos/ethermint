@@ -195,8 +195,25 @@ func (ch createObjectChange) revert(s *CommitStateDB) {
 		// perform no-op
 		return
 	}
+
 	// remove from the slice
-	s.stateObjects = append(s.stateObjects[:idx], s.stateObjects[idx+1:]...)
+	delete(s.addressToObjectIndex, *ch.account)
+
+	// if the slice contains one element, delete it
+	if len(s.stateObjects) == 1 {
+		s.stateObjects = []stateEntry{}
+		return
+	}
+
+	// move the elements one position left on the array
+	for i := idx + 1; i < len(s.stateObjects); i++ {
+		s.stateObjects[i-1] = s.stateObjects[i]
+		// the new index is i - 1
+		s.addressToObjectIndex[s.stateObjects[i].address] = i - 1
+	}
+
+	//  finally, delete the last element of the slice to account for the removed object
+	s.stateObjects = s.stateObjects[:len(s.stateObjects)-1]
 }
 
 func (ch createObjectChange) dirtied() *ethcmn.Address {
@@ -215,7 +232,8 @@ func (ch suicideChange) revert(s *CommitStateDB) {
 	so := s.getStateObject(*ch.account)
 	if so != nil {
 		so.suicided = ch.prev
-		so.setBalance(ch.prevBalance)
+		evmDenom := s.GetParams().EvmDenom
+		so.setBalance(evmDenom, ch.prevBalance)
 	}
 }
 
@@ -231,7 +249,8 @@ func (ch touchChange) dirtied() *ethcmn.Address {
 }
 
 func (ch balanceChange) revert(s *CommitStateDB) {
-	s.getStateObject(*ch.account).setBalance(ch.prev)
+	evmDenom := s.GetParams().EvmDenom
+	s.getStateObject(*ch.account).setBalance(evmDenom, ch.prev)
 }
 
 func (ch balanceChange) dirtied() *ethcmn.Address {
@@ -293,7 +312,31 @@ func (ch addLogChange) dirtied() *ethcmn.Address {
 }
 
 func (ch addPreimageChange) revert(s *CommitStateDB) {
-	delete(s.preimages, ch.hash)
+	idx, exists := s.hashToPreimageIndex[ch.hash]
+	if !exists {
+		// perform no-op
+		return
+	}
+
+	// remove from the slice
+	delete(s.hashToPreimageIndex, ch.hash)
+
+	// if the slice contains one element, delete it
+	if len(s.preimages) == 1 {
+		s.preimages = []preimageEntry{}
+		return
+	}
+
+	// move the elements one position left on the array
+	for i := idx + 1; i < len(s.preimages); i++ {
+		s.preimages[i-1] = s.preimages[i]
+		// the new index is i - 1
+		s.hashToPreimageIndex[s.preimages[i].hash] = i - 1
+	}
+
+	//  finally, delete the last element
+
+	s.preimages = s.preimages[:len(s.preimages)-1]
 }
 
 func (ch addPreimageChange) dirtied() *ethcmn.Address {

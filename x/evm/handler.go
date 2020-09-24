@@ -60,24 +60,35 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		Simulate:     ctx.IsCheckTx(),
 	}
 
-	// Prepare db for logs
-	// TODO: block hash
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
+	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
+	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
+	// other nodes, causing a consensus error
+	if !st.Simulate {
+		// Prepare db for logs
+		// TODO: block hash
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
+	}
 
-	// TODO: move to keeper
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		// update block bloom filter
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution
@@ -138,22 +149,31 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		st.Recipient = &to
 	}
 
-	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
+	if !st.Simulate {
+		// Prepare db for logs
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
+	}
 
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution

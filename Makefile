@@ -182,10 +182,55 @@ RUNSIM         = $(TOOLS_DESTDIR)/runsim
 runsim: $(RUNSIM)
 $(RUNSIM):
 	@echo "Installing runsim..."
-	@(cd /tmp && go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+	@(cd /tmp && ${GO_MOD} go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+
+contract-tools:
+ifeq (, $(shell which stringer))
+	@echo "Installing stringer..."
+	@go install golang.org/x/tools/cmd/stringer
+else
+	@echo "stringer already installed; skipping..."
+endif
+
+ifeq (, $(shell which go-bindata))
+	@echo "Installing go-bindata..."
+	@go install github.com/kevinburke/go-bindata/go-bindata
+else
+	@echo "go-bindata already installed; skipping..."
+endif
+
+ifeq (, $(shell which gencodec))
+	@echo "Installing gencodec..."
+	@go install github.com/fjl/gencodec
+else
+	@echo "gencodec already installed; skipping..."
+endif
+
+ifeq (, $(shell which protoc-gen-go))
+	@echo "Installing protoc-gen-go..."
+	@go install github.com/golang/protobuf/protoc-gen-go
+else
+	@echo "protoc-gen-go already installed; skipping..."
+endif
+
+ifeq (, $(shell which solcjs))
+	@echo "Installing solcjs..."
+	@apt-get install -f -y protobuf-compiler
+	@npm install -g solc@0.5.11
+else
+	@echo "solcjs already installed; skipping..."
+endif
+
+docs-tools:
+ifeq (, $(shell which yarn))
+	@echo "Installing yarn..."
+	@npm install -g yarn
+else
+	@echo "yarn already installed; skipping..."
+endif
 
 tools: tools-stamp
-tools-stamp: runsim
+tools-stamp: contract-tools docs-tools runsim
 	# Create dummy file to satisfy dependency and avoid
 	# rebuilding when this Makefile target is hit twice
 	# in a row.
@@ -195,7 +240,13 @@ tools-clean:
 	rm -f $(RUNSIM)
 	rm -f tools-stamp
 
-.PHONY: runsim tools tools-stamp tools-clean
+docs-tools-stamp: docs-tools
+	# Create dummy file to satisfy dependency and avoid
+	# rebuilding when this Makefile target is hit twice
+	# in a row.
+	touch $@
+
+.PHONY: runsim tools tools-stamp tools-clean docs-tools-stamp
 
 ###############################################################################
 ###                           Tests & Simulation                            ###
@@ -211,11 +262,17 @@ test-race:
 
 test-import:
 	@go test ./importer -v --vet=off --run=TestImportBlocks --datadir tmp \
-	--blockchain blockchain --timeout=10m
+	--blockchain blockchain
 	rm -rf importer/tmp
 
 test-rpc:
 	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
+
+test-contract:
+	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
+	@type "solcjs" 2> /dev/null || (echo 'Solcjs does not exist. Please install solcjs using make contract-tools."' && exit 1)
+	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc using make contract-tools.' && exit 1)
+	bash scripts/contract-test.sh
 
 test-sim-nondeterminism:
 	@echo "Running non-determinism test..."
@@ -249,7 +306,11 @@ test-sim-multi-seed-short: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
-.PHONY: test test-unit test-race test-import test-rpc
+test-solidity:
+	 @echo "Beginning solidity tests..."
+	 ./scripts/run-solidity-tests.sh
+
+.PHONY: test test-unit test-race test-import test-rpc test-contract test-solidity
 
 .PHONY: test-sim-nondeterminism test-sim-custom-genesis-fast test-sim-import-export test-sim-after-import \
 	test-sim-custom-genesis-multi-seed test-sim-multi-seed-long test-sim-multi-seed-short
@@ -350,14 +411,15 @@ proto-update-deps:
 # Start docs site at localhost:8080
 docs-serve:
 	@cd docs && \
-	npm install && \
-	npm run serve
+	yarn install && \
+	yarn run serve
 
 # Build the site into docs/.vuepress/dist
 docs-build:
-	@cd docs && \
-	npm install && \
-	npm run build
+	@$(MAKE) docs-tools-stamp && \
+	cd docs && \
+	yarn install && \
+	yarn run build
 
 godocs:
 	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/cosmos/ethermint"
