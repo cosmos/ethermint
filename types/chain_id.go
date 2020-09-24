@@ -25,7 +25,7 @@ func ParseChainID(chainID string) (*big.Int, error) {
 	chainID = strings.TrimSpace(chainID)
 
 	matches := ethermintChainID.FindStringSubmatch(chainID)
-	if matches == nil {
+	if matches == nil || len(matches) != 3 || matches[1] == "" {
 		return nil, sdkerrors.Wrap(ErrInvalidChainID, chainID)
 	}
 

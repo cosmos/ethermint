@@ -24,6 +24,12 @@ func TestParseChainID(t *testing.T) {
 			"invalid chain-id, double dash", "aragon-chain-1", true, nil,
 		},
 		{
+			"invalid chain-id, dash only", "-", true, nil,
+		},
+		{
+			"invalid chain-id, undefined", "-1", true, nil,
+		},
+		{
 			"invalid chain-id, uppercases", "ETHERMINT-1", true, nil,
 		},
 		{
@@ -40,6 +46,9 @@ func TestParseChainID(t *testing.T) {
 		},
 		{
 			"invalid epoch, non-integer", "ethermint-ethermint", true, nil,
+		},
+		{
+			"invalid epoch, undefined", "ethermint-", true, nil,
 		},
 		{
 			"blank chain ID", " ", true, nil,
