@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path"
 
@@ -47,12 +46,10 @@ func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 
 	// Function to replace command's RunE function
 	validateFn := func(cmd *cobra.Command, args []string) error {
-		chainIDFlag := viper.GetString(flags.FlagChainID)
+		chainID := viper.GetString(flags.FlagChainID)
 
-		// Verify that the chain-id entered is a base 10 integer
-		_, ok := new(big.Int).SetString(chainIDFlag, 10)
-		if !ok {
-			return fmt.Errorf("invalid chainID: %s, must be base-10 integer format", chainIDFlag)
+		if !ethermint.IsValidChainID(chainID) {
+			return fmt.Errorf("invalid chain-id format: %s", chainID)
 		}
 
 		return baseRunE(cmd, args)

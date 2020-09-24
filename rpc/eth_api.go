@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -101,14 +100,7 @@ func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 // ChainId returns the chain's identifier in hex format
 func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
 	e.logger.Debug("eth_chainId")
-
-	// parse the chainID from a integer string
-	intChainID, err := strconv.ParseUint(e.cliCtx.ChainID, 0, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid chainID: %s, must be integer format", e.cliCtx.ChainID)
-	}
-
-	return hexutil.Uint(intChainID), nil
+	return hexutil.Uint(uint(e.chainIDEpoch.Int64())), nil
 }
 
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
@@ -564,6 +556,10 @@ func (e *PublicEthAPI) doCall(
 	// Create new call message
 	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
+
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
 
 	// Generate tx to be used to simulate (signature isn't needed)
 	var stdSig authtypes.StdSignature
