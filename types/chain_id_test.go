@@ -63,13 +63,13 @@ func TestParseChainID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		intChainID, err := ParseChainID(tc.chainID)
+		chainIDEpoch, err := ParseChainID(tc.chainID)
 		if tc.expError {
 			require.Error(t, err, tc.name)
-			require.Nil(t, intChainID)
+			require.Nil(t, chainIDEpoch)
 		} else {
 			require.NoError(t, err, tc.name)
-			require.Equal(t, tc.expInt, intChainID, tc.name)
+			require.Equal(t, tc.expInt, chainIDEpoch, tc.name)
 		}
 	}
 }
