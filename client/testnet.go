@@ -49,6 +49,7 @@ var (
 	flagNodeDaemonHome    = "node-daemon-home"
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
+	flagCoinDenom         = "coin-denom"
 	flagKeyAlgo           = "algo"
 	flagIpAddrs           = "ip-addrs"
 )
