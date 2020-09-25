@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
@@ -80,7 +79,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 			nodeDaemonHome, _ := cmd.Flags().GetString(flagNodeDaemonHome)
 			nodeCLIHome, _ := cmd.Flags().GetString(flagNodeCLIHome)
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
-			ipAddresses, _ := cmd.Flags().GetString(flagIpAddrs)
+			ipAddresses, _ := cmd.Flags().GetStringSlice(flagIPAddrs)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
@@ -98,7 +97,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagNodeDaemonHome, "ethermintd", "Home directory of the node's daemon configuration")
 	cmd.Flags().String(flagNodeCLIHome, "ethermintcli", "Home directory of the node's cli configuration")
 	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
-	cmd.Flags().String(flagIPAddrs, "", "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
+	cmd.Flags().StringSlice(flagIPAddrs, []string{}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().String(flagCoinDenom, ethermint.AttoPhoton, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.AttoPhoton), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
@@ -121,8 +120,8 @@ func InitTestnet(
 	nodeDirPrefix,
 	nodeDaemonHome,
 	nodeCLIHome,
-	startingIPAddress,
-	ipAddresses,
+	startingIPAddress string,
+	ipAddresses []string,
 	keyringBackend,
 	algo string,
 	numValidators int,
@@ -140,11 +139,8 @@ func InitTestnet(
 		return err
 	}
 
-	var ips []string
-	if ipAddresses != "" {
-		ipAddresses := strings.Replace(ipAddresses, " ", "", -1)
-		ips = strings.Split(ipAddresses, ",")
-		numValidators = len(ips)
+	if len(ipAddresses) != 0 {
+		numValidators = len(ipAddresses)
 	}
 
 	nodeIDs := make([]string, numValidators)
@@ -183,14 +179,14 @@ func InitTestnet(
 
 		var ip string
 		var err error
-		if ipAddresses == "" {
+		if len(ipAddresses) == 0 {
 			ip, err = getIP(i, startingIPAddress)
 			if err != nil {
 				_ = os.RemoveAll(outputDir)
 				return err
 			}
 		} else {
-			ip = ips[i]
+			ip = ipAddresses[i]
 		}
 
 		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFiles(config)
