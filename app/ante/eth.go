@@ -253,7 +253,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	seq := acc.GetSequence()
-	if msgEthTx.Data.AccountNonce != seq {
+	if msgEthTx.Data.AccountNonce < seq {
 		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidSequence,
 			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
