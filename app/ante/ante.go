@@ -9,14 +9,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/cosmos/ethermint/crypto"
+	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
 func init() {
-	crypto.RegisterLegacyAminoCodec(types.ModuleCdc)
+	cryptocodec.RegisterLegacyAminoCodec(types.ModuleCdc)
 }
 
 const (

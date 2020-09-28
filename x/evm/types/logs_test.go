@@ -9,11 +9,11 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 func TestTransactionLogsValidate(t *testing.T) {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
@@ -91,7 +91,7 @@ func TestTransactionLogsValidate(t *testing.T) {
 }
 
 func TestValidateLog(t *testing.T) {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 

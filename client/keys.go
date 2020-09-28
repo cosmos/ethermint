@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/hd"
 )
 
 const (
@@ -74,7 +74,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
 	if transient {
 		return keys.NewInMemory(
-			crypto.EthSecp256k1Options()...,
+			hd.EthSecp256k1Options()...,
 		), nil
 	}
 
@@ -83,6 +83,6 @@ func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		buf,
-		crypto.EthSecp256k1Options()...,
+		hd.EthSecp256k1Options()...,
 	)
 }

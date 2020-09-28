@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	params "github.com/cosmos/ethermint/rpc/args"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
@@ -29,13 +29,13 @@ type PersonalEthAPI struct {
 	cliCtx      sdkcontext.CLIContext
 	ethAPI      *PublicEthAPI
 	nonceLock   *AddrLocker
-	keys        []emintcrypto.PrivKeySecp256k1
+	keys        []ethsecp256k1.PrivKey
 	keyInfos    []keys.Info
 	keybaseLock sync.Mutex
 }
 
 // NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
+func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []ethsecp256k1.PrivKey) *PersonalEthAPI {
 	api := &PersonalEthAPI{
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		cliCtx:    cliCtx,
@@ -109,7 +109,7 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 			continue
 		}
 
-		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
+		tmp := make([]ethsecp256k1.PrivKey, len(e.keys)-1)
 		copy(tmp[:i], e.keys[:i])
 		copy(tmp[i:], e.keys[i+1:])
 		e.keys = tmp
@@ -121,7 +121,7 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 			continue
 		}
 
-		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.ethAPI.keys)-1)
+		tmp := make([]ethsecp256k1.PrivKey, len(e.ethAPI.keys)-1)
 		copy(tmp[:i], e.ethAPI.keys[:i])
 		copy(tmp[i:], e.ethAPI.keys[i+1:])
 		e.ethAPI.keys = tmp
@@ -153,7 +153,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
 	if !ok {
 		return common.Address{}, fmt.Errorf("invalid private key type: %T", privKey)
 	}
@@ -193,7 +193,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 		return false, err
 	}
 
-	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
 	if !ok {
 		return false, fmt.Errorf("invalid private key type: %T", privKey)
 	}

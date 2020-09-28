@@ -17,8 +17,8 @@ import (
 const (
 	PrivKeySize = 32
 	keyType     = "eth_secp256k1"
-	PrivKeyName = "ethermint/PrivKeySecp256k1"
-	PubKeyName  = "ethermint/PubKeySecp256k1"
+	PrivKeyName = "ethermint/PrivKeyEthSecp256k1"
+	PubKeyName  = "ethermint/PubKeyEthSecp256k1"
 )
 
 

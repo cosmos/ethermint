@@ -5,7 +5,7 @@ import (
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	
-	"github.com/cosmos/ethermint/crypto/keys/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 // RegisterInterfaces registers the sdk.Tx interface.

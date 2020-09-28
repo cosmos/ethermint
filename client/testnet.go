@@ -36,7 +36,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/hd"
 	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
@@ -203,7 +203,7 @@ func InitTestnet(
 			keyringBackend,
 			clientDir,
 			inBuf,
-			crypto.EthSecp256k1Options()...,
+			hd.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return err
