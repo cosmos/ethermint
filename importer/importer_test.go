@@ -65,14 +65,14 @@ func init() {
 }
 
 func newTestCodec() *sdkcodec.Codec {
-	cdc := sdkcodec.New()
+	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
 
-	evmtypes.RegisterCodec(cdc)
-	types.RegisterCodec(cdc)
-	auth.RegisterCodec(cdc)
-	bank.RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
-	emintcrypto.RegisterCodec(cdc)
+	evmtypes.RegisterLegacyAminoCodec(cdc)
+	types.RegisterLegacyAminoCodec(cdc)
+	auth.RegisterLegacyAminoCodec(cdc)
+	bank.RegisterLegacyAminoCodec(cdc)
+	sdk.RegisterLegacyAminoCodec(cdc)
+	emintcrypto.RegisterLegacyAminoCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
 
 	return cdc

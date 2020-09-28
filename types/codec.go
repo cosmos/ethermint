@@ -9,8 +9,8 @@ const (
 	EthAccountName = "ethermint/EthAccount"
 )
 
-// RegisterCodec registers the account interfaces and concrete types on the
+// RegisterLegacyAminoCodec registers the account interfaces and concrete types on the
 // provided Amino codec.
-func RegisterCodec(cdc *codec.Codec) {
+func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&EthAccount{}, EthAccountName, nil)
 }

@@ -36,14 +36,14 @@ type JournalTestSuite struct {
 }
 
 func newTestCodec() *sdkcodec.Codec {
-	cdc := sdkcodec.New()
+	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
 
-	RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
-	crypto.RegisterCodec(cdc)
+	RegisterLegacyAminoCodec(cdc)
+	sdk.RegisterLegacyAminoCodec(cdc)
+	crypto.RegisterLegacyAminoCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
-	auth.RegisterCodec(cdc)
-	ethermint.RegisterCodec(cdc)
+	auth.RegisterLegacyAminoCodec(cdc)
+	ethermint.RegisterLegacyAminoCodec(cdc)
 
 	return cdc
 }

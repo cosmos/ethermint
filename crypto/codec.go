@@ -8,7 +8,7 @@ import (
 )
 
 // CryptoCodec is the default amino codec used by ethermint
-var CryptoCodec = codec.New()
+var CryptoCodec = codec.NewLegacyAminoLegacyAmino()
 
 // Amino encoding names
 const (
@@ -20,14 +20,14 @@ func init() {
 	// replace the keyring codec with the ethermint crypto codec to prevent
 	// amino panics because of unregistered Priv/PubKey
 	keys.CryptoCdc = CryptoCodec
-	keys.RegisterCodec(CryptoCodec)
+	keys.RegisterLegacyAminoCodec(CryptoCodec)
 	cryptoamino.RegisterAmino(CryptoCodec)
-	RegisterCodec(CryptoCodec)
+	RegisterLegacyAminoCodec(CryptoCodec)
 }
 
-// RegisterCodec registers all the necessary types with amino for the given
+// RegisterLegacyAminoCodec registers all the necessary types with amino for the given
 // codec.
-func RegisterCodec(cdc *codec.Codec) {
+func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(PubKeySecp256k1{}, PubKeyAminoName, nil)
 	cdc.RegisterConcrete(PrivKeySecp256k1{}, PrivKeyAminoName, nil)
 }

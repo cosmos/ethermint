@@ -190,7 +190,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {
-	var cdc = codec.New()
+	var cdc = codec.NewLegacyAminoLegacyAmino()
 
 	logs := []*ethtypes.Log{
 		{

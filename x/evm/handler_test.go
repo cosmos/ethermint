@@ -47,7 +47,7 @@ func (suite *EvmTestSuite) SetupTest() {
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
-	suite.codec = codec.New()
+	suite.codec = codec.NewLegacyAminoLegacyAmino()
 }
 
 func TestEvmTestSuite(t *testing.T) {

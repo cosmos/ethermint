@@ -16,7 +16,7 @@ var (
 	NewKeeper     = keeper.NewKeeper
 	NewQuerier    = keeper.NewQuerier
 	ModuleCdc     = types.ModuleCdc
-	RegisterCodec = types.RegisterCodec
+	RegisterLegacyAminoCodec = types.RegisterLegacyAminoCodec
 )
 
 type (

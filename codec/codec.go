@@ -17,15 +17,15 @@ import (
 // NOTE: This codec will be deprecated in favor of AppCodec once all modules are
 // migrated to protobuf.
 func MakeCodec(bm module.BasicManager) *codec.Codec {
-	cdc := codec.New()
+	cdc := codec.NewLegacyAminoLegacyAmino()
 
-	bm.RegisterCodec(cdc)
-	vesting.RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
-	emintcrypto.RegisterCodec(cdc)
+	bm.RegisterLegacyAminoCodec(cdc)
+	vesting.RegisterLegacyAminoCodec(cdc)
+	sdk.RegisterLegacyAminoCodec(cdc)
+	emintcrypto.RegisterLegacyAminoCodec(cdc)
 	codec.RegisterCrypto(cdc)
-	ethermint.RegisterCodec(cdc)
-	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
+	ethermint.RegisterLegacyAminoCodec(cdc)
+	keys.RegisterLegacyAminoCodec(cdc) // temporary. Used to register keyring.Info
 
 	return cdc
 }

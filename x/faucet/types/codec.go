@@ -5,13 +5,13 @@ import (
 )
 
 // ModuleCdc is the codec for the module
-var ModuleCdc = codec.New()
+var ModuleCdc = codec.NewLegacyAminoLegacyAmino()
 
 func init() {
-	RegisterCodec(ModuleCdc)
+	RegisterLegacyAminoCodec(ModuleCdc)
 }
 
-// RegisterCodec registers concrete types on the Amino codec
-func RegisterCodec(cdc *codec.Codec) {
+// RegisterLegacyAminoCodec registers concrete types on the Amino codec
+func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgFund{}, "ethermint/MsgFund", nil)
 }

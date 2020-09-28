@@ -29,9 +29,9 @@ func (AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-// RegisterCodec registers types for module
-func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
-	types.RegisterCodec(cdc)
+// RegisterLegacyAminoCodec registers types for module
+func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.Codec) {
+	types.RegisterLegacyAminoCodec(cdc)
 }
 
 // DefaultGenesis is json default structure

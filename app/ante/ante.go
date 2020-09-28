@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	crypto.RegisterCodec(types.ModuleCdc)
+	crypto.RegisterLegacyAminoCodec(types.ModuleCdc)
 }
 
 const (

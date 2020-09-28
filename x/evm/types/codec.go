@@ -5,11 +5,11 @@ import (
 )
 
 // ModuleCdc defines the evm module's codec
-var ModuleCdc = codec.New()
+var ModuleCdc = codec.NewLegacyAminoLegacyAmino()
 
-// RegisterCodec registers all the necessary types and interfaces for the
+// RegisterLegacyAminoCodec registers all the necessary types and interfaces for the
 // evm module
-func RegisterCodec(cdc *codec.Codec) {
+func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgEthereumTx{}, "ethermint/MsgEthereumTx", nil)
 	cdc.RegisterConcrete(MsgEthermint{}, "ethermint/MsgEthermint", nil)
 	cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
@@ -17,7 +17,7 @@ func RegisterCodec(cdc *codec.Codec) {
 }
 
 func init() {
-	RegisterCodec(ModuleCdc)
+	RegisterLegacyAminoCodec(ModuleCdc)
 	codec.RegisterCrypto(ModuleCdc)
 	ModuleCdc.Seal()
 }
