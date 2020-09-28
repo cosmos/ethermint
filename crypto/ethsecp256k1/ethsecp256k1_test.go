@@ -1,4 +1,4 @@
-package crypto
+package ethsecp256k1
 
 import (
 	"testing"

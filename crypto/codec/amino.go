@@ -1,4 +1,4 @@
-package crypto
+package codec
 
 import (
 	cryptoamino "github.com/tendermint/tendermint/crypto/encoding/amino"
