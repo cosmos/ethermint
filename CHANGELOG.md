@@ -65,6 +65,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (`x/evm`) [\#496](https://github.com/ChainSafe/ethermint/pull/496) Fix bugs on `journal.revert` and `CommitStateDB.Copy`.
 * (types) [\#480](https://github.com/ChainSafe/ethermint/pull/480) Update [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) coin type to `60` to satisfy [EIP84](https://github.com/ethereum/EIPs/issues/84).
 * (types) [\#513](https://github.com/ChainSafe/ethermint/pull/513) Fix simulated transaction bug that was causing a consensus error by unintentionally affecting the state.
+* (app/ante) [\#550](https://github.com/ChainSafe/ethermint/pull/550) Update ante handler nonce verfication to accept any nonce greater than or equal to the expected nonce to allow to successive transactions. 
 
 ## [v0.1.0] - 2020-08-23
 

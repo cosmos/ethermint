@@ -253,6 +253,9 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	seq := acc.GetSequence()
+	// if multiple transactions are submitted in succession with increasing nonces,
+	// all will be rejected except the first, since the first needs to be included in a block
+	// before the sequence increments
 	if msgEthTx.Data.AccountNonce < seq {
 		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidSequence,
