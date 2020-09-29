@@ -12,7 +12,6 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
@@ -30,7 +29,6 @@ import (
 // PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
 	logger      log.Logger
-	cliCtx      sdkcontext.CLIContext
 	ethAPI      *PublicEthAPI
 	nonceLock   *AddrLocker
 	keyInfos    []keys.Info
@@ -38,10 +36,9 @@ type PersonalEthAPI struct {
 }
 
 // NewPersonalEthAPI creates an instance of the public Personal Eth API.
-func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
+func NewPersonalEthAPI(ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
 	api := &PersonalEthAPI{
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		cliCtx:    cliCtx,
 		ethAPI:    ethAPI,
 		nonceLock: nonceLock,
 	}
@@ -60,22 +57,22 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
 	e.keybaseLock.Lock()
 	defer e.keybaseLock.Unlock()
 
-	if e.cliCtx.Keybase == nil {
+	if e.ethAPI.cliCtx.Keybase == nil {
 		keybase, err := keys.NewKeyring(
 			sdk.KeyringServiceName(),
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
-			e.cliCtx.Input,
+			e.ethAPI.cliCtx.Input,
 			emintcrypto.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		e.cliCtx.Keybase = keybase
+		e.ethAPI.cliCtx.Keybase = keybase
 	}
 
-	return e.cliCtx.Keybase.List()
+	return e.ethAPI.cliCtx.Keybase.List()
 }
 
 // ImportRawKey armors and encrypts a given raw hex encoded ECDSA key and stores it into the key directory.
@@ -94,16 +91,16 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 	armor := mintkey.EncryptArmorPrivKey(privKey, password, emintcrypto.EthSecp256k1Type)
 
 	// ignore error as we only care about the length of the list
-	list, _ := e.cliCtx.Keybase.List()
+	list, _ := e.ethAPI.cliCtx.Keybase.List()
 	privKeyName := fmt.Sprintf("personal_%d", len(list))
 
-	if err := e.cliCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
+	if err := e.ethAPI.cliCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
 		return common.Address{}, err
 	}
 
 	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
 
-	info, err := e.cliCtx.Keybase.Get(privKeyName)
+	info, err := e.ethAPI.cliCtx.Keybase.Get(privKeyName)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -160,13 +157,13 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 	}
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	info, _, err := e.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, emintcrypto.EthSecp256k1)
+	info, _, err := e.ethAPI.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, emintcrypto.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
 
 	// update ethAPI
-	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	privKey, err := e.ethAPI.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -207,7 +204,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 	}
 
 	// TODO: this only works on local keys
-	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	privKey, err := e.ethAPI.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
 	if err != nil {
 		return false, err
 	}
