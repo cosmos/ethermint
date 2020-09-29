@@ -190,7 +190,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 // It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
-func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) {
+func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
 	e.logger.Debug("personal_unlockAccount", "address", addr.String())
 	// TODO: use duration
 
