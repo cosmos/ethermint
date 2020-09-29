@@ -93,7 +93,15 @@ func TestKeyring(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, bz)
 
+	bz, err = DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, hdPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
+
 	bz, err = DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, keys.SigningAlgo(""))
+	require.Error(t, err)
+	require.Empty(t, bz)
+
+	bz, err = DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, "/wrong/hdPath")
 	require.Error(t, err)
 	require.Empty(t, bz)
 
