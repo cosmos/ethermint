@@ -140,10 +140,10 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 		copy(tmp[:i], e.ethAPI.keys[:i])
 		copy(tmp[i:], e.ethAPI.keys[i+1:])
 		e.ethAPI.keys = tmp
+
+		e.logger.Debug("account unlocked", "address", address.String())
 		return true
 	}
-
-	e.logger.Debug("account unlocked", "address", address.String())
 
 	return false
 }
