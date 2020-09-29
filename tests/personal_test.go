@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/stretchr/testify/require"
 )
@@ -40,6 +41,24 @@ func TestPersonal_Sign(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 65, len(res))
 	// TODO: check that signature is same as with geth, requires importing a key
+}
+
+func TestPersonal_ImportRawKey(t *testing.T) {
+	privkey, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+
+	// parse priv key to hex
+	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
+	rpcRes := call(t, "personal_importRawKey", []string{hexPriv, "password"})
+
+	var res hexutil.Bytes
+	err = json.Unmarshal(rpcRes.Result, &res)
+	require.NoError(t, err)
+
+	addr := ethcrypto.PubkeyToAddress(privkey.PublicKey)
+	resAddr := common.BytesToAddress(res)
+
+	require.Equal(t, addr.String(), resAddr.String())
 }
 
 func TestPersonal_EcRecover(t *testing.T) {

@@ -102,9 +102,10 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 		return common.Address{}, err
 	}
 
-	e.logger.Info("key successfully imported", "name", privKeyName)
+	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
+	e.logger.Info("key successfully imported", "name", privKeyName, "address", addr.String())
 
-	return common.Address{}, nil
+	return addr, nil
 }
 
 // ListAccounts will return a list of addresses for accounts this node manages.
