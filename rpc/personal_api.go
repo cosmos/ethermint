@@ -27,7 +27,7 @@ import (
 	params "github.com/cosmos/ethermint/rpc/args"
 )
 
-// PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
+// PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
 	logger      log.Logger
 	cliCtx      sdkcontext.CLIContext
@@ -38,7 +38,7 @@ type PersonalEthAPI struct {
 	keybaseLock sync.Mutex
 }
 
-// NewPersonalEthAPI creates an instance of the public ETH Web3 API.
+// NewPersonalEthAPI creates an instance of the public Personal Eth API.
 func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
 	api := &PersonalEthAPI{
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
