@@ -39,7 +39,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* (rpc) Implement Eth Personal namespace `personal_importRawKey`.
+* (rpc) [\#552](https://github.com/ChainSafe/ethermint/pull/552) Implement Eth Personal namespace `personal_importRawKey`.
 
 ## [v0.2.0] - 2020-09-24
 
