@@ -35,6 +35,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+## Unreleased
+
+### Features
+
+* (rpc) Implement Eth Personal namespace `personal_importRawKey`.
+
 ## [v0.2.0] - 2020-09-24
 
 ### State Machine Breaking

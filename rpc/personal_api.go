@@ -8,19 +8,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/viper"
+
+	"github.com/tendermint/tendermint/libs/log"
+
 	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
-	params "github.com/cosmos/ethermint/rpc/args"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	params "github.com/cosmos/ethermint/rpc/args"
 )
 
 // PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -75,15 +79,30 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
 	return e.cliCtx.Keybase.List()
 }
 
-// ImportRawKey stores the given hex encoded ECDSA key into the key directory,
-// encrypting it with the passphrase.
-// Currently, this is not implemented since the feature is not supported by the keys.
+// ImportRawKey armors and encrypts a given raw hex encoded ECDSA key and stores it into the key directory.
+// The name of the key will have the format "personal_<length-keys>", where <length-keys> is the total number of
+// keys stored on the keyring.
+// NOTE: The key will be both armored and encrypted using the same passphrase.
 func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
-	e.logger.Debug("personal_importRawKey", "error", "not implemented")
-	_, err := crypto.HexToECDSA(privkey)
+	e.logger.Debug("personal_importRawKey")
+	priv, err := crypto.HexToECDSA(privkey)
 	if err != nil {
 		return common.Address{}, err
 	}
+
+	privKey := emintcrypto.PrivKeySecp256k1(crypto.FromECDSA(priv))
+
+	armor := mintkey.EncryptArmorPrivKey(privKey, password, emintcrypto.EthSecp256k1Type)
+
+	// ignore error as we only care about the length of the list
+	list, _ := e.cliCtx.Keybase.List()
+	privKeyName := fmt.Sprintf("personal_%d", len(list))
+
+	if err := e.cliCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
+		return common.Address{}, err
+	}
+
+	e.logger.Info("key successfully imported", "name", privKeyName)
 
 	return common.Address{}, nil
 }
@@ -128,6 +147,8 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 		return true
 	}
 
+	e.logger.Debug("account unlocked", "address", address)
+
 	return false
 }
 
@@ -158,7 +179,6 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 		return common.Address{}, fmt.Errorf("invalid private key type: %T", privKey)
 	}
 	e.ethAPI.keys = append(e.ethAPI.keys, emintKey)
-	e.logger.Debug("personal_newAccount", "address", fmt.Sprintf("0x%x", emintKey.PubKey().Address().Bytes()))
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 	e.logger.Info("Your new key was generated", "address", addr)
@@ -200,8 +220,7 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 
 	e.keys = append(e.keys, emintKey)
 	e.ethAPI.keys = append(e.ethAPI.keys, emintKey)
-	e.logger.Debug("personal_unlockAccount", "address", fmt.Sprintf("0x%x", emintKey.PubKey().Address().Bytes()))
-
+	e.logger.Debug("account unlocked", "address", addr)
 	return true, nil
 }
 
