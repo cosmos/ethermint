@@ -37,6 +37,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## Unreleased
 
+### Bug fixes
+
+* (app/ante) [\#550](https://github.com/ChainSafe/ethermint/pull/550) Update ante handler nonce verification to accept any nonce greater than or equal to the expected nonce to allow to successive transactions. 
+
+## [v0.2.0] - 2020-09-24
+
 ### State Machine Breaking
 
 * (app) [\#540](https://github.com/ChainSafe/ethermint/issues/540) Chain identifier's format has been changed to match the Cosmos `chainID` [standard](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-5.md), which is required for IBC. The epoch number of the ID is used as the EVM `chainID`.
