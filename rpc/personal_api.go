@@ -110,7 +110,7 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 	}
 
 	// append key and info to be able to lock and list the account
-	e.keys = append(e.ethAPI.keys, privKey)
+	e.keys = append(e.keys, privKey)
 	e.keyInfos = append(e.keyInfos, info)
 
 	e.logger.Info("key successfully imported", "name", privKeyName, "address", addr.String())
