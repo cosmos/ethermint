@@ -178,24 +178,30 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 // It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
-func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
+func (e *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
 	e.logger.Debug("personal_unlockAccount", "address", addr.String())
 	// TODO: use duration
 
-	name := ""
+	var keyInfo keys.Info
+
 	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
 		if bytes.Equal(addressBytes, addr[:]) {
-			name = info.GetName()
+			keyInfo = info
+			break
 		}
 	}
 
-	if name == "" {
+	if keyInfo == nil {
 		return false, fmt.Errorf("cannot find key with given address %s", addr.String())
 	}
 
-	// TODO: this only works on local keys
-	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	// exporting private key only works on local keys
+	if keyInfo.GetType() != keys.TypeLocal {
+		return false, fmt.Errorf("key type must be %s, got %s", keys.TypeLedger.String(), keyInfo.GetType().String())
+	}
+
+	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
 	if err != nil {
 		return false, err
 	}
@@ -226,12 +232,12 @@ func (e *PersonalEthAPI) SendTransaction(_ context.Context, args params.SendTxAr
 // The key used to calculate the signature is decrypted with the given password.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
-func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
+func (e *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
 	e.logger.Debug("personal_sign", "data", data, "address", addr.String())
 
 	key, ok := checkKeyInKeyring(e.keys, addr)
 	if !ok {
-		return nil, fmt.Errorf("cannot find key with given address")
+		return nil, fmt.Errorf("cannot find key with address %s", addr.String())
 	}
 
 	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
@@ -253,7 +259,7 @@ func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr comm
 // the V value must be 27 or 28 for legacy reasons.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecove
-func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (common.Address, error) {
+func (e *PersonalEthAPI) EcRecover(_ context.Context, data, sig hexutil.Bytes) (common.Address, error) {
 	e.logger.Debug("personal_ecRecover", "data", data, "sig", sig)
 
 	if len(sig) != crypto.SignatureLength {
@@ -264,9 +270,9 @@ func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes)
 	}
 	sig[crypto.RecoveryIDOffset] -= 27 // Transform yellow paper V from 27/28 to 0/1
 
-	rpk, err := crypto.SigToPub(accounts.TextHash(data), sig)
+	pubkey, err := crypto.SigToPub(accounts.TextHash(data), sig)
 	if err != nil {
 		return common.Address{}, err
 	}
-	return crypto.PubkeyToAddress(*rpk), nil
+	return crypto.PubkeyToAddress(*pubkey), nil
 }

@@ -86,7 +86,7 @@ func TestPersonal_UnlockAccount(t *testing.T) {
 
 	// try to sign, should be locked
 	_, err = callWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, ""})
-	require.NotNil(t, err)
+	require.Error(t, err)
 
 	rpcRes = call(t, "personal_unlockAccount", []interface{}{addr, ""})
 	var unlocked bool
@@ -123,5 +123,5 @@ func TestPersonal_LockAccount(t *testing.T) {
 
 	// try to sign, should be locked
 	_, err = callWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, ""})
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
