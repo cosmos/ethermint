@@ -14,7 +14,11 @@ The `StateDB` interface from geth represents an EVM database for full state quer
 
 ## State Object
 
+`stateObject` represents an Ethereum account which is being modified.
+The usage pattern is as follows:
 
+First you need to obtain a state object.
+Account values can be accessed and modified through the object.
 
 ## Genesis State
 
