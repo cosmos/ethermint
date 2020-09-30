@@ -8,6 +8,7 @@ module.exports = {
   themeConfig: {
     repo: 'ChainSafe/ethermint',
     docsRepo: 'ChainSafe/ethermint',
+    docsBranch: 'development',
     docsDir: 'docs',
     editLinks: true,
     custom: true,
@@ -41,7 +42,6 @@ module.exports = {
     },
     gutter: {
       title: 'Help & Support',
-      editLink: true,
       chat: {
         title: 'Developer Chat',
         text: 'Chat with Ethermint developers on Discord.',
@@ -55,10 +55,9 @@ module.exports = {
         bg: 'linear-gradient(221.79deg, #3D6B99 -1.08%, #336699 95.88%)',
         logo: 'ethereum-white'
       },
-      github: {
+      github: { 
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
-        url: 'https://github.com/ChainSafe/ethermint/edit/development/docs/README.md',
         bg: '#F8F9FC'
       }
     },
