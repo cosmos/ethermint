@@ -10,11 +10,59 @@ EVM is the Ethereum Virtual Machine that the necessary tools to run or create a 
 
 ## State DB
 
-The `StateDB` is represents an EVM database for full state querying of both contracts and accounts.
+The `StateDB` interface from geth represents an EVM database for full state querying of both contracts and accounts. The concrete type that fulfills this interface on Ethermint is the `CommitStateDB`.
 
 ## State Object
 
-## Chain Config
+
+
+## Genesis State
+
+The `x/evm` module `GenesisState` defines the state necessary for initializing the chain from a previous exported height.
+
+```go
+// GenesisState defines the evm module genesis state
+type GenesisState struct {
+  Accounts    []GenesisAccount  `json:"accounts"`
+  TxsLogs     []TransactionLogs `json:"txs_logs"`
+  ChainConfig ChainConfig       `json:"chain_config"`
+  Params      Params            `json:"params"`
+}
+```
+
+### Genesis Accounts
+
+The `GenesisAccount` type corresponds to an adaptation of the Ethereum `GenesisAccount` type. Its
+main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead of maps for the evm `State`,and that it doesn't contain the private key field.
+
+It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and balance state,  the `Address` must correspond to an `EthAccount` that is stored in the auth AccountKeeper and the balance must match the balance of the `EvmDenom` token denomination  defined on the `GenesisState`'s `Param`.
+
+```go
+type GenesisAccount struct {
+  Address ethcmn.Address `json:"address"`
+  Balance *big.Int       `json:"balance"`
+  Code    hexutil.Bytes  `json:"code,omitempty"`
+  Storage Storage        `json:"storage,omitempty"`
+}
+```
+
+### Transaction Logs
+
+On every Ethermint transaction, its result contains the Ethereum `Log`s from the state machine
+execution that are used by the JSON-RPC Web3 server for for filter querying. Since Cosmos upgrades
+don't persist the transactions on the blockchain state, we need to persist the logs the EVM module
+state to prevent the queries from failing.
+
+`TxsLogs` is the field that contains all the transaction logs that need to be persisted after an upgrade. It uses an array instead of a map to ensure determinism on the iteration.
+
+```go
+type TransactionLogs struct {
+  Hash ethcmn.Hash     `json:"hash"`
+  Logs []*ethtypes.Log `json:"logs"`
+}
+```
+
+### Chain Config
 
 The `ChainConfig` is a custom type that contains the same fields as the go-ethereum ChainConfig
 parameters, but using `sdk.Int` types instead of `*big.Int`. It also defines additional YAML tags
@@ -53,32 +101,6 @@ type ChainConfig struct {
 }
 ```
 
-## Genesis State
+### Params
 
-The `x/evm` module `GenesisState` defines the state necessary for initializing the chain from a previous exported height.
-
-<!-- TODO: write about txs logs persistence -->
-
-```go
-// GenesisState defines the evm module genesis state
-type GenesisState struct {
-  Accounts    []GenesisAccount  `json:"accounts"`
-  TxsLogs     []TransactionLogs `json:"txs_logs"`
-  ChainConfig ChainConfig       `json:"chain_config"`
-  Params      Params            `json:"params"`
-}
-```
-
-The `GenesisAccount` type corresponds to an adaptation of the Ethereum `GenesisAccount` type. Its
-main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead of maps for the evm `State`,and that it doesn't contain the private key field.
-
-It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and balance state,  the `Address` must correspond to an `EthAccount` that is stored in the auth AccountKeeper and the balance must match the balance of the `EvmDenom` token denomination  defined on the `GenesisState`'s `Param`.
-
-```go
-type GenesisAccount struct {
-  Address ethcmn.Address `json:"address"`
-  Balance *big.Int       `json:"balance"`
-  Code    hexutil.Bytes  `json:"code,omitempty"`
-  Storage Storage        `json:"storage,omitempty"`
-}
-```
+See the [params](07_params.md) document for further information about parameters.
