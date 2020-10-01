@@ -77,7 +77,7 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 		return common.Address{}, err
 	}
 
-	privKey := emintcrypto.PrivKeySecp256k1(crypto.FromECDSA(priv))
+	privKey := ethsecp256k1.PrivKey(crypto.FromECDSA(priv))
 
 	armor := mintkey.EncryptArmorPrivKey(privKey, password, emintcrypto.EthSecp256k1Type)
 
@@ -126,7 +126,7 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 			continue
 		}
 
-		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.ethAPI.keys)-1)
+		tmp := make([]ethsecp256k1.PrivKey, len(e.ethAPI.keys)-1)
 		copy(tmp[:i], e.ethAPI.keys[:i])
 		copy(tmp[i:], e.ethAPI.keys[i+1:])
 		e.ethAPI.keys = tmp
@@ -193,7 +193,7 @@ func (e *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, p
 		return false, err
 	}
 
-	emintKey, ok := privKey.(emintcrypto.PrivKeySecp256k1)
+	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
 	if !ok {
 		return false, fmt.Errorf("invalid private key type: %T", privKey)
 	}

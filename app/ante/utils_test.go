@@ -95,7 +95,7 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 		return nil, err
 	}
 
-	privkey, ok := priv.(crypto.PrivKeySecp256k1)
+	privkey, ok := priv.(ethsecp256k1.PrivKey)
 	if !ok {
 		return nil, fmt.Errorf("invalid private key type: %T", priv)
 	}

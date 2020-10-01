@@ -64,7 +64,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 			}
 
 			// Converts key to Ethermint secp256 implementation
-			emintKey, ok := privKey.(crypto.PrivKeySecp256k1)
+			emintKey, ok := privKey.(ethsecp256k1.PrivKey)
 			if !ok {
 				return fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
 			}

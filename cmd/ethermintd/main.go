@@ -43,8 +43,8 @@ func main() {
 
 	cdc := codec.MakeCodec(app.ModuleBasics)
 
-	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, crypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, crypto.PrivKeyAminoName)
 
 	keys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc

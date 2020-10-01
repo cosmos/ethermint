@@ -46,14 +46,14 @@ type PublicEthAPI struct {
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      Backend
-	keys         []crypto.PrivKeySecp256k1 // unlocked keys
+	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *AddrLocker
 	keybaseLock  sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
-	key []crypto.PrivKeySecp256k1) *PublicEthAPI {
+	key []ethsecp256k1.PrivKey) *PublicEthAPI {
 
 	epoch, err := ethermint.ParseChainID(cliCtx.ChainID)
 	if err != nil {
@@ -342,7 +342,7 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 	return string(res), nil
 }
 
-func checkKeyInKeyring(keys []crypto.PrivKeySecp256k1, address common.Address) (key crypto.PrivKeySecp256k1, exist bool) {
+func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key ethsecp256k1.PrivKey, exist bool) {
 	if len(keys) > 0 {
 		for _, key := range keys {
 			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
