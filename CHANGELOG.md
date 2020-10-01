@@ -37,6 +37,21 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## Unreleased
 
+### Features
+
+* (rpc) [\#552](https://github.com/ChainSafe/ethermint/pull/552) Implement Eth Personal namespace `personal_importRawKey`.
+
+### Bug fixes
+
+* (keys) [\#554](https://github.com/ChainSafe/ethermint/pull/554) Fix private key derivation.
+* (app/ante) [\#550](https://github.com/ChainSafe/ethermint/pull/550) Update ante handler nonce verification to accept any nonce greater than or equal to the expected nonce to allow to successive transactions.
+
+## [v0.2.0] - 2020-09-24
+
+### State Machine Breaking
+
+* (app) [\#540](https://github.com/ChainSafe/ethermint/issues/540) Chain identifier's format has been changed to match the Cosmos `chainID` [standard](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-5.md), which is required for IBC. The epoch number of the ID is used as the EVM `chainID`.
+
 ### API Breaking
 
 * (types) [\#503](https://github.com/ChainSafe/ethermint/pull/503) The `types.DenomDefault` constant for `"aphoton"` has been renamed to `types.AttoPhoton`.
@@ -57,6 +72,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (ante) [\#525](https://github.com/ChainSafe/ethermint/pull/525) Add message validation decorator to `AnteHandler` for `MsgEthereumTx`.
 * (types) [\#507](https://github.com/ChainSafe/ethermint/pull/507) Fix hardcoded `aphoton` on `EthAccount` balance getter and setter.
+* (types) [\#501](https://github.com/ChainSafe/ethermint/pull/501) Fix bech32 encoding error by using the compressed ethereum secp256k1 public key.
 * (`x/evm`) [\#496](https://github.com/ChainSafe/ethermint/pull/496) Fix bugs on `journal.revert` and `CommitStateDB.Copy`.
 * (types) [\#480](https://github.com/ChainSafe/ethermint/pull/480) Update [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) coin type to `60` to satisfy [EIP84](https://github.com/ethereum/EIPs/issues/84).
 * (types) [\#513](https://github.com/ChainSafe/ethermint/pull/513) Fix simulated transaction bug that was causing a consensus error by unintentionally affecting the state.
