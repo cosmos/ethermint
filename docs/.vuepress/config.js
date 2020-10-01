@@ -55,7 +55,7 @@ module.exports = {
         bg: 'linear-gradient(221.79deg, #3D6B99 -1.08%, #336699 95.88%)',
         logo: 'ethereum-white'
       },
-      github: { 
+      github: {
         title: 'Found an Issue?',
         text: 'Help us improve this page by suggesting edits on GitHub.',
         bg: '#F8F9FC'
