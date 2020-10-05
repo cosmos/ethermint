@@ -103,7 +103,10 @@ func readGenesis() (Genesis, error) {
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var genesis Genesis
-	json.Unmarshal(byteValue, &genesis)
+	err = json.Unmarshal(byteValue, &genesis)
+	if err != nil {
+		return Genesis{}, err
+	}
 	return genesis, nil
 }
 

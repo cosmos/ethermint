@@ -323,7 +323,10 @@ func sendTx(ctx *cli.Context) error {
 				if err != nil {
 					return err
 				}
-				startTimef.Write([]byte(fmt.Sprintf("%d", startTime.Unix())))
+				_, err = startTimef.Write([]byte(fmt.Sprintf("%d", startTime.Unix())))
+				if err != nil {
+					return err
+				}
 
 				endTimef, err := os.Create(cwd + "/end.txt")
 				if err != nil {
@@ -348,7 +351,7 @@ func sendTx(ctx *cli.Context) error {
 			toIndex := getRandAcct(0, len(accts)-1)
 			to := accts[toIndex]
 
-			if string(from) == string(to) {
+			if from == to {
 				to = accts[getRandAcct(0, len(accts)-1)]
 			}
 
@@ -492,12 +495,13 @@ func analyze(ctx *cli.Context) error {
 		s := re.ReplaceAllString(scanner.Text(), " ")
 		spl := strings.Split(s, " ")
 
-		if len(spl[0]) == 10 {
+		switch l := len(spl[0]); {
+		case l == 10:
 			currentTimeStamp, err = strconv.Atoi(spl[0])
 			if err != nil {
 				return err
 			}
-		} else if spl[0] == "" && len(spl) >= 4 {
+		case spl[0] == "" && l >= 4:
 			cpu, err := strconv.ParseFloat(spl[1], 64)
 			if err != nil {
 				return err
@@ -514,21 +518,21 @@ func analyze(ctx *cli.Context) error {
 					ramPercentage: ram,
 					process:       spl[3],
 				})
-
-			if spl[3] == "ethermintd" {
+			switch process := spl[3]; {
+			case process == "ethermintd":
 				emintdCPUUsage = append(emintdCPUUsage, cpu)
 				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
-			} else if spl[3] == "ethermintcli" {
+			case process == "ethermintcli":
 				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
 				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
-			} else if spl[3] == "geth" {
+			case process == "geth":
 				gethCPUUsage = append(gethCPUUsage, cpu)
 				gethRAMUsage = append(gethRAMUsage, ram)
 				gethTimestamps = append(gethTimestamps, currentTimeStamp)
 			}
-		} else if spl[0] != "" {
+		case spl[0] != "":
 			cpu, err := strconv.ParseFloat(spl[0], 64)
 			if err != nil {
 				return err
@@ -544,16 +548,16 @@ func analyze(ctx *cli.Context) error {
 					ramPercentage: ram,
 					process:       spl[2],
 				})
-
-			if spl[2] == "ethermintd" {
+			switch process := spl[2]; {
+			case process == "ethermintd":
 				emintdCPUUsage = append(emintdCPUUsage, cpu)
 				emintdRAMUsage = append(emintdRAMUsage, ram)
 				emintdTimestamps = append(emintdTimestamps, currentTimeStamp)
-			} else if spl[2] == "ethermintcli" {
+			case process == "ethermintcli":
 				emintcliCPUUsage = append(emintcliCPUUsage, cpu)
 				emintcliRAMUsage = append(emintcliRAMUsage, ram)
 				emintcliTimestamps = append(emintcliTimestamps, currentTimeStamp)
-			} else if spl[2] == "geth" {
+			case process == "geth":
 				gethCPUUsage = append(gethCPUUsage, cpu)
 				gethRAMUsage = append(gethRAMUsage, ram)
 				gethTimestamps = append(gethTimestamps, currentTimeStamp)
@@ -582,7 +586,7 @@ func analyze(ctx *cli.Context) error {
 			fmt.Println("Average RAM Usage [geth]: ", average(gethRAMUsage, gethTimestamps, ctx.Int("start"), ctx.Int("end")))
 		}
 
-		// fmt.Println("Ranged TX per second (TPS): ", calcRangedTps(transactions, timestamps, ctx.Int("start"), ctx.Int("end")))
+		fmt.Println(fmt.Sprintf("Ranged TX per second (TPS) [start:%d; end%d]: ", ctx.Int("start"), ctx.Int("end")), calcRangedTps(transactions, timestamps, ctx.Int("start"), ctx.Int("end")))
 	}
 
 	return nil
