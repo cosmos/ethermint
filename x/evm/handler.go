@@ -1,11 +1,9 @@
 package evm
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,13 +30,13 @@ func NewHandler(k Keeper) sdk.Handler {
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil, err
 	}
 
 	// Verify signature and retrieve sender address
-	sender, err := msg.VerifySig(intChainID)
+	sender, err := msg.VerifySig(chainIDEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -54,30 +52,41 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
+		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
 	}
 
-	// Prepare db for logs
-	// TODO: block hash
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
+	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
+	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
+	// other nodes, causing a consensus error
+	if !st.Simulate {
+		// Prepare db for logs
+		// TODO: block hash
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
+	}
 
-	// TODO: move to keeper
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		// update block bloom filter
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution
@@ -112,9 +121,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil, err
 	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -127,7 +136,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
+		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
@@ -138,22 +147,31 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		st.Recipient = &to
 	}
 
-	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
+	if !st.Simulate {
+		// Prepare db for logs
+		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+		k.TxCount++
+	}
 
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-	if err != nil {
-		panic(err)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// log successful execution

@@ -4,42 +4,35 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
-	"sync"
 	"time"
 
-	sdkcontext "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/spf13/viper"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
-	params "github.com/cosmos/ethermint/rpc/args"
-	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+
+	emintcrypto "github.com/cosmos/ethermint/crypto"
+	params "github.com/cosmos/ethermint/rpc/args"
 )
 
-// PersonalEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
+// PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
-	cliCtx      sdkcontext.CLIContext
-	ethAPI      *PublicEthAPI
-	nonceLock   *AddrLocker
-	keys        []emintcrypto.PrivKeySecp256k1
-	keyInfos    []keys.Info
-	keybaseLock sync.Mutex
+	ethAPI   *PublicEthAPI
+	keyInfos []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
 }
 
-// NewPersonalEthAPI creates an instance of the public ETH Web3 API.
-func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonceLock *AddrLocker, keys []emintcrypto.PrivKeySecp256k1) *PersonalEthAPI {
+// NewPersonalEthAPI creates an instance of the public Personal Eth API.
+func NewPersonalEthAPI(ethAPI *PublicEthAPI) *PersonalEthAPI {
 	api := &PersonalEthAPI{
-		cliCtx:    cliCtx,
-		ethAPI:    ethAPI,
-		nonceLock: nonceLock,
-		keys:      keys,
+		ethAPI: ethAPI,
 	}
 
 	infos, err := api.getKeybaseInfo()
@@ -52,41 +45,68 @@ func NewPersonalEthAPI(cliCtx sdkcontext.CLIContext, ethAPI *PublicEthAPI, nonce
 }
 
 func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
-	e.keybaseLock.Lock()
-	defer e.keybaseLock.Unlock()
+	e.ethAPI.keybaseLock.Lock()
+	defer e.ethAPI.keybaseLock.Unlock()
 
-	if e.cliCtx.Keybase == nil {
+	if e.ethAPI.cliCtx.Keybase == nil {
 		keybase, err := keys.NewKeyring(
 			sdk.KeyringServiceName(),
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
-			e.cliCtx.Input,
+			e.ethAPI.cliCtx.Input,
 			emintcrypto.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		e.cliCtx.Keybase = keybase
+		e.ethAPI.cliCtx.Keybase = keybase
 	}
 
-	return e.cliCtx.Keybase.List()
+	return e.ethAPI.cliCtx.Keybase.List()
 }
 
-// ImportRawKey stores the given hex encoded ECDSA key into the key directory,
-// encrypting it with the passphrase.
-// Currently, this is not implemented since the feature is not supported by the keys.
+// ImportRawKey armors and encrypts a given raw hex encoded ECDSA key and stores it into the key directory.
+// The name of the key will have the format "personal_<length-keys>", where <length-keys> is the total number of
+// keys stored on the keyring.
+// NOTE: The key will be both armored and encrypted using the same passphrase.
 func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
-	_, err := crypto.HexToECDSA(privkey)
+	e.ethAPI.logger.Debug("personal_importRawKey")
+	priv, err := crypto.HexToECDSA(privkey)
 	if err != nil {
 		return common.Address{}, err
 	}
 
-	return common.Address{}, nil
+	privKey := emintcrypto.PrivKeySecp256k1(crypto.FromECDSA(priv))
+
+	armor := mintkey.EncryptArmorPrivKey(privKey, password, emintcrypto.EthSecp256k1Type)
+
+	// ignore error as we only care about the length of the list
+	list, _ := e.ethAPI.cliCtx.Keybase.List()
+	privKeyName := fmt.Sprintf("personal_%d", len(list))
+
+	if err := e.ethAPI.cliCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
+		return common.Address{}, err
+	}
+
+	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
+
+	info, err := e.ethAPI.cliCtx.Keybase.Get(privKeyName)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	// append key and info to be able to lock and list the account
+	//e.ethAPI.keys = append(e.ethAPI.keys, privKey)
+	e.keyInfos = append(e.keyInfos, info)
+	e.ethAPI.logger.Info("key successfully imported", "name", privKeyName, "address", addr.String())
+
+	return addr, nil
 }
 
 // ListAccounts will return a list of addresses for accounts this node manages.
 func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
+	e.ethAPI.logger.Debug("personal_listAccounts")
 	addrs := []common.Address{}
 	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
@@ -99,15 +119,19 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 // LockAccount will lock the account associated with the given address when it's unlocked.
 // It removes the key corresponding to the given address from the API's local keys.
 func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
-	for i, key := range e.keys {
+	e.ethAPI.logger.Debug("personal_lockAccount", "address", address.String())
+
+	for i, key := range e.ethAPI.keys {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			continue
 		}
 
-		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.keys)-1)
-		copy(tmp[:i], e.keys[:i])
-		copy(tmp[i:], e.keys[i+1:])
-		e.keys = tmp
+		tmp := make([]emintcrypto.PrivKeySecp256k1, len(e.ethAPI.keys)-1)
+		copy(tmp[:i], e.ethAPI.keys[:i])
+		copy(tmp[i:], e.ethAPI.keys[i+1:])
+		e.ethAPI.keys = tmp
+
+		e.ethAPI.logger.Debug("account unlocked", "address", address.String())
 		return true
 	}
 
@@ -116,13 +140,14 @@ func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 
 // NewAccount will create a new account and returns the address for the new account.
 func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
+	e.ethAPI.logger.Debug("personal_newAccount")
 	_, err := e.getKeybaseInfo()
 	if err != nil {
 		return common.Address{}, err
 	}
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	info, _, err := e.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, emintcrypto.EthSecp256k1)
+	info, _, err := e.ethAPI.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, emintcrypto.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -130,9 +155,9 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 	e.keyInfos = append(e.keyInfos, info)
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
-	log.Printf("Your new key was generated\t\taddress=0x%x", addr)
-	log.Printf("Please backup your key file!\tpath=%s", os.Getenv("HOME")+"/.ethermintcli/"+name)
-	log.Println("Please remember your password!")
+	e.ethAPI.logger.Info("Your new key was generated", "address", addr.String())
+	e.ethAPI.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.ethermintcli/"+name)
+	e.ethAPI.logger.Info("Please remember your password!")
 	return addr, nil
 }
 
@@ -140,23 +165,30 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 // It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
-func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address, password string, _ *uint64) (bool, error) {
+func (e *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
+	e.ethAPI.logger.Debug("personal_unlockAccount", "address", addr.String())
 	// TODO: use duration
 
-	name := ""
+	var keyInfo keys.Info
+
 	for _, info := range e.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
 		if bytes.Equal(addressBytes, addr[:]) {
-			name = info.GetName()
+			keyInfo = info
+			break
 		}
 	}
 
-	if name == "" {
-		return false, fmt.Errorf("cannot find key with given address")
+	if keyInfo == nil {
+		return false, fmt.Errorf("cannot find key with given address %s", addr.String())
 	}
 
-	// TODO: this only works on local keys
-	privKey, err := e.cliCtx.Keybase.ExportPrivateKeyObject(name, password)
+	// exporting private key only works on local keys
+	if keyInfo.GetType() != keys.TypeLocal {
+		return false, fmt.Errorf("key type must be %s, got %s", keys.TypeLedger.String(), keyInfo.GetType().String())
+	}
+
+	privKey, err := e.ethAPI.cliCtx.Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
 	if err != nil {
 		return false, err
 	}
@@ -166,14 +198,15 @@ func (e *PersonalEthAPI) UnlockAccount(ctx context.Context, addr common.Address,
 		return false, fmt.Errorf("invalid private key type: %T", privKey)
 	}
 
-	e.keys = append(e.keys, emintKey)
+	e.ethAPI.keys = append(e.ethAPI.keys, emintKey)
+	e.ethAPI.logger.Debug("account unlocked", "address", addr.String())
 	return true, nil
 }
 
 // SendTransaction will create a transaction from the given arguments and
 // tries to sign it with the key associated with args.To. If the given password isn't
 // able to decrypt the key it fails.
-func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTxArgs, passwd string) (common.Hash, error) {
+func (e *PersonalEthAPI) SendTransaction(_ context.Context, args params.SendTxArgs, _ string) (common.Hash, error) {
 	return e.ethAPI.SendTransaction(args)
 }
 
@@ -186,10 +219,12 @@ func (e *PersonalEthAPI) SendTransaction(ctx context.Context, args params.SendTx
 // The key used to calculate the signature is decrypted with the given password.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
-func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr common.Address, passwd string) (hexutil.Bytes, error) {
-	key, ok := checkKeyInKeyring(e.keys, addr)
+func (e *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
+	e.ethAPI.logger.Debug("personal_sign", "data", data, "address", addr.String())
+
+	key, ok := checkKeyInKeyring(e.ethAPI.keys, addr)
 	if !ok {
-		return nil, fmt.Errorf("cannot find key with given address")
+		return nil, fmt.Errorf("cannot find key with address %s", addr.String())
 	}
 
 	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
@@ -211,7 +246,9 @@ func (e *PersonalEthAPI) Sign(ctx context.Context, data hexutil.Bytes, addr comm
 // the V value must be 27 or 28 for legacy reasons.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecove
-func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (common.Address, error) {
+func (e *PersonalEthAPI) EcRecover(_ context.Context, data, sig hexutil.Bytes) (common.Address, error) {
+	e.ethAPI.logger.Debug("personal_ecRecover", "data", data, "sig", sig)
+
 	if len(sig) != crypto.SignatureLength {
 		return common.Address{}, fmt.Errorf("signature must be %d bytes long", crypto.SignatureLength)
 	}
@@ -220,9 +257,9 @@ func (e *PersonalEthAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes)
 	}
 	sig[crypto.RecoveryIDOffset] -= 27 // Transform yellow paper V from 27/28 to 0/1
 
-	rpk, err := crypto.SigToPub(accounts.TextHash(data), sig)
+	pubkey, err := crypto.SigToPub(accounts.TextHash(data), sig)
 	if err != nil {
 		return common.Address{}, err
 	}
-	return crypto.PubkeyToAddress(*rpk), nil
+	return crypto.PubkeyToAddress(*pubkey), nil
 }

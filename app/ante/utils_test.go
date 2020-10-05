@@ -2,7 +2,6 @@ package ante_test
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/cosmos/ethermint/app"
 	ante "github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/crypto"
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -37,8 +36,10 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.SupplyKeeper)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
+
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper)
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -50,11 +51,11 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 }
 
 func newTestCoins() sdk.Coins {
-	return sdk.NewCoins(sdk.NewInt64Coin(emint.DenomDefault, 500000000))
+	return sdk.NewCoins(ethermint.NewPhotonCoinInt64(500000000))
 }
 
 func newTestStdFee() auth.StdFee {
-	return auth.NewStdFee(220000, sdk.NewCoins(sdk.NewInt64Coin(emint.DenomDefault, 150)))
+	return auth.NewStdFee(220000, sdk.NewCoins(ethermint.NewPhotonCoinInt64(150)))
 }
 
 // GenerateAddress generates an Ethereum address.
@@ -89,9 +90,9 @@ func newTestSDKTx(
 }
 
 func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
-	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid chainID: %s", ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil, err
 	}
 
 	privkey, ok := priv.(crypto.PrivKeySecp256k1)
@@ -99,8 +100,7 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 		return nil, fmt.Errorf("invalid private key type: %T", priv)
 	}
 
-	err := msg.Sign(chainID, privkey.ToECDSA())
-	if err != nil {
+	if err := msg.Sign(chainIDEpoch, privkey.ToECDSA()); err != nil {
 		return nil, err
 	}
 

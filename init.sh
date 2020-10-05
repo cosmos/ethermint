@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KEY="mykey"
-CHAINID=8
+CHAINID="ethermint-1"
 MONIKER="localtestnet"
 
 # remove existing daemon and client
@@ -18,26 +18,32 @@ ethermintcli config indent true
 ethermintcli config trust-node true
 
 # if $KEY exists it should be deleted
-ethermintcli keys add $KEY --algo "eth_secp256k1"
+ethermintcli keys add $KEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 ethermintd init $MONIKER --chain-id $CHAINID
 
+# Change parameter token denominations to aphoton
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+
+# Enable faucet
+cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 1000000000000000000photon,1000000000000000000stake
+ethermintd add-genesis-account $(ethermintcli keys show $KEY -a) 100000000000000000000aphoton
 
 # Sign genesis transaction
-ethermintd gentx --name $KEY --keyring-backend test
+ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
 ethermintd collect-gentxs
 
-# Enable faucet
-cat  $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
-
 echo -e '\n\ntestnet faucet enabled'
 echo -e 'to transfer tokens to your account address use:'
-echo -e "ethermintcli tx faucet request 100photon --from $KEY\n"
+echo -e "ethermintcli tx faucet request 100aphoton --from $KEY\n"
 
 
 # Run this to ensure everything worked and that the genesis file is setup correctly

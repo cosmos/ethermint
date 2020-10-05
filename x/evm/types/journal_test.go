@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -55,7 +57,7 @@ func (suite *JournalTestSuite) SetupTest() {
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
 	suite.journal = newJournal()
 
-	balance := sdk.NewCoins(sdk.NewCoin(ethermint.DenomDefault, sdk.NewInt(100)))
+	balance := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.NewInt(100)))
 	acc := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
@@ -95,6 +97,8 @@ func (suite *JournalTestSuite) SetupTest() {
 // to maintain consistency with the Geth implementation.
 func (suite *JournalTestSuite) setup() {
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
+	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
 	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	storeKey := sdk.NewKVStoreKey(StoreKey)
 
@@ -105,24 +109,24 @@ func (suite *JournalTestSuite) setup() {
 
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
-	// cms.MountStoreWithDB(bankKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	err := cms.LoadLatestVersion()
 	suite.Require().NoError(err)
 
 	cdc := newTestCodec()
 
-	keyParams := sdk.NewKVStoreKey(params.StoreKey)
-	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
-
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, ak).WithContext(suite.ctx)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak).WithContext(suite.ctx)
+	suite.stateDB.SetParams(DefaultParams())
 }
 
 func TestJournalTestSuite(t *testing.T) {
@@ -235,6 +239,88 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 	idx, ok := suite.journal.addressToJournalIndex[suite.address]
 	suite.Require().False(ok)
 	suite.Require().Zero(idx)
+}
+
+func (suite *JournalTestSuite) TestJournal_preimage_revert() {
+	suite.stateDB.preimages = []preimageEntry{
+		{
+			hash:     ethcmn.BytesToHash([]byte("hash")),
+			preimage: []byte("preimage0"),
+		},
+		{
+			hash:     ethcmn.BytesToHash([]byte("hash1")),
+			preimage: []byte("preimage1"),
+		},
+		{
+			hash:     ethcmn.BytesToHash([]byte("hash2")),
+			preimage: []byte("preimage2"),
+		},
+	}
+
+	for i, preimage := range suite.stateDB.preimages {
+		suite.stateDB.hashToPreimageIndex[preimage.hash] = i
+	}
+
+	change := addPreimageChange{
+		hash: ethcmn.BytesToHash([]byte("hash")),
+	}
+
+	// delete first entry
+	change.revert(suite.stateDB)
+	suite.Require().Len(suite.stateDB.preimages, 2)
+	suite.Require().Equal(len(suite.stateDB.preimages), len(suite.stateDB.hashToPreimageIndex))
+
+	for i, entry := range suite.stateDB.preimages {
+		suite.Require().Equal(fmt.Sprintf("preimage%d", i+1), string(entry.preimage), entry.hash.String())
+		idx, found := suite.stateDB.hashToPreimageIndex[entry.hash]
+		suite.Require().True(found)
+		suite.Require().Equal(i, idx)
+	}
+}
+
+func (suite *JournalTestSuite) TestJournal_createObjectChange_revert() {
+	addr := ethcmn.BytesToAddress([]byte("addr"))
+
+	suite.stateDB.stateObjects = []stateEntry{
+		{
+			address: addr,
+			stateObject: &stateObject{
+				address: addr,
+			},
+		},
+		{
+			address: ethcmn.BytesToAddress([]byte("addr1")),
+			stateObject: &stateObject{
+				address: ethcmn.BytesToAddress([]byte("addr1")),
+			},
+		},
+		{
+			address: ethcmn.BytesToAddress([]byte("addr2")),
+			stateObject: &stateObject{
+				address: ethcmn.BytesToAddress([]byte("addr2")),
+			},
+		},
+	}
+
+	for i, so := range suite.stateDB.stateObjects {
+		suite.stateDB.addressToObjectIndex[so.address] = i
+	}
+
+	change := createObjectChange{
+		account: &addr,
+	}
+
+	// delete first entry
+	change.revert(suite.stateDB)
+	suite.Require().Len(suite.stateDB.stateObjects, 2)
+	suite.Require().Equal(len(suite.stateDB.stateObjects), len(suite.stateDB.addressToObjectIndex))
+
+	for i, entry := range suite.stateDB.stateObjects {
+		suite.Require().Equal(ethcmn.BytesToAddress([]byte(fmt.Sprintf("addr%d", i+1))).String(), entry.address.String())
+		idx, found := suite.stateDB.addressToObjectIndex[entry.address]
+		suite.Require().True(found)
+		suite.Require().Equal(i, idx)
+	}
 }
 
 func (suite *JournalTestSuite) TestJournal_dirty() {

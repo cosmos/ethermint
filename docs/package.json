@@ -9,8 +9,7 @@
     "postserve": "./post.sh",
     "prebuild": "./pre.sh",
     "build": "trap 'exit 0' SIGINT; vuepress build --no-cache",
-    "postbuild": "./post.sh",
-    "preinstall": "npx npm-force-resolutions"
+    "postbuild": "./post.sh"
   },
   "keywords": [
     "ethermint",
@@ -22,13 +21,13 @@
   "author": "ChainSafe Systems",
   "license": "ISC",
   "dependencies": {
-    "npm-force-resolutions": "0.0.3",
-    "vuepress-theme-cosmos": "^1.0.168"
+    "entities": "^2.0.3",
+    "vuepress-theme-cosmos": "^1.0.172"
   },
   "devDependencies": {
     "watchpack": "^1.7.2"
   },
   "resolutions": {
-    "serialize-javascript": "^3.1.0"
+    "serialize-javascript": "^4.0.0"
   }
 }

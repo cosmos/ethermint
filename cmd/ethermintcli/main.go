@@ -46,6 +46,7 @@ func main() {
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
 	ethermint.SetBech32Prefixes(config)
+	ethermint.SetBip44CoinType(config)
 	config.Seal()
 
 	rootCmd := &cobra.Command{
@@ -65,7 +66,9 @@ func main() {
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		rpc.EmintServeCmd(cdc),
+		client.ValidateChainID(
+			rpc.EmintServeCmd(cdc),
+		),
 		flags.LineBreak,
 		client.KeyCommands(),
 		flags.LineBreak,

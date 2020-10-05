@@ -53,6 +53,7 @@ func main() {
 
 	config := sdk.GetConfig()
 	ethermint.SetBech32Prefixes(config)
+	ethermint.SetBip44CoinType(config)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
@@ -94,24 +95,31 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return app.NewEthermintApp(logger, db, traceStore, true, 0,
-		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))))
+	return app.NewEthermintApp(
+		logger,
+		db,
+		traceStore,
+		true,
+		map[int64]bool{},
+		0,
+		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))),
+		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
+		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
+	)
 }
 
 func exportAppStateAndTMValidators(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
+	ethermintApp := app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, 0)
+
 	if height != -1 {
-		emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-		err := emintApp.LoadHeight(height)
+		err := ethermintApp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
 		}
-		return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	emintApp := app.NewEthermintApp(logger, db, traceStore, true, 0)
-
-	return emintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }

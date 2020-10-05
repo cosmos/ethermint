@@ -23,6 +23,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/cosmos/cosmos-sdk/x/upgrade"
+	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 
 	"github.com/cosmos/ethermint/app/ante"
 	ethermintcodec "github.com/cosmos/ethermint/codec"
@@ -40,6 +42,7 @@ func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
 	ethermint.SetBech32Prefixes(config)
+	ethermint.SetBip44CoinType(config)
 }
 
 const appName = "Ethermint"
@@ -63,12 +66,13 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
-			paramsclient.ProposalHandler, distr.ProposalHandler,
+			paramsclient.ProposalHandler, distr.ProposalHandler, upgradeclient.ProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
 		evidence.AppModuleBasic{},
+		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
 		faucet.AppModuleBasic{},
 	)
@@ -118,6 +122,7 @@ type EthermintApp struct {
 	DistrKeeper    distr.Keeper
 	GovKeeper      gov.Keeper
 	CrisisKeeper   crisis.Keeper
+	UpgradeKeeper  upgrade.Keeper
 	ParamsKeeper   params.Keeper
 	EvidenceKeeper evidence.Keeper
 	EvmKeeper      evm.Keeper
@@ -130,20 +135,20 @@ type EthermintApp struct {
 	sm *module.SimulationManager
 }
 
-// NewEthermintApp returns a reference to a new initialized Ethermint
-// application.
-//
-// TODO: Ethermint needs to support being bootstrapped as an application running
-// in a sovereign zone and as an application running with a shared security model.
-// For now, it will support only running as a sovereign application.
+// NewEthermintApp returns a reference to a new initialized Ethermint application.
 func NewEthermintApp(
-	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
+	logger log.Logger,
+	db dbm.DB,
+	traceStore io.Writer,
+	loadLatest bool,
+	skipUpgradeHeights map[int64]bool,
+	invCheckPeriod uint,
+	baseAppOptions ...func(*bam.BaseApp),
 ) *EthermintApp {
 
 	cdc := ethermintcodec.MakeCodec(ModuleBasics)
 
-	// use custom Ethermint transaction decoder
+	// NOTE we use custom Ethermint transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -151,8 +156,8 @@ func NewEthermintApp(
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, evidence.StoreKey, evm.StoreKey,
-		faucet.StoreKey,
+		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
+		evm.StoreKey, faucet.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -177,6 +182,7 @@ func NewEthermintApp(
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace).WithKeyTable(gov.ParamKeyTable())
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
 	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
+	app.subspaces[evm.ModuleName] = app.ParamsKeeper.Subspace(evm.DefaultParamspace)
 
 	// use custom Ethermint account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -205,8 +211,9 @@ func NewEthermintApp(
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
+	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.AccountKeeper,
+		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper,
 	)
 	app.FaucetKeeper = faucet.NewKeeper(
 		app.cdc, keys[faucet.StoreKey], app.SupplyKeeper,
@@ -225,7 +232,9 @@ func NewEthermintApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(upgrade.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.UpgradeKeeper))
+
 	app.GovKeeper = gov.NewKeeper(
 		cdc, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.SupplyKeeper,
 		&stakingKeeper, govRouter,
@@ -303,7 +312,7 @@ func NewEthermintApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.BankKeeper, app.SupplyKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 
 	if loadLatest {
@@ -387,5 +396,6 @@ func GetMaccPerms() map[string][]string {
 	for k, v := range maccPerms {
 		dupMaccPerms[k] = v
 	}
+
 	return dupMaccPerms
 }
