@@ -15,8 +15,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
 )
 
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
@@ -34,7 +34,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				viper.GetString(flags.FlagKeyringBackend),
 				viper.GetString(flags.FlagHome),
 				inBuf,
-				crypto.EthSecp256k1Options()...,
+				hd.EthSecp256k1Options()...,
 			)
 			if err != nil {
 				return err

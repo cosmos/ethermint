@@ -19,7 +19,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	emintcrypto "github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
 	params "github.com/cosmos/ethermint/rpc/args"
 )
 
@@ -54,7 +55,7 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
 			e.ethAPI.cliCtx.Input,
-			emintcrypto.EthSecp256k1Options()...,
+			hd.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return nil, err
@@ -79,7 +80,7 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 
 	privKey := ethsecp256k1.PrivKey(crypto.FromECDSA(priv))
 
-	armor := mintkey.EncryptArmorPrivKey(privKey, password, emintcrypto.EthSecp256k1Type)
+	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	// ignore error as we only care about the length of the list
 	list, _ := e.ethAPI.cliCtx.Keybase.List()
@@ -147,7 +148,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 	}
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	info, _, err := e.ethAPI.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, emintcrypto.EthSecp256k1)
+	info, _, err := e.ethAPI.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}

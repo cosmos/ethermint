@@ -19,7 +19,8 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
 	"github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -108,7 +109,7 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
-		crypto.EthSecp256k1Options()...,
+		hd.EthSecp256k1Options()...,
 	)
 	if err != nil {
 		return []ethsecp256k1.PrivKey{}, err

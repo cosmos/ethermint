@@ -10,7 +10,8 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
 	params "github.com/cosmos/ethermint/rpc/args"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
@@ -86,7 +87,7 @@ func (e *PublicEthAPI) getKeybaseInfo() error {
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
 			e.cliCtx.Input,
-			crypto.EthSecp256k1Options()...,
+			hd.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return err
@@ -181,7 +182,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.cliCtx.Input,
-		crypto.EthSecp256k1Options()...,
+		hd.EthSecp256k1Options()...,
 	)
 	if err != nil {
 		return addresses, err

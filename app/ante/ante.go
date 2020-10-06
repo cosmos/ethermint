@@ -8,14 +8,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
 func init() {
-	crypto.RegisterCodec(types.ModuleCdc)
+	ethsecp256k1.RegisterCodec(types.ModuleCdc)
 }
 
 const (

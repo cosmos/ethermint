@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
@@ -14,6 +15,14 @@ const (
 	PrivKeySize = 32
 	// KeyType is the string constant for the EthSecp256k1 algorithm
 	KeyType = "eth_secp256k1"
+)
+
+// Amino encoding names
+const (
+	// PrivKeyName defines the amino encoding name for the EthSecp256k1 private key
+	PrivKeyName = "ethermint/PrivKeyEthSecp256k1"
+	// PubKeyName defines the amino encoding name for the EthSecp256k1 public key
+	PubKeyName = "ethermint/PubKeyEthSecp256k1"
 )
 
 // ----------------------------------------------------------------------------
@@ -113,7 +122,7 @@ func (key PubKey) VerifyBytes(msg []byte, sig []byte) bool {
 	}
 
 	// the signature needs to be in [R || S] format when provided to VerifySignature
-	return ethsecp256k1.VerifySignature(key, ethcrypto.Keccak256Hash(msg).Bytes(), sig)
+	return secp256k1.VerifySignature(key, ethcrypto.Keccak256Hash(msg).Bytes(), sig)
 }
 
 // Equals returns true if two ECDSA public keys are equal and false otherwise.
