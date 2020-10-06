@@ -5,107 +5,92 @@ import (
 
 	"github.com/pkg/errors"
 
-	"crypto/hmac"
-	"crypto/sha512"
-
-	"github.com/tyler-smith/go-bip39"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/tyler-smith/go-bip39"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 const (
-	// EthSecp256k1 defines the ECDSA secp256k1 curve used on Ethereum
-	EthSecp256k1Type = hd.PubKeyType("eth_secp256k1")
+	// EthSecp256k1 defines the ECDSA secp256k1 used on Ethereum
+	EthSecp256k1 = keys.SigningAlgo(ethsecp256k1.KeyType)
 )
 
-var (
-	_ keyring.SignatureAlgo = EthSecp256k1{}
-
-	// EthSecp256k1 defines the signature algorithm type used on Ethermint
-	EthSecp256k1 = ethSecp256k1Algo{}
-
-	// SupportedAlgorithms defines the list of signing algorithms used on Ethermint:
-	//  - eth_secp256k1 (Ethereum)
-	//  - secp256k1 (Tendermint)
-	SupportedAlgorithms = keyring.SigningAlgoList{EthSecp256k1, hd.Secp256k1}
-
-	// SupportedAlgorithmsLedger defines the list of signing algorithms used on Ethermint with a Ledger device:
-	//  - eth_secp256k1 (Ethereum)
-	//  - secp256k1 (Tendermint)
-	SupportedAlgorithmsLedger = keyring.SigningAlgoList{EthSecp256k1, hd.Secp256k1}
-)
-
+// SupportedAlgorithms defines the list of signing algorithms used on Ethermint:
+//  - eth_secp256k1 (Ethereum)
+//  - secp256k1 (Tendermint)
+var SupportedAlgorithms = []keys.SigningAlgo{EthSecp256k1, keys.Secp256k1}
 
 // EthSecp256k1Options defines a keys options for the ethereum Secp256k1 curve.
-func EthSecp256k1Options(options *keyring.Options) {
-	options.SupportedAlgos = SupportedAlgorithms
-	options.WithSupportedAlgosLedger = SupportedAlgorithmsLedger
-}
-
-// Name returns eth_secp256k1
-func (s ethSecp256k1Algo) Name() hd.PubKeyType {
-	return EthSecp256k1Type
-}
-
-// Derive derives and returns the eth_secp256k1 private key for the given seed and HD path.
-func (s ethSecp256k1Algo) Derive() hd.DeriveFn {
-	return func(mnemonic string, bip39Passphrase, path string) ([]byte, error) {
-		hdpath, err := ethaccounts.ParseDerivationPath(hdpath)
-		if err != nil {
-			return nil, err 
-		}
-
-		seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
-		if err != nil {
-			return nil, err
-		}
-
-		// HMAC the seed to produce the private key and chain code
-		mac := hmac.New(sha512.New, []byte("Bitcoin seed"))
-		_, err = mac.Write(seed)
-		if err != nil {
-			return nil, err
-		}
-
-		seed = mac.Sum(nil)
-
-		masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, n := range hdpath {
-			masterKey, err = masterKey.Child(n)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		privateKey, err := key.ECPrivKey()
-		if err != nil {
-			return nil, err
-		}
-
-		privateKeyECDSA := privateKey.ToECDSA()
-		derivedKey := ethcrypto.FromECDSA(privateKeyECDSA)
-		return derivedKey, nil
+func EthSecp256k1Options() []keys.KeybaseOption {
+	return []keys.KeybaseOption{
+		keys.WithKeygenFunc(EthermintKeygenFunc),
+		keys.WithDeriveFunc(DeriveKey),
+		keys.WithSupportedAlgos(SupportedAlgorithms),
+		keys.WithSupportedAlgosLedger(SupportedAlgorithms),
 	}
 }
 
-// Generate generates a eth_secp256k1 private key from the given bytes.
-func (ethSecp256k1Algo) Generate() hd.GenerateFn {
-	return func(bz []byte) tmcrypto.PrivKey {
-		var bzArr = make([]byte, ethsecp256k1.PrivKeySize)
-		copy(bzArr, bz)
-
-		return &ethsecp256k1.PrivKey{Key: bzArr}
+func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) ([]byte, error) {
+	switch algo {
+	case keys.Secp256k1:
+		return keys.StdDeriveKey(mnemonic, bip39Passphrase, hdPath, algo)
+	case EthSecp256k1:
+		return DeriveSecp256k1(mnemonic, bip39Passphrase, hdPath)
+	default:
+		return nil, errors.Wrap(keys.ErrUnsupportedSigningAlgo, string(algo))
 	}
+}
+
+// EthermintKeygenFunc is the key generation function to generate secp256k1 ToECDSA
+// from ethereum.
+func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
+	if algo != EthSecp256k1 {
+		return nil, fmt.Errorf("signing algorithm must be %s, got %s", EthSecp256k1, algo)
+	}
+
+	return ethsecp256k1.PrivKey(bz), nil
+}
+
+// DeriveSecp256k1 derives and returns the eth_secp256k1 private key for the given mnemonic and HD path.
+func DeriveSecp256k1(mnemonic, bip39Passphrase, path string) ([]byte, error) {
+	hdpath, err := ethaccounts.ParseDerivationPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, err
+	}
+
+	key := masterKey
+	for _, n := range hdpath {
+		key, err = key.Child(n)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	privateKey, err := key.ECPrivKey()
+	if err != nil {
+		return nil, err
+	}
+
+	privateKeyECDSA := privateKey.ToECDSA()
+	derivedKey := ethsecp256k1.PrivKey(ethcrypto.FromECDSA(privateKeyECDSA))
+	return derivedKey, nil
 }

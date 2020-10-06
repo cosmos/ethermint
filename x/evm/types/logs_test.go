@@ -3,6 +3,7 @@ package types
 import (
 	"testing"
 
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/stretchr/testify/require"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"

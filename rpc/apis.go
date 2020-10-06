@@ -3,11 +3,11 @@
 package rpc
 
 import (
+	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
-
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // RPC namespaces and API version
@@ -42,7 +42,7 @@ func GetRPCAPIs(cliCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc.AP
 		{
 			Namespace: PersonalNamespace,
 			Version:   apiVersion,
-			Service:   NewPersonalEthAPI(cliCtx, ethAPI, nonceLock, keys),
+			Service:   NewPersonalEthAPI(ethAPI),
 			Public:    false,
 		},
 		{

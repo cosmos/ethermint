@@ -20,6 +20,8 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
+
 	"github.com/ethereum/go-ethereum/rpc"
 )
 

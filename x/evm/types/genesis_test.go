@@ -4,12 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/stretchr/testify/require"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 func TestValidateGenesisAccount(t *testing.T) {

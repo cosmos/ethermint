@@ -102,7 +102,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagCoinDenom, ethermint.AttoPhoton, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.AttoPhoton), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	cmd.Flags().String(flagKeyAlgo, string(crypto.EthSecp256k1), "Key signing algorithm to generate keys for")
+	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	return cmd
 }
 

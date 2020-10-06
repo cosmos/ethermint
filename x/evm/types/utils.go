@@ -5,7 +5,8 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,8 +17,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 // GenerateEthAddress generates an Ethereum address.
@@ -47,9 +47,8 @@ func ValidateSigner(signBytes, sig []byte, signer ethcmn.Address) error {
 
 func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
-	//nolint:gosec,errcheck
-	rlp.Encode(hasher, x)
-	hasher.Sum(hash[:0])
+	_ = rlp.Encode(hasher, x)
+	_ = hasher.Sum(hash[:0])
 
 	return hash
 }

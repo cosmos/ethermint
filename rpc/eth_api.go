@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
 	params "github.com/cosmos/ethermint/rpc/args"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
@@ -46,7 +47,7 @@ type PublicEthAPI struct {
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      Backend
-	keys         []ethsecp256k1.PrivKey
+	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *AddrLocker
 	keybaseLock  sync.Mutex
 }

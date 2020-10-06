@@ -37,8 +37,8 @@ func main() {
 	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
 
-	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 
 	keys.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc

@@ -18,8 +18,8 @@ import (
 )
 
 func init() {
-	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 }
 
 type AccountTestSuite struct {
