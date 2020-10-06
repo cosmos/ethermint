@@ -22,6 +22,6 @@ func init() {
 // RegisterCodec registers all the necessary types with amino for the given
 // codec.
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(PubKey{}, PrivKeyName, nil)
-	cdc.RegisterConcrete(PrivKey{}, PubKeyName, nil)
+	cdc.RegisterConcrete(PubKey{}, PubKeyName, nil)
+	cdc.RegisterConcrete(PrivKey{}, PrivKeyName, nil)
 }
