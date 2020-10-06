@@ -64,7 +64,7 @@ func (suite *JournalTestSuite) SetupTest() {
 	}
 
 	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
-	// suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), balance)
+	suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), balance)
 	suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("txhash")), []*ethtypes.Log{
 		{
 			Address:     suite.address,
@@ -99,7 +99,7 @@ func (suite *JournalTestSuite) setup() {
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
-	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
+	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	storeKey := sdk.NewKVStoreKey(StoreKey)
 
 	db := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
@@ -121,11 +121,13 @@ func (suite *JournalTestSuite) setup() {
 	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
+	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak).WithContext(suite.ctx)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, bk).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
 
@@ -149,6 +151,7 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			resetObjectChange{
 				prev: &stateObject{
 					address: suite.address,
+					balance: sdk.OneInt(),
 				},
 			},
 		},

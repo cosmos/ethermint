@@ -87,13 +87,15 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace,
+	ak AccountKeeper, bankKeeper bankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
 		paramSpace:           paramSpace,
 		accountKeeper:        ak,
+		bankKeeper:           bankKeeper,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -510,18 +512,8 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
 
-	coins := so.account.GetCoins()
-	balance := coins.AmountOf(newBalance.Denom)
-	if balance.IsZero() || !balance.Equal(newBalance.Amount) {
-		coins = coins.Add(newBalance)
-	}
-
-	if err := so.account.SetCoins(coins); err != nil {
-		return err
-	}
-
+	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
 }
 
@@ -640,21 +632,22 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 // UpdateAccounts updates the nonce and coin balances of accounts
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
-		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
-		emintAcc, ok := currAcc.(*emint.EthAccount)
+		address := sdk.AccAddress(stateEntry.address.Bytes())
+		currAccount := csdb.accountKeeper.GetAccount(csdb.ctx, address)
+		ethAccount, ok := currAccount.(*emint.EthAccount)
 		if !ok {
 			continue
 		}
 
 		evmDenom := csdb.GetParams().EvmDenom
-		balance := sdk.Coin{
-			Denom:  evmDenom,
-			Amount: emintAcc.GetCoins().AmountOf(evmDenom),
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, address, evmDenom)
+
+		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() {
+			stateEntry.stateObject.balance = balance.Amount
 		}
 
-		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
-			stateEntry.stateObject.Nonce() != emintAcc.GetSequence() {
-			stateEntry.stateObject.account = emintAcc
+		if stateEntry.stateObject.Nonce() != ethAccount.GetSequence() {
+			stateEntry.stateObject.account = ethAccount
 		}
 	}
 }
@@ -711,6 +704,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 		storeKey:             csdb.storeKey,
 		paramSpace:           csdb.paramSpace,
 		accountKeeper:        csdb.accountKeeper,
+		bankKeeper:           csdb.bankKeeper,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -810,7 +804,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, sdk.ZeroInt())
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -851,8 +845,11 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return nil
 	}
 
+	evmDenom := csdb.GetParams().EvmDenom
+	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), evmDenom)
+
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
+	so := newStateObject(csdb, acc, balance.Amount)
 	csdb.setStateObject(so)
 
 	return so

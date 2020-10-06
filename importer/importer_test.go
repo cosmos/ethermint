@@ -99,7 +99,7 @@ func trapSignals() {
 }
 
 // nolint: interfacer
-func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, evmKeeper evm.Keeper) {
+func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, bk bank.Keeper, evmKeeper evm.Keeper) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
@@ -151,7 +151,7 @@ func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.Accoun
 	require.NotNil(t, genAcc)
 
 	evmDenom := evmKeeper.GetParams(ctx).EvmDenom
-	balance := sdk.NewCoin(evmDenom, genAcc.GetCoins().AmountOf(evmDenom))
+	balance := bk.GetBalance(ctx, genAcc.GetAddress(), evmDenom)
 	require.Equal(t, sdk.NewIntFromBigInt(b), balance.Amount)
 }
 
@@ -177,12 +177,13 @@ func TestImportBlocks(t *testing.T) {
 	cms := store.NewCommitMultiStore(db)
 
 	authStoreKey := sdk.NewKVStoreKey(auth.StoreKey)
+	bankStoreKey := sdk.NewKVStoreKey(bank.StoreKey)
 	evmStoreKey := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	paramsStoreKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTransientStoreKey := sdk.NewTransientStoreKey(params.TStoreKey)
 
 	// mount stores
-	keys := []*sdk.KVStoreKey{authStoreKey, evmStoreKey, paramsStoreKey}
+	keys := []*sdk.KVStoreKey{authStoreKey, bankStoreKey, evmStoreKey, paramsStoreKey}
 	for _, key := range keys {
 		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
 	}
@@ -193,9 +194,13 @@ func TestImportBlocks(t *testing.T) {
 
 	// Set specific subspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(evmtypes.DefaultParamspace).WithKeyTable(evmtypes.ParamKeyTable())
+
+	// create keepers
 	ak := auth.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount)
-	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak)
+	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
+	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak, bk)
 
 	cms.SetPruning(sdkstore.PruneNothing)
 
@@ -204,7 +209,7 @@ func TestImportBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	// set and test genesis block
-	createAndTestGenesis(t, cms, ak, evmKeeper)
+	createAndTestGenesis(t, cms, ak, bk, evmKeeper)
 
 	// open blockchain export file
 	blockchainInput, err := os.Open(flagBlockchain)
