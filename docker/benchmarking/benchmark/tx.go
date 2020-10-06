@@ -150,7 +150,7 @@ func waitForReceipt(hash hexutil.Bytes) (map[string]interface{}, error) {
 }
 
 func getAllReceipts(hashes []hexutil.Bytes) []map[string]interface{} {
-	var receipts []map[string]interface{}
+	receipts := make([]map[string]interface{}, 0)
 	for _, hash := range hashes {
 		receipt, err := waitForReceipt(hash)
 		if err != nil {
@@ -358,8 +358,8 @@ func sendTx(ctx *cli.Context) error {
 			param := make([]map[string]string, 1)
 			param[0] = make(map[string]string)
 
-			param[0]["from"] = fmt.Sprintf("%s", from)
-			param[0]["to"] = fmt.Sprintf("%s", to)
+			param[0]["from"] = from
+			param[0]["to"] = to
 			param[0]["value"] = value
 			param[0]["gasLimit"] = gasLimit
 			param[0]["gasPrice"] = gasPrice

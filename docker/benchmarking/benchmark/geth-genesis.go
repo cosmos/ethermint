@@ -116,7 +116,7 @@ func writeGenesis(data Genesis) error {
 		return err
 	}
 
-	err = ioutil.WriteFile("genesis.json", file, 0644)
+	err = ioutil.WriteFile("genesis.json", file, 0600)
 	if err != nil {
 		return err
 	}
