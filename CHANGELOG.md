@@ -35,6 +35,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+### API Breaking
+
+* (crypto) [\#559](https://github.com/ChainSafe/ethermint/pull/559) Refactored crypto package in preparation for the SDK's Stargate release:
+  * `crypto.PubKeySecp256k1` and `crypto.PrivKeySecp256k1` are now `ethsecp256k1.PubKey` and `ethsecp256k1.PrivKey`, respectively
+  * Moved SDK `SigningAlgo` implementation for Ethermint's Secp256k1 key to `crypto/hd` package.
+
 ## [v0.2.1] - 2020-09-30
 
 ### Features
