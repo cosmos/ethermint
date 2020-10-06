@@ -406,9 +406,9 @@ func analyze(ctx *cli.Context) error {
 		return err
 	}
 	var receipts []map[string]interface{}
-	var transactions []int
 	var totalTx int
 	var resourceUsage []resource
+	transactions := make([]int, 0)
 
 	err = json.Unmarshal(receiptsf, &receipts)
 	if err != nil {
