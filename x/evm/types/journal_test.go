@@ -22,7 +22,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
@@ -38,9 +38,9 @@ type JournalTestSuite struct {
 func newTestCodec() *sdkcodec.Codec {
 	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
 
-	RegisterLegacyAminoCodec(cdc)
-	sdk.RegisterLegacyAminoCodec(cdc)
-	crypto.RegisterLegacyAminoCodec(cdc)
+	RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	ethsecp256k1.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
 	auth.RegisterLegacyAminoCodec(cdc)
 	ethermint.RegisterLegacyAminoCodec(cdc)
@@ -51,7 +51,7 @@ func newTestCodec() *sdkcodec.Codec {
 func (suite *JournalTestSuite) SetupTest() {
 	suite.setup()
 
-	privkey, err := crypto.GenerateKey()
+	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())

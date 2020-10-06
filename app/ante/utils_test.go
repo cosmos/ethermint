@@ -13,7 +13,7 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	ante "github.com/cosmos/ethermint/app/ante"
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
@@ -65,7 +65,7 @@ func newTestStdFee() auth.StdFee {
 
 // GenerateAddress generates an Ethereum address.
 func newTestAddrKey() (sdk.AccAddress, tmcrypto.PrivKey) {
-	privkey, _ := crypto.GenerateKey()
+	privkey, _ := ethsecp256k1.GenerateKey()
 	addr := ethcrypto.PubkeyToAddress(privkey.ToECDSA().PublicKey)
 
 	return sdk.AccAddress(addr.Bytes()), privkey
@@ -100,7 +100,7 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 		return nil, err
 	}
 
-	privkey, ok := priv.(crypto.PrivKeySecp256k1)
+	privkey, ok := priv.(ethsecp256k1.PrivKey)
 	if !ok {
 		return nil, fmt.Errorf("invalid private key type: %T", priv)
 	}
