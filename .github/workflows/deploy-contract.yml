@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
-        uses: actions/setup-node@v2.1.1
+        uses: actions/setup-node@v2.1.2
         with:
           node-version: '12.x'
       - name: Install dependencies
         run: npm install
-      - uses: technote-space/get-diff-action@v3.2
+      - uses: technote-space/get-diff-action@v3.3
         id: git_diff
         with:
           SUFFIX_FILTER: |
