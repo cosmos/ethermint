@@ -102,7 +102,7 @@ const appName = "Ethermint"
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.ethermintcli")
+	DefaultCLIHome = os.ExpandEnv("$HOME/.ethermintd")
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
 	DefaultNodeHome = os.ExpandEnv("$HOME/.ethermintd")

@@ -64,7 +64,7 @@ Check that the binaries have been successfuly installed:
 
 ```bash
 ethermintd -h
-ethermintcli -h
+ethermintd -h
 ```
 
 ### Copy the Genesis File

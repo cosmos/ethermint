@@ -160,7 +160,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 	e.ethAPI.logger.Info("Your new key was generated", "address", addr.String())
-	e.ethAPI.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.ethermintcli/"+name)
+	e.ethAPI.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.ethermintd/"+name)
 	e.ethAPI.logger.Info("Please remember your password!")
 	return addr, nil
 }

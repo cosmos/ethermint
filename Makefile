@@ -20,7 +20,7 @@ PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 ETHERMINT_DAEMON_BINARY = ethermintd
-ETHERMINT_CLI_BINARY = ethermintcli
+ETHERMINT_CLI_BINARY = ethermintd
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
@@ -162,7 +162,7 @@ docker-build:
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
 	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
-	docker cp ethermint:/usr/bin/ethermintcli ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/
 
 docker-localnet:
 	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node
