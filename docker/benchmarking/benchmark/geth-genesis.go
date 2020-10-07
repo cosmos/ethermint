@@ -9,25 +9,31 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Genesis is the interface for the unmarshaling of the a Geth genesis file.
 type Genesis struct {
-	Config struct {
-		ChainID             int64       `json:"chainId"`
-		Eip150Block         int64       `json:"eip150Block"`
-		Eip155Block         int64       `json:"eip155Block"`
-		Eip158Block         int64       `json:"eip158Block"`
-		HomesteadBlock      int64       `json:"homesteadBlock"`
-		ByzantiumBlock      int64       `json:"byzantiumBlock"`
-		ConstantinopleBlock int64       `json:"constantinopleBlock"`
-		PetersburgBlock     int64       `json:"petersburgBlock"`
-		Consensus           interface{} `json:"clique"`
-	} `json:"config"`
+	Config     Config      `json:"config"`
 	Difficulty string      `json:"difficulty"`
 	GasLimit   string      `json:"gasLimit"`
 	ExtraData  string      `json:"extraData"`
 	Alloc      interface{} `json:"alloc"`
 }
+
+// Balance is the interface for the balance of prefunded accounts.
 type Balance struct {
 	Balance string `json:"balance"`
+}
+
+// Config defines the Ethereum Config parameters.
+type Config struct {
+	ChainID             int64       `json:"chainId"`
+	Eip150Block         int64       `json:"eip150Block"`
+	Eip155Block         int64       `json:"eip155Block"`
+	Eip158Block         int64       `json:"eip158Block"`
+	HomesteadBlock      int64       `json:"homesteadBlock"`
+	ByzantiumBlock      int64       `json:"byzantiumBlock"`
+	ConstantinopleBlock int64       `json:"constantinopleBlock"`
+	PetersburgBlock     int64       `json:"petersburgBlock"`
+	Consensus           interface{} `json:"clique"`
 }
 
 var (
