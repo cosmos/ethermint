@@ -47,7 +47,7 @@ type filter struct {
 // PublicFilterAPI offers support to create and manage filters. This will allow external clients to retrieve various
 // information related to the Ethereum protocol such as blocks, transactions and logs.
 type PublicFilterAPI struct {
-	cliCtx    clientcontext.CLIContext
+	clientCtx clientclient.Context
 	backend   FiltersBackend
 	events    *EventSystem
 	filtersMu sync.Mutex
@@ -55,18 +55,18 @@ type PublicFilterAPI struct {
 }
 
 // NewPublicFilterAPI returns a new PublicFilterAPI instance.
-func NewPublicFilterAPI(cliCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
+func NewPublicFilterAPI(clientCtx clientclient.Context, backend FiltersBackend) *PublicFilterAPI {
 	// start the client to subscribe to Tendermint events
-	err := cliCtx.Client.Start()
+	err := clientCtx.Client.Start()
 	if err != nil {
 		panic(err)
 	}
 
 	api := &PublicFilterAPI{
-		cliCtx:  cliCtx,
-		backend: backend,
-		filters: make(map[rpc.ID]*filter),
-		events:  NewEventSystem(cliCtx.Client),
+		clientCtx: clientCtx,
+		backend:   backend,
+		filters:   make(map[rpc.ID]*filter),
+		events:    NewEventSystem(clientCtx.Client),
 	}
 
 	go api.timeoutLoop()

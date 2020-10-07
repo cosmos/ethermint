@@ -16,7 +16,7 @@ type PublicNetAPI struct {
 }
 
 // NewPublicNetAPI creates an instance of the public Net Web3 API.
-func NewPublicNetAPI(_ context.CLIContext) *PublicNetAPI {
+func NewPublicNetAPI(_ client.Context) *PublicNetAPI {
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a integer string
 	chainIDEpoch, err := ethermint.ParseChainID(chainID)

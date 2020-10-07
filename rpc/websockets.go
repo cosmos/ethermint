@@ -64,11 +64,11 @@ type websocketsServer struct {
 	logger  log.Logger
 }
 
-func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsServer {
+func newWebsocketsServer(clientCtx client.Context, wsAddr string) *websocketsServer {
 	return &websocketsServer{
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,
-		api:     newPubSubAPI(cliCtx),
+		api:     newPubSubAPI(clientCtx),
 		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
 	}
 }
@@ -257,7 +257,7 @@ type wsSubscription struct {
 
 // pubSubAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec
 type pubSubAPI struct {
-	cliCtx    context.CLIContext
+	clientCtx client.Context
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*wsSubscription
@@ -265,12 +265,12 @@ type pubSubAPI struct {
 }
 
 // newPubSubAPI creates an instance of the ethereum PubSub API.
-func newPubSubAPI(cliCtx context.CLIContext) *pubSubAPI {
+func newPubSubAPI(clientCtx client.Context) *pubSubAPI {
 	return &pubSubAPI{
-		cliCtx:  cliCtx,
-		events:  NewEventSystem(cliCtx.Client),
-		filters: make(map[rpc.ID]*wsSubscription),
-		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-client"),
+		clientCtx: clientCtx,
+		events:    NewEventSystem(clientCtx.Client),
+		filters:   make(map[rpc.ID]*wsSubscription),
+		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-client"),
 	}
 }
 

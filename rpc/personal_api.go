@@ -52,22 +52,22 @@ func (e *PersonalEthAPI) getKeybaseInfo() ([]keys.Info, error) {
 	e.ethAPI.keybaseLock.Lock()
 	defer e.ethAPI.keybaseLock.Unlock()
 
-	if e.ethAPI.cliCtx.Keybase == nil {
+	if e.ethAPI.clientCtx.Keybase == nil {
 		keybase, err := keys.NewKeyring(
 			sdk.KeyringServiceName(),
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
-			e.ethAPI.cliCtx.Input,
+			e.ethAPI.clientCtx.Input,
 			hd.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		e.ethAPI.cliCtx.Keybase = keybase
+		e.ethAPI.clientCtx.Keybase = keybase
 	}
 
-	return e.ethAPI.cliCtx.Keybase.List()
+	return e.ethAPI.clientCtx.Keybase.List()
 }
 
 // ImportRawKey armors and encrypts a given raw hex encoded ECDSA key and stores it into the key directory.
@@ -86,16 +86,16 @@ func (e *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address,
 	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	// ignore error as we only care about the length of the list
-	list, _ := e.ethAPI.cliCtx.Keybase.List()
+	list, _ := e.ethAPI.clientCtx.Keybase.List()
 	privKeyName := fmt.Sprintf("personal_%d", len(list))
 
-	if err := e.ethAPI.cliCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
+	if err := e.ethAPI.clientCtx.Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
 		return common.Address{}, err
 	}
 
 	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
 
-	info, err := e.ethAPI.cliCtx.Keybase.Get(privKeyName)
+	info, err := e.ethAPI.clientCtx.Keybase.Get(privKeyName)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -151,7 +151,7 @@ func (e *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 	}
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	info, _, err := e.ethAPI.cliCtx.Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
+	info, _, err := e.ethAPI.clientCtx.Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -192,7 +192,7 @@ func (e *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, p
 		return false, fmt.Errorf("key type must be %s, got %s", keys.TypeLedger.String(), keyInfo.GetType().String())
 	}
 
-	privKey, err := e.ethAPI.cliCtx.Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
+	privKey, err := e.ethAPI.clientCtx.Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
 	if err != nil {
 		return false, err
 	}

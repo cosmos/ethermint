@@ -51,7 +51,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 		Short: "send transaction to address (call operations included)",
 		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
@@ -80,9 +80,9 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			from := cliCtx.GetFromAddress()
+			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -96,7 +96,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
@@ -108,7 +108,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 		Short: "create contract through the evm using compiled bytecode",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
@@ -132,9 +132,9 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			from := cliCtx.GetFromAddress()
+			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -148,7 +148,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			if err = authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg}); err != nil {
+			if err = authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg}); err != nil {
 				return err
 			}
 

@@ -72,7 +72,7 @@ func registerRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetRPCAPIs(rs.CliCtx, privkeys)
+	apis := GetRPCAPIs(rs.clientCtx, privkeys)
 
 	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
 	whitelist := make(map[string]bool)
@@ -94,13 +94,13 @@ func registerRoutes(rs *lcd.RestServer) {
 	rs.Mux.HandleFunc("/", s.ServeHTTP).Methods("POST", "OPTIONS")
 
 	// Register all other Cosmos routes
-	client.RegisterRoutes(rs.CliCtx, rs.Mux)
-	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
-	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+	client.RegisterRoutes(rs.clientCtx, rs.Mux)
+	authrest.RegisterTxRoutes(rs.clientCtx, rs.Mux)
+	app.ModuleBasics.RegisterRESTRoutes(rs.clientCtx, rs.Mux)
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := newWebsocketsServer(rs.CliCtx, websocketAddr)
+	ws := newWebsocketsServer(rs.clientCtx, websocketAddr)
 	ws.start()
 }
 
