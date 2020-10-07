@@ -229,8 +229,16 @@ else
 	@echo "yarn already installed; skipping..."
 endif
 
+proto-tools: proto-tools-stamp
+proto-tools-stamp:
+	bash scripts/proto-tools-installer.sh
+	# Create dummy file to satisfy dependency and avoid
+	# rebuilding when this Makefile target is hit twice
+	# in a row.
+	touch $@
+
 tools: tools-stamp
-tools-stamp: contract-tools docs-tools runsim
+tools-stamp: contract-tools docs-tools proto-tools runsim
 	# Create dummy file to satisfy dependency and avoid
 	# rebuilding when this Makefile target is hit twice
 	# in a row.
