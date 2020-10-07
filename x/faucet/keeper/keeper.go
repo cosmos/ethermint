@@ -9,7 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/x/faucet/types"
 )
@@ -42,7 +42,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // GetFaucetAccount returns the faucet ModuleAccount
-func (k Keeper) GetFaucetAccount(ctx sdk.Context) authexported.ModuleAccountI {
+func (k Keeper) GetFaucetAccount(ctx sdk.Context) authtypes.ModuleAccountI {
 	return k.bankKeeper.GetModuleAccount(ctx, types.ModuleName)
 }
 
