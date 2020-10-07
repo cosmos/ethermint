@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
@@ -21,8 +20,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -76,6 +75,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
@@ -191,8 +191,8 @@ type EthermintApp struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// ethermint keepers
-	EvmKeeper      evm.Keeper
-	FaucetKeeper   faucet.Keeper
+	EvmKeeper    evm.Keeper
+	FaucetKeeper faucet.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -216,11 +216,9 @@ func NewEthermintApp(
 
 	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
 	appCodec := encodingConfig.Marshaler
-	// cdc := encodingConfig.Amino 
+	// cdc := encodingConfig.Amino
 	cdc := ethermintcodec.MakeCodec(ModuleBasics)
 	interfaceRegistry := encodingConfig.InterfaceRegistry
-		
-
 
 	// NOTE we use custom Ethermint transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := baseapp.NewBaseApp(
@@ -229,7 +227,7 @@ func NewEthermintApp(
 		db,
 		// evm.TxDecoder(cdc)
 		encodingConfig.TxConfig.TxDecoder(), // FIXME: use ethermint's
-		baseAppOptions...
+		baseAppOptions...,
 	)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -345,9 +343,8 @@ func NewEthermintApp(
 		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper,
 	)
 	app.FaucetKeeper = faucet.NewKeeper(
-		app.cdc, keys[faucet.StoreKey], app.SupplyKeeper,
+		app.cdc, keys[faucet.StoreKey], app.BankKeeper,
 	)
-
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -383,13 +380,13 @@ func NewEthermintApp(
 	// NOTE: upgrade module must go first to handle software upgrades.
 	// NOTE: staking module is required if HistoricalEntries param > 0.
 	app.mm.SetOrderBeginBlockers(
-		upgradetypes.ModuleName, 
-		evm.ModuleName, 
+		upgradetypes.ModuleName,
+		evm.ModuleName,
 		minttypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
 		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		evm.ModuleName, 
+		evm.ModuleName,
 		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
 	)
 
@@ -435,44 +432,44 @@ func NewEthermintApp(
 
 	app.sm.RegisterStoreDecoders()
 
-		// initialize stores
-		app.MountKVStores(keys)
-		app.MountTransientStores(tkeys)
-		app.MountMemoryStores(memKeys)
-	
-		// initialize BaseApp
-		app.SetInitChainer(app.InitChainer)
-		app.SetBeginBlocker(app.BeginBlocker)
+	// initialize stores
+	app.MountKVStores(keys)
+	app.MountTransientStores(tkeys)
+	app.MountMemoryStores(memKeys)
 
-		// use Ethermint's custom AnteHandler
-		app.SetAnteHandler(
-			ante.NewAnteHandler(
-				app.AccountKeeper, app.BankKeeper, app.EvmKeeper,
-				encodingConfig.TxConfig.SignModeHandler(),
-			),
-		)
-		app.SetEndBlocker(app.EndBlocker)
+	// initialize BaseApp
+	app.SetInitChainer(app.InitChainer)
+	app.SetBeginBlocker(app.BeginBlocker)
 
-		if loadLatest {
-			if err := app.LoadLatestVersion(); err != nil {
-				tmos.Exit(err.Error())
-			}
-	
-			// Initialize and seal the capability keeper so all persistent capabilities
-			// are loaded in-memory and prevent any further modules from creating scoped
-			// sub-keepers.
-			// This must be done during creation of baseapp rather than in InitChain so
-			// that in-memory capabilities get regenerated on app restart.
-			// Note that since this reads from the store, we can only perform it when
-			// `loadLatest` is set to true.
-			ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
-			app.CapabilityKeeper.InitializeAndSeal(ctx)
+	// use Ethermint's custom AnteHandler
+	app.SetAnteHandler(
+		ante.NewAnteHandler(
+			app.AccountKeeper, app.BankKeeper, app.EvmKeeper,
+			encodingConfig.TxConfig.SignModeHandler(),
+		),
+	)
+	app.SetEndBlocker(app.EndBlocker)
+
+	if loadLatest {
+		if err := app.LoadLatestVersion(); err != nil {
+			tmos.Exit(err.Error())
 		}
-	
-		app.ScopedIBCKeeper = scopedIBCKeeper
-		app.ScopedTransferKeeper = scopedTransferKeeper
-	
-		return app
+
+		// Initialize and seal the capability keeper so all persistent capabilities
+		// are loaded in-memory and prevent any further modules from creating scoped
+		// sub-keepers.
+		// This must be done during creation of baseapp rather than in InitChain so
+		// that in-memory capabilities get regenerated on app restart.
+		// Note that since this reads from the store, we can only perform it when
+		// `loadLatest` is set to true.
+		ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
+		app.CapabilityKeeper.InitializeAndSeal(ctx)
+	}
+
+	app.ScopedIBCKeeper = scopedIBCKeeper
+	app.ScopedTransferKeeper = scopedTransferKeeper
+
+	return app
 }
 
 // Name returns the name of the App
@@ -576,6 +573,9 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.
 
 	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
 	ModuleBasics.RegisterGRPCRoutes(apiSvr.ClientCtx, apiSvr.GRPCRouter)
+
+	// Register Ethereum namespaces
+	// ethermintrpc.RegisterRoutes(clientCtx, apiSvr.Router)
 
 	// register swagger API from root so that other applications can override easily
 	if apiConfig.Swagger {
