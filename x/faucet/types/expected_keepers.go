@@ -2,7 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 )
 
 // BankKeeper is required for mining coin
@@ -11,7 +11,7 @@ type BankKeeper interface {
 	SendCoinsFromModuleToAccount(
 		ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins,
 	) error
-	GetModuleAccount(ctx sdk.Context, moduleName string) supplyexported.ModuleAccountI
+	GetModuleAccount(ctx sdk.Context, moduleName string) authexported.ModuleAccountI
 }
 
 // StakingKeeper is required for getting Denom

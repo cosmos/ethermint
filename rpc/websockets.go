@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	context "github.com/cosmos/cosmos-sdk/client/context"
+	context "github.com/cosmos/cosmos-sdk/client"
 )
 
 type SubscriptionResponseJSON struct {

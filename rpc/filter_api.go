@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/cosmos/cosmos-sdk/client"
 
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )

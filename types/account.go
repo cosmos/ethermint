@@ -9,16 +9,14 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var _ exported.Account = (*EthAccount)(nil)
-var _ exported.GenesisAccount = (*EthAccount)(nil)
+var _ authtypes.AccountI = (*EthAccount)(nil)
+var _ authtypes.GenesisAccount = (*EthAccount)(nil)
 
 func init() {
 	authtypes.RegisterAccountTypeCodec(&EthAccount{}, EthAccountName)
@@ -28,8 +26,8 @@ func init() {
 // Main Ethermint account
 // ----------------------------------------------------------------------------
 
-// EthAccount implements the auth.Account interface and embeds an
-// auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
+// EthAccount implements the authtypes.AccountI interface and embeds an
+// authtypes.BaseAccount type. It is compatible with the auth AccountKeeper.
 type EthAccount struct {
 	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
@@ -37,9 +35,9 @@ type EthAccount struct {
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
-func ProtoAccount() exported.Account {
+func ProtoAccount() authtypes.AccountI {
 	return &EthAccount{
-		BaseAccount: &auth.BaseAccount{},
+		BaseAccount: &authtypes.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 }

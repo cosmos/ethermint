@@ -6,20 +6,21 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
 func TestPrivKey(t *testing.T) {
 	// validate type and equality
-	privKey, err := GenerateKey()
+	privKey, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	require.True(t, privKey.Equals(privKey))
 	require.Implements(t, (*tmcrypto.PrivKey)(nil), privKey)
 
 	// validate inequality
-	privKey2, err := GenerateKey()
+	privKey2, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	require.False(t, privKey.Equals(privKey2))
 
@@ -39,7 +40,7 @@ func TestPrivKey(t *testing.T) {
 }
 
 func TestPrivKey_PubKey(t *testing.T) {
-	privKey, err := GenerateKey()
+	privKey, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 
 	// validate type and equality
@@ -47,7 +48,7 @@ func TestPrivKey_PubKey(t *testing.T) {
 	require.Implements(t, (*tmcrypto.PubKey)(nil), pubKey)
 
 	// validate inequality
-	privKey2, err := GenerateKey()
+	privKey2, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	require.False(t, pubKey.Equals(privKey2.PubKey()))
 

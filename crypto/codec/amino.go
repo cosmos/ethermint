@@ -1,8 +1,6 @@
 package codec
 
 import (
-	cryptoamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 
@@ -17,7 +15,6 @@ func init() {
 	// amino panics because of unregistered Priv/PubKey
 	keys.CryptoCdc = CryptoCodec
 	keys.RegisterLegacyAminoCodec(CryptoCodec)
-	cryptoamino.RegisterAmino(CryptoCodec)
 	RegisterLegacyAminoCodec(CryptoCodec)
 }
 
