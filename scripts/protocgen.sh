@@ -7,8 +7,7 @@ for dir in $proto_dirs; do
     protoc \
     -I "proto" \
     -I "third_party/proto" \
-    --gocosmos_out=plugins=interfacetype+grpc,\
-    Mgoogle/protobuf/any.proto=github.com/cosmos/ethermint/codec/types:. \
+    --gocosmos_out=plugins=interfacetype+grpc:. \
     $(find "${dir}" -maxdepth 1 -name '*.proto')
     
     # command to generate gRPC gateway (*.pb.gw.go in respective modules) files
@@ -21,5 +20,5 @@ for dir in $proto_dirs; do
 done
 
 # move proto files to the right places
-# cp -r github.com/cosmos/ethermint/* ./
-# rm -rf github.com
+cp -r github.com/cosmos/ethermint/* ./
+rm -rf github.com

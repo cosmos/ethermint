@@ -35,32 +35,6 @@ func TestAccountTestSuite(t *testing.T) {
 	suite.Run(t, new(AccountTestSuite))
 }
 
-func (suite *AccountTestSuite) TestEthAccount_Balance() {
-
-	testCases := []struct {
-		name         string
-		denom        string
-		initialCoins sdk.Coins
-		amount       sdk.Int
-	}{
-		{"positive diff", types.AttoPhoton, sdk.Coins{}, sdk.OneInt()},
-		{"zero diff, same coin", types.AttoPhoton, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"negative diff", types.AttoPhoton, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
-	}
-
-	for _, tc := range testCases {
-		suite.Run(tc.name, func() {
-			suite.SetupTest() // reset values
-			suite.account.SetCoins(tc.initialCoins)
-
-			suite.account.SetBalance(tc.denom, tc.amount)
-			suite.Require().Equal(tc.amount, suite.account.Balance(tc.denom))
-		})
-	}
-
-}
-
 func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	bz, err := json.Marshal(suite.account)
 	suite.Require().NoError(err)
@@ -73,25 +47,6 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	suite.Require().NoError(a.UnmarshalJSON(bz))
 	suite.Require().Equal(suite.account.String(), a.String())
 	suite.Require().Equal(suite.account.PubKey, a.PubKey)
-}
-
-func (suite *AccountTestSuite) TestEthermintPubKeyJSON() {
-	privkey, err := ethsecp256k1.GenerateKey()
-	suite.Require().NoError(err)
-	bz := privkey.PubKey().Bytes()
-
-	pubk, err := tmamino.PubKeyFromBytes(bz)
-	suite.Require().NoError(err)
-	suite.Require().Equal(pubk, privkey.PubKey())
-}
-
-func (suite *AccountTestSuite) TestSecpPubKeyJSON() {
-	pubkey := ethsecp256k1.GenPrivKey().PubKey()
-	bz := pubkey.Bytes()
-
-	pubk, err := tmamino.PubKeyFromBytes(bz)
-	suite.Require().NoError(err)
-	suite.Require().Equal(pubk, pubkey)
 }
 
 func (suite *AccountTestSuite) TestEthermintAccount_String() {
@@ -121,7 +76,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
 	var ok bool
 	accountStr, ok = i.(string)
 	suite.Require().True(ok)
-	suite.Require().Contains(accountStr, suite.account.Address.String())
+	suite.Require().Contains(accountStr, suite.account.Address)
 	suite.Require().Contains(accountStr, bech32pubkey)
 }
 
@@ -161,7 +116,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	// test that the sdk.AccAddress is populated from the hex address
 	jsonAcc = fmt.Sprintf(
 		`{"address": "%s","eth_address":"0x0000000000000000000000000000000000000000","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
-		suite.account.Address.String(), bech32pubkey,
+		suite.account.Address, bech32pubkey,
 	)
 
 	res = new(types.EthAccount)

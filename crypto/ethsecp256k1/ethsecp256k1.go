@@ -150,17 +150,6 @@ type PubKey struct {
 
 // Address returns the address of the ECDSA public key.
 // The function will panic if the public key is invalid.
-func (key PubKey) Address() tmcrypto.Address {
-	pubk, err := ethcrypto.DecompressPubkey(key)
-	if err != nil {
-		panic(err)
-	}
-
-	return tmcrypto.Address(ethcrypto.PubkeyToAddress(*pubk).Bytes())
-}
-
-// Address returns the address of the ECDSA public key.
-// The function will panic if the public key is invalid.
 func (pubKey PubKey) Address() tmcrypto.Address {
 	if len(pubKey.Key) != PubKeySize {
 		panic("length of pubkey is incorrect")

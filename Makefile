@@ -375,6 +375,7 @@ TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.34
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 COSMOS_SDK_URL = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+CONFIO_URL 		 = https://raw.githubusercontent.com/confio/ics23/v0.6.2
 
 TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
 TM_ABCI_TYPES       = third_party/proto/tendermint/abci
@@ -384,6 +385,7 @@ TM_LIBS							= third_party/proto/tendermint/libs/bits
 
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
 COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
+CONFIO_TYPES        = third_party/proto/confio
 
 COSMOS_SDK_PROTO  = third_party/proto/cosmos-sdk
 
@@ -417,8 +419,9 @@ proto-update-deps:
 	@mkdir -p $(TM_LIBS)
 	@curl -sSL $(TM_URL)/libs/bits/types.proto > $(TM_LIBS)/types.proto
 
-	@mkdir -p $(COSMOS_SDK_PROTO)
-	# TODO: add individual files or download them from a tagged version
+	@mkdir -p $(CONFIO_TYPES)
+	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
+
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
 
