@@ -90,3 +90,20 @@ message ChainConfig {
     (gogoproto.nullable)   = false
   ];
 }
+
+// State represents a single Storage key value pair item.
+message State {
+  string key   = 1;
+  string value = 2;
+}
+
+// TransactionLogs define the logs generated from a transaction execution
+// with a given hash. It it used for import/export data as transactions are not persisted
+// on blockchain state after an upgrade.
+message TransactionLogs {
+  string       hash = 1;
+  repeated Log logs = 2;
+}
+
+// Log defines a protobuf compatible Ethereum Log.
+message Log {}
