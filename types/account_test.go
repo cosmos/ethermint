@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/types"
@@ -21,10 +21,12 @@ type AccountTestSuite struct {
 }
 
 func (suite *AccountTestSuite) SetupTest() {
-	pubkey := ethsecp256k1.GenPrivKey().PubKey()
-	addr := sdk.AccAddress(pubkey.Address())
+	privKey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
 	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
-	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
+	baseAcc := authtypes.NewBaseAccount(addr, balance, pubkey, 10, 50)
 	suite.account = &types.EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
@@ -53,7 +55,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
 	config := sdk.GetConfig()
 	types.SetBech32Prefixes(config)
 
-	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.PubKey)
+	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.GetPubKey())
 	suite.Require().NoError(err)
 
 	accountStr := fmt.Sprintf(`|
@@ -90,7 +92,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account, res)
 
-	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.PubKey)
+	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.GetPubKey())
 	suite.Require().NoError(err)
 
 	// test that the sdk.AccAddress is populated from the hex address
@@ -102,7 +104,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	res = new(types.EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().NoError(err)
-	suite.Require().Equal(suite.account.Address.String(), res.Address.String())
+	suite.Require().Equal(suite.account.Address, res.Address)
 
 	jsonAcc = fmt.Sprintf(
 		`{"address":"","eth_address":"","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,

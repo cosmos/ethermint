@@ -25,13 +25,6 @@ var (
 // Main Ethermint account
 // ----------------------------------------------------------------------------
 
-// EthAccount implements the authtypes.AccountI interface and embeds an
-// authtypes.BaseAccount type. It is compatible with the auth AccountKeeper.
-type EthAccount struct {
-	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
-	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
-}
-
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
 func ProtoAccount() authtypes.AccountI {
