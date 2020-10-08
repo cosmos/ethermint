@@ -35,11 +35,22 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## Unreleased
+### API Breaking
+
+* (crypto) [\#559](https://github.com/ChainSafe/ethermint/pull/559) Refactored crypto package in preparation for the SDK's Stargate release:
+  * `crypto.PubKeySecp256k1` and `crypto.PrivKeySecp256k1` are now `ethsecp256k1.PubKey` and `ethsecp256k1.PrivKey`, respectively
+  * Moved SDK `SigningAlgo` implementation for Ethermint's Secp256k1 key to `crypto/hd` package.
+
+## [v0.2.1] - 2020-09-30
+
+### Features
+
+* (rpc) [\#552](https://github.com/ChainSafe/ethermint/pull/552) Implement Eth Personal namespace `personal_importRawKey`.
 
 ### Bug fixes
 
-* (app/ante) [\#550](https://github.com/ChainSafe/ethermint/pull/550) Update ante handler nonce verification to accept any nonce greater than or equal to the expected nonce to allow to successive transactions. 
+* (keys) [\#554](https://github.com/ChainSafe/ethermint/pull/554) Fix private key derivation.
+* (app/ante) [\#550](https://github.com/ChainSafe/ethermint/pull/550) Update ante handler nonce verification to accept any nonce greater than or equal to the expected nonce to allow to successive transactions.
 
 ## [v0.2.0] - 2020-09-24
 
