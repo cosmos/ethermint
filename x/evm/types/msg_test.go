@@ -16,8 +16,6 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 func TestMsgEthermint(t *testing.T) {
@@ -84,7 +82,7 @@ func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
 }
 
 func newSdkAddress() sdk.AccAddress {
-	tmpKey := secp256k1.GenPrivKey().PubKey()
+	tmpKey := ethsecp256k1.GenPrivKey().PubKey()
 	return sdk.AccAddress(tmpKey.Address().Bytes())
 }
 

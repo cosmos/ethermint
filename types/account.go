@@ -86,7 +86,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	var ethAddress = ""
 
-	if acc.BaseAccount != nil && acc.Address != nil {
+	if acc.BaseAccount != nil && acc.Address == "" {
 		ethAddress = acc.EthAddress().String()
 	}
 
@@ -101,7 +101,7 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	var err error
 
 	if acc.PubKey != nil {
-		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		alias.PubKey, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.GetPubKey())
 		if err != nil {
 			return nil, err
 		}
@@ -125,9 +125,14 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	case alias.Address != "" && alias.EthAddress != "":
 		// Both addresses provided. Verify correctness
 		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
-		ethAddressFromAccAddress := ethcmn.BytesToAddress(alias.GetAddress().Bytes())
+		address, err := sdk.AccAddressFromBech32(alias.Address)
+		if err != nil {
+			return err
+		}
 
-		if !bytes.Equal(ethAddress.Bytes(), alias.GetAddress().Bytes()) {
+		ethAddressFromAccAddress := ethcmn.BytesToAddress(address.Bytes())
+
+		if !bytes.Equal(ethAddress.Bytes(), address.Bytes()) {
 			err = sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidAddress,
 				"expected %s, got %s",
@@ -160,10 +165,11 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
 
 	if alias.PubKey != "" {
-		acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
+		pubkey, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
 		if err != nil {
 			return err
 		}
+		acc.SetPubKey(pubkey)
 	}
 	return nil
 }

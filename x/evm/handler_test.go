@@ -27,7 +27,6 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 type EvmTestSuite struct {
@@ -143,8 +142,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 func (suite *EvmTestSuite) TestMsgEthermint() {
 	var (
 		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+		from = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
+		to   = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
 	)
 
 	testCases := []struct {

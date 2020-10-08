@@ -7,8 +7,6 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
@@ -23,7 +21,7 @@ type AccountTestSuite struct {
 }
 
 func (suite *AccountTestSuite) SetupTest() {
-	pubkey := secp256k1.GenPrivKey().PubKey()
+	pubkey := ethsecp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
 	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
@@ -88,7 +86,7 @@ func (suite *AccountTestSuite) TestEthermintPubKeyJSON() {
 }
 
 func (suite *AccountTestSuite) TestSecpPubKeyJSON() {
-	pubkey := secp256k1.GenPrivKey().PubKey()
+	pubkey := ethsecp256k1.GenPrivKey().PubKey()
 	bz := pubkey.Bytes()
 
 	pubk, err := tmamino.PubKeyFromBytes(bz)
