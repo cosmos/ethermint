@@ -33,7 +33,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -82,12 +82,12 @@ func (e *PublicEthAPI) getKeybaseInfo() error {
 	defer e.keybaseLock.Unlock()
 
 	if e.clientCtx.Keybase == nil {
-		keybase, err := keys.NewKeyring(
+		keybase, err := keyring.New(
 			sdk.KeyringServiceName(),
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
 			e.clientCtx.Input,
-			hd.EthSecp256k1Options()...,
+			hd.EthSecp256k1Option(),
 		)
 		if err != nil {
 			return err
@@ -177,12 +177,12 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	keybase, err := keys.NewKeyring(
+	keybase, err := keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		e.clientCtx.Input,
-		hd.EthSecp256k1Options()...,
+		hd.EthSecp256k1Option(),
 	)
 	if err != nil {
 		return addresses, err

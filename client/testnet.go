@@ -24,7 +24,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
 	srvconfig "github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -203,7 +202,7 @@ func InitTestnet(
 			keyringBackend,
 			nodeDir,
 			inBuf,
-			hd.EthSecp256k1Options()...,
+			hd.EthSecp256k1Option(),
 		)
 		if err != nil {
 			return err
@@ -239,7 +238,7 @@ func InitTestnet(
 		)
 
 		genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: coins})
-		genAccounts = append(genAccounts, append(genAccounts, ethermint.EthAccount{
+		genAccounts = append(genAccounts, &ethermint.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
 		})

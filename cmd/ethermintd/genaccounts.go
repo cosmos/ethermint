@@ -64,7 +64,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					keyringBackend,
 					clientCtx.HomeDir,
 					inBuf,
-					hd.EthSecp256k1Options()...,
+					hd.EthSecp256k1Option(),
 				)
 				if err != nil {
 					return err

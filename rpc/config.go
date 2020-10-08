@@ -14,7 +14,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
@@ -55,9 +56,9 @@ func registerRoutes(rs *lcd.RestServer) {
 		keyringBackend := viper.GetString(flags.FlagKeyringBackend)
 		passphrase := ""
 		switch keyringBackend {
-		case keys.BackendOS:
+		case keyring.BackendOS:
 			break
-		case keys.BackendFile:
+		case keyring.BackendFile:
 			passphrase, err = input.GetPassword(
 				"Enter password to unlock key for RPC API: ",
 				inBuf)
@@ -105,12 +106,12 @@ func registerRoutes(rs *lcd.RestServer) {
 }
 
 func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {
-	keybase, err := keys.NewKeyring(
+	kr, err := keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		os.Stdin,
-		hd.EthSecp256k1Options()...,
+		hd.EthSecp256k1Option(),
 	)
 	if err != nil {
 		return []ethsecp256k1.PrivKey{}, err
@@ -122,15 +123,24 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 	keys := make([]ethsecp256k1.PrivKey, len(accountNames))
 	for i, acc := range accountNames {
 		// With keyring keybase, password is not required as it is pulled from the OS prompt
-		privKey, err := keybase.ExportPrivateKeyObject(acc, passphrase)
+		armor, err := kr.ExportPrivKeyArmor(acc, passphrase)
 		if err != nil {
-			return []ethsecp256k1.PrivKey{}, err
+			return err
+		}
+
+		privKey, algo, err := crypto.UnarmorDecryptPrivKey(armor, passphrase)
+		if err != nil {
+			return err
+		}
+
+		if algo != ethsecp256k1.KeyType {
+			return []ethsecp256k1.PrivKey{}, fmt.Errorf("invalid key algorithm, got %s, expected %s", algo, ethsecp256k1.KeyType)
 		}
 
 		var ok bool
-		keys[i], ok = privKey.(ethsecp256k1.PrivKey)
+		keys[i], ok = privKey.(*ethsecp256k1.PrivKey)
 		if !ok {
-			panic(fmt.Sprintf("invalid private key type %T at index %d", privKey, i))
+			return []ethsecp256k1.PrivKey{}, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
 		}
 	}
 
