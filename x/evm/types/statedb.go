@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	emint "github.com/cosmos/ethermint/types"
 
@@ -43,8 +43,9 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
-	paramSpace    params.Subspace
+	paramSpace    paramtypes.Subspace
 	accountKeeper AccountKeeper
+	accountKeeper BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -87,7 +88,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace,
 	ak AccountKeeper, bankKeeper bankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{

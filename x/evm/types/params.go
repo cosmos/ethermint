@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	ethermint "github.com/cosmos/ethermint/types"
 )
@@ -22,13 +22,8 @@ var (
 )
 
 // ParamKeyTable returns the parameter key table.
-func ParamKeyTable() params.KeyTable {
-	return params.NewKeyTable().RegisterParamSet(&Params{})
-}
-
-// Params defines the EVM module parameters
-type Params struct {
-	EvmDenom string `json:"evm_denom" yaml:"evm_denom"`
+func ParamKeyTable() paramtypes.KeyTable {
+	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
 }
 
 // NewParams creates a new Params instance

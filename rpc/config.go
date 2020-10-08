@@ -33,7 +33,7 @@ const (
 
 // EmintServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
-func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
+func EmintServeCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
 	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
 	cmd.Flags().String(flagWebsocket, "8546", "websocket port to listen to")

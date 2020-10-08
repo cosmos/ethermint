@@ -27,7 +27,7 @@ import (
 )
 
 // GetTxCmd defines the CLI commands regarding evm module transactions
-func GetTxCmd(cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	evmTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "EVM transaction subcommands",
@@ -45,7 +45,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdSendTx generates an Ethermint transaction (excludes create operations)
-func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
+func GetCmdSendTx(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "send [to_address] [amount (in aphotons)] [<data>]",
 		Short: "send transaction to address (call operations included)",
@@ -102,7 +102,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdGenCreateTx generates an Ethermint transaction (excludes create operations)
-func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
+func GetCmdGenCreateTx(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "create [contract bytecode] [<amount (in aphotons)>]",
 		Short: "create contract through the evm using compiled bytecode",

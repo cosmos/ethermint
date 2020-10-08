@@ -15,7 +15,7 @@ import (
 )
 
 // GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	faucetQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      fmt.Sprintf("Querying commands for the %s module", types.ModuleName),
@@ -30,7 +30,7 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdFunded queries the total amount funded by the faucet.
-func GetCmdFunded(cdc *codec.Codec) *cobra.Command {
+func GetCmdFunded(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "funded",
 		Short: "Gets storage for an account at a given key",

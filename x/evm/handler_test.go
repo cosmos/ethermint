@@ -36,7 +36,7 @@ type EvmTestSuite struct {
 	handler sdk.Handler
 	querier sdk.Querier
 	app     *app.EthermintApp
-	codec   *codec.Codec
+	codec   *codec.LegacyAmino
 }
 
 func (suite *EvmTestSuite) SetupTest() {

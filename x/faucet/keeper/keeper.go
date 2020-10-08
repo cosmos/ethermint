@@ -16,7 +16,7 @@ import (
 
 // Keeper defines the faucet Keeper.
 type Keeper struct {
-	cdc        *codec.Codec
+	cdc        *codec.LegacyAmino
 	storeKey   sdk.StoreKey
 	bankKeeper types.BankKeeper
 
@@ -26,7 +26,7 @@ type Keeper struct {
 
 // NewKeeper creates a new faucet Keeper instance.
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, bankKeeper types.BankKeeper,
+	cdc *codec.LegacyAmino, storeKey sdk.StoreKey, bankKeeper types.BankKeeper,
 ) Keeper {
 	return Keeper{
 		cdc:        cdc,

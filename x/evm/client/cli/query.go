@@ -15,7 +15,7 @@ import (
 )
 
 // GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(moduleName string, cdc *codec.LegacyAmino) *cobra.Command {
 	evmQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the evm module",
@@ -31,7 +31,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdGetStorageAt queries a key in an accounts storage
-func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdGetStorageAt(queryRoute string, cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "storage [account] [key]",
 		Short: "Gets storage for an account at a given key",
@@ -60,7 +60,7 @@ func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdGetCode queries the code field of a given address
-func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdGetCode(queryRoute string, cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "code [account]",
 		Short: "Gets code from an account",

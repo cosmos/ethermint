@@ -64,7 +64,7 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *sdkcodec.Codec {
+func newTestCodec() *sdkcodec.LegacyAmino {
 	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
 
 	evmtypes.RegisterLegacyAminoCodec(cdc)

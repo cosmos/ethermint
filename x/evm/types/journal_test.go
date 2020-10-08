@@ -35,7 +35,7 @@ type JournalTestSuite struct {
 	stateDB *CommitStateDB
 }
 
-func newTestCodec() *sdkcodec.Codec {
+func newTestCodec() *sdkcodec.LegacyAmino {
 	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
 
 	RegisterCodec(cdc)

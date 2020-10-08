@@ -12,6 +12,6 @@ func init() {
 }
 
 // RegisterLegacyAminoCodec registers concrete types on the Amino codec
-func RegisterLegacyAminoCodec(cdc *codec.Codec) {
+func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(MsgFund{}, "ethermint/MsgFund", nil)
 }

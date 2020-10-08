@@ -1,0 +1,92 @@
+syntax = "proto3";
+package ethermint.evm.v1beta1;
+
+import "gogoproto/gogo.proto";
+// import "cosmos_proto/cosmos.proto";
+// import "cosmos/base/v1beta1/coin.proto";
+
+option go_package = "github.com/cosmos/ethermint/x/evm/types";
+
+// Params defines the EVM module parameters
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // evm_denom represents the token denomination used to run the EVM state transitions.
+  bool evm_denom = 1 [(gogoproto.moretags) = "yaml:\"evm_denom\""];
+}
+
+// ChainConfig defines the Ethereum ChainConfig parameters using sdk.Int values instead of big.Int.
+//
+// NOTE 1: Since empty/uninitialized Ints (i.e with a nil big.Int value) are parsed to zero, we need to manually
+// specify that negative Int values will be considered as nil. See getBlockValue for reference.
+//
+// NOTE 2: This type is not a configurable Param since the SDK does not allow for validation against
+// a previous stored parameter values or the current block height (retrieved from context). If you
+// want to update the config values, use an software upgrade procedure.
+message ChainConfig {
+  // Homestead switch block (< 0 no fork, 0 = already homestead)
+  string homestead_block = 1 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"homestead_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // TheDAO hard-fork switch block (< 0 no fork)
+  string dao_fork_block = 2 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"dao_fork_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // Whether the nodes supports or opposes the DAO hard-fork
+  bool dao_fork_support = 3 [(gogoproto.moretags) = "yaml:\"dao_fork_support\""];
+  // EIP150 implements the Gas price changes (https://github.com/ethereum/EIPs/issues/150)
+  // EIP150 HF block (< 0 no fork)
+  string eip150_block = 4 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"eip150_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // EIP150 HF hash (needed for header only clients as only gas pricing changed)
+  string eip150_hash = 5 [(gogoproto.moretags) = "yaml:\"byzantium_block\""];
+  // Byzantium switch block (< 0 no fork, 0 = already on byzantium)
+  string byzantium_block = 6 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"byzantium_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // Constantinople switch block (< 0 no fork, 0 = already activated)
+  string constantinople_block = 7 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"constantinople_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // Petersburg switch block (< 0 same as Constantinople)
+  string petersburg_block = 8 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"petersburg_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // Istanbul switch block (< 0 no fork, 0 = already on istanbul)
+  string istanbul_block = 9 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"istanbul_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // Eip-2384 (bomb delay) switch block (< 0 no fork, 0 = already activated)
+  string muir_glacier_block = 10 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"muir_glacier_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // YOLO v1: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
+  string yolo_v1_block = 11 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"yolo_v1_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // EWASM switch block (< 0 no fork, 0 = already activated)
+  string ewasm_block = 12 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"ewasm_block\"",
+    (gogoproto.nullable)   = false
+  ];
+}

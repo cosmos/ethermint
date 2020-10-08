@@ -22,7 +22,7 @@ import (
 // to the StateDB interface.
 type Keeper struct {
 	// Amino codec
-	cdc *codec.Codec
+	cdc *codec.LegacyAmino
 	// Store key required for the EVM Prefix KVStore. It is required by:
 	// - storing Account's Storage State
 	// - storing Account's Code
@@ -41,7 +41,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace,
+	cdc *codec.LegacyAmino, storeKey sdk.StoreKey, paramSpace params.Subspace,
 	ak types.AccountKeeper, bankKeeper types.BankKeeper,
 ) Keeper {
 	// set KeyTable if it has not already been set

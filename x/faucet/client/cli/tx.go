@@ -16,7 +16,7 @@ import (
 )
 
 // GetTxCmd return faucet sub-command for tx
-func GetTxCmd(cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	faucetTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "faucet transaction subcommands",
@@ -33,7 +33,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdRequest is the CLI command to fund an address with the requested coins
-func GetCmdRequest(cdc *codec.Codec) *cobra.Command {
+func GetCmdRequest(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "request [amount] [other-recipient (optional)]",
 		Short: "request an address with the requested coins",

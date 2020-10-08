@@ -34,7 +34,7 @@ func (AppModuleBasic) Name() string {
 }
 
 // RegisterLegacyAminoCodec registers the faucet module's types for the given codec.
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.Codec) {
+func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	RegisterLegacyAminoCodec(cdc)
 }
 
@@ -60,12 +60,12 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx client.Context, rtr *mux.Router) {
 }
 
 // GetTxCmd returns the root tx command for the faucet module.
-func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+func (AppModuleBasic) GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	return cli.GetTxCmd(cdc)
 }
 
 // GetQueryCmd returns no root query command for the faucet module.
-func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+func (AppModuleBasic) GetQueryCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	return cli.GetQueryCmd(cdc)
 }
 
