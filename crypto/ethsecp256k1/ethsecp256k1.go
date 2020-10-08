@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/tendermint/tendermint/crypto"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
@@ -19,7 +20,9 @@ import (
 const (
 	// PrivKeySize defines the size of the PrivKey bytes
 	PrivKeySize = 32
-	// KeyType is the string constant for the EthSecp256k1 algorithm
+	// PubKeySize defines the size of the PubKey bytes
+	PubKeySize = 33
+	// KeyType is the string constant for the Secp256k1 algorithm
 	KeyType = "eth_secp256k1"
 )
 
@@ -38,12 +41,6 @@ var (
 	_ cryptotypes.PrivKey  = &PrivKey{}
 	_ codec.AminoMarshaler = &PrivKey{}
 )
-
-// PrivKey defines a type alias for an ecdsa.PrivateKey that implements
-// Tendermint's PrivateKey interface.
-type PrivKey struct {
-	Key []byte
-}
 
 // GenerateKey generates a new random private key. It returns an error upon
 // failure.
@@ -64,8 +61,8 @@ func (privKey *PrivKey) Bytes() []byte {
 }
 
 // PubKey returns the ECDSA private key's public key.
-func (privkey PrivKey) PubKey() tmcrypto.PubKey {
-	ecdsaPrivKey := privkey.ToECDSA()
+func (privKey PrivKey) PubKey() tmcrypto.PubKey {
+	ecdsaPrivKey := privKey.ToECDSA()
 	return &PubKey{
 		Key: ethcrypto.CompressPubkey(&ecdsaPrivKey.PublicKey),
 	}
@@ -78,7 +75,7 @@ func (privKey *PrivKey) Equals(other crypto.PrivKey) bool {
 
 // Type returns eth_secp256k1
 func (privKey *PrivKey) Type() string {
-	return keyType
+	return KeyType
 }
 
 // MarshalAmino overrides Amino binary marshalling.
@@ -111,23 +108,14 @@ func (privKey *PrivKey) UnmarshalAminoJSON(bz []byte) error {
 // Sign creates a recoverable ECDSA signature on the secp256k1 curve over the
 // Keccak256 hash of the provided message. The produced signature is 65 bytes
 // where the last byte contains the recovery ID.
-func (privkey PrivKey) Sign(msg []byte) ([]byte, error) {
-	return ethcrypto.Sign(ethcrypto.Keccak256Hash(msg).Bytes(), privkey.ToECDSA())
-}
-
-// Equals returns true if two ECDSA private keys are equal and false otherwise.
-func (privkey PrivKey) Equals(other tmcrypto.PrivKey) bool {
-	if other, ok := other.(PrivKey); ok {
-		return bytes.Equal(privkey.Bytes(), other.Bytes())
-	}
-
-	return false
+func (privKey PrivKey) Sign(msg []byte) ([]byte, error) {
+	return ethcrypto.Sign(ethcrypto.Keccak256Hash(msg).Bytes(), privKey.ToECDSA())
 }
 
 // ToECDSA returns the ECDSA private key as a reference to ecdsa.PrivateKey type.
 // The function will panic if the private key is invalid.
-func (privkey PrivKey) ToECDSA() *ecdsa.PrivateKey {
-	key, err := ethcrypto.ToECDSA(privkey.Bytes())
+func (privKey PrivKey) ToECDSA() *ecdsa.PrivateKey {
+	key, err := ethcrypto.ToECDSA(privKey.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -142,19 +130,9 @@ var (
 	_ codec.AminoMarshaler = &PubKey{}
 )
 
-// PubKey defines a type alias for an ecdsa.PublicKey that implements Tendermint's PubKey
-// interface. It represents the 33-byte compressed public key format.
-type PubKey struct {
-	Key []byte
-}
-
 // Address returns the address of the ECDSA public key.
 // The function will panic if the public key is invalid.
 func (pubKey PubKey) Address() tmcrypto.Address {
-	if len(pubKey.Key) != PubKeySize {
-		panic("length of pubkey is incorrect")
-	}
-
 	pubk, err := ethcrypto.DecompressPubkey(pubKey.Key)
 	if err != nil {
 		panic(err)
@@ -175,7 +153,7 @@ func (pubKey *PubKey) String() string {
 
 // Type returns eth_secp256k1
 func (pubKey *PubKey) Type() string {
-	return keyType
+	return KeyType
 }
 
 // Equals returns true if the pubkey type is the same and their bytes are deeply equal.
@@ -191,7 +169,7 @@ func (pubKey PubKey) MarshalAmino() ([]byte, error) {
 // UnmarshalAmino overrides Amino binary marshalling.
 func (pubKey *PubKey) UnmarshalAmino(bz []byte) error {
 	if len(bz) != PubKeySize {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "invalid pubkey size, expected %d, got %d", PubKeySize, len(bz))
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey, "invalid pubkey size, expected %d, got %d", PubKeySize, len(bz))
 	}
 	pubKey.Key = bz
 
@@ -210,10 +188,10 @@ func (pubKey *PubKey) UnmarshalAminoJSON(bz []byte) error {
 	return pubKey.UnmarshalAmino(bz)
 }
 
-// VerifyBytes verifies that the ECDSA public key created a given signature over
+// VerifySignature verifies that the ECDSA public key created a given signature over
 // the provided message. It will calculate the Keccak256 hash of the message
 // prior to verification.
-func (pubKey PubKey) VerifyBytes(msg []byte, sig []byte) bool {
+func (pubKey PubKey) VerifySignature(msg []byte, sig []byte) bool {
 	if len(sig) == 65 {
 		// remove recovery ID if contained in the signature
 		sig = sig[:len(sig)-1]
