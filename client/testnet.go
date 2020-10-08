@@ -5,6 +5,7 @@ package client
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,28 +14,29 @@ import (
 	"github.com/spf13/cobra"
 	tmconfig "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/tendermint/tendermint/types"
 	tmtime "github.com/tendermint/tendermint/types/time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	srvconfig "github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/mint"
+	mintypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/ethermint/crypto/hd"
 	ethermint "github.com/cosmos/ethermint/types"
@@ -83,8 +85,12 @@ Note, strict routability for addresses is turned off in the config file.`,
 			algo, _ := cmd.Flags().GetString(flags.FlagKeyAlgorithm)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 
+			if len(ipAddresses) == 0 {
+				return errors.New("IP address list cannot be empty")
+			}
+
 			return InitTestnet(
-				clientCtx, cmd, config, mbm, genBalIterator, outputDir, chainID, coinDenom, minGasPrices,
+				clientCtx, cmd, config, mbm, genBalancesIterator, outputDir, chainID, coinDenom, minGasPrices,
 				nodeDirPrefix, nodeDaemonHome, keyringBackend, algo, ipAddresses, numValidators,
 			)
 		},
@@ -94,11 +100,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
 	cmd.Flags().String(flagNodeDaemonHome, "simd", "Home directory of the node's daemon configuration")
-	cmd.Flags().StringSlice(flagIPAddrs, []string{}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
+	cmd.Flags().StringSlice(flagIPAddrs, []string{"192.168.0.1"}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.AttoPhoton), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	cmd.Flags().String(flags.FlagKeyAlgorithm, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
+	cmd.Flags().String(flags.FlagKeyAlgorithm, string(hd.EthSecp256k1Type), "Key signing algorithm to generate keys for")
 	cmd.Flags().String(flagCoinDenom, ethermint.AttoPhoton, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
 	return cmd
 }
@@ -116,7 +122,6 @@ func InitTestnet(
 	minGasPrices,
 	nodeDirPrefix,
 	nodeDaemonHome,
-	startingIPAddress,
 	keyringBackend,
 	algoStr string,
 	ipAddresses []string,
@@ -174,12 +179,12 @@ func InitTestnet(
 		nodeConfig.Moniker = nodeDirName
 
 		var (
-			ip string
-		 	err error
+			ip  string
+			err error
 		)
 
-		if len(ipAddresses) == 0 {
-			ip, err = getIP(i, startingIPAddress)
+		if len(ipAddresses) == 1 {
+			ip, err = getIP(i, ipAddresses[0])
 			if err != nil {
 				_ = os.RemoveAll(outputDir)
 				return err
@@ -280,15 +285,15 @@ func InitTestnet(
 			return err
 		}
 
-		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
+		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), appConfig)
 	}
 
-	if err := initGenFiles(clientCtx, mbm, chainID, genAccounts, genBalances, genFiles, numValidators); err != nil {
+	if err := initGenFiles(clientCtx, mbm, chainID, coinDenom, genAccounts, genBalances, genFiles, numValidators); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		clientCtx, nodeConfig, coinDenom, chainID, nodeIDs, valPubKeys, numValidators,
+		clientCtx, nodeConfig, chainID, nodeIDs, valPubKeys, numValidators,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genBalIterator,
 	)
 	if err != nil {
@@ -302,7 +307,8 @@ func InitTestnet(
 func initGenFiles(
 	clientCtx client.Context,
 	mbm module.BasicManager,
-	coinDenom chainID string,
+	chainID,
+	coinDenom string,
 	genAccounts []authtypes.GenesisAccount,
 	genBalances []banktypes.Balance,
 	genFiles []string,
@@ -334,31 +340,31 @@ func initGenFiles(
 	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[stakingtypes.ModuleName], &stakingGenState)
 
 	stakingGenState.Params.BondDenom = coinDenom
-	appGenState[stakingtypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(stakingGenState)
+	appGenState[stakingtypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(&stakingGenState)
 
 	var govGenState govtypes.GenesisState
 	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[govtypes.ModuleName], &govGenState)
 
 	govGenState.DepositParams.MinDeposit[0].Denom = coinDenom
-	appGenState[govtypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(govGenState)
+	appGenState[govtypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(&govGenState)
 
-	var mintGenState mint.GenesisState
-	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[mint.ModuleName], &mintGenState)
+	var mintGenState mintypes.GenesisState
+	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[mintypes.ModuleName], &mintGenState)
 
 	mintGenState.Params.MintDenom = coinDenom
-	appGenState[mint.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(mintGenState)
+	appGenState[mintypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(&mintGenState)
 
-	var crisisGenState crisis.GenesisState
-	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[crisis.ModuleName], &crisisGenState)
+	var crisisGenState crisistypes.GenesisState
+	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[crisistypes.ModuleName], &crisisGenState)
 
 	crisisGenState.ConstantFee.Denom = coinDenom
-	appGenState[crisis.ModuleName] =clientCtx.JSONMarshaler.MustMarshalJSON(crisisGenState)
+	appGenState[crisistypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(&crisisGenState)
 
 	var evmGenState evmtypes.GenesisState
 	clientCtx.JSONMarshaler.MustUnmarshalJSON(appGenState[evmtypes.ModuleName], &evmGenState)
 
 	evmGenState.Params.EvmDenom = coinDenom
-	appGenState[evmtypes.ModuleName] =clientCtx.JSONMarshaler.MustMarshalJSON(evmGenState)
+	appGenState[evmtypes.ModuleName] = clientCtx.JSONMarshaler.MustMarshalJSON(&evmGenState)
 
 	appGenStateJSON, err := json.MarshalIndent(appGenState, "", "  ")
 	if err != nil {

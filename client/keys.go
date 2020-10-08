@@ -68,7 +68,7 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return clientkeys.RunAddCmd(cmd, args, kb, inBuf)
+	return keys.RunAddCmd(cmd, args, kb, inBuf)
 }
 
 func getKeybase(transient bool, buf io.Reader) (keyring.Keyring, error) {
