@@ -3,6 +3,8 @@ package ante
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -10,18 +12,11 @@ import (
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
-
-	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
-
-func init() {
-	cryptocodec.RegisterLegacyAminoCodec(types.ModuleCdc)
-}
 
 const (
 	// TODO: Use this cost per byte through parameter or overriding NewConsumeGasForTxSizeDecorator
@@ -35,7 +30,7 @@ const (
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
 func NewAnteHandler(
-	ak auth.AccountKeeper, bankKeeper types.BankKeeper, evmKeeper EVMKeeper, signModeHandler signing.SignModeHandler,
+	ak authante.AccountKeeper, bankKeeper authtypes.BankKeeper, evmKeeper EVMKeeper, signModeHandler signing.SignModeHandler,
 ) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
@@ -85,10 +80,14 @@ func NewAnteHandler(
 // for signature verification based upon the public key type. The cost is fetched from the given params and is matched
 // by the concrete type.
 func DefaultSigVerificationGasConsumer(
-	meter sdk.GasMeter, sig signing.SignatureV2, params types.Params,
+	meter sdk.GasMeter, sig signing.SignatureV2, params authtypes.Params,
 ) error {
 	pubkey := sig.PubKey
 	switch pubkey := pubkey.(type) {
+	case *ed25519.PubKey:
+		meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: ed25519")
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "ED25519 public keys are unsupported")
+
 	case *secp256k1.PubKey:
 		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: secp256k1")
 		return nil

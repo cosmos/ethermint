@@ -160,12 +160,12 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 // AccountVerificationDecorator validates an account balance checks
 type AccountVerificationDecorator struct {
-	ak        auth.AccountKeeper
+	ak        authante.AccountKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewAccountVerificationDecorator creates a new AccountVerificationDecorator
-func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper) AccountVerificationDecorator {
+func NewAccountVerificationDecorator(ak authante.AccountKeeper, ek EVMKeeper) AccountVerificationDecorator {
 	return AccountVerificationDecorator{
 		ak:        ak,
 		evmKeeper: ek,
@@ -220,11 +220,11 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 // NonceVerificationDecorator checks that the account nonce from the transaction matches
 // the sender account sequence.
 type NonceVerificationDecorator struct {
-	ak auth.AccountKeeper
+	ak authante.AccountKeeper
 }
 
 // NewNonceVerificationDecorator creates a new NonceVerificationDecorator
-func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecorator {
+func NewNonceVerificationDecorator(ak authante.AccountKeeper) NonceVerificationDecorator {
 	return NonceVerificationDecorator{
 		ak: ak,
 	}
@@ -269,17 +269,17 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
 // gas consumption.
 type EthGasConsumeDecorator struct {
-	ak        auth.AccountKeeper
-	sk        types.SupplyKeeper
-	evmKeeper EVMKeeper
+	ak         authante.AccountKeeper
+	bankKeeper types.BankKeeper
+	evmKeeper  EVMKeeper
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
-func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
+func NewEthGasConsumeDecorator(ak authante.AccountKeeper, bankKeeper types.BankKeeper, ek EVMKeeper) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
-		ak:        ak,
-		sk:        sk,
-		evmKeeper: ek,
+		ak:         ak,
+		bankKeeper: bankKeeper,
+		evmKeeper:  ek,
 	}
 }
 
@@ -337,7 +337,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 			sdk.NewCoin(evmDenom, sdk.NewIntFromBigInt(cost)),
 		)
 
-		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
+		err = auth.DeductFees(egcd.bankKeeper, ctx, senderAcc, feeAmt)
 		if err != nil {
 			return ctx, err
 		}
@@ -354,11 +354,11 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 //
 // CONTRACT: must be called after msg.VerifySig in order to cache the sender address.
 type IncrementSenderSequenceDecorator struct {
-	ak auth.AccountKeeper
+	ak authante.AccountKeeper
 }
 
 // NewIncrementSenderSequenceDecorator creates a new IncrementSenderSequenceDecorator.
-func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderSequenceDecorator {
+func NewIncrementSenderSequenceDecorator(ak authante.AccountKeeper) IncrementSenderSequenceDecorator {
 	return IncrementSenderSequenceDecorator{
 		ak: ak,
 	}
