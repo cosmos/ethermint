@@ -48,14 +48,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/ibc"
-	transfer "github.com/cosmos/cosmos-sdk/x/ibc-transfer"
-	ibctransferkeeper "github.com/cosmos/cosmos-sdk/x/ibc-transfer/keeper"
-	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc-transfer/types"
-	ibcclient "github.com/cosmos/cosmos-sdk/x/ibc/02-client"
-	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/05-port/types"
-	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/24-host"
-	ibckeeper "github.com/cosmos/cosmos-sdk/x/ibc/keeper"
+	transfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer"
+	ibctransferkeeper "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/keeper"
+	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	ibc "github.com/cosmos/cosmos-sdk/x/ibc/core"
+	ibcclient "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client"
+	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
+	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	ibckeeper "github.com/cosmos/cosmos-sdk/x/ibc/core/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -81,7 +81,7 @@ import (
 	"github.com/cosmos/ethermint/app/ante"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
-	"github.com/cosmos/ethermint/x/faucet"
+	// "github.com/cosmos/ethermint/x/faucet"
 )
 
 func init() {
@@ -122,7 +122,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		evm.AppModuleBasic{},
-		faucet.AppModuleBasic{},
+		// faucet.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -184,8 +184,8 @@ type EthermintApp struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// ethermint keepers
-	EvmKeeper    evm.Keeper
-	FaucetKeeper faucet.Keeper
+	EvmKeeper evm.Keeper
+	// FaucetKeeper faucet.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -231,7 +231,8 @@ func NewEthermintApp(
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		// ethermint keys
-		evm.StoreKey, faucet.StoreKey,
+		evm.StoreKey,
+		// faucet.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -331,9 +332,9 @@ func NewEthermintApp(
 	app.EvmKeeper = evm.NewKeeper(
 		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper,
 	)
-	app.FaucetKeeper = faucet.NewKeeper(
-		app.cdc, keys[faucet.StoreKey], app.BankKeeper,
-	)
+	// app.FaucetKeeper = faucet.NewKeeper(
+	// 	app.cdc, keys[faucet.StoreKey], app.BankKeeper,
+	// )
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -360,7 +361,7 @@ func NewEthermintApp(
 		transferModule,
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
-		faucet.NewAppModule(app.FaucetKeeper),
+		// faucet.NewAppModule(app.FaucetKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
