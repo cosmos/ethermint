@@ -6,8 +6,8 @@ module.exports = {
   },
   base: process.env.VUEPRESS_BASE || '/',
   themeConfig: {
-    repo: 'ChainSafe/ethermint',
-    docsRepo: 'ChainSafe/ethermint',
+    repo: 'cosmos/ethermint',
+    docsRepo: 'cosmos/ethermint',
     docsBranch: 'development',
     docsDir: 'docs',
     editLinks: true,
@@ -62,7 +62,7 @@ module.exports = {
       logo: '/logo-bw.svg',
       textLink: {text: 'ethermint.zone', url: 'https://ethermint.zone'},
       services: [
-        {service: 'github', url: 'https://github.com/ChainSafe/ethermint'},
+        {service: 'github', url: 'https://github.com/cosmos/ethermint'},
         {service: 'twitter', url: 'https://twitter.com/chainsafeth'},
         {service: 'linkedin', url: 'https://www.linkedin.com/company/chainsafe-systems'},
         {service: 'medium', url: 'https://medium.com/chainsafe-systems'},
@@ -89,7 +89,7 @@ module.exports = {
         {
           title: 'Contributing',
           children: [
-            {title: 'Contributing to the docs', url: 'https://github.com/ChainSafe/ethermint/tree/development/docs'},
+            {title: 'Contributing to the docs', url: 'https://github.com/cosmos/ethermint/tree/development/docs'},
             {title: 'Careers at ChainSafe', url: 'https://chainsafe.io/#careers'}, {
               title: 'Source code on GitHub',
               url: 'https://github.com/cosmos/ethermint/blob/development/docs/DOCS_README.md'
