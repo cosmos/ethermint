@@ -19,8 +19,8 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	addr := sdk.AccAddress(suite.address.Bytes())
 	balance := ethermint.NewPhotonCoin(sdk.NewInt(5000))
 	acc := suite.app.AccountKeeper.GetAccount(suite.ctx, addr)
-	_ = acc.SetCoins(sdk.NewCoins(balance))
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.BankKeeper.SetBalance(suite.ctx, addr, balance)
 
 	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
@@ -101,6 +101,24 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				TxHash:       &ethcmn.Hash{},
 				Sender:       suite.address,
 				Simulate:     suite.ctx.IsCheckTx(),
+			},
+			false,
+		},
+		{
+			"failed to Finalize",
+			func() {},
+			types.StateTransition{
+				AccountNonce: 123,
+				Price:        big.NewInt(10),
+				GasLimit:     11,
+				Recipient:    &recipient,
+				Amount:       big.NewInt(-5000),
+				Payload:      []byte("data"),
+				ChainID:      big.NewInt(1),
+				Csdb:         suite.stateDB,
+				TxHash:       &ethcmn.Hash{},
+				Sender:       suite.address,
+				Simulate:     false,
 			},
 			false,
 		},

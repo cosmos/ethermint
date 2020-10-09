@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 
@@ -16,7 +15,7 @@ import (
 )
 
 // GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	faucetQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      fmt.Sprintf("Querying commands for the %s module", types.ModuleName),
@@ -31,23 +30,23 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdFunded queries the total amount funded by the faucet.
-func GetCmdFunded(cdc *codec.Codec) *cobra.Command {
+func GetCmdFunded(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "funded",
 		Short: "Gets storage for an account at a given key",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
 
-			res, height, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFunded))
+			res, height, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFunded))
 			if err != nil {
 				return err
 			}
 
 			var out sdk.Coins
 			cdc.MustUnmarshalJSON(res, &out)
-			cliCtx = cliCtx.WithHeight(height)
-			return cliCtx.PrintOutput(out)
+			clientCtx = clientCtx.WithHeight(height)
+			return clientCtx.PrintOutput(out)
 		},
 	}
 }

@@ -19,12 +19,14 @@ COMMIT := $(shell git log -1 --format='%H')
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
+DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuild/buf
 ETHERMINT_DAEMON_BINARY = ethermintd
-ETHERMINT_CLI_BINARY = ethermintcli
+ETHERMINT_CLI_BINARY = ethermintd
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
 LEDGER_ENABLED ?= true
+HTTPS_GIT := https://github.com/ChainSafe/ethermint.git
 
 ifeq ($(OS),Windows_NT)
   DETECTED_OS := windows
@@ -124,18 +126,18 @@ all: tools verify install
 
 build: go.sum
 ifeq ($(OS), Windows_NT)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
 endif
-	go build -mod=readonly ./...
+	go build ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
+	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
 
 build-ethermint-linux: go.sum
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(MAKE) build-ethermint
@@ -161,8 +163,7 @@ docker-build:
 	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
-	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
-	docker cp ethermint:/usr/bin/ethermintcli ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/
 
 docker-localnet:
 	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node
@@ -229,8 +230,16 @@ else
 	@echo "yarn already installed; skipping..."
 endif
 
+proto-tools: proto-tools-stamp
+proto-tools-stamp:
+	bash scripts/proto-tools-installer.sh
+	# Create dummy file to satisfy dependency and avoid
+	# rebuilding when this Makefile target is hit twice
+	# in a row.
+	touch $@
+
 tools: tools-stamp
-tools-stamp: contract-tools docs-tools runsim
+tools-stamp: contract-tools docs-tools proto-tools runsim
 	# Create dummy file to satisfy dependency and avoid
 	# rebuilding when this Makefile target is hit twice
 	# in a row.
@@ -337,33 +346,48 @@ format:
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-gen proto-lint proto-check-breaking
+proto-all: proto-tools proto-gen proto-lint proto-check-breaking proto-swagger-gen proto-format
 
 proto-gen:
 	@./scripts/protocgen.sh
 
+proto-format:
+	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
+
+proto-swagger-gen:
+	@./scripts/protoc-swagger-gen.sh
+
 proto-lint:
 	@buf check lint --error-format=json
 
-# NOTE: should match the default repo branch 
 proto-check-breaking:
-	@buf check breaking --against-input '.git#branch=development'
+	@buf check breaking --against-input '.git#branch=master'
 
+proto-lint-docker:
+	@$(DOCKER_BUF) check lint --error-format=json
+.PHONY: proto-lint
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
+proto-check-breaking-docker:
+	@$(DOCKER_BUF) check breaking --against-input $(HTTPS_GIT)#branch=development
+.PHONY: proto-check-breaking-ci
+
+TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.0-rc4/proto/tendermint
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL 	 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+COSMOS_SDK_URL = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+CONFIO_URL 		 = https://raw.githubusercontent.com/confio/ics23/v0.6.2
 
-TM_KV_TYPES         = third_party/proto/tendermint/libs/kv
-TM_MERKLE_TYPES     = third_party/proto/tendermint/crypto/merkle
-TM_ABCI_TYPES       = third_party/proto/tendermint/abci/types
+TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
+TM_ABCI_TYPES       = third_party/proto/tendermint/abci
+TM_TYPES     			  = third_party/proto/tendermint/types
+TM_VERSION 					= third_party/proto/tendermint/version
+TM_LIBS							= third_party/proto/tendermint/libs/bits
+
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
-COSMOS_PROTO_TYPES  = third_party/proto/cosmos-proto
-SDK_PROTO_TYPES     = third_party/proto/cosmos-sdk/types
-AUTH_PROTO_TYPES    = third_party/proto/cosmos-sdk/x/auth/types
-VESTING_PROTO_TYPES = third_party/proto/cosmos-sdk/x/auth/vesting/types
-SUPPLY_PROTO_TYPES  = third_party/proto/cosmos-sdk/x/supply/types
+COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
+CONFIO_TYPES        = third_party/proto/confio
+
+COSMOS_SDK_PROTO  = third_party/proto/cosmos-sdk
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
@@ -372,33 +396,31 @@ proto-update-deps:
 	@mkdir -p $(COSMOS_PROTO_TYPES)
 	@curl -sSL $(COSMOS_PROTO_URL)/cosmos.proto > $(COSMOS_PROTO_TYPES)/cosmos.proto
 
+## Importing of tendermint protobuf definitions currently requires the
+## use of `sed` in order to build properly with cosmos-sdk's proto file layout
+## (which is the standard Buf.build FILE_LAYOUT)
+## Issue link: https://github.com/tendermint/tendermint/issues/5021
 	@mkdir -p $(TM_ABCI_TYPES)
-	@curl -sSL $(TM_URL)/abci/types/types.proto > $(TM_ABCI_TYPES)/types.proto
-	@sed -i '' '8 s|crypto/merkle/merkle.proto|third_party/proto/tendermint/crypto/merkle/merkle.proto|g' $(TM_ABCI_TYPES)/types.proto
-	@sed -i '' '9 s|libs/kv/types.proto|third_party/proto/tendermint/libs/kv/types.proto|g' $(TM_ABCI_TYPES)/types.proto
+	@curl -sSL $(TM_URL)/abci/types.proto > $(TM_ABCI_TYPES)/types.proto
 
-	@mkdir -p $(TM_KV_TYPES)
-	@curl -sSL $(TM_URL)/libs/kv/types.proto > $(TM_KV_TYPES)/types.proto
+	@mkdir -p $(TM_VERSION)
+	@curl -sSL $(TM_URL)/version/types.proto > $(TM_VERSION)/types.proto
 
-	@mkdir -p $(TM_MERKLE_TYPES)
-	@curl -sSL $(TM_URL)/crypto/merkle/merkle.proto > $(TM_MERKLE_TYPES)/merkle.proto
+	@mkdir -p $(TM_TYPES)
+	@curl -sSL $(TM_URL)/types/types.proto > $(TM_TYPES)/types.proto
+	@curl -sSL $(TM_URL)/types/evidence.proto > $(TM_TYPES)/evidence.proto
+	@curl -sSL $(TM_URL)/types/params.proto > $(TM_TYPES)/params.proto
+	@curl -sSL $(TM_URL)/types/validator.proto > $(TM_TYPES)/validator.proto
 
-	@mkdir -p $(SDK_PROTO_TYPES)
-	@curl -sSL $(SDK_PROTO_URL)/types/types.proto > $(SDK_PROTO_TYPES)/types.proto
+	@mkdir -p $(TM_CRYPTO_TYPES)
+	@curl -sSL $(TM_URL)/crypto/proof.proto > $(TM_CRYPTO_TYPES)/proof.proto
+	@curl -sSL $(TM_URL)/crypto/keys.proto > $(TM_CRYPTO_TYPES)/keys.proto
 
-	@mkdir -p $(AUTH_PROTO_TYPES)
-	@curl -sSL $(SDK_PROTO_URL)/x/auth/types/types.proto > $(AUTH_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(AUTH_PROTO_TYPES)/types.proto
+	@mkdir -p $(TM_LIBS)
+	@curl -sSL $(TM_URL)/libs/bits/types.proto > $(TM_LIBS)/types.proto
 
-	@mkdir -p $(VESTING_PROTO_TYPES)
-	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
-	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
-
-	@mkdir -p $(SUPPLY_PROTO_TYPES)
-	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
+	@mkdir -p $(CONFIO_TYPES)
+	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
 
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps

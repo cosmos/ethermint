@@ -12,13 +12,17 @@ require (
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.21
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
+	github.com/gogo/protobuf v1.3.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.9.1 // indirect
+	github.com/rakyll/statik v0.1.7
+	github.com/regen-network/cosmos-proto v0.3.0
 	github.com/spf13/afero v1.2.2 // indirect
+	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
@@ -30,3 +34,5 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	gopkg.in/yaml.v2 v2.3.0
 )
+
+replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4

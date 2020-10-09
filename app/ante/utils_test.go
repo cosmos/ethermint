@@ -1,12 +1,13 @@
 package ante_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -44,7 +45,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	// We're using TestMsg amino encoding in some tests, so register it here.
 	encodingConfig.Amino.RegisterConcrete(&testdata.TestMsg{}, "testdata.TestMsg", nil)
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper,  suite.app.BankKeeper, suite.app.EvmKeeper, encodingConfig.TxConfig.SignModeHandler())
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.EvmKeeper, encodingConfig.TxConfig.SignModeHandler())
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -100,10 +101,7 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 		return nil, err
 	}
 
-	privkey, ok := priv.(ethsecp256k1.PrivKey)
-	if !ok {
-		return nil, fmt.Errorf("invalid private key type: %T", priv)
-	}
+	privkey := &ethsecp256k1.PrivKey{Key: priv}
 
 	if err := msg.Sign(chainIDEpoch, privkey.ToECDSA()); err != nil {
 		return nil, err

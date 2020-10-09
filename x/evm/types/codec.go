@@ -2,22 +2,24 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// ModuleCdc defines the evm module's codec
-var ModuleCdc = codec.NewLegacyAminoLegacyAmino()
-
-// RegisterLegacyAminoCodec registers all the necessary types and interfaces for the
-// evm module
-func RegisterLegacyAminoCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgEthereumTx{}, "ethermint/MsgEthereumTx", nil)
-	cdc.RegisterConcrete(MsgEthermint{}, "ethermint/MsgEthermint", nil)
-	cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
-	cdc.RegisterConcrete(ChainConfig{}, "ethermint/ChainConfig", nil)
+// RegisterInterfaces registers the client interfaces to protobuf Any.
+func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+	registry.RegisterImplementations(
+		(*sdk.Msg)(nil),
+		&MsgEthereumTx{},
+		&MsgEthermint{},
+	)
 }
 
-func init() {
-	RegisterLegacyAminoCodec(ModuleCdc)
-	codec.RegisterCrypto(ModuleCdc)
-	ModuleCdc.Seal()
-}
+var (
+	// SubModuleCdc references the global evm module codec. Note, the codec should
+	// ONLY be used in certain instances of tests and for JSON encoding.
+	//
+	// The actual codec used for serialization should be provided to x/evm and
+	// defined at the application level.
+	SubModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
+)

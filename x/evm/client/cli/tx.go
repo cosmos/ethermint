@@ -27,7 +27,7 @@ import (
 )
 
 // GetTxCmd defines the CLI commands regarding evm module transactions
-func GetTxCmd(cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 	evmTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "EVM transaction subcommands",
@@ -45,13 +45,13 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdSendTx generates an Ethermint transaction (excludes create operations)
-func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
+func GetCmdSendTx(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "send [to_address] [amount (in aphotons)] [<data>]",
 		Short: "send transaction to address (call operations included)",
 		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
@@ -80,9 +80,9 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			from := cliCtx.GetFromAddress()
+			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -96,19 +96,19 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
 
 // GetCmdGenCreateTx generates an Ethermint transaction (excludes create operations)
-func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
+func GetCmdGenCreateTx(cdc *codec.LegacyAmino) *cobra.Command {
 	return &cobra.Command{
 		Use:   "create [contract bytecode] [<amount (in aphotons)>]",
 		Short: "create contract through the evm using compiled bytecode",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
@@ -132,9 +132,9 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			from := cliCtx.GetFromAddress()
+			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(cliCtx).GetAccountNumberSequence(from)
+			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
@@ -148,7 +148,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			if err = authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg}); err != nil {
+			if err = authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg}); err != nil {
 				return err
 			}
 

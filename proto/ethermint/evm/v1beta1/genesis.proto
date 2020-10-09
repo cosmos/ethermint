@@ -1,0 +1,29 @@
+syntax = "proto3";
+package ethermint.evm.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "ethermint/evm/v1beta1/evm.proto";
+
+option go_package = "github.com/cosmos/ethermint/x/evm/types";
+
+// GenesisState defines the evm module's genesis state.
+message GenesisState {
+  // accounts is an array containing the ethereum genesis accounts.
+  repeated GenesisAccount accounts = 1 [(gogoproto.nullable) = false];
+  // chain_config defines the Ethereum chain configuration.
+  ChainConfig chain_config = 2 [(gogoproto.moretags) = "yaml:\"chain_config\""];
+  // params defines all the paramaters of the module.
+  Params params = 3 [(gogoproto.nullable) = false];
+
+  repeated TransactionLogs txs_logs = 4 [(gogoproto.moretags) = "yaml:\"txs_logs\""];
+}
+
+// GenesisAccount defines an account to be initialized in the genesis state.
+// Its main difference between with Geth's GenesisAccount is that it uses a custom
+// storage type and that it doesn't contain the private key field.
+message GenesisAccount {
+  string         address = 1;
+  string         balance = 2;
+  bytes          code    = 3;
+  repeated State storage = 4 [(gogoproto.castrepeated) = "Storage"];
+}

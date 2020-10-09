@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	ethermint "github.com/cosmos/ethermint/types"
 )
@@ -16,7 +16,7 @@ type PublicNetAPI struct {
 }
 
 // NewPublicNetAPI creates an instance of the public Net Web3 API.
-func NewPublicNetAPI(_ context.CLIContext) *PublicNetAPI {
+func NewPublicNetAPI(_ client.Context) *PublicNetAPI {
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a integer string
 	chainIDEpoch, err := ethermint.ParseChainID(chainID)

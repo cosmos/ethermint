@@ -16,19 +16,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
-
-// GenerateEthAddress generates an Ethereum address.
-func GenerateEthAddress() ethcmn.Address {
-	priv, err := ethsecp256k1.GenerateKey()
-	if err != nil {
-		panic(err)
-	}
-
-	return ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-}
 
 // ValidateSigner attempts to validate a signer for a given slice of bytes over
 // which a signature and signer is given. An error is returned if address
@@ -94,7 +82,7 @@ func DecodeResultData(in []byte) (ResultData, error) {
 
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+func TxDecoder(cdc *codec.LegacyAmino) sdk.TxDecoder {
 	return func(txBytes []byte) (sdk.Tx, error) {
 		var tx sdk.Tx
 

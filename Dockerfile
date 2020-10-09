@@ -25,7 +25,7 @@ WORKDIR /root
 
 # Copy over binaries from the build-env
 COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/ethermintd /usr/bin/ethermintd
-COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/ethermintcli /usr/bin/ethermintcli
+COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/ethermintd /usr/bin/ethermintd
 
 # Run ethermintd by default
 CMD ["ethermintd"]

@@ -4,10 +4,23 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+
 	"github.com/stretchr/testify/require"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
+
+// GenerateEthAddress generates an Ethereum address.
+func GenerateEthAddress() ethcmn.Address {
+	priv, err := ethsecp256k1.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+
+	return ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
+}
 
 func TestMarshalAndUnmarshalData(t *testing.T) {
 	addr := GenerateEthAddress()

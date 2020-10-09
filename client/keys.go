@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto/hd"
@@ -33,28 +33,28 @@ func KeyCommands() *cobra.Command {
 	}
 
 	// support adding Ethereum supported keys
-	addCmd := clientkeys.AddKeyCommand()
+	addCmd := keys.AddKeyCommand()
 
 	// update the default signing algorithm value to "eth_secp256k1"
 	algoFlag := addCmd.Flag("algo")
-	algoFlag.DefValue = string(hd.EthSecp256k1)
-	err := algoFlag.Value.Set(string(hd.EthSecp256k1))
+	algoFlag.DefValue = string(hd.EthSecp256k1Type)
+	err := algoFlag.Value.Set(string(hd.EthSecp256k1Type))
 	if err != nil {
 		panic(err)
 	}
 	addCmd.RunE = runAddCmd
 
 	cmd.AddCommand(
-		clientkeys.MnemonicKeyCommand(),
-		addCmd,
-		clientkeys.ExportKeyCommand(),
-		clientkeys.ImportKeyCommand(),
-		clientkeys.ListKeysCmd(),
-		clientkeys.ShowKeysCmd(),
+		keys.MnemonicKeyCommand(),
+		keys.AddKeyCommand(),
+		keys.ExportKeyCommand(),
+		keys.ImportKeyCommand(),
+		keys.ListKeysCmd(),
+		keys.ShowKeysCmd(),
 		flags.LineBreak,
-		clientkeys.DeleteKeyCommand(),
-		clientkeys.ParseKeyStringCommand(),
-		clientkeys.MigrateCommand(),
+		keys.DeleteKeyCommand(),
+		keys.ParseKeyStringCommand(),
+		keys.MigrateCommand(),
 		flags.LineBreak,
 		UnsafeExportEthKeyCommand(),
 	)
@@ -68,21 +68,21 @@ func runAddCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return clientkeys.RunAddCmd(cmd, args, kb, inBuf)
+	return keys.RunAddCmd(cmd, args, kb, inBuf)
 }
 
-func getKeybase(transient bool, buf io.Reader) (keys.Keybase, error) {
+func getKeybase(transient bool, buf io.Reader) (keyring.Keyring, error) {
 	if transient {
-		return keys.NewInMemory(
-			hd.EthSecp256k1Options()...,
+		return keyring.NewInMemory(
+			hd.EthSecp256k1Option(),
 		), nil
 	}
 
-	return keys.NewKeyring(
+	return keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
 		buf,
-		hd.EthSecp256k1Options()...,
+		hd.EthSecp256k1Option(),
 	)
 }
