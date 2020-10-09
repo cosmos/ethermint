@@ -225,6 +225,29 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 		return nil, err
 	}
 
+	if blockNum.Int64() == int64(1) {
+		pendingtx, err := e.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range pendingtx {
+			fmt.Println(pendingtx[i])
+			if pendingtx[i] == nil {
+				continue
+			}
+			if pendingtx[i].From == address {
+				pendingBalance := big.NewInt(0)
+				pendingBalance = pendingBalance.Add(val, pendingtx[i].Value.ToInt())
+				val = pendingBalance
+			} else if *pendingtx[i].To == address {
+				pendingBalance := big.NewInt(0)
+				pendingBalance = pendingBalance.Sub(val, pendingtx[i].Value.ToInt())
+				val = pendingBalance
+			}
+		}
+	}
+
 	return (*hexutil.Big)(val), nil
 }
 
