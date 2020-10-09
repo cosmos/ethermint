@@ -8,10 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -79,28 +75,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 
 // ----------------------------------------------------------------------------
 // Auxiliary
-
-// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.LegacyAmino) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
-		var tx sdk.Tx
-
-		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
-		}
-
-		// sdk.Tx is an interface. The concrete message types
-		// are registered by MakeTxCodec
-		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
-		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-		}
-
-		return tx, nil
-	}
-}
 
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.

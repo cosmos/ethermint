@@ -11,11 +11,11 @@ message GenesisState {
   // accounts is an array containing the ethereum genesis accounts.
   repeated GenesisAccount accounts = 1 [(gogoproto.nullable) = false];
   // chain_config defines the Ethereum chain configuration.
-  ChainConfig chain_config = 2 [(gogoproto.moretags) = "yaml:\"chain_config\""];
+  ChainConfig chain_config = 2 [(gogoproto.moretags) = "yaml:\"chain_config\"", (gogoproto.nullable) = false];
   // params defines all the paramaters of the module.
   Params params = 3 [(gogoproto.nullable) = false];
 
-  repeated TransactionLogs txs_logs = 4 [(gogoproto.moretags) = "yaml:\"txs_logs\""];
+  repeated TransactionLogs txs_logs = 4 [(gogoproto.moretags) = "yaml:\"txs_logs\"", (gogoproto.nullable) = false];
 }
 
 // GenesisAccount defines an account to be initialized in the genesis state.

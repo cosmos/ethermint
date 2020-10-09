@@ -21,14 +21,14 @@ import (
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
 // to the StateDB interface.
 type Keeper struct {
-	// Amino codec
-	cdc *codec.LegacyAmino
+	// Protobuf codec
+	cdc codec.BinaryMarshaler
 	// Store key required for the EVM Prefix KVStore. It is required by:
 	// - storing Account's Storage State
 	// - storing Account's Code
 	// - storing transaction Logs
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
-	// - storing block hash -> block height map. Needed for the Web3 API.
+	// - storing block hash -> block height map. Needed for the Web3 API. TODO: remove
 	storeKey sdk.StoreKey
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
@@ -41,7 +41,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.LegacyAmino, storeKey sdk.StoreKey, paramSpace params.Subspace,
+	cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, paramSpace params.Subspace,
 	ak types.AccountKeeper, bankKeeper types.BankKeeper,
 ) Keeper {
 	// set KeyTable if it has not already been set
@@ -121,8 +121,8 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 	txsLogs := []types.TransactionLogs{}
 	for ; iterator.Valid(); iterator.Next() {
 		hash := common.BytesToHash(iterator.Key())
-		var logs []*ethtypes.Log
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
+		var logs []*types.Log
+		k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &logs)
 
 		// add a new entry
 		txLog := types.NewTransactionLogs(hash, logs)
@@ -162,7 +162,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
-	bz := k.cdc.MustMarshalBinaryBare(config)
+	bz := k.cdc.MustMarshalBinaryBare(&config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
 }
