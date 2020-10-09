@@ -20,8 +20,8 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	abci "github.com/tendermint/tendermint/abci/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
 type AnteTestSuite struct {
@@ -37,7 +37,7 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 2, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 2, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.app.AccountKeeper.SetParams(suite.ctx, authtypes.DefaultParams())
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 

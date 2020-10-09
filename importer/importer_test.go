@@ -38,8 +38,8 @@ import (
 	ethparams "github.com/ethereum/go-ethereum/params"
 	ethrlp "github.com/ethereum/go-ethereum/rlp"
 
-	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -102,7 +102,7 @@ func trapSignals() {
 func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, bk bank.Keeper, evmKeeper evm.Keeper) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
-	ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
+	ctx := sdk.NewContext(ms, tmproto.Header{}, false, logger)
 
 	// Set the default Ethermint parameters to the parameter keeper store
 	evmKeeper.SetParams(ctx, evmtypes.DefaultParams())
@@ -251,7 +251,7 @@ func TestImportBlocks(t *testing.T) {
 		// Create a cached-wrapped multi-store based on the commit multi-store and
 		// create a new context based off of that.
 		ms := cms.CacheMultiStore()
-		ctx := sdk.NewContext(ms, abci.Header{}, false, logger)
+		ctx := sdk.NewContext(ms, tmproto.Header{}, false, logger)
 		ctx = ctx.WithBlockHeight(int64(block.NumberU64()))
 
 		if chainConfig.DAOForkSupport && chainConfig.DAOForkBlock != nil && chainConfig.DAOForkBlock.Cmp(block.Number()) == 0 {

@@ -1,6 +1,9 @@
 package ante
 
 import (
+	"fmt"
+
+	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -9,11 +12,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	"github.com/tendermint/tendermint/crypto/secp256k1"
+
 	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
-
-	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
 func init() {
@@ -32,8 +35,8 @@ const (
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
 func NewAnteHandler(
-	ak auth.AccountKeeper, bankKeeper types.BankKeeper, evmKeeper EVMKeeper, signModeHandler signing.SignModeHandler
-	) sdk.AnteHandler {
+	ak auth.AccountKeeper, bankKeeper types.BankKeeper, evmKeeper EVMKeeper, signModeHandler signing.SignModeHandler,
+) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
@@ -89,7 +92,7 @@ func DefaultSigVerificationGasConsumer(
 	case *secp256k1.PubKey:
 		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: secp256k1")
 		return nil
-	
+
 	// support for etherum ECDSA secp256k1 keys
 	case *ethsecp256k1.Pubkey:
 		meter.ConsumeGas(secp256k1VerifyCost, "ante verify: eth_secp256k1")

@@ -22,11 +22,12 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+
+	"github.com/cosmos/cosmos-sdk/client"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-
-	context "github.com/cosmos/cosmos-sdk/client"
 )
 
 type SubscriptionResponseJSON struct {

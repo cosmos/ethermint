@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
 
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
@@ -126,7 +126,7 @@ func (suite *JournalTestSuite) setup() {
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
-	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
+	suite.ctx = sdk.NewContext(cms, tmproto.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
 	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, bk).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }

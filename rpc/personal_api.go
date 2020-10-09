@@ -9,13 +9,15 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/spf13/viper"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	params "github.com/cosmos/ethermint/rpc/args"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
-	params "github.com/cosmos/ethermint/rpc/args"
-	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"

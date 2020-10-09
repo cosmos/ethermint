@@ -5,9 +5,10 @@ import (
 
 	"github.com/spf13/viper"
 
+	ethermint "github.com/cosmos/ethermint/types"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	ethermint "github.com/cosmos/ethermint/types"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.

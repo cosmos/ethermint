@@ -5,8 +5,9 @@ package rpc
 import (
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // RPC namespaces and API version

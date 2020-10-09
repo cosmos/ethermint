@@ -13,9 +13,9 @@ const (
 )
 
 var (
-	NewKeeper     = keeper.NewKeeper
-	NewQuerier    = keeper.NewQuerier
-	ModuleCdc     = types.ModuleCdc
+	NewKeeper                = keeper.NewKeeper
+	NewQuerier               = keeper.NewQuerier
+	ModuleCdc                = types.ModuleCdc
 	RegisterLegacyAminoCodec = types.RegisterLegacyAminoCodec
 )
 
