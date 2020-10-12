@@ -41,6 +41,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
   * `crypto.PubKeySecp256k1` and `crypto.PrivKeySecp256k1` are now `ethsecp256k1.PubKey` and `ethsecp256k1.PrivKey`, respectively
   * Moved SDK `SigningAlgo` implementation for Ethermint's Secp256k1 key to `crypto/hd` package.
 
+### Improvements
+
+* (rpc) [\#574](https://github.com/cosmos/ethermint/issues/574) `eth_protocolVersion` now always returns the latest protocol version from go-ethereum.
+
 ## [v0.2.1] - 2020-09-30
 
 ### Features
