@@ -212,7 +212,16 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) {
 	e.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	pendingQuery := false
+	var ctx context.CLIContext
+	if blockNum.Int64() == int64(-1) {
+		// uses latest block number: -1 -> 0
+		ctx = e.cliCtx.WithHeight(int64(0))
+		pendingQuery = true
+	} else {
+		ctx = e.cliCtx.WithHeight(blockNum.Int64())
+	}
+	fmt.Println("query ctx height: ", ctx.Height)
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
 	if err != nil {
 		return nil, err
@@ -225,14 +234,13 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 		return nil, err
 	}
 
-	if blockNum.Int64() == int64(1) {
+	if pendingQuery {
 		pendingtx, err := e.backend.PendingTransactions()
 		if err != nil {
 			return nil, err
 		}
 
 		for i := range pendingtx {
-			fmt.Println(pendingtx[i])
 			if pendingtx[i] == nil {
 				continue
 			}
@@ -344,6 +352,9 @@ func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) 
 	var out evmtypes.QueryResCode
 	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Code, nil
+	// issue with pending state query  is that we cannot get pending because the tx will return a txhash
+	// this request requires the contract address to query its code
+	// if the user only has the txhash, and assuming they don't know how to construct a tx manually, they cannot query this anyway
 }
 
 // GetTransactionLogs returns the logs given a transaction hash.
