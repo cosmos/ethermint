@@ -15,7 +15,6 @@ import (
 	params "github.com/cosmos/ethermint/rpc/args"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/utils"
-	"github.com/cosmos/ethermint/version"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -29,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -102,7 +102,7 @@ func (e *PublicEthAPI) getKeybaseInfo() error {
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (e *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 	e.logger.Debug("eth_protocolVersion")
-	return hexutil.Uint(version.ProtocolVersion)
+	return hexutil.Uint(eth.ProtocolVersions[0])
 }
 
 // ChainId returns the chain's identifier in hex format

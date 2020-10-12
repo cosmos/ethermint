@@ -23,9 +23,9 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/eth"
 
 	"github.com/cosmos/ethermint/rpc"
-	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
@@ -253,7 +253,7 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 }
 
 func TestEth_protocolVersion(t *testing.T) {
-	expectedRes := hexutil.Uint(version.ProtocolVersion)
+	expectedRes := hexutil.Uint(eth.ProtocolVersions[0])
 
 	rpcRes := call(t, "eth_protocolVersion", []string{})
 
