@@ -10,7 +10,15 @@ import (
 )
 
 // NewTransactionLogs creates a new NewTransactionLogs instance.
-func NewTransactionLogs(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs {
+func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
+	return TransactionLogs{
+		Hash: hash.String(),
+		Logs: logs,
+	}
+}
+
+// NewTransactionLogsFromEth creates a new NewTransactionLogs instance using []*ethtypes.Log.
+func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs {
 	return TransactionLogs{
 		Hash: hash.String(),
 		// TODO: logs

@@ -3,17 +3,12 @@ package types
 import (
 	"fmt"
 
+	yaml "gopkg.in/yaml.v2"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
-	"github.com/ethereum/go-ethereum/params"
-
 	ethermint "github.com/cosmos/ethermint/types"
-)
-
-const (
-	// DefaultParamspace for params keeper
-	DefaultParamspace = ModuleName
 )
 
 // Parameter keys
@@ -47,9 +42,9 @@ func (p Params) String() string {
 }
 
 // ParamSetPairs returns the parameter set pairs.
-func (p *Params) ParamSetPairs() params.ParamSetPairs {
-	return params.ParamSetPairs{
-		params.NewParamSetPair(ParamStoreKeyEVMDenom, &p.EvmDenom, validateEVMDenom),
+func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
+	return paramtypes.ParamSetPairs{
+		paramtypes.NewParamSetPair(ParamStoreKeyEVMDenom, &p.EvmDenom, validateEVMDenom),
 	}
 }
 

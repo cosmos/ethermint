@@ -19,9 +19,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	paramkeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	"github.com/cosmos/ethermint/core"
 	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
@@ -69,8 +72,8 @@ func newTestCodec() *sdkcodec.LegacyAmino {
 
 	evmtypes.RegisterLegacyAminoCodec(cdc)
 	types.RegisterLegacyAminoCodec(cdc)
-	auth.RegisterLegacyAminoCodec(cdc)
-	bank.RegisterLegacyAminoCodec(cdc)
+	authtypes.RegisterLegacyAminoCodec(cdc)
+	banktypes.RegisterLegacyAminoCodec(cdc)
 	sdk.RegisterLegacyAminoCodec(cdc)
 	cryptocodec.RegisterLegacyAminoCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
@@ -99,7 +102,7 @@ func trapSignals() {
 }
 
 // nolint: interfacer
-func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak auth.AccountKeeper, bk bank.Keeper, evmKeeper evm.Keeper) {
+func createAndTestGenesis(t *testing.T, cms sdk.CommitMultiStore, ak authkeeper.AccountKeeper, bk bankkeeper.Keeper, evmKeeper evm.Keeper) {
 	genBlock := ethcore.DefaultGenesisBlock()
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, tmproto.Header{}, false, logger)
@@ -176,11 +179,11 @@ func TestImportBlocks(t *testing.T) {
 
 	cms := store.NewCommitMultiStore(db)
 
-	authStoreKey := sdk.NewKVStoreKey(auth.StoreKey)
-	bankStoreKey := sdk.NewKVStoreKey(bank.StoreKey)
+	authStoreKey := sdk.NewKVStoreKey(authtypes.StoreKey)
+	bankStoreKey := sdk.NewKVStoreKey(banktypes.StoreKey)
 	evmStoreKey := sdk.NewKVStoreKey(evmtypes.StoreKey)
-	paramsStoreKey := sdk.NewKVStoreKey(params.StoreKey)
-	paramsTransientStoreKey := sdk.NewTransientStoreKey(params.TStoreKey)
+	paramsStoreKey := sdk.NewKVStoreKey(paramtypes.StoreKey)
+	paramsTransientStoreKey := sdk.NewTransientStoreKey(paramtypes.TStoreKey)
 
 	// mount stores
 	keys := []*sdk.KVStoreKey{authStoreKey, bankStoreKey, evmStoreKey, paramsStoreKey}
@@ -190,16 +193,16 @@ func TestImportBlocks(t *testing.T) {
 
 	cms.MountStoreWithDB(paramsTransientStoreKey, sdk.StoreTypeTransient, nil)
 
-	paramsKeeper := params.NewKeeper(cdc, paramsStoreKey, paramsTransientStoreKey)
+	paramsKeeper := paramkeeper.NewKeeper(cdc, paramsStoreKey, paramsTransientStoreKey)
 
 	// Set specific subspaces
-	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
-	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
+	authSubspace := paramsKeeper.Subspace(authtypes.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bankkeeper.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(evmtypes.DefaultParamspace).WithKeyTable(evmtypes.ParamKeyTable())
 
 	// create keepers
-	ak := auth.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount)
-	bk := bank.NewBaseKeeper(ak, bankSubspace, nil)
+	ak := authkeeper.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount)
+	bk := bankkeeper.NewBaseKeeper(ak, bankSubspace, nil)
 	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak, bk)
 
 	cms.SetPruning(sdkstore.PruneNothing)

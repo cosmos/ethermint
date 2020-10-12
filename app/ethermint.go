@@ -161,7 +161,7 @@ type EthermintApp struct {
 	memKeys map[string]*sdk.MemoryStoreKey
 
 	// subspaces
-	subspaces map[string]params.Subspace
+	subspaces map[string]paramstypes.Subspace
 
 	// keepers
 	AccountKeeper    authkeeper.AccountKeeper
@@ -216,7 +216,7 @@ func NewEthermintApp(
 		appName,
 		logger,
 		db,
-		encodingConfig.TxConfig.TxDecoder(), // FIXME: use ethermint's
+		encodingConfig.TxConfig.TxDecoder(),
 		baseAppOptions...,
 	)
 	bApp.SetCommitMultiStoreTracer(traceStore)
@@ -330,7 +330,7 @@ func NewEthermintApp(
 
 	// Create Ethermint keepers
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper,
+		appCodec, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.BankKeeper,
 	)
 	// app.FaucetKeeper = faucet.NewKeeper(
 	// 	app.cdc, keys[faucet.StoreKey], app.BankKeeper,
@@ -480,7 +480,7 @@ func (app *EthermintApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *EthermintApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-	return app.mm.InitGenesis(ctx, genesisState)
+	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
 // LoadHeight loads state at a particular height

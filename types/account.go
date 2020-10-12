@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 
+	yaml "gopkg.in/yaml.v2"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"

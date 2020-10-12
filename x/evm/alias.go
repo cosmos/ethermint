@@ -7,10 +7,9 @@ import (
 
 // nolint
 const (
-	ModuleName        = types.ModuleName
-	StoreKey          = types.StoreKey
-	RouterKey         = types.RouterKey
-	DefaultParamspace = types.DefaultParamspace
+	ModuleName = types.ModuleName
+	StoreKey   = types.StoreKey
+	RouterKey  = types.RouterKey
 )
 
 // nolint

@@ -184,7 +184,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// sender address should be in the tx cache from the previous AnteHandle call
-	address := msgEthTx.From()
+	address := msgEthTx.GetFrom()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}
@@ -239,7 +239,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	// sender address should be in the tx cache from the previous AnteHandle call
-	address := msgEthTx.From()
+	address := msgEthTx.GetFrom()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}
@@ -297,7 +297,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// sender address should be in the tx cache from the previous AnteHandle call
-	address := msgEthTx.From()
+	address := msgEthTx.GetFrom()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}

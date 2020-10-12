@@ -48,44 +48,59 @@ message ChainConfig {
   ];
   // EIP150 HF hash (needed for header only clients as only gas pricing changed)
   string eip150_hash = 5 [(gogoproto.customname) = "EIP150Hash", (gogoproto.moretags) = "yaml:\"byzantium_block\""];
+  // EIP155Block HF block
+  string eip155_block = 6 [
+    (gogoproto.customname) = "EIP155Block",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"eip155_block\"",
+    (gogoproto.nullable)   = false
+  ];
+  // EIP158 HF block
+  string eip158_block = 7 [
+    (gogoproto.customname) = "EIP158Block",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags)   = "yaml:\"eip158_block\"",
+    (gogoproto.nullable)   = false
+  ];
   // Byzantium switch block (< 0 no fork, 0 = already on byzantium)
-  string byzantium_block = 6 [
+  string byzantium_block = 8 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"byzantium_block\"",
     (gogoproto.nullable)   = false
   ];
   // Constantinople switch block (< 0 no fork, 0 = already activated)
-  string constantinople_block = 7 [
+  string constantinople_block = 9 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"constantinople_block\"",
     (gogoproto.nullable)   = false
   ];
   // Petersburg switch block (< 0 same as Constantinople)
-  string petersburg_block = 8 [
+  string petersburg_block = 10 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"petersburg_block\"",
     (gogoproto.nullable)   = false
   ];
   // Istanbul switch block (< 0 no fork, 0 = already on istanbul)
-  string istanbul_block = 9 [
+  string istanbul_block = 11 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"istanbul_block\"",
     (gogoproto.nullable)   = false
   ];
   // Eip-2384 (bomb delay) switch block (< 0 no fork, 0 = already activated)
-  string muir_glacier_block = 10 [
+  string muir_glacier_block = 12 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"muir_glacier_block\"",
     (gogoproto.nullable)   = false
   ];
   // YOLO v1: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
-  string yolo_v1_block = 11 [
+  string yolo_v1_block = 13 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"yolo_v1_block\"",
     (gogoproto.nullable)   = false
   ];
   // EWASM switch block (< 0 no fork, 0 = already activated)
-  string ewasm_block = 12 [
+  string ewasm_block = 14 [
+    (gogoproto.customname) = "EWASMBlock",
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags)   = "yaml:\"ewasm_block\"",
     (gogoproto.nullable)   = false
@@ -141,7 +156,7 @@ message Log {
 message MsgEthereumTx {
   option (gogoproto.goproto_getters) = false;
 
-  TxData data = 1 [(gogoproto.nullable) = false];
+  TxData data = 1;
   // caches
   double   size = 2 [(gogoproto.jsontag) = "-"];
   SigCache from = 3 [(gogoproto.jsontag) = "-"];
@@ -171,8 +186,8 @@ message TxData {
 message SigCache {
   option (gogoproto.goproto_getters) = false;
 
-  EIP155Signer signer = 1;
-  bytes        from   = 2;
+  EIP155Signer signer  = 1;
+  string       address = 2;
 }
 
 // EIP155Transaction implements Signer using the EIP155 rules.

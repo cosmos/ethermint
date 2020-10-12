@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	_ sdk.Msg = MsgEthermint{}
-	_ sdk.Msg = MsgEthereumTx{}
-	_ sdk.Tx  = MsgEthereumTx{}
+	// _ sdk.Msg = &MsgEthermint{}
+	_ sdk.Msg = &MsgEthereumTx{}
+	_ sdk.Tx  = &MsgEthereumTx{}
 )
 
 var big8 = big.NewInt(8)
@@ -175,10 +175,6 @@ func newMsgEthereumTx(
 	return &MsgEthereumTx{Data: txData}
 }
 
-func (msg MsgEthereumTx) String() string {
-	return msg.Data.String()
-}
-
 // Route returns the route value of an MsgEthereumTx.
 func (msg MsgEthereumTx) Route() string { return RouterKey }
 
@@ -214,7 +210,7 @@ func (msg MsgEthereumTx) To() *ethcmn.Address {
 }
 
 // GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
-func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
+func (msg *MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
 }
 
@@ -223,7 +219,7 @@ func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
 //
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
-	sender := msg.From()
+	sender := msg.GetFrom()
 	if sender.Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the signer")
 	}
@@ -272,7 +268,7 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	msg.size = float64(ethcmn.StorageSize(rlp.ListSize(size)))
+	msg.Size_ = float64(ethcmn.StorageSize(rlp.ListSize(size)))
 	return nil
 }
 
@@ -318,12 +314,12 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	v, r, s := msg.RawSignatureValues()
 	signer := ethtypes.NewEIP155Signer(chainID)
 
-	if msg.from != nil {
+	if msg.From != nil {
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
-		fromSigner := ethtypes.NewEIP155Signer(new(big.Int).SetBytes(msg.from.signer.chainId))
+		fromSigner := ethtypes.NewEIP155Signer(new(big.Int).SetBytes(msg.From.Signer.chainId))
 		if signer.Equal(fromSigner) {
-			return ethcmn.BytesToAddress(msg.from.Getfrom()), nil
+			return ethcmn.HexToAddress(msg.From.Address), nil
 		}
 	}
 
@@ -342,12 +338,12 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 		return ethcmn.Address{}, err
 	}
 
-	msg.from = &SigCache{
-		signer: &EIP155Signer{
+	msg.From = &SigCache{
+		Signer: &EIP155Signer{
 			chainId:    chainID.Bytes(),
 			chainIdMul: new(big.Int).Mul(chainID, big.NewInt(2)).Bytes(),
 		},
-		from: sender.String(),
+		Address: sender.String(),
 	}
 	return sender, nil
 }
@@ -384,18 +380,19 @@ func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 		new(big.Int).SetBytes(msg.Data.S)
 }
 
-// From loads the ethereum sender address from the sigcache and returns an
+// GetFrom loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
-func (msg *MsgEthereumTx) From() sdk.AccAddress {
-	if msg.from == nil {
+func (msg *MsgEthereumTx) GetFrom() sdk.AccAddress {
+	if msg.From == nil {
 		return nil
 	}
 
-	if len(msg.from.Getfrom()) == 0 {
+	address, err := sdk.AccAddressFromBech32(msg.From.Address)
+	if err != nil {
 		return nil
 	}
 
-	return sdk.AccAddress(msg.from.Getfrom())
+	return address
 }
 
 // deriveChainID derives the chain id from the given v parameter
