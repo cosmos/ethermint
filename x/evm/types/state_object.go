@@ -134,7 +134,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 func (so *stateObject) setState(key, value ethcmn.Hash) {
 	idx, ok := so.keyToDirtyStorageIndex[key]
 	if ok {
-		so.dirtyStorage[idx].Value = value
+		so.dirtyStorage[idx].Value = value.String()
 		return
 	}
 
@@ -204,10 +204,10 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 		prev:    so.balance,
 	})
 
-	so.setBalance(evmDenom, amt)
+	so.setBalance(amt)
 }
 
-func (so *stateObject) setBalance(denom string, amount sdk.Int) {
+func (so *stateObject) setBalance(amount sdk.Int) {
 	so.balance = amount
 }
 

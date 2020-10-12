@@ -1,88 +1,104 @@
 package cli
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-// GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(moduleName string, cdc *codec.LegacyAmino) *cobra.Command {
-	evmQueryCmd := &cobra.Command{
+// GetQueryCmd returns the parent command for all x/bank CLi query commands.
+func GetQueryCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the evm module",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	evmQueryCmd.AddCommand(flags.GetCommands(
-		GetCmdGetStorageAt(moduleName, cdc),
-		GetCmdGetCode(moduleName, cdc),
-	)...)
-	return evmQueryCmd
+
+	cmd.AddCommand(
+		GetStorageCmd(),
+		GetCodeCmd(),
+	)
+	return cmd
 }
 
-// GetCmdGetStorageAt queries a key in an accounts storage
-func GetCmdGetStorageAt(queryRoute string, cdc *codec.LegacyAmino) *cobra.Command {
-	return &cobra.Command{
+// GetStorageCmd queries a key in an accounts storage
+func GetStorageCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "storage [account] [key]",
 		Short: "Gets storage for an account at a given key",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := context.NewCLIContext().WithCodec(cdc)
-
-			account, err := accountToHex(args[0])
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
 			if err != nil {
-				return errors.Wrap(err, "could not parse account address")
+				return err
 			}
 
-			key := formatKeyToHash(args[1])
+			// TODO: gRPC
+			// queryClient := types.NewQueryClient(clientCtx)
 
-			res, _, err := clientCtx.Query(
-				fmt.Sprintf("custom/%s/storage/%s/%s", queryRoute, account, key))
+			// account, err := accountToHex(args[0])
+			// if err != nil {
+			// 	return errors.Wrap(err, "could not parse account address")
+			// }
 
-			if err != nil {
-				return fmt.Errorf("could not resolve: %s", err)
-			}
-			var out types.QueryResStorage
-			cdc.MustUnmarshalJSON(res, &out)
-			return clientCtx.PrintOutput(out)
+			// key := formatKeyToHash(args[1])
+
+			// res, _, err := clientCtx.Query(
+			// 	fmt.Sprintf("custom/%s/storage/%s/%s", queryRoute, account, key))
+
+			// if err != nil {
+			// 	return fmt.Errorf("could not resolve: %s", err)
+			// }
+			// var out types.QueryResStorage
+			// cdc.MustUnmarshalJSON(res, &out)
+			// return clientCtx.PrintOutput(out)
+			return nil
 		},
 	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
 }
 
-// GetCmdGetCode queries the code field of a given address
-func GetCmdGetCode(queryRoute string, cdc *codec.LegacyAmino) *cobra.Command {
-	return &cobra.Command{
+// GetCodeCmd queries the code field of a given address
+func GetCodeCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "code [account]",
 		Short: "Gets code from an account",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := context.NewCLIContext().WithCodec(cdc)
-
-			account, err := accountToHex(args[0])
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
 			if err != nil {
-				return errors.Wrap(err, "could not parse account address")
+				return err
 			}
 
-			res, _, err := clientCtx.Query(
-				fmt.Sprintf("custom/%s/code/%s", queryRoute, account))
+			// account, err := accountToHex(args[0])
+			// if err != nil {
+			// 	return errors.Wrap(err, "could not parse account address")
+			// }
 
-			if err != nil {
-				return fmt.Errorf("could not resolve: %s", err)
-			}
+			// res, _, err := clientCtx.Query(
+			// 	fmt.Sprintf("custom/%s/code/%s", queryRoute, account))
 
-			var out types.QueryResCode
-			cdc.MustUnmarshalJSON(res, &out)
-			return clientCtx.PrintOutput(out)
+			// if err != nil {
+			// 	return fmt.Errorf("could not resolve: %s", err)
+			// }
+
+			// var out types.QueryResCode
+			// cdc.MustUnmarshalJSON(res, &out)
+			// return clientCtx.PrintOutput(out)
+
+			return nil
 		},
 	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
 }

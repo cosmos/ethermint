@@ -15,6 +15,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/grpc-ecosystem/grpc-gateway v1.15.0
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/pkg/errors v0.9.1

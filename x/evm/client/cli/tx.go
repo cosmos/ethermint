@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
 	"strconv"
 	"strings"
@@ -14,20 +13,15 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-// GetTxCmd defines the CLI commands regarding evm module transactions
-func GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
+// NewTxCmd returns a root CLI command handler for all x/evm transaction commands.
+func NewTxCmd() *cobra.Command {
 	evmTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "EVM transaction subcommands",
@@ -36,25 +30,26 @@ func GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	evmTxCmd.AddCommand(flags.PostCommands(
-		GetCmdSendTx(cdc),
-		GetCmdGenCreateTx(cdc),
-	)...)
+	evmTxCmd.AddCommand(
+		NewSendTxCmd(),
+		NewCreateContractCmd(),
+	)
 
 	return evmTxCmd
 }
 
-// GetCmdSendTx generates an Ethermint transaction (excludes create operations)
-func GetCmdSendTx(cdc *codec.LegacyAmino) *cobra.Command {
-	return &cobra.Command{
+// NewSendTxCmd generates an Ethermint transaction (excludes create operations)
+func NewSendTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "send [to_address] [amount (in aphotons)] [<data>]",
 		Short: "send transaction to address (call operations included)",
 		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := context.NewCLIContext().WithCodec(cdc)
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			toAddr, err := cosmosAddressFromArg(args[0])
 			if err != nil {
@@ -82,36 +77,48 @@ func GetCmdSendTx(cdc *codec.LegacyAmino) *cobra.Command {
 
 			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
+			_, seq, err := clientCtx.AccountRetriever.GetAccountNumberSequence(clientCtx, from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
 
-			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
-				sdk.NewInt(emint.DefaultGasPrice), data, from)
+			txFactory := tx.NewFactoryCLI(clientCtx, cmd.Flags())
+			gasPrice := txFactory.GasPrices()[0].Amount.TruncateInt()
 
-			err = msg.ValidateBasic()
-			if err != nil {
+			msg := types.NewMsgEthermint(
+				seq,
+				&toAddr,
+				sdk.NewInt(amount),
+				txFactory.Gas(),
+				gasPrice,
+				data,
+				from,
+			)
+
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
 }
 
-// GetCmdGenCreateTx generates an Ethermint transaction (excludes create operations)
-func GetCmdGenCreateTx(cdc *codec.LegacyAmino) *cobra.Command {
-	return &cobra.Command{
+// NewCreateContractCmd generates an Ethermint transaction (excludes create operations)
+func NewCreateContractCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "create [contract bytecode] [<amount (in aphotons)>]",
 		Short: "create contract through the evm using compiled bytecode",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := context.NewCLIContext().WithCodec(cdc)
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			payload := args[0]
 			if !strings.HasPrefix(payload, "0x") {
@@ -134,21 +141,29 @@ func GetCmdGenCreateTx(cdc *codec.LegacyAmino) *cobra.Command {
 
 			from := clientCtx.GetFromAddress()
 
-			_, seq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(from)
+			_, seq, err := clientCtx.AccountRetriever.GetAccountNumberSequence(clientCtx, from)
 			if err != nil {
 				return errors.Wrap(err, "Could not retrieve account sequence")
 			}
 
-			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, nil, sdk.NewInt(amount), txBldr.Gas(),
-				sdk.NewInt(emint.DefaultGasPrice), data, from)
+			txFactory := tx.NewFactoryCLI(clientCtx, cmd.Flags())
+			gasPrice := txFactory.GasPrices()[0].Amount.TruncateInt()
 
-			err = msg.ValidateBasic()
-			if err != nil {
+			msg := types.NewMsgEthermint(
+				seq,
+				nil,
+				sdk.NewInt(amount),
+				txFactory.Gas(),
+				gasPrice,
+				data,
+				from,
+			)
+
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			if err = authclient.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg}); err != nil {
+			if err := tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg); err != nil {
 				return err
 			}
 
@@ -161,4 +176,7 @@ func GetCmdGenCreateTx(cdc *codec.LegacyAmino) *cobra.Command {
 			return nil
 		},
 	}
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
 }

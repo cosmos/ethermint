@@ -45,7 +45,7 @@ type CommitStateDB struct {
 	storeKey      sdk.StoreKey
 	paramSpace    paramtypes.Subspace
 	accountKeeper AccountKeeper
-	accountKeeper BankKeeper
+	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -89,7 +89,7 @@ type CommitStateDB struct {
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace,
-	ak AccountKeeper, bankKeeper bankKeeper,
+	ak AccountKeeper, bankKeeper BankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -513,7 +513,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
 
-	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
+	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.GetAddress(), newBalance)
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	return nil
 }
@@ -771,7 +771,7 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 
 		if idx, dirty := so.keyToDirtyStorageIndex[key]; dirty {
 			// check if iteration stops
-			if cb(key, so.dirtyStorage[idx].Value) {
+			if cb(key, ethcmn.HexToHash(so.dirtyStorage[idx].Value)) {
 				break
 			}
 

@@ -53,7 +53,7 @@ func NewKeeper(
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, bk),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, bankKeeper),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}

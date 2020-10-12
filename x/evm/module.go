@@ -2,14 +2,18 @@ package evm
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/gogo/protobuf/grpc"
 	"github.com/gorilla/mux"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
@@ -18,51 +22,63 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-var _ module.AppModuleBasic = AppModuleBasic{}
-var _ module.AppModule = AppModule{}
+var (
+	_ module.AppModule      = AppModule{}
+	_ module.AppModuleBasic = AppModuleBasic{}
+)
 
-// AppModuleBasic struct
+// AppModuleBasic defines the basic application module used by the evm module.
 type AppModuleBasic struct{}
 
-// Name for app module basic
+// Name returns the evm module's name.
 func (AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-// RegisterLegacyAminoCodec registers types for module
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	types.RegisterLegacyAminoCodec(cdc)
+// RegisterLegacyAminoCodec performs a no-op as the evm module doesn't support amino.
+func (AppModuleBasic) RegisterLegacyAminoCodec(_ *codec.LegacyAmino) {
 }
 
-// DefaultGenesis is json default structure
-func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+// DefaultGenesis returns default genesis state as raw bytes for the evm
+// module.
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
+	return cdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis is the validation check of the Genesis
-func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, _ client.TxEncodingConfig, bz json.RawMessage) error {
 	var genesisState types.GenesisState
-	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
-	if err != nil {
-		return err
+	if err := cdc.UnmarshalJSON(bz, &genesisState); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
 	}
 
 	return genesisState.Validate()
 }
 
-// RegisterRESTRoutes Registers rest routes
-func (AppModuleBasic) RegisterRESTRoutes(ctx client.Context, rtr *mux.Router) {
-	//rpc.RegisterRoutes(ctx, rtr, StoreKey)
+// RegisterRESTRoutes performs a no-op as the EVM module doesn't expose REST
+// endpoints
+func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
 }
 
-// GetQueryCmd Gets the root query command of this module
-func (AppModuleBasic) GetQueryCmd(cdc *codec.LegacyAmino) *cobra.Command {
-	return cli.GetQueryCmd(types.ModuleName, cdc)
+// RegisterGRPCRoutes registers the gRPC Gateway routes for the evm module.
+func (AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	// TODO:
+	// types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
 }
 
-// GetTxCmd Gets the root tx command of this module
-func (AppModuleBasic) GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
-	return cli.GetTxCmd(cdc)
+// GetTxCmd returns the root tx command for the evm module.
+func (AppModuleBasic) GetTxCmd() *cobra.Command {
+	return cli.NewTxCmd()
+}
+
+// GetQueryCmd returns no root query command for the evm module.
+func (AppModuleBasic) GetQueryCmd() *cobra.Command {
+	return cli.GetQueryCmd()
+}
+
+// RegisterInterfaces registers interfaces and implementations of the evm module.
+func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+	types.RegisterInterfaces(registry)
 }
 
 //____________________________________________________________________________
@@ -70,12 +86,12 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.LegacyAmino) *cobra.Command {
 // AppModule implements an application module for the evm module.
 type AppModule struct {
 	AppModuleBasic
-	keeper Keeper
+	keeper keeper.Keeper
 	ak     types.AccountKeeper
 }
 
-// NewAppModule creates a new AppModule Object
-func NewAppModule(k Keeper, ak types.AccountKeeper) AppModule {
+// NewAppModule creates a new AppModule object
+func NewAppModule(k keeper.Keeper, ak types.AccountKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
@@ -83,53 +99,60 @@ func NewAppModule(k Keeper, ak types.AccountKeeper) AppModule {
 	}
 }
 
-// Name is module name
+// Name returns the evm module's name.
 func (AppModule) Name() string {
 	return types.ModuleName
 }
 
-// RegisterInvariants interface for registering invariants
+// RegisterInvariants interface for registering invariants. Performs a no-op
+// as the evm module doesn't expose invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
-// Route specifies path for transactions
-func (am AppModule) Route() string {
-	return types.RouterKey
+// RegisterQueryService registers a GRPC query service to respond to the
+// module-specific GRPC queries.
+func (am AppModule) RegisterQueryService(server grpc.Server) {
+	// TODO:
+	// types.RegisterQueryServer(server, am.keeper)
 }
 
-// NewHandler sets up a new handler for module
-func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper)
+// Route returns the message routing key for the evm module.
+func (am AppModule) Route() sdk.Route {
+	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
 }
 
-// QuerierRoute sets up path for queries
-func (am AppModule) QuerierRoute() string {
-	return types.ModuleName
+// QuerierRoute returns the evm module's querier route name.
+func (AppModule) QuerierRoute() string { return types.RouterKey }
+
+// LegacyQuerierHandler returns nil as the evm module doesn't expose a legacy
+// Querier.
+func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+	return nil
 }
 
-// NewQuerierHandler sets up new querier handler for module
-func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return keeper.NewQuerier(am.keeper)
-}
-
-// BeginBlock function for module at start of each block
+// BeginBlock returns the begin block for the evm module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	BeginBlock(am.keeper, ctx, req)
 }
 
-// EndBlock function for module at end of block
+// EndBlock returns the end blocker for the evm module. It returns no validator
+// updates.
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return EndBlock(am.keeper, ctx, req)
 }
 
-// InitGenesis instantiates the genesis state
-func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+// InitGenesis performs genesis initialization for the evm module. It returns
+// no validator updates.
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
-	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
-	return InitGenesis(ctx, am.keeper, genesisState)
+
+	cdc.MustUnmarshalJSON(data, &genesisState)
+	InitGenesis(ctx, am.keeper, genesisState)
+	return []abci.ValidatorUpdate{}
 }
 
-// ExportGenesis exports the genesis state to be used by daemon
-func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+// ExportGenesis returns the exported genesis state as raw bytes for the evm
+// module.
+func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper, am.ak)
-	return types.ModuleCdc.MustMarshalJSON(gs)
+	return cdc.MustMarshalJSON(gs)
 }

@@ -23,7 +23,7 @@ message GenesisState {
 // storage type and that it doesn't contain the private key field.
 message GenesisAccount {
   string         address = 1;
-  string         balance = 2;
+  bytes          balance = 2;
   bytes          code    = 3;
   repeated State storage = 4 [(gogoproto.castrepeated) = "Storage"];
 }
