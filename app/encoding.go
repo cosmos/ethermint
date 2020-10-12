@@ -1,5 +1,4 @@
 // +build test_amino
-
 package app
 
 import (

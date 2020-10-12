@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -27,9 +28,10 @@ import (
 type AnteTestSuite struct {
 	suite.Suite
 
-	ctx         sdk.Context
-	app         *app.EthermintApp
-	anteHandler sdk.AnteHandler
+	ctx            sdk.Context
+	app            *app.EthermintApp
+	encodingConfig params.EncodingConfig
+	anteHandler    sdk.AnteHandler
 }
 
 func (suite *AnteTestSuite) SetupTest() {
@@ -41,11 +43,11 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app.AccountKeeper.SetParams(suite.ctx, authtypes.DefaultParams())
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	encodingConfig := simapp.MakeEncodingConfig()
+	suite.encodingConfig = simapp.MakeEncodingConfig()
 	// We're using TestMsg amino encoding in some tests, so register it here.
-	encodingConfig.Amino.RegisterConcrete(&testdata.TestMsg{}, "testdata.TestMsg", nil)
+	suite.encodingConfig.Amino.RegisterConcrete(&testdata.TestMsg{}, "testdata.TestMsg", nil)
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.EvmKeeper, encodingConfig.TxConfig.SignModeHandler())
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.EvmKeeper, suite.encodingConfig.TxConfig.SignModeHandler())
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -95,13 +97,13 @@ func newTestSDKTx(
 	return auth.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	privkey := &ethsecp256k1.PrivKey{Key: priv}
+	privkey := &ethsecp256k1.PrivKey{Key: priv.Bytes()}
 
 	if err := msg.Sign(chainIDEpoch, privkey.ToECDSA()); err != nil {
 		return nil, err

@@ -8,8 +8,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
-	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -29,12 +30,19 @@ type AccountKeeper interface {
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
 }
 
+// BankKeeper defines an expected keeper interface for the bank module's Keeper
+type BankKeeper interface {
+	authtypes.BankKeeper
+	GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin
+	SetBalance(ctx sdk.Context, addr sdk.AccAddress, balance sdk.Coin) error
+}
+
 // NewAnteHandler returns an ante handler responsible for attempting to route an
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
 func NewAnteHandler(
-	ak AccountKeeper, bankKeeper authtypes.BankKeeper, evmKeeper EVMKeeper, signModeHandler signing.SignModeHandler,
+	ak AccountKeeper, bankKeeper BankKeeper, evmKeeper EVMKeeper, signModeHandler authsigning.SignModeHandler,
 ) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
@@ -49,7 +57,7 @@ func NewAnteHandler(
 				authante.NewValidateBasicDecorator(),
 				authante.TxTimeoutHeightDecorator{},
 				NewEthSigVerificationDecorator(),
-				NewAccountVerificationDecorator(ak, evmKeeper),
+				NewAccountVerificationDecorator(ak, bankKeeper, evmKeeper),
 				NewNonceVerificationDecorator(ak),
 				NewEthGasConsumeDecorator(ak, bankKeeper, evmKeeper),
 				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
@@ -99,7 +107,7 @@ func DefaultSigVerificationGasConsumer(
 		return nil
 
 	// support for etherum ECDSA secp256k1 keys
-	case *ethsecp256k1.Pubkey:
+	case *ethsecp256k1.PubKey:
 		meter.ConsumeGas(secp256k1VerifyCost, "ante verify: eth_secp256k1")
 		return nil
 
