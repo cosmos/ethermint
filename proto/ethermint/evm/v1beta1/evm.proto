@@ -215,3 +215,16 @@ message MsgEthermint {
   // From address (formerly derived from signature)
   string from = 7;
 }
+
+// ResultData represents the data returned in an sdk.Result
+message ResultData {
+  // contract_address contains the ethereum address of the created contract (if any). If the state
+  // transition is an evm.Call, the contract address will be empty.
+  string contract_address = 1 [(gogoproto.moretags) = "yaml:\"contract_address\""];
+  // bloom represents the bloom filter bytes
+  bytes bloom = 2;
+  // tx_logs contains the transaction hash and the proto-compatible ethereum logs.
+  TransactionLogs tx_logs = 3 [(gogoproto.moretags) = "yaml:\"tx_logs\"", (gogoproto.nullable) = false];
+  // ret defines the bytes from the execution.
+  bytes ret = 4;
+}

@@ -16,10 +16,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 }
 
 var (
-	// SubModuleCdc references the global evm module codec. Note, the codec should
+	// ModuleCdc references the global evm module codec. Note, the codec should
 	// ONLY be used in certain instances of tests and for JSON encoding.
 	//
 	// The actual codec used for serialization should be provided to x/evm and
 	// defined at the application level.
-	SubModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
+	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )

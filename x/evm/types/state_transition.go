@@ -172,15 +172,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := ResultData{
-		Bloom:  bloomFilter,
-		Logs:   logs,
+	resultData := &ResultData{
+		Bloom:  bloomFilter.Bytes(),
+		TxLogs: NewTransactionLogsFromEth(*st.TxHash, logs),
 		Ret:    ret,
-		TxHash: *st.TxHash,
 	}
 
 	if contractCreation {
-		resultData.ContractAddress = contractAddress
+		resultData.ContractAddress = contractAddress.String()
 	}
 
 	resBz, err := EncodeResultData(resultData)

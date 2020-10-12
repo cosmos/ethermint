@@ -34,8 +34,8 @@ func (cc ChainConfig) EthereumConfig(chainID *big.Int) *params.ChainConfig {
 }
 
 // DefaultChainConfig returns default evm parameters. Th
-func DefaultChainConfig() ChainConfig {
-	return ChainConfig{
+func DefaultChainConfig() *ChainConfig {
+	return &ChainConfig{
 		HomesteadBlock:      sdk.ZeroInt(),
 		DAOForkBlock:        sdk.ZeroInt(),
 		DAOForkSupport:      true,

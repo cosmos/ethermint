@@ -15,13 +15,13 @@ var defaultEIP150Hash = common.Hash{}.String()
 func TestChainConfigValidate(t *testing.T) {
 	testCases := []struct {
 		name     string
-		config   ChainConfig
+		config   *ChainConfig
 		expError bool
 	}{
 		{"default", DefaultChainConfig(), false},
 		{
 			"valid",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -40,19 +40,19 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"empty",
-			ChainConfig{},
+			&ChainConfig{},
 			true,
 		},
 		{
 			"invalid HomesteadBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.Int{},
 			},
 			true,
 		},
 		{
 			"invalid DAOForkBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.Int{},
 			},
@@ -60,7 +60,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid EIP150Block",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.Int{},
@@ -69,7 +69,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid EIP150Hash",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.OneInt(),
@@ -79,7 +79,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid EIP155Block",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.OneInt(),
@@ -90,7 +90,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid EIP158Block",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.OneInt(),
@@ -102,7 +102,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid ByzantiumBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock: sdk.OneInt(),
 				DAOForkBlock:   sdk.OneInt(),
 				EIP150Block:    sdk.OneInt(),
@@ -115,7 +115,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid ConstantinopleBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -129,7 +129,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid PetersburgBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -144,7 +144,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid IstanbulBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -160,7 +160,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid MuirGlacierBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -177,7 +177,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid YoloV1Block",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),
@@ -195,7 +195,7 @@ func TestChainConfigValidate(t *testing.T) {
 		},
 		{
 			"invalid EWASMBlock",
-			ChainConfig{
+			&ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
 				EIP150Block:         sdk.OneInt(),

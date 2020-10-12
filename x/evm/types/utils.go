@@ -3,13 +3,11 @@ package types
 import (
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -37,40 +35,20 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
-// ResultData represents the data returned in an sdk.Result
-type ResultData struct {
-	ContractAddress ethcmn.Address  `json:"contract_address"`
-	Bloom           ethtypes.Bloom  `json:"bloom"`
-	Logs            []*ethtypes.Log `json:"logs"`
-	Ret             []byte          `json:"ret"`
-	TxHash          ethcmn.Hash     `json:"tx_hash"`
-}
-
-// String implements fmt.Stringer interface.
-func (rd ResultData) String() string {
-	return strings.TrimSpace(fmt.Sprintf(`ResultData:
-	ContractAddress: %s
-	Bloom: %s
-	Logs: %v
-	Ret: %v
-	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
-}
-
 // EncodeResultData takes all of the necessary data from the EVM execution
-// and returns the data as a byte slice encoded with amino
-func EncodeResultData(data ResultData) ([]byte, error) {
+// and returns the data as a byte slice encoded with protobuf.
+func EncodeResultData(data *ResultData) ([]byte, error) {
 	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
 }
 
-// DecodeResultData decodes an amino-encoded byte slice into ResultData
-func DecodeResultData(in []byte) (ResultData, error) {
+// DecodeResultData decodes an protobuf-encoded byte slice into ResultData
+func DecodeResultData(in []byte) (*ResultData, error) {
 	var data ResultData
 	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &data)
 	if err != nil {
-		return ResultData{}, err
+		return nil, err
 	}
-	return data, nil
+	return &data, nil
 }
 
 // ----------------------------------------------------------------------------
@@ -113,4 +91,14 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+// IsEmptyHash returns true if the hash corresponds to an empty ethereum hex hash.
+func IsEmptyHash(hash string) bool {
+	return hash == (ethcmn.Hash{}).String()
+}
+
+// IsZeroAddress returns true if the address corresponds to an empty ethereum hex address.
+func IsZeroAddress(address string) bool {
+	return address == (ethcmn.Address{}).String()
 }
