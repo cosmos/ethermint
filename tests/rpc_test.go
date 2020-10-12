@@ -311,6 +311,48 @@ func TestEth_GetBalance(t *testing.T) {
 	}
 }
 
+func TestEth_GetBalancex60(t *testing.T) {
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = addrA
+	param[0]["value"] = "0xA"
+	param[0]["gasLimit"] = "0x5208"
+	param[0]["gasPrice"] = "0x55ae82600"
+
+	fmt.Println("FROM ADDR: ", fmt.Sprintf("%x", from))
+
+	rpcRes := call(t, "eth_sendTransaction", param)
+
+	var hash hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+
+	receipt := waitForReceipt(t, hash)
+	require.NotNil(t, receipt)
+	require.Equal(t, "0x1", receipt["status"].(string))
+
+	for i := 0; i <= 60; i++ {
+		time.Sleep(1 * time.Second)
+
+		// will query balance from blocks 0 thru 5
+		blockNum := i % 6
+		fmt.Println("querying blocknumber: ", blockNum)
+		rpcRes := call(t, "eth_getBalance", []string{addrA, "0x" + fmt.Sprintf("%x", blockNum)})
+
+		var res hexutil.Big
+		err := res.UnmarshalJSON(rpcRes.Result)
+		require.NoError(t, err)
+
+		t.Logf("Got balance %s for %s\n", res.String(), addrA)
+
+		// 0 if x == y; where x is res, y is 0
+		if res.ToInt().Cmp(big.NewInt(10)) != 0 {
+			t.Logf("expected balance: %s, got: %s", "0xa", res.String())
+		}
+	}
+}
+
 func TestEth_GetStorageAt(t *testing.T) {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	rpcRes := call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(addrAStoreKey), zeroString})
