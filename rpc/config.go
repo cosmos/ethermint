@@ -75,7 +75,7 @@ func registerRoutes(rs *lcd.RestServer) {
 
 	apis := GetRPCAPIs(rs.clientCtx, privkeys)
 
-	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
+	// TODO: Allow cli to configure modules https://github.com/cosmos/ethermint/issues/74
 	whitelist := make(map[string]bool)
 
 	// Register all the APIs exposed by the services
