@@ -3,6 +3,7 @@ module github.com/cosmos/ethermint
 go 1.14
 
 require (
+	github.com/Workiva/go-datastructures v1.0.52
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d // indirect
 	github.com/btcsuite/btcd v0.21.0-beta

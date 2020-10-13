@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -95,10 +96,10 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 
 // IsEmptyHash returns true if the hash corresponds to an empty ethereum hex hash.
 func IsEmptyHash(hash string) bool {
-	return hash == (ethcmn.Hash{}).String()
+	return bytes.Equal(ethcmn.HexToHash(hash).Bytes(), ethcmn.Hash{}.Bytes())
 }
 
 // IsZeroAddress returns true if the address corresponds to an empty ethereum hex address.
 func IsZeroAddress(address string) bool {
-	return address == (ethcmn.Address{}).String()
+	return bytes.Equal(ethcmn.HexToAddress(address).Bytes(), ethcmn.Address{}.Bytes())
 }

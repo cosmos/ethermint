@@ -91,7 +91,7 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *ty
 	return &types.GenesisState{
 		Accounts:    ethGenAccounts,
 		TxsLogs:     k.GetAllTxLogs(ctx),
-		ChainConfig: config,
+		ChainConfig: &config,
 		Params:      k.GetParams(ctx),
 	}
 }

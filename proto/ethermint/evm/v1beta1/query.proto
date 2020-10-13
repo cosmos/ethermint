@@ -141,7 +141,7 @@ message QueryBlockLogsRequest {
 // QueryTxLogs is the response type for the Query/BlockLogs RPC method.
 message QueryBlockLogsResponse {
   // logs represents the ethereum logs generated at the given block height.
-  repeated TransactionLogs tx_logs = 1;
+  repeated TransactionLogs tx_logs = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryParamsRequest defines the request type for querying x/evm parameters.
