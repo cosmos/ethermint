@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20201008190539-c5320bcda09d
+	github.com/cosmos/cosmos-sdk v0.40.0-rc0
 	github.com/cosmos/iavl v0.15.0-rc3
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.21
