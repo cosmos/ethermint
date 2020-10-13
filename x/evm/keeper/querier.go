@@ -9,11 +9,9 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/ethermint/utils"
-	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -22,8 +20,6 @@ import (
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, _ abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
-		case types.QueryProtocolVersion:
-			return queryProtocolVersion(keeper)
 		case types.QueryBalance:
 			return queryBalance(ctx, path, keeper)
 		case types.QueryBlockNumber:
@@ -32,8 +28,6 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryStorage(ctx, path, keeper)
 		case types.QueryCode:
 			return queryCode(ctx, path, keeper)
-		case types.QueryHashToHeight:
-			return queryHashToHeight(ctx, path, keeper)
 		case types.QueryTransactionLogs:
 			return queryTransactionLogs(ctx, path, keeper)
 		case types.QueryBloom:
@@ -46,17 +40,6 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
 	}
-}
-
-func queryProtocolVersion(keeper Keeper) ([]byte, error) {
-	vers := version.ProtocolVersion
-
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, hexutil.Uint(vers))
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
@@ -103,22 +86,6 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
 	res := types.QueryResCode{Code: code}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
-}
-
-func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
-	blockHash := ethcmn.FromHex(path[1])
-	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
-	if !found {
-		return []byte{}, fmt.Errorf("block height not found for hash %s", path[1])
-	}
-
-	res := types.QueryResBlockNumber{Number: blockNumber}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

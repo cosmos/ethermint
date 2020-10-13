@@ -266,7 +266,7 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	return transactions, nil
 }
 
-// GetLogs returns all the logs from all the ethreum transactions in a block.
+// GetLogs returns all the logs from all the ethereum transactions in a block.
 func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
 	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
 	if err != nil {

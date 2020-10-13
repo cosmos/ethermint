@@ -14,6 +14,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.21
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2
@@ -33,6 +34,8 @@ require (
 	github.com/tendermint/tm-db v0.6.2
 	github.com/tyler-smith/go-bip39 v1.0.2
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
+	google.golang.org/grpc v1.32.0
 	gopkg.in/yaml.v2 v2.3.0
 )
 
