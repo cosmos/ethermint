@@ -7,9 +7,12 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/types"
 )
@@ -18,6 +21,7 @@ type AccountTestSuite struct {
 	suite.Suite
 
 	account *types.EthAccount
+	cdc     codec.JSONMarshaler
 }
 
 func (suite *AccountTestSuite) SetupTest() {
@@ -25,12 +29,15 @@ func (suite *AccountTestSuite) SetupTest() {
 	suite.Require().NoError(err)
 	pubKey := privKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
-	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
-	baseAcc := authtypes.NewBaseAccount(addr, balance, pubkey, 10, 50)
+	baseAcc := authtypes.NewBaseAccount(addr, pubKey, 10, 50)
 	suite.account = &types.EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
 	}
+
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	ethermintcodec.RegisterInterfaces(interfaceRegistry)
+	suite.cdc = codec.NewProtoCodec(interfaceRegistry)
 }
 
 func TestAccountTestSuite(t *testing.T) {
@@ -38,7 +45,7 @@ func TestAccountTestSuite(t *testing.T) {
 }
 
 func (suite *AccountTestSuite) TestEthermintAccountJSON() {
-	bz, err := json.Marshal(suite.account)
+	bz, err := suite.cdc.MarshalJSON(suite.account)
 	suite.Require().NoError(err)
 
 	bz1, err := suite.account.MarshalJSON()
@@ -48,7 +55,7 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	var a types.EthAccount
 	suite.Require().NoError(a.UnmarshalJSON(bz))
 	suite.Require().Equal(suite.account.String(), a.String())
-	suite.Require().Equal(suite.account.PubKey, a.PubKey)
+	suite.Require().Equal(suite.account.GetPubKey(), a.GetPubKey())
 }
 
 func (suite *AccountTestSuite) TestEthermintAccount_String() {
@@ -61,9 +68,6 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
 	accountStr := fmt.Sprintf(`|
   address: %s
   eth_address: %s
-  coins:
-  - denom: aphoton
-    amount: "1"
   public_key: %s
   account_number: 10
   sequence: 50
@@ -83,31 +87,33 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
 }
 
 func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
-	bz, err := suite.account.MarshalJSON()
+	bz, err := json.Marshal(suite.account)
 	suite.Require().NoError(err)
-	suite.Require().Contains(string(bz), suite.account.EthAddress().String())
 
-	res := new(types.EthAccount)
-	err = res.UnmarshalJSON(bz)
+	bz1, err := suite.account.MarshalJSON()
 	suite.Require().NoError(err)
-	suite.Require().Equal(suite.account, res)
+	suite.Require().Equal(string(bz1), string(bz))
+
+	var a *types.EthAccount
+	suite.Require().NoError(json.Unmarshal(bz, &a))
+	suite.Require().Equal(suite.account.String(), a.String())
 
 	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.GetPubKey())
 	suite.Require().NoError(err)
 
 	// test that the sdk.AccAddress is populated from the hex address
 	jsonAcc := fmt.Sprintf(
-		`{"address":"","eth_address":"%s","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		`{"address":"","eth_address":"%s","public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
 		suite.account.EthAddress().String(), bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res := new(types.EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account.Address, res.Address)
 
 	jsonAcc = fmt.Sprintf(
-		`{"address":"","eth_address":"","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		`{"address":"","eth_address":"","public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
 		bech32pubkey,
 	)
 
@@ -117,7 +123,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 
 	// test that the sdk.AccAddress is populated from the hex address
 	jsonAcc = fmt.Sprintf(
-		`{"address": "%s","eth_address":"0x0000000000000000000000000000000000000000","coins":[{"denom":"aphoton","amount":"1"}],"public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
+		`{"address": "%s","eth_address":"0x0000000000000000000000000000000000000000","public_key":"%s","account_number":10,"sequence":50,"code_hash":"0102"}`,
 		suite.account.Address, bech32pubkey,
 	)
 

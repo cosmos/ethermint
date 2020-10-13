@@ -329,20 +329,6 @@ func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, 
 	return e.backend.GetTransactionLogs(txHash)
 }
 
-// ExportAccount exports an account's balance, code, and storage at the given block number
-// TODO: deprecate this once the export genesis command works
-func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
-	e.logger.Debug("eth_exportAccount", "address", address, "block number", blockNumber)
-	ctx := e.clientCtx.WithHeight(blockNumber.Int64())
-
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryExportAccount, address.Hex()), nil)
-	if err != nil {
-		return "", err
-	}
-
-	return string(res), nil
-}
-
 func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key ethsecp256k1.PrivKey, exist bool) {
 	if len(keys) > 0 {
 		for _, key := range keys {

@@ -31,13 +31,13 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) []ab
 
 	var err error
 	for _, txLog := range data.TxsLogs {
-		err = k.SetLogs(ctx, ethcmn.HexToHash(txLog.Hash), txLog.Logs)
+		err = k.SetLogs(ctx, ethcmn.HexToHash(txLog.Hash), txLog.EthLogs())
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	k.SetChainConfig(ctx, data.ChainConfig)
+	k.SetChainConfig(ctx, *data.ChainConfig)
 	k.SetParams(ctx, data.Params)
 
 	// set state objects and code to store

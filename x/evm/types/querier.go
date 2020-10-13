@@ -19,7 +19,6 @@ const (
 	QueryBloom           = "bloom"
 	QueryLogs            = "logs"
 	QueryAccount         = "account"
-	QueryExportAccount   = "exportAccount"
 )
 
 // QueryResProtocolVersion is response type for protocol version query
@@ -100,5 +99,3 @@ type QueryResAccount struct {
 	CodeHash []byte `json:"codeHash"`
 	Nonce    uint64 `json:"nonce"`
 }
-
-type QueryResExportAccount = GenesisAccount

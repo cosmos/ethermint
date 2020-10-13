@@ -155,7 +155,6 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		AccountNumber: alias.AccountNumber,
 		Sequence:      alias.Sequence,
 	}
-	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
 
 	if alias.PubKey != "" {
 		pubkey, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
@@ -164,6 +163,9 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		}
 		acc.SetPubKey(pubkey)
 	}
+
+	acc.CodeHash = ethcmn.HexToHash(alias.CodeHash).Bytes()
+
 	return nil
 }
 
