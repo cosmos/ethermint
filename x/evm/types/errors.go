@@ -15,4 +15,10 @@ var (
 
 	// ErrInvalidChainConfig returns an error resulting from an invalid ChainConfig.
 	ErrInvalidChainConfig = sdkerrors.Register(ModuleName, 4, "invalid chain configuration")
+
+	// ErrZeroAddress returns an error resulting from an zero (empty) ethereum Address.
+	ErrZeroAddress = sdkerrors.Register(ModuleName, 5, "invalid zero address")
+
+	// ErrEmptyHash returns an error resulting from an empty ethereum Hash.
+	ErrEmptyHash = sdkerrors.Register(ModuleName, 6, "empty hash")
 )

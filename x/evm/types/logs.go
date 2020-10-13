@@ -19,9 +19,14 @@ func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
 
 // NewTransactionLogsFromEth creates a new NewTransactionLogs instance using []*ethtypes.Log.
 func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs {
+	logs := make([]*Log, len(ethlogs))
+	for i := range ethlogs {
+		logs[i] = NewLogFromEth(ethlogs[i])
+	}
+
 	return TransactionLogs{
 		Hash: hash.String(),
-		// TODO: logs
+		Logs: logs,
 	}
 }
 
@@ -42,19 +47,66 @@ func (tx TransactionLogs) Validate() error {
 	return nil
 }
 
+// EthLogs returns the Ethereum type Logs from the Transaction Logs.
+func (tx TransactionLogs) EthLogs() []*ethtypes.Log {
+	logs := make([]*ethtypes.Log, len(tx.Logs))
+	for i := range tx.Logs {
+		logs[i] = tx.Logs[i].ToEthereum()
+	}
+	return logs
+}
+
 // Validate performs a basic validation of an ethereum Log fields.
 func (log *Log) Validate() error {
-	if bytes.Equal(ethcmn.HexToAddress(log.Address).Bytes(), ethcmn.Address{}.Bytes()) {
+	if IsZeroAddress(log.Address) {
 		return fmt.Errorf("log address cannot be empty %s", log.Address)
 	}
-	if bytes.Equal(log.BlockHash.Bytes(), ethcmn.Hash{}.Bytes()) {
+	if IsEmptyHash(log.BlockHash) {
 		return fmt.Errorf("block hash cannot be the empty %s", log.BlockHash)
 	}
 	if log.BlockNumber == 0 {
 		return errors.New("block number cannot be zero")
 	}
-	if bytes.Equal(log.TxHash.Bytes(), ethcmn.Hash{}.Bytes()) {
+	if IsEmptyHash(log.TxHash) {
 		return fmt.Errorf("tx hash cannot be the empty %s", log.TxHash)
 	}
 	return nil
+}
+
+// ToEthereum returns the Ethereum type Log from a Ethermint-proto compatible Log.
+func (log *Log) ToEthereum() *ethtypes.Log {
+	topics := make([]ethcmn.Hash, len(log.Topics))
+	for i := range log.Topics {
+		topics[i] = ethcmn.HexToHash(log.Topics[i])
+	}
+
+	return &ethtypes.Log{
+		Address:     ethcmn.HexToAddress(log.Address),
+		Topics:      topics,
+		Data:        log.Data,
+		BlockNumber: log.BlockNumber,
+		TxHash:      ethcmn.HexToHash(log.TxHash),
+		TxIndex:     uint(log.TxIndex),
+		BlockHash:   ethcmn.HexToHash(log.BlockHash),
+		Removed:     log.Removed,
+	}
+}
+
+// NewLogFromEth creates a new Log instance from a Ethereum type Log.
+func NewLogFromEth(log *ethtypes.Log) *Log {
+	topics := make([]string, len(log.Topics))
+	for i := range log.Topics {
+		topics[i] = log.Topics[i].String()
+	}
+
+	return &Log{
+		Address:     log.Address.String(),
+		Topics:      topics,
+		Data:        log.Data,
+		BlockNumber: log.BlockNumber,
+		TxHash:      log.TxHash.String(),
+		TxIndex:     uint64(log.TxIndex),
+		BlockHash:   log.BlockHash.String(),
+		Removed:     log.Removed,
+	}
 }

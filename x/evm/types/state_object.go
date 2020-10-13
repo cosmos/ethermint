@@ -248,21 +248,23 @@ func (so *stateObject) commitState() {
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
 
+		key := ethcmn.HexToHash(state.Key)
+		value := ethcmn.HexToHash(state.Value)
 		// delete empty values from the store
-		if (state.Value == ethcmn.Hash{}) {
-			store.Delete(state.Key.Bytes())
+		if IsEmptyHash(state.Value) {
+			store.Delete(key.Bytes())
 		}
 
-		delete(so.keyToDirtyStorageIndex, state.Key)
+		delete(so.keyToDirtyStorageIndex, key)
 
 		// skip no-op changes, persist actual changes
-		idx, ok := so.keyToOriginStorageIndex[state.Key]
+		idx, ok := so.keyToOriginStorageIndex[key]
 		if !ok {
 			continue
 		}
 
-		if (state.Value == ethcmn.Hash{}) {
-			delete(so.keyToOriginStorageIndex, state.Key)
+		if IsEmptyHash(state.Value) {
+			delete(so.keyToOriginStorageIndex, key)
 			continue
 		}
 
@@ -271,7 +273,7 @@ func (so *stateObject) commitState() {
 		}
 
 		so.originStorage[idx].Value = state.Value
-		store.Set(state.Key.Bytes(), state.Value.Bytes())
+		store.Set(key.Bytes(), value.Bytes())
 	}
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
@@ -347,7 +349,8 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
-		return so.dirtyStorage[idx].Value
+		value := ethcmn.HexToHash(so.dirtyStorage[idx].Value)
+		return value
 	}
 
 	// otherwise return the entry's original value
@@ -364,23 +367,26 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {
-		return so.originStorage[idx].Value
+		value := ethcmn.HexToHash(so.originStorage[idx].Value)
+		return value
 	}
 
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
+	value := ethcmn.Hash{}
 
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
-		state.Value.SetBytes(rawValue)
+		value.SetBytes(rawValue)
+		state.Value = value.String()
 	}
 
 	so.originStorage = append(so.originStorage, state)
 	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	return state.Value
+	return value
 }
 
 // ----------------------------------------------------------------------------
