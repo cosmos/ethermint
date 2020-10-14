@@ -1,6 +1,9 @@
 package hd
 
 import (
+	"encoding/hex"
+	"fmt"
+	"log"
 	"strings"
 	"testing"
 
@@ -121,4 +124,42 @@ func TestKeyring(t *testing.T) {
 	account, err := wallet.Derive(path, false)
 	require.NoError(t, err)
 	require.Equal(t, addr.String(), account.Address.String())
+}
+
+func TestHDPath(t *testing.T) {
+	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
+	hdPath := params.String()
+
+	require.Equal(t, hdPath, "m/44'/60'/0'/0/0")
+}
+
+func TestDerivation(t *testing.T) {
+
+	mnemonic := "picnic rent average infant boat squirrel federal assault mercy purity very motor fossil wheel verify upset box fresh horse vivid copy predict square regret"
+
+	bz, err := DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, "m/44'/60'/0'/0/0")
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
+
+	privkey := PrivKeySecp256k1(bz)
+
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	path := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/0")
+	account, err := wallet.Derive(path, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Equality of Address BIP44 ian
+	require.Equal(t, account.Address.Hex(), "0xA588C66983a81e800Db4dF74564F09f91c026351")
+	// Equality of Ethermint implementation
+	fmt.Println(privkey.PubKey().Address())
+	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address().Bytes()), strings.ToLower("0xA588C66983a81e800Db4dF74564F09f91c026351"))
+	// // Equality of Eth and Ethermint implementation
+	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
+
 }
