@@ -26,7 +26,7 @@ const (
 	Bip44CoinType = 60
 
 	// BIP44HDPath is the BIP44 HD path used on Ethereum.
-	BIP44HDPath = eth.DefaultRootDerivationPath
+	BIP44HDPath = eth.DefaultRootDerivationPath.String()
 )
 
 // SetBech32Prefixes sets the global prefixes to be used when serializing addresses and public keys to Bech32 strings.
