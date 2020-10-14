@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	eth "github.com/ethereum/go-ethereum/accounts"
 )
 
 const (
@@ -25,7 +26,7 @@ const (
 	Bip44CoinType = 60
 
 	// BIP44HDPath is the BIP44 HD path used on Ethereum.
-	BIP44HDPath = "44'/60'/0'/0/0"
+	BIP44HDPath = eth.DefaultRootDerivationPath
 )
 
 // SetBech32Prefixes sets the global prefixes to be used when serializing addresses and public keys to Bech32 strings.
