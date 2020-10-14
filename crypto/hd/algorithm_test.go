@@ -128,9 +128,9 @@ func TestKeyring(t *testing.T) {
 
 func TestHDPath(t *testing.T) {
 	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
-	hdPath := params.String()
-
-	require.Equal(t, hdPath, "m/44'/60'/0'/0/0")
+	// need to prepend "m/" because the below method provided by the sdk does not add the proper prepending
+	hdPath := "m/" + params.String()
+	require.Equal(t, "m/44'/60'/0'/0/0", hdPath)
 }
 
 func TestDerivation(t *testing.T) {
@@ -141,7 +141,7 @@ func TestDerivation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, bz)
 
-	privkey, err := EthermintKeygenFunc(bz)
+	privkey, err := EthermintKeygenFunc(bz, EthSecp256k1)
 	require.NoError(t, err)
 	require.NotEmpty(t, privkey)
 
