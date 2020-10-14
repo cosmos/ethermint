@@ -334,12 +334,12 @@ func request_Query_BlockLogs_0(ctx context.Context, marshaler runtime.Marshaler,
 		_   = err
 	)
 
-	val, ok = pathParams["height"]
+	val, ok = pathParams["hash"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "height")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "hash")
 	}
 
-	protoReq.Height, err = runtime.Uint64(val)
+	protoReq.Hash, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "height", err)
@@ -361,12 +361,12 @@ func local_request_Query_BlockLogs_0(ctx context.Context, marshaler runtime.Mars
 		_   = err
 	)
 
-	val, ok = pathParams["height"]
+	val, ok = pathParams["hash"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "height")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "hash")
 	}
 
-	protoReq.Height, err = runtime.Uint64(val)
+	protoReq.Hash, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "height", err)

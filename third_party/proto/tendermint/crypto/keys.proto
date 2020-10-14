@@ -8,9 +8,7 @@ import "gogoproto/gogo.proto";
 // PublicKey defines the keys available for use with Tendermint Validators
 message PublicKey {
   option (gogoproto.compare) = true;
-  option (gogoproto.equal)   = true;
+  option (gogoproto.equal) = true;
 
-  oneof sum {
-    bytes ed25519 = 1;
-  }
+  oneof sum { bytes ed25519 = 1; }
 }

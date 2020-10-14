@@ -13,25 +13,31 @@ option go_package = "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types";
 service Query {
   // ClientState queries an IBC light client.
   rpc ClientState(QueryClientStateRequest) returns (QueryClientStateResponse) {
-    option (google.api.http).get = "/ibc/client/v1beta1/client_states/{client_id}";
+    option (google.api.http).get =
+        "/ibc/client/v1beta1/client_states/{client_id}";
   }
 
   // ClientStates queries all the IBC light clients of a chain.
-  rpc ClientStates(QueryClientStatesRequest) returns (QueryClientStatesResponse) {
+  rpc ClientStates(QueryClientStatesRequest)
+      returns (QueryClientStatesResponse) {
     option (google.api.http).get = "/ibc/client/v1beta1/client_states";
   }
 
   // ConsensusState queries a consensus state associated with a client state at
   // a given height.
-  rpc ConsensusState(QueryConsensusStateRequest) returns (QueryConsensusStateResponse) {
-    option (google.api.http).get = "/ibc/client/v1beta1/consensus_states/{client_id}/version/{version_number}/"
+  rpc ConsensusState(QueryConsensusStateRequest)
+      returns (QueryConsensusStateResponse) {
+    option (google.api.http).get = "/ibc/client/v1beta1/consensus_states/"
+                                   "{client_id}/version/{version_number}/"
                                    "height/{version_height}";
   }
 
   // ConsensusStates queries all the consensus state associated with a given
   // client.
-  rpc ConsensusStates(QueryConsensusStatesRequest) returns (QueryConsensusStatesResponse) {
-    option (google.api.http).get = "/ibc/client/v1beta1/consensus_states/{client_id}";
+  rpc ConsensusStates(QueryConsensusStatesRequest)
+      returns (QueryConsensusStatesResponse) {
+    option (google.api.http).get =
+        "/ibc/client/v1beta1/consensus_states/{client_id}";
   }
 }
 
@@ -53,7 +59,7 @@ message QueryClientStateResponse {
   // merkle proof path
   string proof_path = 3;
   // height at which the proof was retrieved
-  ibc.core.client.v1.Height proof_height = 4 [(gogoproto.nullable) = false];
+  ibc.core.client.v1.Height proof_height = 4 [ (gogoproto.nullable) = false ];
 }
 
 // QueryClientStatesRequest is the request type for the Query/ClientStates RPC
@@ -97,7 +103,7 @@ message QueryConsensusStateResponse {
   // merkle proof path
   string proof_path = 3;
   // height at which the proof was retrieved
-  ibc.core.client.v1.Height proof_height = 4 [(gogoproto.nullable) = false];
+  ibc.core.client.v1.Height proof_height = 4 [ (gogoproto.nullable) = false ];
 }
 
 // QueryConsensusStatesRequest is the request type for the Query/ConsensusStates
@@ -113,7 +119,8 @@ message QueryConsensusStatesRequest {
 // Query/ConsensusStates RPC method
 message QueryConsensusStatesResponse {
   // consensus states associated with the identifier
-  repeated ConsensusStateWithHeight consensus_states = 1 [(gogoproto.nullable) = false];
+  repeated ConsensusStateWithHeight consensus_states = 1
+      [ (gogoproto.nullable) = false ];
   // pagination response
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
 }

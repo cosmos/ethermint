@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -162,13 +161,10 @@ func (q Keeper) BlockLogs(c context.Context, req *types.QueryBlockLogsRequest) (
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if req.Height == 0 {
+	if types.IsEmptyHash(req.Hash) {
 		return nil, status.Error(
 			codes.InvalidArgument,
-			sdkerrors.Wrap(
-				sdkerrors.ErrInvalidHeight,
-				"block height must be greater than 0",
-			).Error(),
+			types.ErrEmptyHash.Error(),
 		)
 	}
 

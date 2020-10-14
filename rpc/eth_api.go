@@ -42,6 +42,7 @@ import (
 type PublicEthAPI struct {
 	ctx          context.Context
 	clientCtx    client.Context
+	queryClient  evmtypes.QueryClient // gRPC query client
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      Backend
@@ -62,6 +63,7 @@ func NewPublicEthAPI(clientCtx client.Context, backend Backend, nonceLock *AddrL
 	api := &PublicEthAPI{
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
+		queryClient:  evmtypes.NewQueryClient(clientCtx),
 		chainIDEpoch: epoch,
 		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		backend:      backend,

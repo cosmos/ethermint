@@ -96,8 +96,8 @@ func (m *GenesisState) GetTxsLogs() []TransactionLogs {
 }
 
 // GenesisAccount defines an account to be initialized in the genesis state.
-// Its main difference between with Geth's GenesisAccount is that it uses a custom
-// storage type and that it doesn't contain the private key field.
+// Its main difference between with Geth's GenesisAccount is that it uses a
+// custom storage type and that it doesn't contain the private key field.
 type GenesisAccount struct {
 	Address string  `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Balance []byte  `protobuf:"bytes,2,opt,name=balance,proto3" json:"balance,omitempty"`

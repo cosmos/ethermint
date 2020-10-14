@@ -44,39 +44,44 @@ var _ Backend = (*EthermintBackend)(nil)
 
 // EthermintBackend implements the Backend interface
 type EthermintBackend struct {
-	ctx       context.Context
-	clientCtx client.Context
-	logger    log.Logger
-	gasLimit  int64
+	ctx         context.Context
+	clientCtx   client.Context
+	queryClient evmtypes.QueryClient // gRPC query client
+	logger      log.Logger
+	gasLimit    int64
 }
 
 // NewEthermintBackend creates a new EthermintBackend instance
 func NewEthermintBackend(clientCtx client.Context) *EthermintBackend {
 	return &EthermintBackend{
-		ctx:       context.Background(),
-		clientCtx: clientCtx,
-		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		gasLimit:  int64(^uint32(0)),
+		ctx:         context.Background(),
+		clientCtx:   clientCtx,
+		queryClient: evmtypes.NewQueryClient(clientCtx),
+		logger:      log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		gasLimit:    int64(^uint32(0)),
 	}
 }
 
 // BlockNumber returns the current block number.
 func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	res, height, err := e.clientCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", evmtypes.ModuleName), nil)
+	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
+	info, err := e.clientCtx.Client.BlockchainInfo(e.ctx, 0, 0)
 	if err != nil {
 		return hexutil.Uint64(0), err
 	}
 
-	var out evmtypes.QueryResBlockNumber
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-
-	e.clientCtx.WithHeight(height)
-	return hexutil.Uint64(out.Number), nil
+	return hexutil.Uint64(info.LastHeight), nil
 }
 
 // GetBlockByNumber returns the block identified by number.
 func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	value := blockNum.Int64()
+	height := blockNum.Int64()
+
+	blockRes, err := e.clientCtx.Client.Block(e.ctx, &height)
+	if err != nil {
+		return nil, err
+	}
+
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
@@ -99,16 +104,13 @@ func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Heade
 
 // HeaderByHash returns the block header identified by hash.
 func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
-	res, height, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
+	resBlock, err := e.clientCtx.Client.BlockByHash(e.ctx, blockHash.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	var out evmtypes.QueryResBlockNumber
-	if err := e.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
 
-	e.clientCtx = e.clientCtx.WithHeight(height)
+	ethHeader := EthHeaderFromTendermint(resBlock.Block.Header)
+	ethHeader.Bloom = bloomRes.Bloom
 	return e.getBlockHeader(out.Number)
 }
 
@@ -167,7 +169,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 
 	if fullTx {
 		// Populate full transaction data
-		transactions, gasUsed, err = utils.ConvertTxs(
+		transactions, gasUsed, err = ConvertTxs(
 			e.clientCtx, block.Block.Txs, common.BytesToHash(header.Hash()), uint64(header.Height),
 		)
 		if err != nil {
@@ -221,39 +223,37 @@ func (e *EthermintBackend) getGasLimit() (int64, error) {
 // It returns an error if there's an encoding error.
 // If no logs are found for the tx hash, the error is nil.
 func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
-	ctx := e.clientCtx
 
-	res, height, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, txHash.Hex()), nil)
+	req := &evmtypes.QueryTxLogsRequest{
+		Hash: txHash.String(),
+	}
+
+	res, err := e.queryClient.TxLogs(e.ctx, req)
 	if err != nil {
 		return nil, err
 	}
-
-	out := new(evmtypes.QueryETHLogs)
-	if err := e.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
-
-	e.clientCtx = e.clientCtx.WithHeight(height)
-	return out.Logs, nil
+	// TODO: logs to Ethereum
+	return res.Logs, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
-	pendingTxs, err := e.clientCtx.Client.UnconfirmedTxs(100)
+	limit := 100
+	pendingTxs, err := e.clientCtx.Client.UnconfirmedTxs(e.ctx, &limit)
 	if err != nil {
 		return nil, err
 	}
 
 	transactions := make([]*Transaction, pendingTxs.Count)
 	for _, tx := range pendingTxs.Txs {
-		ethTx, err := utils.RawTxToEthTx(e.clientCtx, tx)
+		ethTx, err := RawTxToEthTx(e.clientCtx, tx)
 		if err != nil {
 			return nil, err
 		}
 
 		// * Should check signer and reference against accounts the node manages in future
-		rpcTx, err := utils.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		rpcTx, err := NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -266,6 +266,13 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.
 func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
+	// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
+	req := &evmtypes.QueryBlockLogsRequest{
+		
+	}
+
+	e.queryClient.BlockLogs()
+
 	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
 	if err != nil {
 		return nil, err
@@ -283,7 +290,7 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, tx := range block.Block.Txs {
-		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
+		
 		res, _, err := e.clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, common.BytesToHash(tx.Hash()).Hex()), nil)
 		if err != nil {
 			continue
