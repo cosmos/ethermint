@@ -316,7 +316,7 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 				pendingNonce++
 			}
 		}
-		nonce = nonce + pendingNonce
+		nonce += pendingNonce
 	}
 
 	n := hexutil.Uint64(nonce)
