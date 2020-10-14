@@ -215,13 +215,12 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 	pendingQuery := false
 	var ctx context.CLIContext
 	if blockNum.Int64() == int64(-1) {
-		// uses latest block number: -1 -> 0
+		// uses latest block number for pending: -1 -> 0
 		ctx = e.cliCtx.WithHeight(int64(0))
 		pendingQuery = true
 	} else {
 		ctx = e.cliCtx.WithHeight(blockNum.Int64())
 	}
-	fmt.Println("query ctx height: ", ctx.Height)
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
 	if err != nil {
 		return nil, err
@@ -276,7 +275,15 @@ func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
 	e.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
-	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	pendingQuery := false
+	var ctx context.CLIContext
+	if blockNum.Int64() == int64(-1) {
+		// uses latest block number for pending: -1 -> 0
+		ctx = e.cliCtx.WithHeight(int64(0))
+		pendingQuery = true
+	} else {
+		ctx = e.cliCtx.WithHeight(blockNum.Int64())
+	}
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
@@ -292,6 +299,24 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 	_, nonce, err := accRet.GetAccountNumberSequence(from)
 	if err != nil {
 		return nil, err
+	}
+
+	pendingNonce := uint64(0)
+	if pendingQuery {
+		pendingtx, err := e.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range pendingtx {
+			if pendingtx[i] == nil {
+				continue
+			}
+			if pendingtx[i].From == address {
+				pendingNonce++
+			}
+		}
+		nonce = nonce + pendingNonce
 	}
 
 	n := hexutil.Uint64(nonce)
