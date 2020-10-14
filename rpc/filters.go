@@ -89,7 +89,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	// Figure out the limits of the filter range
-	header, err := f.backend.HeaderByNumber(LatestBlockNumber)
+	header, err := f.backend.HeaderByNumber(ethermint.LatestBlockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	for i := f.criteria.FromBlock.Int64(); i <= f.criteria.ToBlock.Int64(); i++ {
-		block, err := f.backend.GetBlockByNumber(BlockNumber(i), true)
+		block, err := f.backend.GetBlockByNumber(ethermint.BlockNumber(i), true)
 		if err != nil {
 			return logs, err
 		}

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"github.com/cosmos/ethermint/rpc/utils"
+	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -23,9 +26,9 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
-	HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error)
+	HeaderByNumber(blockNum ethermint.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
+	GetBlockByNumber(blockNum ethermint.BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
 	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
 	getGasLimit() (int64, error)
@@ -44,6 +47,7 @@ var _ Backend = (*EthermintBackend)(nil)
 
 // EthermintBackend implements the Backend interface
 type EthermintBackend struct {
+	ctx       context.Context
 	clientCtx client.Context
 	logger    log.Logger
 	gasLimit  int64
@@ -52,6 +56,7 @@ type EthermintBackend struct {
 // NewEthermintBackend creates a new EthermintBackend instance
 func NewEthermintBackend(clientCtx client.Context) *EthermintBackend {
 	return &EthermintBackend{
+		ctx:       context.Background(),
 		clientCtx: clientCtx,
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		gasLimit:  int64(^uint32(0)),
@@ -73,29 +78,25 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (e *EthermintBackend) GetBlockByNumber(blockNum ethermint.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
 // GetBlockByHash returns the block identified by hash.
 func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-	res, height, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	resBlock, err := e.clientCtx.Client.BlockByHash(e.ctx, hash.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResBlockNumber
-	if err := e.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
+	// TODO: bloom
 
-	e.clientCtx = e.clientCtx.WithHeight(height)
-	return e.getEthBlockByNumber(out.Number, fullTx)
+	return formatBlock(resBlock.Block.Header, resBlock.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
 }
 
 // HeaderByNumber returns the block header identified by height.
-func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error) {
+func (e *EthermintBackend) HeaderByNumber(blockNum ethermint.BlockNumber) (*ethtypes.Header, error) {
 	return e.getBlockHeader(blockNum.Int64())
 }
 
@@ -117,7 +118,7 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error) {
 	if height <= 0 {
 		// get latest block height
-		num, err := e.BlockNumber()
+		num, err := e.ethermint.BlockNumber()
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +152,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 		blkNumPtr = &height
 	}
 
-	block, err := e.clientCtx.Client.Block(blkNumPtr)
+	block, err := e.clientCtx.Client.Block(e.ctx, blkNumPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +170,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 
 	if fullTx {
 		// Populate full transaction data
-		transactions, gasUsed, err = convertTransactionsToRPC(
+		transactions, gasUsed, err = utils.ConvertTxs(
 			e.clientCtx, block.Block.Txs, common.BytesToHash(header.Hash()), uint64(header.Height),
 		)
 		if err != nil {
@@ -202,7 +203,7 @@ func (e *EthermintBackend) getGasLimit() (int64, error) {
 	}
 
 	// Query genesis block if hasn't been retrieved yet
-	genesis, err := e.clientCtx.Client.Genesis()
+	genesis, err := e.clientCtx.Client.Genesis(e.ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -241,21 +242,21 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
+func (e *EthermintBackend) PendingTransactions() ([]*ethermint.Transaction, error) {
 	pendingTxs, err := e.clientCtx.Client.UnconfirmedTxs(100)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions := make([]*Transaction, pendingTxs.Count)
+	transactions := make([]*ethermint.Transaction, pendingTxs.Count)
 	for _, tx := range pendingTxs.Txs {
-		ethTx, err := bytesToEthTx(e.clientCtx, tx)
+		ethTx, err := utils.RawTxToEthTx(e.clientCtx, tx)
 		if err != nil {
 			return nil, err
 		}
 
 		// * Should check signer and reference against accounts the node manages in future
-		rpcTx, err := newRPCTransaction(*ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, nil, 0)
+		rpcTx, err := utils.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -274,11 +275,11 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var out evmtypes.QueryResBlockNumber
-	if err := e.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+	if err := e.clientCtx.JSONMarshaler.UnmarshalJSON(res, &out); err != nil {
 		return nil, err
 	}
 
-	block, err := e.clientCtx.Client.Block(&out.Number)
+	block, err := e.clientCtx.Client.Block(e.ctx, &out.Number)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -35,6 +34,7 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 
 	"github.com/cosmos/ethermint/app"
+	ethermintclient "github.com/cosmos/ethermint/client"
 )
 
 // NewRootCmd creates a new root command for simd. It is called once in the
@@ -89,7 +89,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	authclient.Codec = encodingConfig.Marshaler
 
 	rootCmd.AddCommand(
-		client.ValidateChainID(
+		ethermintclient.ValidateChainID(
 			genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
@@ -98,18 +98,18 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics, encodingConfig.TxConfig),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
 		tmcli.NewCompletionCmd(rootCmd, true),
-		client.TestnetCmd(app.ModuleBasics, banktypes.GenesisBalancesIterator{}),
+		ethermintclient.TestnetCmd(app.ModuleBasics, banktypes.GenesisBalancesIterator{}),
 		debug.Cmd(),
 	)
 
-	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, createSimappAndExport)
+	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, createAppAndExport)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
 		rpc.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		keys.Commands(app.DefaultNodeHome),
+		ethermintclient.KeyCommands(app.DefaultNodeHome),
 	)
 }
 
@@ -211,23 +211,23 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	)
 }
 
-// createSimappAndExport creates a new Ethermint app (optionally at a given height)
+// createAppAndExport creates a new Ethermint app (optionally at a given height)
 // and exports state.
-func createSimappAndExport(
+func createAppAndExport(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailAllowedAddrs []string,
 ) (servertypes.ExportedApp, error) {
 	encCfg := app.MakeEncodingConfig() // Ideally, we would reuse the one created by NewRootCmd.
 	encCfg.Marshaler = codec.NewProtoCodec(encCfg.InterfaceRegistry)
-	var simApp *app.SimApp
+	var ethermintApp *app.EthermintApp
 	if height != -1 {
-		simApp = app.NewEthermintApp(logger, db, traceStore, false, map[int64]bool{}, "", uint(1), encCfg)
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, false, map[int64]bool{}, "", uint(1), encCfg)
 
-		if err := simApp.LoadHeight(height); err != nil {
+		if err := ethermintApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		simApp = app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, "", uint(1), encCfg)
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, "", uint(1), encCfg)
 	}
 
-	return simApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
+	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
 }

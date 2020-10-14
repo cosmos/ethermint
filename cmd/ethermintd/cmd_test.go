@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 
-	"github.com/cosmos/ethermint/cmd/ethermintd"
+	ethermintd "github.com/cosmos/ethermint/cmd/ethermintd"
 )
 
 func TestInitCmd(t *testing.T) {

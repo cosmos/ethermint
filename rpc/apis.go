@@ -21,10 +21,10 @@ const (
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(clientCtx client.Context, keys []ethsecp256k1.PrivKey) []rpc.API {
+func GetRPCAPIs(clientCtx client.Context, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(AddrLocker)
 	backend := NewEthermintBackend(clientCtx)
-	ethAPI := NewPublicEthAPI(clientCtx, backend, nonceLock, keys)
+	ethAPI := NewPublicEthAPI(clientCtx, backend, nonceLock, keys...)
 
 	return []rpc.API{
 		{

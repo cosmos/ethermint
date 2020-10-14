@@ -87,7 +87,7 @@ func NewSendTxCmd() *cobra.Command {
 
 			msg := types.NewMsgEthermint(
 				seq,
-				&toAddr,
+				toAddr,
 				sdk.NewInt(amount),
 				txFactory.Gas(),
 				gasPrice,
