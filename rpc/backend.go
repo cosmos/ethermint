@@ -8,10 +8,7 @@ import (
 	"strconv"
 
 	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/cosmos/ethermint/rpc/utils"
-	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -26,9 +23,9 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
-	HeaderByNumber(blockNum ethermint.BlockNumber) (*ethtypes.Header, error)
+	HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum ethermint.BlockNumber, fullTx bool) (map[string]interface{}, error)
+	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
 	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
 	getGasLimit() (int64, error)
@@ -78,7 +75,7 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (e *EthermintBackend) GetBlockByNumber(blockNum ethermint.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	value := blockNum.Int64()
 	return e.getEthBlockByNumber(value, fullTx)
 }
@@ -90,13 +87,13 @@ func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 		return nil, err
 	}
 
-	// TODO: bloom
+	// TODO: gas, txs and bloom
 
 	return formatBlock(resBlock.Block.Header, resBlock.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
 }
 
 // HeaderByNumber returns the block header identified by height.
-func (e *EthermintBackend) HeaderByNumber(blockNum ethermint.BlockNumber) (*ethtypes.Header, error) {
+func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error) {
 	return e.getBlockHeader(blockNum.Int64())
 }
 
@@ -118,7 +115,7 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error) {
 	if height <= 0 {
 		// get latest block height
-		num, err := e.ethermint.BlockNumber()
+		num, err := e.BlockNumber()
 		if err != nil {
 			return nil, err
 		}
@@ -242,13 +239,13 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (e *EthermintBackend) PendingTransactions() ([]*ethermint.Transaction, error) {
+func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	pendingTxs, err := e.clientCtx.Client.UnconfirmedTxs(100)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions := make([]*ethermint.Transaction, pendingTxs.Count)
+	transactions := make([]*Transaction, pendingTxs.Count)
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := utils.RawTxToEthTx(e.clientCtx, tx)
 		if err != nil {
@@ -307,23 +304,4 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // by the chain indexer.
 func (e *EthermintBackend) BloomStatus() (uint64, uint64) {
 	return 4096, 0
-}
-
-// EthHeaderFromTendermint is an util function that returns an Ethereum Header
-// from a tendermint Header.
-func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
-	return &ethtypes.Header{
-		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
-		UncleHash:   common.Hash{},
-		Coinbase:    common.Address{},
-		Root:        common.BytesToHash(header.AppHash),
-		TxHash:      common.BytesToHash(header.DataHash),
-		ReceiptHash: common.Hash{},
-		Difficulty:  nil,
-		Number:      big.NewInt(header.Height),
-		Time:        uint64(header.Time.Unix()),
-		Extra:       nil,
-		MixDigest:   common.Hash{},
-		Nonce:       ethtypes.BlockNonce{},
-	}
 }

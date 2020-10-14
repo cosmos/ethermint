@@ -1,4 +1,4 @@
-package utils
+package rpc
 
 import (
 	"fmt"
@@ -9,11 +9,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
@@ -56,14 +56,14 @@ func ConvertTxs(clientCtx client.Context, txs []tmtypes.Tx, blockHash common.Has
 
 // NewTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*ethermint.Transaction, error) {
+func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
 	from, err := tx.VerifySig(tx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	rpcTx := &ethermint.Transaction{
+	rpcTx := &Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
 		GasPrice: (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Price)),
@@ -84,4 +84,23 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	}
 
 	return rpcTx, nil
+}
+
+// EthHeaderFromTendermint is an util function that returns an Ethereum Header
+// from a tendermint Header.
+func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
+	return &ethtypes.Header{
+		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
+		UncleHash:   common.Hash{},
+		Coinbase:    common.Address{},
+		Root:        common.BytesToHash(header.AppHash),
+		TxHash:      common.BytesToHash(header.DataHash),
+		ReceiptHash: common.Hash{},
+		Difficulty:  nil,
+		Number:      big.NewInt(header.Height),
+		Time:        uint64(header.Time.Unix()),
+		Extra:       nil,
+		MixDigest:   common.Hash{},
+		Nonce:       ethtypes.BlockNonce{},
+	}
 }

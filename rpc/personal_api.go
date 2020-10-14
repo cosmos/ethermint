@@ -9,11 +9,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/spf13/viper"
-
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
-	params "github.com/cosmos/ethermint/rpc/args"
-
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -26,7 +21,6 @@ import (
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/crypto/hd"
-	params "github.com/cosmos/ethermint/rpc/args"
 )
 
 // PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -51,8 +45,8 @@ func NewPersonalEthAPI(ethAPI *PublicEthAPI) *PersonalEthAPI {
 }
 
 func (e *PersonalEthAPI) getKeybaseInfo() ([]keyring.Info, error) {
-	e.ethAPI.keybaseLock.Lock()
-	defer e.ethAPI.keybaseLock.Unlock()
+	e.ethAPI.keyringLock.Lock()
+	defer e.ethAPI.keyringLock.Unlock()
 
 	if e.ethAPI.clientCtx.Keyring == nil {
 		keybase, err := keyring.New(
@@ -221,7 +215,7 @@ func (e *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, p
 // SendTransaction will create a transaction from the given arguments and
 // tries to sign it with the key associated with args.To. If the given password isn't
 // able to decrypt the key it fails.
-func (e *PersonalEthAPI) SendTransaction(_ context.Context, args params.SendTxArgs, _ string) (common.Hash, error) {
+func (e *PersonalEthAPI) SendTransaction(_ context.Context, args SendTxArgs, _ string) (common.Hash, error) {
 	return e.ethAPI.SendTransaction(args)
 }
 

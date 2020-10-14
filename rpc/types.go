@@ -1,4 +1,4 @@
-package types
+package rpc
 
 import (
 	"github.com/ethereum/go-ethereum/common"
@@ -44,6 +44,22 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
+// SendTxArgs represents the arguments to submit a new transaction into the transaction pool.
+// Duplicate struct definition since geth struct is in internal package
+// Ref: https://github.com/ethereum/go-ethereum/blob/release/1.9/internal/ethapi/api.go#L1346
+type SendTxArgs struct {
+	From     common.Address  `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *hexutil.Big    `json:"value"`
+	Nonce    *hexutil.Uint64 `json:"nonce"`
+	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+	// newer name and should be preferred by clients.
+	Data  *hexutil.Bytes `json:"data"`
+	Input *hexutil.Bytes `json:"input"`
+}
+
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     *common.Address `json:"from"`
@@ -52,4 +68,18 @@ type CallArgs struct {
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     *hexutil.Bytes  `json:"data"`
+}
+
+// account indicates the overriding fields of account during the execution of
+// a message call.
+// Note, state and stateDiff can't be specified at the same time. If state is
+// set, message execution will only use the data in the given state. Otherwise
+// if statDiff is set, all diff will be applied first and then execute the call
+// message.
+type account struct {
+	Nonce     *hexutil.Uint64              `json:"nonce"`
+	Code      *hexutil.Bytes               `json:"code"`
+	Balance   **hexutil.Big                `json:"balance"`
+	State     *map[common.Hash]common.Hash `json:"state"`
+	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }

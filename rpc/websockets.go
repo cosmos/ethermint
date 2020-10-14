@@ -443,13 +443,12 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 
-				var resultData evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
 
-				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+				logs := filterLogs(resultData.TxLogs.EthLogs(), crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
@@ -505,7 +504,7 @@ func (api *pubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 			select {
 			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
-				txHash := common.BytesToHash(data.Tx.Hash())
+				txHash := common.BytesToHash(tmtypes.Tx(data.Tx).Hash())
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
