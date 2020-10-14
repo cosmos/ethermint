@@ -11,7 +11,7 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
-	"github.com/cosmos/ethermint/utils"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
@@ -32,7 +32,7 @@ func (q Keeper) Account(c context.Context, req *types.QueryAccountRequest) (*typ
 
 	ctx := sdk.UnwrapSDKContext(c)
 	so := q.GetOrNewStateObject(ctx, ethcmn.HexToAddress(req.Address))
-	balance, err := utils.MarshalBigInt(so.Balance())
+	balance, err := ethermint.MarshalBigInt(so.Balance())
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (q Keeper) Balance(c context.Context, req *types.QueryBalanceRequest) (*typ
 	ctx := sdk.UnwrapSDKContext(c)
 
 	balanceInt := q.GetBalance(ctx, ethcmn.HexToAddress(req.Address))
-	balance, err := utils.MarshalBigInt(balanceInt)
+	balance, err := ethermint.MarshalBigInt(balanceInt)
 	if err != nil {
 		return nil, status.Error(
 			codes.Internal,

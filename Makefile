@@ -20,8 +20,7 @@ PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuild/buf
-ETHERMINT_DAEMON_BINARY = ethermintd
-ETHERMINT_CLI_BINARY = ethermintd
+ETHERMINT_BINARY = ethermintd
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
@@ -104,8 +103,7 @@ build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
 # process linker flags
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
-		  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ETHERMINT_DAEMON_BINARY) \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ETHERMINT_CLI_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.AppName=$(ETHERMINT_BINARY) \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -126,18 +124,15 @@ all: tools verify install
 
 build: go.sum
 ifeq ($(OS), Windows_NT)
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY).exe ./cmd/$(ETHERMINT_BINARY)
 else
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY) ./cmd/$(ETHERMINT_BINARY)
 endif
 	go build ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)
-	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_BINARY)
 
 build-ethermint-linux: go.sum
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(MAKE) build-ethermint
@@ -145,8 +140,7 @@ build-ethermint-linux: go.sum
 .PHONY: build build-ethermint build-ethermint-linux
 
 install:
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_CLI_BINARY)
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_BINARY)
 
 clean:
 	@rm -rf ./build ./vendor
@@ -290,8 +284,8 @@ test-sim-nondeterminism:
 
 test-sim-custom-genesis-fast:
 	@echo "Running custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
+	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json \
 		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
 
 test-sim-import-export: runsim
@@ -304,8 +298,8 @@ test-sim-after-import: runsim
 
 test-sim-custom-genesis-multi-seed: runsim
 	@echo "Running multi-seed custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
 
 test-sim-multi-seed-long: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
@@ -460,13 +454,13 @@ ifeq ($(OS),Windows_NT)
 	mkdir build &
 	@$(MAKE) docker-localnet
 
-	IF not exist "build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
+	IF not exist "build/node0/$(ETHERMINT_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
 	docker-compose up -d
 else
 	mkdir -p ./build/
 	@$(MAKE) docker-localnet
 
-	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
+	if ! [ -f build/node0/$(ETHERMINT_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
 	docker-compose up -d
 endif
 

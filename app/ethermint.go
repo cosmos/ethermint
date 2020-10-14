@@ -3,6 +3,7 @@ package app
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
@@ -90,16 +91,24 @@ func init() {
 	config := sdk.GetConfig()
 	ethermint.SetBech32Prefixes(config)
 	ethermint.SetBip44CoinType(config)
+
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	DefaultNodeHome = filepath.Join(userHomeDir, ".simapp")
+}
+
+func init() {
+
 }
 
 const appName = "Ethermint"
 
 var (
-	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.ethermintd")
-
-	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.ethermintd")
+	// DefaultNodeHome default home directories for the application daemon
+	DefaultNodeHome string
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration

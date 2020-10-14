@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -19,14 +18,20 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp/helpers"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	distr "github.com/cosmos/cosmos-sdk/x/distribution"
-	"github.com/cosmos/cosmos-sdk/x/gov"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/staking"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func init() {
@@ -63,14 +68,19 @@ func TestFullAppSimulation(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
 	// run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.AppCodec(), app.SimulationManager()),
+		simtypes.RandomAccounts, // Replace with own random account function if using keys other than secp256k1
+		simapp.SimulationOperations(app, app.AppCodec(), config),
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -95,14 +105,19 @@ func TestAppImportExport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
 	// Run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.AppCodec(), app.SimulationManager()),
+		simtypes.RandomAccounts, // Replace with own random account function if using keys other than secp256k1
+		simapp.SimulationOperations(app, app.AppCodec(), config),
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -116,7 +131,7 @@ func TestAppImportExport(t *testing.T) {
 
 	fmt.Printf("exporting genesis...\n")
 
-	appState, _, err := app.ExportAppStateAndValidators(false, []string{})
+	exported, err := app.ExportAppStateAndValidators(false, []string{})
 	require.NoError(t, err)
 
 	fmt.Printf("importing genesis...\n")
@@ -130,32 +145,37 @@ func TestAppImportExport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(newDir))
 	}()
 
-	newApp := NewEthermintApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
+	newApp := NewEthermintApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), fauxMerkleModeOpt)
 	require.Equal(t, appName, newApp.Name())
 
-	var genesisState map[string]json.RawMessage
-	err = app.Codec().UnmarshalJSON(appState, &genesisState)
+	var genesisState simapp.GenesisState
+	err = json.Unmarshal(exported.AppState, &genesisState)
 	require.NoError(t, err)
 
 	ctxA := app.NewContext(true, tmproto.Header{Height: app.LastBlockHeight()})
 	ctxB := newApp.NewContext(true, tmproto.Header{Height: app.LastBlockHeight()})
-	newApp.mm.InitGenesis(ctxB, genesisState)
+	newApp.mm.InitGenesis(ctxB, app.AppCodec(), genesisState)
+	newApp.StoreConsensusParams(ctxB, exported.ConsensusParams)
 
 	fmt.Printf("comparing stores...\n")
 
 	storeKeysPrefixes := []storeKeysPrefixes{
-		{app.keys[baseapp.MainStoreKey], newApp.keys[baseapp.MainStoreKey], [][]byte{}},
-		{app.keys[auth.StoreKey], newApp.keys[auth.StoreKey], [][]byte{}},
-		{app.keys[staking.StoreKey], newApp.keys[staking.StoreKey],
+		{app.keys[authtypes.StoreKey], newApp.keys[authtypes.StoreKey], [][]byte{}},
+		{app.keys[stakingtypes.StoreKey], newApp.keys[stakingtypes.StoreKey],
 			[][]byte{
-				staking.UnbondingQueueKey, staking.RedelegationQueueKey, staking.ValidatorQueueKey,
-				staking.HistoricalInfoKey,
+				stakingtypes.UnbondingQueueKey, stakingtypes.RedelegationQueueKey, stakingtypes.ValidatorQueueKey,
+				stakingtypes.HistoricalInfoKey,
 			}}, // ordering may change but it doesn't matter
-		{app.keys[slashing.StoreKey], newApp.keys[slashing.StoreKey], [][]byte{}},
-		{app.keys[mint.StoreKey], newApp.keys[mint.StoreKey], [][]byte{}},
-		{app.keys[distr.StoreKey], newApp.keys[distr.StoreKey], [][]byte{}},
-		{app.keys[params.StoreKey], newApp.keys[params.StoreKey], [][]byte{}},
-		{app.keys[gov.StoreKey], newApp.keys[gov.StoreKey], [][]byte{}},
+		{app.keys[slashingtypes.StoreKey], newApp.keys[slashingtypes.StoreKey], [][]byte{}},
+		{app.keys[minttypes.StoreKey], newApp.keys[minttypes.StoreKey], [][]byte{}},
+		{app.keys[distrtypes.StoreKey], newApp.keys[distrtypes.StoreKey], [][]byte{}},
+		{app.keys[banktypes.StoreKey], newApp.keys[banktypes.StoreKey], [][]byte{banktypes.BalancesPrefix}},
+		{app.keys[paramtypes.StoreKey], newApp.keys[paramtypes.StoreKey], [][]byte{}},
+		{app.keys[govtypes.StoreKey], newApp.keys[govtypes.StoreKey], [][]byte{}},
+		{app.keys[evidencetypes.StoreKey], newApp.keys[evidencetypes.StoreKey], [][]byte{}},
+		{app.keys[capabilitytypes.StoreKey], newApp.keys[capabilitytypes.StoreKey], [][]byte{}},
+		{app.keys[ibchost.StoreKey], newApp.keys[ibchost.StoreKey], [][]byte{}},
+		{app.keys[ibctransfertypes.StoreKey], newApp.keys[ibctransfertypes.StoreKey], [][]byte{}},
 	}
 
 	for _, skp := range storeKeysPrefixes {
@@ -165,8 +185,8 @@ func TestAppImportExport(t *testing.T) {
 		failedKVAs, failedKVBs := sdk.DiffKVStores(storeA, storeB, skp.Prefixes)
 		require.Equal(t, len(failedKVAs), len(failedKVBs), "unequal sets of key-values to compare")
 
-		fmt.Printf("compared %d key/value pairs between %s and %s\n", len(failedKVAs), skp.A, skp.B)
-		require.Equal(t, len(failedKVAs), 0, simapp.GetSimulationLog(skp.A.Name(), app.SimulationManager().StoreDecoders, app.Codec(), failedKVAs, failedKVBs))
+		fmt.Printf("compared %d different key/value pairs between %s and %s\n", len(failedKVAs), skp.A, skp.B)
+		require.Equal(t, len(failedKVAs), 0, simapp.GetSimulationLog(skp.A.Name(), app.SimulationManager().StoreDecoders, failedKVAs, failedKVBs))
 	}
 }
 
@@ -182,14 +202,19 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), fauxMerkleModeOpt)
 	require.Equal(t, appName, app.Name())
 
 	// Run randomized simulation
 	stopEarly, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(app, app.Codec(), config),
-		app.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		app.BaseApp,
+		simapp.AppStateFn(app.AppCodec(), app.SimulationManager()),
+		simtypes.RandomAccounts, // Replace with own random account function if using keys other than secp256k1
+		simapp.SimulationOperations(app, app.AppCodec(), config),
+		app.ModuleAccountAddrs(),
+		config,
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -208,12 +233,11 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	fmt.Printf("exporting genesis...\n")
 
-	appState, _, err := app.ExportAppStateAndValidators(true, []string{})
+	exported, err := app.ExportAppStateAndValidators(true, []string{})
 	require.NoError(t, err)
 
 	fmt.Printf("importing genesis...\n")
 
-	// nolint: dosgsled
 	_, newDB, newDir, _, _, err := simapp.SetupSimulation("leveldb-app-sim-2", "Simulation-2")
 	require.NoError(t, err, "simulation setup failed")
 
@@ -222,21 +246,28 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(newDir))
 	}()
 
-	newApp := NewEthermintApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, fauxMerkleModeOpt)
+	newApp := NewEthermintApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), fauxMerkleModeOpt)
 	require.Equal(t, appName, newApp.Name())
 
 	newApp.InitChain(abci.RequestInitChain{
-		AppStateBytes: appState,
+		AppStateBytes: exported.AppState,
 	})
 
 	_, _, err = simulation.SimulateFromSeed(
-		t, os.Stdout, newApp.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-		simapp.SimulationOperations(newApp, newApp.Codec(), config),
-		newApp.ModuleAccountAddrs(), config,
+		t,
+		os.Stdout,
+		newApp.BaseApp,
+		simapp.AppStateFn(app.AppCodec(), app.SimulationManager()),
+		simtypes.RandomAccounts, // Replace with own random account function if using keys other than secp256k1
+		simapp.SimulationOperations(newApp, newApp.AppCodec(), config),
+		app.ModuleAccountAddrs(),
+		config,
 	)
 	require.NoError(t, err)
 }
 
+// TODO: Make another test for the fuzzer itself, which just has noOp txs
+// and doesn't depend on the application.
 func TestAppStateDeterminism(t *testing.T) {
 	if !simapp.FlagEnabledValue {
 		t.Skip("skipping application simulation")
@@ -249,47 +280,54 @@ func TestAppStateDeterminism(t *testing.T) {
 	config.AllInvariants = false
 	config.ChainID = helpers.SimAppChainID
 
-	numTimesToRunPerSeed := 2
+	numSeeds := 3
+	numTimesToRunPerSeed := 5
 	appHashList := make([]json.RawMessage, numTimesToRunPerSeed)
 
-	config.Seed = rand.Int63()
+	for i := 0; i < numSeeds; i++ {
+		config.Seed = rand.Int63()
 
-	for i := 0; i < numTimesToRunPerSeed; i++ {
-		var logger log.Logger
-		if simapp.FlagVerboseValue {
-			logger = log.TestingLogger()
-		} else {
-			logger = log.NewNopLogger()
-		}
+		for j := 0; j < numTimesToRunPerSeed; j++ {
+			var logger log.Logger
+			if simapp.FlagVerboseValue {
+				logger = log.TestingLogger()
+			} else {
+				logger = log.NewNopLogger()
+			}
 
-		db := dbm.NewMemDB()
+			db := dbm.NewMemDB()
+			app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, DefaultNodeHome, simapp.FlagPeriodValue, MakeEncodingConfig(), interBlockCacheOpt())
 
-		app := NewEthermintApp(logger, db, nil, true, map[int64]bool{}, simapp.FlagPeriodValue, interBlockCacheOpt())
-
-		fmt.Printf(
-			"running non-determinism simulation; seed %d: attempt: %d/%d\n",
-			config.Seed, i+1, numTimesToRunPerSeed,
-		)
-
-		_, _, err := simulation.SimulateFromSeed(
-			t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
-			simapp.SimulationOperations(app, app.Codec(), config),
-			app.ModuleAccountAddrs(), config,
-		)
-		require.NoError(t, err)
-
-		if config.Commit {
-			simapp.PrintStats(db)
-		}
-
-		appHash := app.LastCommitID().Hash
-		appHashList[i] = appHash
-
-		if i != 0 {
-			require.Equal(
-				t, appHashList[0], appHashList[i],
-				"non-determinism in seed %d: %d/%d, attempt: %d/%d\n", config.Seed, i+1, numTimesToRunPerSeed,
+			fmt.Printf(
+				"running non-determinism simulation; seed %d: %d/%d, attempt: %d/%d\n",
+				config.Seed, i+1, numSeeds, j+1, numTimesToRunPerSeed,
 			)
+
+			_, _, err := simulation.SimulateFromSeed(
+				t,
+				os.Stdout,
+				app.BaseApp,
+				simapp.AppStateFn(app.AppCodec(), app.SimulationManager()),
+				simtypes.RandomAccounts, // Replace with own random account function if using keys other than secp256k1
+				simapp.SimulationOperations(app, app.AppCodec(), config),
+				app.ModuleAccountAddrs(),
+				config,
+			)
+			require.NoError(t, err)
+
+			if config.Commit {
+				simapp.PrintStats(db)
+			}
+
+			appHash := app.LastCommitID().Hash
+			appHashList[j] = appHash
+
+			if j != 0 {
+				require.Equal(
+					t, string(appHashList[0]), string(appHashList[j]),
+					"non-determinism in seed %d: %d/%d, attempt: %d/%d\n", config.Seed, i+1, numSeeds, j+1, numTimesToRunPerSeed,
+				)
+			}
 		}
 	}
 }
