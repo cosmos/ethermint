@@ -24,7 +24,9 @@ const (
 
 	// Bip44CoinType satisfies EIP84. See https://github.com/ethereum/EIPs/issues/84 for more info.
 	Bip44CoinType = 60
+)
 
+var (
 	// BIP44HDPath is the BIP44 HD path used on Ethereum.
 	BIP44HDPath = eth.DefaultRootDerivationPath.String()
 )
