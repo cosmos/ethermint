@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -39,26 +41,26 @@ func GetStorageCmd() *cobra.Command {
 				return err
 			}
 
-			// TODO: gRPC
-			// queryClient := types.NewQueryClient(clientCtx)
+			queryClient := types.NewQueryClient(clientCtx)
 
-			// account, err := accountToHex(args[0])
-			// if err != nil {
-			// 	return errors.Wrap(err, "could not parse account address")
-			// }
+			address, err := accountToHex(args[0])
+			if err != nil {
+				return err
+			}
 
-			// key := formatKeyToHash(args[1])
+			key := formatKeyToHash(args[1])
 
-			// res, _, err := clientCtx.Query(
-			// 	fmt.Sprintf("custom/%s/storage/%s/%s", queryRoute, account, key))
+			req := &types.QueryStorageRequest{
+				Address: address,
+				Key:     key,
+			}
 
-			// if err != nil {
-			// 	return fmt.Errorf("could not resolve: %s", err)
-			// }
-			// var out types.QueryResStorage
-			// cdc.MustUnmarshalJSON(res, &out)
-			// return clientCtx.PrintOutput(out)
-			return nil
+			res, err := queryClient.Storage(context.Background(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -79,23 +81,23 @@ func GetCodeCmd() *cobra.Command {
 				return err
 			}
 
-			// account, err := accountToHex(args[0])
-			// if err != nil {
-			// 	return errors.Wrap(err, "could not parse account address")
-			// }
+			queryClient := types.NewQueryClient(clientCtx)
 
-			// res, _, err := clientCtx.Query(
-			// 	fmt.Sprintf("custom/%s/code/%s", queryRoute, account))
+			address, err := accountToHex(args[0])
+			if err != nil {
+				return err
+			}
 
-			// if err != nil {
-			// 	return fmt.Errorf("could not resolve: %s", err)
-			// }
+			req := &types.QueryCodeRequest{
+				Address: address,
+			}
 
-			// var out types.QueryResCode
-			// cdc.MustUnmarshalJSON(res, &out)
-			// return clientCtx.PrintOutput(out)
+			res, err := queryClient.Code(context.Background(), req)
+			if err != nil {
+				return err
+			}
 
-			return nil
+			return clientCtx.PrintOutput(res)
 		},
 	}
 

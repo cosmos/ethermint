@@ -118,7 +118,9 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	case alias.Address != "" && alias.EthAddress != "":
 		// Both addresses provided. Verify correctness
 		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
-		address, err := sdk.AccAddressFromBech32(alias.Address)
+
+		var address sdk.AccAddress
+		address, err = sdk.AccAddressFromBech32(alias.Address)
 		if err != nil {
 			return err
 		}
