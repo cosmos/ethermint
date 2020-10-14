@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -103,4 +105,13 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 		MixDigest:   common.Hash{},
 		Nonce:       ethtypes.BlockNonce{},
 	}
+}
+
+func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
+	for _, key := range keys {
+		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+			return &key, true
+		}
+	}
+	return nil, false
 }

@@ -232,15 +232,20 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
-	ctx := e.clientCtx.WithHeight(blockNum.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
+
+	req := &evmtypes.QueryStorageRequest{
+		Address: address.String(),
+		Key:     key,
+		Height:  blockNum.Int64(),
+	}
+
+	res, err := e.queryClient.Storage(e.ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResStorage
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Value, nil
+	value := common.HexToHash(res.Value)
+	return value.Bytes(), nil
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -271,32 +276,27 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
 	e.logger.Debug("eth_getBlockTransactionCountByHash", "hash", hash)
-	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+
+	resBlock, err := e.clientCtx.Client.BlockByHash(e.ctx, hash.Bytes())
 	if err != nil {
-		// Return nil if block does not exist
 		return nil
 	}
 
-	var out evmtypes.QueryResBlockNumber
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return e.getBlockTransactionCountByNumber(out.Number)
+	n := hexutil.Uint(len(resBlock.Block.Txs))
+	return &n
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
 func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) *hexutil.Uint {
 	e.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
-	height := blockNum.Int64()
-	return e.getBlockTransactionCountByNumber(height)
-}
 
-func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.Uint {
-	block, err := e.clientCtx.Client.Block(e.ctx, &number)
+	height := blockNum.Int64()
+	resBlock, err := e.clientCtx.Client.Block(e.ctx, &height)
 	if err != nil {
-		// Return nil if block doesn't exist
 		return nil
 	}
 
-	n := hexutil.Uint(len(block.Block.Txs))
+	n := hexutil.Uint(len(resBlock.Block.Txs))
 	return &n
 }
 
@@ -313,32 +313,24 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 // GetCode returns the contract code at the given address and block number.
 func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
-	ctx := e.clientCtx.WithHeight(blockNumber.Int64())
-	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
+
+	req := &evmtypes.QueryCodeRequest{
+		Address: address.String(),
+		Height:  blockNumber.Int64(),
+	}
+
+	res, err := e.queryClient.Code(e.ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResCode
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Code, nil
+	return res.Code, nil
 }
 
 // GetTransactionLogs returns the logs given a transaction hash.
 func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	e.logger.Debug("eth_getTransactionLogs", "hash", txHash)
 	return e.backend.GetTransactionLogs(txHash)
-}
-
-func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
-	if len(keys) > 0 {
-		for _, key := range keys {
-			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
-				return &key, true
-			}
-		}
-	}
-	return nil, false
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
@@ -645,41 +637,43 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
-	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+
+	resBlock, err := e.clientCtx.Client.BlockByHash(e.ctx, hash.Bytes())
 	if err != nil {
 		return nil, err
 	}
-
-	var out evmtypes.QueryResBlockNumber
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return e.getTransactionByBlockNumberAndIndex(out.Number, idx)
+	return e.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber, idx hexutil.Uint) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
-	value := blockNum.Int64()
-	return e.getTransactionByBlockNumberAndIndex(value, idx)
+	height := blockNum.Int64()
+
+	resBlock, err := e.clientCtx.Client.Block(e.ctx, &height)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
-func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hexutil.Uint) (*Transaction, error) {
-	block, err := e.clientCtx.Client.Block(e.ctx, &number)
-	if err != nil {
-		return nil, err
-	}
-	header := block.Block.Header
-
-	txs := block.Block.Txs
-	if uint64(idx) >= uint64(len(txs)) {
+func (e *PublicEthAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*Transaction, error) {
+	// return if index out of bounds
+	if uint64(idx) >= uint64(len(block.Txs)) {
 		return nil, nil
 	}
-	ethTx, err := RawTxToEthTx(e.clientCtx, txs[idx])
+
+	ethTx, err := RawTxToEthTx(e.clientCtx, block.Txs[idx])
 	if err != nil {
-		return nil, err
+		// return nil error if the transaction is not a MsgEthereumTx
+		return nil, nil
 	}
 
-	height := uint64(header.Height)
-	return NewTransaction(ethTx, common.BytesToHash(txs[idx].Hash()), common.BytesToHash(header.Hash()), height, uint64(idx))
+	height := uint64(block.Height)
+	txHash := common.BytesToHash(block.Txs[idx].Hash())
+	blockHash := common.BytesToHash(block.Header.Hash())
+	return NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
@@ -833,10 +827,15 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 		accProofStr = accountProofs.String()
 	}
 
+	balance, err := ethermint.UnmarshalBigInt(account.Balance)
+	if err != nil {
+		return nil, err
+	}
+
 	return &AccountResult{
 		Address:      address,
 		AccountProof: []string{accProofStr},
-		Balance:      (*hexutil.Big)(MustUnmarshalBigInt(account.Balance)),
+		Balance:      (*hexutil.Big)(balance),
 		CodeHash:     common.BytesToHash(account.CodeHash),
 		Nonce:        hexutil.Uint64(account.Nonce),
 		StorageHash:  common.Hash{}, // Ethermint doesn't have a storage hash
@@ -865,19 +864,19 @@ func (e *PublicEthAPI) generateFromArgs(args SendTxArgs) (*evmtypes.MsgEthereumT
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		accRet := authtypes.NewAccountRetriever(e.clientCtx)
+		accRet := e.clientCtx.AccountRetriever
 
 		if e.clientCtx.Keyring == nil {
 			return nil, fmt.Errorf("clientCtx.Keyring is nil")
 		}
 
-		err = accRet.EnsureExists(from)
+		err = accRet.EnsureExists(e.clientCtx, from)
 		if err != nil {
 			// account doesn't exist
 			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.Hex(), err)
 		}
 
-		_, nonce, err = accRet.GetAccountNumberSequence(from)
+		_, nonce, err = accRet.GetAccountNumberSequence(e.clientCtx, from)
 		if err != nil {
 			return nil, err
 		}

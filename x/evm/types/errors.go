@@ -21,4 +21,7 @@ var (
 
 	// ErrEmptyHash returns an error resulting from an empty ethereum Hash.
 	ErrEmptyHash = sdkerrors.Register(ModuleName, 6, "empty hash")
+
+	// ErrBloomNotFound returns an error if the block bloom cannot be found on the store.
+	ErrBloomNotFound = sdkerrors.Register(ModuleName, 7, "block bloom not found")
 )
