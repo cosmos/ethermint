@@ -141,7 +141,9 @@ func TestDerivation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, bz)
 
-	privkey := EthermintKeygenFunc(bz)
+	privkey, err := EthermintKeygenFunc(bz)
+	require.NoError(t, err)
+	require.NotEmpty(t, privkey)
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
