@@ -1,0 +1,493 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "ethermint/evm/v1beta1/query.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/ethermint/evm/v1beta1/account/{address}": {
+      "get": {
+        "summary": "Account queries an Ethereum account.",
+        "operationId": "Account",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryAccountResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "address",
+            "description": "address is the ethereum hex address to query the account for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/balances/{address}": {
+      "get": {
+        "summary": "Balance queries the balance of a the EVM denomination for a single\nEthAccount.",
+        "operationId": "Balance",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryBalanceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "address",
+            "description": "address is the ethereum hex address to query the balance for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/block_bloom/{height}": {
+      "get": {
+        "summary": "BlockBloom queries the block bloom filter bytes at a given height.",
+        "operationId": "BlockBloom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryBlockBloomResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "height",
+            "description": "height defines the block height to query the bloom bytes for. If height \u003c 0\nthe request will use the latest height from context.",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/block_logs/{hash}": {
+      "get": {
+        "summary": "BlockLogs queries all the ethereum logs for a given block hash.",
+        "operationId": "BlockLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryBlockLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "hash",
+            "description": "hash is the block hash to query the logs for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/codes/{address}": {
+      "get": {
+        "summary": "Code queries the balance of all coins for a single account.",
+        "operationId": "Code",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryCodeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "address",
+            "description": "address is the ethereum hex address to query the code for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "height",
+            "description": "height defines the height at which the code is queried.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/params": {
+      "get": {
+        "summary": "Params queries the parameters of x/evm module.",
+        "operationId": "Params",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryParamsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/storage/{address}/{key}/{height}": {
+      "get": {
+        "summary": "Storage queries the balance of all coins for a single account.",
+        "operationId": "Storage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryStorageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "address",
+            "description": "/ address is the ethereum hex address to query the storage state for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "description": "key defines the key of the storage state",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "height",
+            "description": "height defines the height at which the storage is queried.",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/evm/v1beta1/tx_logs/{hash}": {
+      "get": {
+        "summary": "TxLogs queries ethereum logs from a transaction.",
+        "operationId": "TxLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.evm.v1beta1.QueryTxLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "hash",
+            "description": "hash is the ethereum transaction hex hash to query the logs for.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ethermint.evm.v1beta1.Log": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string",
+          "title": "address of the contract that generated the event"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "list of topics provided by the contract."
+        },
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "title": "supplied by the contract, usually ABI-encoded"
+        },
+        "block_number": {
+          "type": "string",
+          "format": "uint64",
+          "title": "block in which the transaction was included"
+        },
+        "tx_hash": {
+          "type": "string",
+          "title": "hash of the transaction"
+        },
+        "tx_index": {
+          "type": "string",
+          "format": "uint64",
+          "title": "index of the transaction in the block"
+        },
+        "block_hash": {
+          "type": "string",
+          "title": "hash of the block in which the transaction was included"
+        },
+        "index": {
+          "type": "string",
+          "format": "uint64",
+          "title": "index of the log in the block"
+        },
+        "removed": {
+          "type": "boolean",
+          "description": "The Removed field is true if this log was reverted due to a chain\nreorganisation. You must pay attention to this field if you receive logs\nthrough a filter query."
+        }
+      },
+      "description": "Log represents an protobuf compatible Ethereum Log that defines a contract\nlog event. These events are generated by the LOG opcode and stored/indexed by\nthe node."
+    },
+    "ethermint.evm.v1beta1.Params": {
+      "type": "object",
+      "properties": {
+        "evm_denom": {
+          "type": "string",
+          "description": "evm_denom represents the token denomination used to run the EVM state\ntransitions."
+        }
+      },
+      "title": "Params defines the EVM module parameters"
+    },
+    "ethermint.evm.v1beta1.QueryAccountResponse": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "string",
+          "description": "balance is the balance of the EVM denomination."
+        },
+        "code_hash": {
+          "type": "string",
+          "format": "byte",
+          "description": "code_hash is the code bytes from the EOA."
+        },
+        "nonce": {
+          "type": "string",
+          "format": "uint64",
+          "description": "nonce is the account's sequence number."
+        }
+      },
+      "description": "QueryAccountResponse is the response type for the Query/Account RPC method."
+    },
+    "ethermint.evm.v1beta1.QueryBalanceResponse": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "string",
+          "description": "balance is the balance of the EVM denomination."
+        }
+      },
+      "description": "QueryBalanceResponse is the response type for the Query/Balance RPC method."
+    },
+    "ethermint.evm.v1beta1.QueryBlockBloomResponse": {
+      "type": "object",
+      "properties": {
+        "bloom": {
+          "type": "string",
+          "format": "byte",
+          "description": "bloom represents bloom filter for the given block hash."
+        }
+      },
+      "description": "QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC\nmethod."
+    },
+    "ethermint.evm.v1beta1.QueryBlockLogsResponse": {
+      "type": "object",
+      "properties": {
+        "tx_logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.evm.v1beta1.TransactionLogs"
+          },
+          "description": "logs represents the ethereum logs generated at the given block hash."
+        }
+      },
+      "description": "QueryTxLogs is the response type for the Query/BlockLogs RPC method."
+    },
+    "ethermint.evm.v1beta1.QueryCodeResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "format": "byte",
+          "description": "code represents the code bytes from an ethereum address."
+        }
+      },
+      "description": "QueryCodeResponse is the response type for the Query/Code RPC\nmethod."
+    },
+    "ethermint.evm.v1beta1.QueryParamsResponse": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "$ref": "#/definitions/ethermint.evm.v1beta1.Params",
+          "description": "params define the evm module parameters."
+        }
+      },
+      "description": "QueryParamsResponse defines the response type for querying x/evm parameters."
+    },
+    "ethermint.evm.v1beta1.QueryStorageResponse": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "key defines the storage state value hash associated with the given key."
+        }
+      },
+      "description": "QueryStorageResponse is the response type for the Query/Storage RPC\nmethod."
+    },
+    "ethermint.evm.v1beta1.QueryTxLogsResponse": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.evm.v1beta1.Log"
+          },
+          "description": "logs represents the ethereum logs generated from the given transaction."
+        }
+      },
+      "description": "QueryTxLogs is the response type for the Query/TxLogs RPC method."
+    },
+    "ethermint.evm.v1beta1.TransactionLogs": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.evm.v1beta1.Log"
+          }
+        }
+      },
+      "description": "TransactionLogs define the logs generated from a transaction execution\nwith a given hash. It it used for import/export data as transactions are not\npersisted on blockchain state after an upgrade."
+    },
+    "google.protobuf.Any": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "grpc.gateway.runtime.Error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/google.protobuf.Any"
+          }
+        }
+      }
+    }
+  }
+}

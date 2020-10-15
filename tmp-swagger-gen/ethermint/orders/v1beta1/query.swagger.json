@@ -1,0 +1,1229 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "ethermint/orders/v1beta1/query.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/ethermint/orders/v1beta1/activeOrder": {
+      "get": {
+        "summary": "Retrieves an active 0x order that is associated with the hash.",
+        "operationId": "QueryActiveOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryActiveOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "order_hash",
+            "description": "The hash of the desired 0x order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/archiveOrder": {
+      "get": {
+        "summary": "Retrieves an archive 0x order that is associated with the hash.",
+        "operationId": "QueryArchiveOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryArchiveOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "order_hash",
+            "description": "The hash of the desired 0x order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/derivativeOrders": {
+      "get": {
+        "summary": "Retrieves a list of derivative orders matching the filtering rules.",
+        "operationId": "QueryDerivativeOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryDerivativeOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "filters.contract_price_bound",
+            "description": "for derivatives.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.market_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.is_long",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "filters.not_expired",
+            "description": "for normal orders.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "filters.maker_asset_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.exchange_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.sender_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_asset_data",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_data",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_asset_amount",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_amount",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.not_maker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.trader_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.fee_recipient_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_fee_asset_data",
+            "description": "Filters orders with the specified makerFeeAssetData.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_fee_asset_data",
+            "description": "Filters orders with the specified takerFeeAssetData.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "description": "Filter by status of the order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "collection",
+            "description": "Filter by collection of the order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "trade_pair_hash",
+            "description": "Filter by trade pair hash.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/evmSyncStatus": {
+      "get": {
+        "summary": "Contains sync status of EVM state.",
+        "operationId": "QueryEvmSyncStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryEvmSyncStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/fillRequests": {
+      "get": {
+        "summary": "Retrieves a list of fill requests matching the filtering rules.",
+        "operationId": "QueryFillRequests",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryFillRequestsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "order_hash",
+            "description": "EIP712 hash of order (see LibOrder.getTypedDataHash).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/market": {
+      "get": {
+        "summary": "Retrieves a derivative market by its ID or ticker.",
+        "operationId": "QueryDerivativeMarket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryDerivativeMarketResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "market_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/markets": {
+      "get": {
+        "summary": "Retrieves a list of derivative markets.",
+        "operationId": "QueryDerivativeMarkets",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryDerivativeMarketsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/order": {
+      "get": {
+        "summary": "Retrieves an active 0x order that is associated with the hash.",
+        "operationId": "QueryOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "order_hash",
+            "description": "The hash of the desired 0x order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/outstandingFillRequests": {
+      "get": {
+        "summary": "Retrieves a list of fill requests matching the filtering rules.",
+        "operationId": "QueryOutstandingFillRequests",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryOutstandingFillRequestsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tx_hash",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/softCancelledOrders": {
+      "get": {
+        "summary": "Query whether a set of orders have been soft-cancelled. The response\nreturns the subset of orders that have been soft-cancelled.",
+        "operationId": "QuerySoftCancelledOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QuerySoftCancelledOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "order_hashes",
+            "description": "The hashes of orders to be checked whether they can be soft-cancelled.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "chain_id",
+            "description": "Ethereum Chain ID of the transaction.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/spotOrders": {
+      "get": {
+        "summary": "Retrieves a list of 0x orders matching the filtering rules.",
+        "operationId": "QuerySpotOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QuerySpotOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "filters.contract_price_bound",
+            "description": "for derivatives.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.market_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.is_long",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "filters.not_expired",
+            "description": "for normal orders.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "filters.maker_asset_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.exchange_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.sender_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_asset_data",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_data",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_asset_amount",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_asset_amount",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.not_maker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.trader_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.fee_recipient_address",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.maker_fee_asset_data",
+            "description": "Filters orders with the specified makerFeeAssetData.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filters.taker_fee_asset_data",
+            "description": "Filters orders with the specified takerFeeAssetData.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "description": "Filter by status of the order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "collection",
+            "description": "Filter by collection of the order.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "trade_pair_hash",
+            "description": "Filter by trade pair hash.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/tradePair": {
+      "get": {
+        "summary": "Retrieves a trade pair by name or hash.",
+        "operationId": "QueryTradePair",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryTradePairResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Specify name of the trade pair.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "hash",
+            "description": "Most effective way is to specify hash of the trade pair.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "maker_asset_data",
+            "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring makerAsset.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "taker_asset_data",
+            "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring takerAsset.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/tradePairs": {
+      "get": {
+        "summary": "Retrieves a list of trade pairs.",
+        "operationId": "QueryTradePairs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryTradePairsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "tags": [
+          "Query"
+        ]
+      }
+    },
+    "/ethermint/orders/v1beta1/zeroexTransactions": {
+      "get": {
+        "summary": "Retrieves a list of derivative orders matching the filtering rules.",
+        "operationId": "QueryZeroExTransaction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ethermint.orders.v1beta1.QueryZeroExTransactionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/grpc.gateway.runtime.Error"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tx_hash",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Query"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ethermint.orders.v1beta1.BaseOrder": {
+      "type": "object",
+      "properties": {
+        "chain_id": {
+          "type": "string",
+          "format": "int64",
+          "description": "Specify chain ID."
+        },
+        "exchange_address": {
+          "type": "string",
+          "description": "Exchange v3 contract address."
+        },
+        "maker_address": {
+          "type": "string",
+          "description": "Address that created the order."
+        },
+        "taker_address": {
+          "type": "string",
+          "description": "Address that is allowed to fill the order. If set to 0, any address is\nallowed to fill the order."
+        },
+        "fee_recipient_address": {
+          "type": "string",
+          "description": "Address that will receive fees when order is filled."
+        },
+        "sender_address": {
+          "type": "string",
+          "description": "Address that is allowed to call Exchange contract methods that affect this\norder. If set to 0, any address is allowed to call these methods."
+        },
+        "maker_asset_amount": {
+          "type": "string",
+          "description": "Amount of makerAsset being offered by maker. Must be greater than 0."
+        },
+        "taker_asset_amount": {
+          "type": "string",
+          "description": "Amount of takerAsset being bid on by maker. Must be greater than 0."
+        },
+        "maker_fee": {
+          "type": "string",
+          "description": "Amount of ZRX paid to feeRecipient by maker when order is filled. If set to\n0, no transfer of ZRX from maker to feeRecipient will be attempted."
+        },
+        "taker_fee": {
+          "type": "string",
+          "description": "Amount of ZRX paid to feeRecipient by taker when order is filled. If set to\n0, no transfer of ZRX from taker to feeRecipient will be attempted."
+        },
+        "expiration_time_seconds": {
+          "type": "string",
+          "description": "Timestamp in seconds at which order expires."
+        },
+        "salt": {
+          "type": "string",
+          "description": "Arbitrary number to facilitate uniqueness of the order's hash."
+        },
+        "maker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring makerAsset."
+        },
+        "taker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring takerAsset."
+        },
+        "maker_fee_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring makerFee."
+        },
+        "taker_fee_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring takerFee."
+        },
+        "signature": {
+          "type": "string",
+          "description": "Order signature."
+        }
+      },
+      "description": "A valid signed 0x order based on the schema."
+    },
+    "ethermint.orders.v1beta1.DerivativeMarket": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Ticker for the derivative contract."
+        },
+        "oracle": {
+          "type": "string",
+          "title": "Address of the oracle for the derivative contract"
+        },
+        "base_currency": {
+          "type": "string",
+          "title": "Address of the base currency for the derivative contract"
+        },
+        "nonce": {
+          "type": "string",
+          "title": "Random number to faciltate uniqueness of the derivative market ID"
+        },
+        "market_id": {
+          "type": "string",
+          "description": "Unique market ID."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "If false, then the pair is suspended and trades cannot be made."
+        }
+      },
+      "description": "An object describing a derivative market in the Injective Futures Protocol."
+    },
+    "ethermint.orders.v1beta1.EvmSyncStatus": {
+      "type": "object",
+      "properties": {
+        "latest_block_synced": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "Injectived EVM sync status"
+    },
+    "ethermint.orders.v1beta1.Order": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.BaseOrder"
+        },
+        "trade_pair_hash": {
+          "type": "string"
+        },
+        "filled_amount": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "A valid signed 0x order with Metadata."
+    },
+    "ethermint.orders.v1beta1.OrderFillRequest": {
+      "type": "object",
+      "properties": {
+        "tx_hash": {
+          "type": "string"
+        },
+        "order_hash": {
+          "type": "string"
+        },
+        "approval_signatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expiry_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "taker_asset_fill_amount": {
+          "type": "string"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.OrderFilters": {
+      "type": "object",
+      "properties": {
+        "contract_price_bound": {
+          "type": "string",
+          "title": "for derivatives"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "is_long": {
+          "type": "boolean"
+        },
+        "not_expired": {
+          "type": "boolean",
+          "title": "for normal orders"
+        },
+        "maker_asset_address": {
+          "type": "string"
+        },
+        "taker_asset_address": {
+          "type": "string"
+        },
+        "exchange_address": {
+          "type": "string"
+        },
+        "sender_address": {
+          "type": "string"
+        },
+        "maker_asset_data": {
+          "type": "string"
+        },
+        "taker_asset_data": {
+          "type": "string"
+        },
+        "maker_asset_amount": {
+          "type": "string"
+        },
+        "taker_asset_amount": {
+          "type": "string"
+        },
+        "maker_address": {
+          "type": "string"
+        },
+        "not_maker_address": {
+          "type": "string"
+        },
+        "taker_address": {
+          "type": "string"
+        },
+        "trader_address": {
+          "type": "string"
+        },
+        "fee_recipient_address": {
+          "type": "string"
+        },
+        "maker_fee_asset_data": {
+          "type": "string",
+          "title": "Filters orders with the specified makerFeeAssetData"
+        },
+        "taker_fee_asset_data": {
+          "type": "string",
+          "title": "Filters orders with the specified takerFeeAssetData"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.OrderSoftCancelRequest": {
+      "type": "object",
+      "properties": {
+        "tx_hash": {
+          "type": "string"
+        },
+        "order_hash": {
+          "type": "string"
+        },
+        "approval_signatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryActiveOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.Order",
+          "title": "Order data"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryArchiveOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.Order",
+          "title": "Order data"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryDerivativeMarketResponse": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.DerivativeMarket"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryDerivativeMarketsResponse": {
+      "type": "object",
+      "properties": {
+        "markets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.DerivativeMarket"
+          },
+          "title": "Array of found derivative markets"
+        }
+      },
+      "description": "QueryDerivativeMarketsResponse defines the response type for\nQuery/DerivativeMarkets RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryDerivativeOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.Order"
+          },
+          "description": "An array of matched orders."
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryEvmSyncStatusResponse": {
+      "type": "object",
+      "properties": {
+        "sync_status": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.EvmSyncStatus",
+          "title": "EVM sync status"
+        }
+      },
+      "description": "QueryEvmSyncStatusRequest defines the response type for Query/EvmSyncStatus\nRPC method."
+    },
+    "ethermint.orders.v1beta1.QueryFillRequestsResponse": {
+      "type": "object",
+      "properties": {
+        "fill_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.OrderFillRequest"
+          },
+          "description": "Information about the signatures to fill the order."
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/ethermint.orders.v1beta1.Order",
+          "title": "Order data"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryOutstandingFillRequestsResponse": {
+      "type": "object",
+      "properties": {
+        "fill_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.OrderFillRequest"
+          },
+          "description": "Information about the signatures to fill the order."
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QuerySoftCancelledOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "order_hashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "The subset of orders that have been soft-cancelled"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersResponse defines the response type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QuerySpotOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.Order"
+          },
+          "description": "An array of matched orders."
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryTradePairResponse": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -\ntaker's asset."
+        },
+        "maker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring makerAsset."
+        },
+        "taker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring takerAsset."
+        },
+        "hash": {
+          "type": "string",
+          "description": "Hash of both asset data, to identify the trading pair in store."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "If false, then the pair is suspended and trades cannot be made."
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryTradePairsResponse": {
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.TradePair"
+          },
+          "title": "Array of found trade pairs"
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.QueryZeroExTransactionResponse": {
+      "type": "object",
+      "properties": {
+        "tx_type": {
+          "type": "string",
+          "format": "int64"
+        },
+        "fill_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.OrderFillRequest"
+          }
+        },
+        "soft_cancel_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ethermint.orders.v1beta1.OrderSoftCancelRequest"
+          }
+        }
+      },
+      "description": "QuerySoftCancelledOrdersRequest defines the request type for\nQuery/SoftCancelledOrders RPC method."
+    },
+    "ethermint.orders.v1beta1.TradePair": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -\ntaker's asset."
+        },
+        "maker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring makerAsset."
+        },
+        "taker_asset_data": {
+          "type": "string",
+          "description": "ABIv2 encoded data that can be decoded by a specified proxy contract when\ntransferring takerAsset."
+        },
+        "hash": {
+          "type": "string",
+          "description": "Hash of both asset data, to identify the trading pair in store."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "If false, then the pair is suspended and trades cannot be made."
+        }
+      },
+      "description": "An object describing trade pair of two assets."
+    },
+    "google.protobuf.Any": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "grpc.gateway.runtime.Error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/google.protobuf.Any"
+          }
+        }
+      }
+    }
+  }
+}

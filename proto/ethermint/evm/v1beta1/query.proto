@@ -43,7 +43,8 @@ service Query {
 
   // BlockBloom queries the block bloom filter bytes at a given height.
   rpc BlockBloom(QueryBlockBloomRequest) returns (QueryBlockBloomResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/block_bloom/{height}";
+    option (google.api.http).get =
+        "/ethermint/evm/v1beta1/block_bloom/{height}";
   }
 
   // Params queries the parameters of x/evm module.
@@ -157,7 +158,8 @@ message QueryBlockLogsResponse {
   repeated TransactionLogs tx_logs = 1 [ (gogoproto.nullable) = false ];
 }
 
-// QueryBlockBloomRequest is the request type for the Query/BlockBloom RPC method.
+// QueryBlockBloomRequest is the request type for the Query/BlockBloom RPC
+// method.
 message QueryBlockBloomRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
@@ -167,12 +169,12 @@ message QueryBlockBloomRequest {
   int64 height = 1;
 }
 
-// QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC method.
+// QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC
+// method.
 message QueryBlockBloomResponse {
   // bloom represents bloom filter for the given block hash.
   bytes bloom = 1;
 }
-
 
 // QueryParamsRequest defines the request type for querying x/evm parameters.
 message QueryParamsRequest {}

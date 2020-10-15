@@ -29,7 +29,8 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// QueryDerivativeMarketsRequest defines the request type for the Query/DerivativeMarkets RPC method
+// QueryDerivativeMarketsRequest defines the request type for the
+// Query/DerivativeMarkets RPC method
 type QueryDerivativeMarketsRequest struct {
 }
 
@@ -66,7 +67,8 @@ func (m *QueryDerivativeMarketsRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryDerivativeMarketsRequest proto.InternalMessageInfo
 
-// QueryDerivativeMarketsResponse defines the response type for Query/DerivativeMarkets RPC method.
+// QueryDerivativeMarketsResponse defines the response type for
+// Query/DerivativeMarkets RPC method.
 type QueryDerivativeMarketsResponse struct {
 	// Array of found derivative markets
 	Markets []*DerivativeMarket `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
@@ -112,7 +114,8 @@ func (m *QueryDerivativeMarketsResponse) GetMarkets() []*DerivativeMarket {
 	return nil
 }
 
-// QueryEvmSyncStatusRequest defines the request type for Query/EvmSyncStatus RPC method.
+// QueryEvmSyncStatusRequest defines the request type for Query/EvmSyncStatus
+// RPC method.
 type QueryEvmSyncStatusRequest struct {
 }
 
@@ -149,7 +152,8 @@ func (m *QueryEvmSyncStatusRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryEvmSyncStatusRequest proto.InternalMessageInfo
 
-// QueryEvmSyncStatusRequest defines the response type for Query/EvmSyncStatus RPC method.
+// QueryEvmSyncStatusRequest defines the response type for Query/EvmSyncStatus
+// RPC method.
 type QueryEvmSyncStatusResponse struct {
 	// EVM sync status
 	SyncStatus *EvmSyncStatus `protobuf:"bytes,1,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
@@ -195,7 +199,8 @@ func (m *QueryEvmSyncStatusResponse) GetSyncStatus() *EvmSyncStatus {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QuerySoftCancelledOrdersRequest struct {
 	// The hashes of orders to be checked whether they can be soft-cancelled
 	OrderHashes []string `protobuf:"bytes,1,rep,name=order_hashes,json=orderHashes,proto3" json:"order_hashes,omitempty"`
@@ -250,7 +255,8 @@ func (m *QuerySoftCancelledOrdersRequest) GetChainId() int64 {
 	return 0
 }
 
-// QuerySoftCancelledOrdersResponse defines the response type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersResponse defines the response type for
+// Query/SoftCancelledOrders RPC method.
 type QuerySoftCancelledOrdersResponse struct {
 	// The subset of orders that have been soft-cancelled
 	OrderHashes []string `protobuf:"bytes,1,rep,name=order_hashes,json=orderHashes,proto3" json:"order_hashes,omitempty"`
@@ -296,7 +302,8 @@ func (m *QuerySoftCancelledOrdersResponse) GetOrderHashes() []string {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryOrderRequest struct {
 	// The hash of the desired 0x order.
 	OrderHash string `protobuf:"bytes,1,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -342,7 +349,8 @@ func (m *QueryOrderRequest) GetOrderHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryOrderResponse struct {
 	// Order data
 	Order *Order `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
@@ -388,7 +396,8 @@ func (m *QueryOrderResponse) GetOrder() *Order {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryActiveOrderRequest struct {
 	// The hash of the desired 0x order.
 	OrderHash string `protobuf:"bytes,1,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -434,7 +443,8 @@ func (m *QueryActiveOrderRequest) GetOrderHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryActiveOrderResponse struct {
 	// Order data
 	Order *Order `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
@@ -480,7 +490,8 @@ func (m *QueryActiveOrderResponse) GetOrder() *Order {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryZeroExTransactionRequest struct {
 	TxHash string `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
 }
@@ -525,7 +536,8 @@ func (m *QueryZeroExTransactionRequest) GetTxHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryZeroExTransactionResponse struct {
 	TxType             int64                     `protobuf:"zigzag64,1,opt,name=tx_type,json=txType,proto3" json:"tx_type,omitempty"`
 	FillRequests       []*OrderFillRequest       `protobuf:"bytes,2,rep,name=fill_requests,json=fillRequests,proto3" json:"fill_requests,omitempty"`
@@ -586,7 +598,8 @@ func (m *QueryZeroExTransactionResponse) GetSoftCancelRequests() []*OrderSoftCan
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryArchiveOrderRequest struct {
 	// The hash of the desired 0x order.
 	OrderHash string `protobuf:"bytes,1,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -632,7 +645,8 @@ func (m *QueryArchiveOrderRequest) GetOrderHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryArchiveOrderResponse struct {
 	// Order data
 	Order *Order `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
@@ -678,7 +692,8 @@ func (m *QueryArchiveOrderResponse) GetOrder() *Order {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type OrderFilters struct {
 	// for derivatives
 	ContractPriceBound string `protobuf:"bytes,1,opt,name=contract_price_bound,json=contractPriceBound,proto3" json:"contract_price_bound,omitempty"`
@@ -871,7 +886,8 @@ func (m *OrderFilters) GetTakerFeeAssetData() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryDerivativeOrdersRequest struct {
 	Filters *OrderFilters `protobuf:"bytes,1,opt,name=filters,proto3" json:"filters,omitempty"`
 	// Filter by status of the order
@@ -943,7 +959,8 @@ func (m *QueryDerivativeOrdersRequest) GetTradePairHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QuerySpotOrdersRequest struct {
 	Filters *OrderFilters `protobuf:"bytes,1,opt,name=filters,proto3" json:"filters,omitempty"`
 	// Filter by status of the order
@@ -1015,7 +1032,8 @@ func (m *QuerySpotOrdersRequest) GetTradePairHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QuerySpotOrdersResponse struct {
 	// An array of matched orders.
 	Records []*Order `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
@@ -1061,7 +1079,8 @@ func (m *QuerySpotOrdersResponse) GetRecords() []*Order {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryFillRequestsRequest struct {
 	// EIP712 hash of order (see LibOrder.getTypedDataHash)
 	OrderHash string `protobuf:"bytes,1,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -1107,7 +1126,8 @@ func (m *QueryFillRequestsRequest) GetOrderHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type OrderFillRequest struct {
 	TxHash               string   `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
 	OrderHash            string   `protobuf:"bytes,2,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -1184,7 +1204,8 @@ func (m *OrderFillRequest) GetTakerAssetFillAmount() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type OrderSoftCancelRequest struct {
 	TxHash             string   `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
 	OrderHash          string   `protobuf:"bytes,2,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -1245,7 +1266,8 @@ func (m *OrderSoftCancelRequest) GetApprovalSignatures() []string {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryFillRequestsResponse struct {
 	// Information about the signatures to fill the order.
 	FillRequests []*OrderFillRequest `protobuf:"bytes,1,rep,name=fill_requests,json=fillRequests,proto3" json:"fill_requests,omitempty"`
@@ -1291,7 +1313,8 @@ func (m *QueryFillRequestsResponse) GetFillRequests() []*OrderFillRequest {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryOutstandingFillRequestsRequest struct {
 	TxHash string `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
 }
@@ -1336,7 +1359,8 @@ func (m *QueryOutstandingFillRequestsRequest) GetTxHash() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryOutstandingFillRequestsResponse struct {
 	// Information about the signatures to fill the order.
 	FillRequests []*OrderFillRequest `protobuf:"bytes,1,rep,name=fill_requests,json=fillRequests,proto3" json:"fill_requests,omitempty"`
@@ -1382,7 +1406,8 @@ func (m *QueryOutstandingFillRequestsResponse) GetFillRequests() []*OrderFillReq
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryTradePairRequest struct {
 	// Specify name of the trade pair.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1457,7 +1482,8 @@ func (m *QueryTradePairRequest) GetTakerAssetData() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryTradePairResponse struct {
 	// A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -
 	// taker's asset.
@@ -1542,7 +1568,8 @@ func (m *QueryTradePairResponse) GetEnabled() bool {
 	return false
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryDerivativeMarketRequest struct {
 	MarketId string `protobuf:"bytes,1,opt,name=market_id,json=marketId,proto3" json:"market_id,omitempty"`
 	Ticker   string `protobuf:"bytes,2,opt,name=ticker,proto3" json:"ticker,omitempty"`
@@ -1595,7 +1622,8 @@ func (m *QueryDerivativeMarketRequest) GetTicker() string {
 	return ""
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryDerivativeMarketResponse struct {
 	Market *DerivativeMarket `protobuf:"bytes,1,opt,name=market,proto3" json:"market,omitempty"`
 }
@@ -1640,7 +1668,8 @@ func (m *QueryDerivativeMarketResponse) GetMarket() *DerivativeMarket {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryTradePairsRequest struct {
 }
 
@@ -1677,7 +1706,8 @@ func (m *QueryTradePairsRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryTradePairsRequest proto.InternalMessageInfo
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryTradePairsResponse struct {
 	// Array of found trade pairs
 	Records []*TradePair `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
@@ -1723,7 +1753,8 @@ func (m *QueryTradePairsResponse) GetRecords() []*TradePair {
 	return nil
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 type QueryDerivativeOrdersResponse struct {
 	// An array of matched orders.
 	Records []*Order `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
@@ -1950,8 +1981,8 @@ type QueryClient interface {
 	QueryDerivativeOrders(ctx context.Context, in *QueryDerivativeOrdersRequest, opts ...grpc.CallOption) (*QueryDerivativeOrdersResponse, error)
 	// Retrieves a list of derivative orders matching the filtering rules.
 	QueryZeroExTransaction(ctx context.Context, in *QueryZeroExTransactionRequest, opts ...grpc.CallOption) (*QueryZeroExTransactionResponse, error)
-	// Query whether a set of orders have been soft-cancelled. The response returns
-	// the subset of orders that have been soft-cancelled.
+	// Query whether a set of orders have been soft-cancelled. The response
+	// returns the subset of orders that have been soft-cancelled.
 	QuerySoftCancelledOrders(ctx context.Context, in *QuerySoftCancelledOrdersRequest, opts ...grpc.CallOption) (*QuerySoftCancelledOrdersResponse, error)
 	// Retrieves a list of fill requests matching the filtering rules.
 	QueryOutstandingFillRequests(ctx context.Context, in *QueryOutstandingFillRequestsRequest, opts ...grpc.CallOption) (*QueryOutstandingFillRequestsResponse, error)
@@ -2117,8 +2148,8 @@ type QueryServer interface {
 	QueryDerivativeOrders(context.Context, *QueryDerivativeOrdersRequest) (*QueryDerivativeOrdersResponse, error)
 	// Retrieves a list of derivative orders matching the filtering rules.
 	QueryZeroExTransaction(context.Context, *QueryZeroExTransactionRequest) (*QueryZeroExTransactionResponse, error)
-	// Query whether a set of orders have been soft-cancelled. The response returns
-	// the subset of orders that have been soft-cancelled.
+	// Query whether a set of orders have been soft-cancelled. The response
+	// returns the subset of orders that have been soft-cancelled.
 	QuerySoftCancelledOrders(context.Context, *QuerySoftCancelledOrdersRequest) (*QuerySoftCancelledOrdersResponse, error)
 	// Retrieves a list of fill requests matching the filtering rules.
 	QueryOutstandingFillRequests(context.Context, *QueryOutstandingFillRequestsRequest) (*QueryOutstandingFillRequestsResponse, error)

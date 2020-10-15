@@ -11,316 +11,352 @@ option go_package = "github.com/cosmos/ethermint/x/orders/types";
 // Query defines the gRPC querier service.
 service Query {
 
-    // Retrieves an active 0x order that is associated with the hash.
-    rpc QueryOrder (QueryOrderRequest) returns (QueryOrderResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/order";
-    }
+  // Retrieves an active 0x order that is associated with the hash.
+  rpc QueryOrder(QueryOrderRequest) returns (QueryOrderResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/order";
+  }
 
-    // Retrieves an active 0x order that is associated with the hash.
-    rpc QueryActiveOrder (QueryActiveOrderRequest) returns (QueryActiveOrderResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/activeOrder";
-    }
+  // Retrieves an active 0x order that is associated with the hash.
+  rpc QueryActiveOrder(QueryActiveOrderRequest)
+      returns (QueryActiveOrderResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/activeOrder";
+  }
 
-    // Retrieves an archive 0x order that is associated with the hash.
-    rpc QueryArchiveOrder (QueryArchiveOrderRequest) returns (QueryArchiveOrderResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/archiveOrder";
-    }
+  // Retrieves an archive 0x order that is associated with the hash.
+  rpc QueryArchiveOrder(QueryArchiveOrderRequest)
+      returns (QueryArchiveOrderResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/archiveOrder";
+  }
 
-    // Retrieves a list of 0x orders matching the filtering rules.
-    rpc QuerySpotOrders (QuerySpotOrdersRequest) returns (QuerySpotOrdersResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/spotOrders";
-    }
+  // Retrieves a list of 0x orders matching the filtering rules.
+  rpc QuerySpotOrders(QuerySpotOrdersRequest)
+      returns (QuerySpotOrdersResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/spotOrders";
+  }
 
-    // Retrieves a trade pair by name or hash.
-    rpc QueryTradePair (QueryTradePairRequest) returns (QueryTradePairResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/tradePair";
-    }
+  // Retrieves a trade pair by name or hash.
+  rpc QueryTradePair(QueryTradePairRequest) returns (QueryTradePairResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/tradePair";
+  }
 
-    // Retrieves a list of trade pairs.
-    rpc QueryTradePairs (QueryTradePairsRequest) returns (QueryTradePairsResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/tradePairs";
-    }
+  // Retrieves a list of trade pairs.
+  rpc QueryTradePairs(QueryTradePairsRequest)
+      returns (QueryTradePairsResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/tradePairs";
+  }
 
-    // Retrieves a derivative market by its ID or ticker.
-    rpc QueryDerivativeMarket (QueryDerivativeMarketRequest) returns (QueryDerivativeMarketResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/market";
-    }
+  // Retrieves a derivative market by its ID or ticker.
+  rpc QueryDerivativeMarket(QueryDerivativeMarketRequest)
+      returns (QueryDerivativeMarketResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/market";
+  }
 
-    // Retrieves a list of derivative markets.
-    rpc QueryDerivativeMarkets (QueryDerivativeMarketsRequest) returns (QueryDerivativeMarketsResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/markets";
-    }
+  // Retrieves a list of derivative markets.
+  rpc QueryDerivativeMarkets(QueryDerivativeMarketsRequest)
+      returns (QueryDerivativeMarketsResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/markets";
+  }
 
-    // Retrieves a list of derivative orders matching the filtering rules.
-    rpc QueryDerivativeOrders (QueryDerivativeOrdersRequest) returns (QueryDerivativeOrdersResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/derivativeOrders";
-    }
+  // Retrieves a list of derivative orders matching the filtering rules.
+  rpc QueryDerivativeOrders(QueryDerivativeOrdersRequest)
+      returns (QueryDerivativeOrdersResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/derivativeOrders";
+  }
 
-    // Retrieves a list of derivative orders matching the filtering rules.
-    rpc QueryZeroExTransaction (QueryZeroExTransactionRequest) returns (QueryZeroExTransactionResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/zeroexTransactions";
-    }
+  // Retrieves a list of derivative orders matching the filtering rules.
+  rpc QueryZeroExTransaction(QueryZeroExTransactionRequest)
+      returns (QueryZeroExTransactionResponse) {
+    option (google.api.http).get =
+        "/ethermint/orders/v1beta1/zeroexTransactions";
+  }
 
-    // Query whether a set of orders have been soft-cancelled. The response returns
-    // the subset of orders that have been soft-cancelled.
-    rpc QuerySoftCancelledOrders (QuerySoftCancelledOrdersRequest) returns (QuerySoftCancelledOrdersResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/softCancelledOrders";
-    }
+  // Query whether a set of orders have been soft-cancelled. The response
+  // returns the subset of orders that have been soft-cancelled.
+  rpc QuerySoftCancelledOrders(QuerySoftCancelledOrdersRequest)
+      returns (QuerySoftCancelledOrdersResponse) {
+    option (google.api.http).get =
+        "/ethermint/orders/v1beta1/softCancelledOrders";
+  }
 
-    // Retrieves a list of fill requests matching the filtering rules.
-    rpc QueryOutstandingFillRequests (QueryOutstandingFillRequestsRequest) returns (QueryOutstandingFillRequestsResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/outstandingFillRequests";
-    }
-    // Retrieves a list of fill requests matching the filtering rules.
-    rpc QueryFillRequests (QueryFillRequestsRequest) returns (QueryFillRequestsResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/fillRequests";
-    }
-    // Contains sync status of EVM state.
-    rpc QueryEvmSyncStatus (QueryEvmSyncStatusRequest) returns (QueryEvmSyncStatusResponse) {
-        option (google.api.http).get = "/ethermint/orders/v1beta1/evmSyncStatus";
-    }
-
+  // Retrieves a list of fill requests matching the filtering rules.
+  rpc QueryOutstandingFillRequests(QueryOutstandingFillRequestsRequest)
+      returns (QueryOutstandingFillRequestsResponse) {
+    option (google.api.http).get =
+        "/ethermint/orders/v1beta1/outstandingFillRequests";
+  }
+  // Retrieves a list of fill requests matching the filtering rules.
+  rpc QueryFillRequests(QueryFillRequestsRequest)
+      returns (QueryFillRequestsResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/fillRequests";
+  }
+  // Contains sync status of EVM state.
+  rpc QueryEvmSyncStatus(QueryEvmSyncStatusRequest)
+      returns (QueryEvmSyncStatusResponse) {
+    option (google.api.http).get = "/ethermint/orders/v1beta1/evmSyncStatus";
+  }
 }
 
-// QueryDerivativeMarketsRequest defines the request type for the Query/DerivativeMarkets RPC method
-message QueryDerivativeMarketsRequest {
-}
+// QueryDerivativeMarketsRequest defines the request type for the
+// Query/DerivativeMarkets RPC method
+message QueryDerivativeMarketsRequest {}
 
-// QueryDerivativeMarketsResponse defines the response type for Query/DerivativeMarkets RPC method.
+// QueryDerivativeMarketsResponse defines the response type for
+// Query/DerivativeMarkets RPC method.
 message QueryDerivativeMarketsResponse {
-    // Array of found derivative markets
-    repeated DerivativeMarket markets = 1;
+  // Array of found derivative markets
+  repeated DerivativeMarket markets = 1;
 }
 
-//message QueryContractSetRequest {
+// message QueryContractSetRequest {
 //}
 //
-//message QueryContractSetResponse {
+// message QueryContractSetResponse {
 //    // Contract Set.
 //    ContractSet contract_set = 1;
 //}
 //
 
-// QueryEvmSyncStatusRequest defines the request type for Query/EvmSyncStatus RPC method.
-message QueryEvmSyncStatusRequest {
-}
+// QueryEvmSyncStatusRequest defines the request type for Query/EvmSyncStatus
+// RPC method.
+message QueryEvmSyncStatusRequest {}
 
-// QueryEvmSyncStatusRequest defines the response type for Query/EvmSyncStatus RPC method.
+// QueryEvmSyncStatusRequest defines the response type for Query/EvmSyncStatus
+// RPC method.
 message QueryEvmSyncStatusResponse {
-    // EVM sync status
-    EvmSyncStatus sync_status = 1;
+  // EVM sync status
+  EvmSyncStatus sync_status = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QuerySoftCancelledOrdersRequest {
-    // The hashes of orders to be checked whether they can be soft-cancelled
-    repeated string order_hashes = 1;
-    // Ethereum Chain ID of the transaction
-    sint64 chain_id = 2;
+  // The hashes of orders to be checked whether they can be soft-cancelled
+  repeated string order_hashes = 1;
+  // Ethereum Chain ID of the transaction
+  sint64 chain_id = 2;
 }
 
-// QuerySoftCancelledOrdersResponse defines the response type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersResponse defines the response type for
+// Query/SoftCancelledOrders RPC method.
 message QuerySoftCancelledOrdersResponse {
-    // The subset of orders that have been soft-cancelled
-    repeated string order_hashes = 1;
+  // The subset of orders that have been soft-cancelled
+  repeated string order_hashes = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryOrderRequest {
-    // The hash of the desired 0x order.
-    string order_hash = 1;
+  // The hash of the desired 0x order.
+  string order_hash = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryOrderResponse {
-    // Order data
-    Order order = 1;
+  // Order data
+  Order order = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryActiveOrderRequest {
-    // The hash of the desired 0x order.
-    string order_hash = 1;
+  // The hash of the desired 0x order.
+  string order_hash = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryActiveOrderResponse {
-    // Order data
-    Order order = 1;
+  // Order data
+  Order order = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
-message QueryZeroExTransactionRequest {
-    string tx_hash = 1;
-}
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
+message QueryZeroExTransactionRequest { string tx_hash = 1; }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryZeroExTransactionResponse {
-    sint64 tx_type = 1;
-    repeated OrderFillRequest fill_requests = 2;
-    repeated OrderSoftCancelRequest soft_cancel_requests = 3;
+  sint64 tx_type = 1;
+  repeated OrderFillRequest fill_requests = 2;
+  repeated OrderSoftCancelRequest soft_cancel_requests = 3;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryArchiveOrderRequest {
-    // The hash of the desired 0x order.
-    string order_hash = 1;
+  // The hash of the desired 0x order.
+  string order_hash = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryArchiveOrderResponse {
-    // Order data
-    Order order = 1;
+  // Order data
+  Order order = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message OrderFilters {
-    // for derivatives
-    string contract_price_bound = 1;
-    string market_id = 2;
-    bool is_long = 3;
-    // for normal orders
-    bool not_expired = 4;
-    string maker_asset_address = 5;
-    string taker_asset_address = 6;
-    string exchange_address = 7;
-    string sender_address = 8;
-    string maker_asset_data = 9;
-    string taker_asset_data = 10;
-    string maker_asset_amount = 11;
-    string taker_asset_amount = 12;
-    string maker_address = 13;
-    string not_maker_address = 14;
-    string taker_address = 15;
-    string trader_address = 16;
-    string fee_recipient_address = 17;
-    // Filters orders with the specified makerFeeAssetData
-    string maker_fee_asset_data = 18;
-    // Filters orders with the specified takerFeeAssetData
-    string taker_fee_asset_data = 19;
+  // for derivatives
+  string contract_price_bound = 1;
+  string market_id = 2;
+  bool is_long = 3;
+  // for normal orders
+  bool not_expired = 4;
+  string maker_asset_address = 5;
+  string taker_asset_address = 6;
+  string exchange_address = 7;
+  string sender_address = 8;
+  string maker_asset_data = 9;
+  string taker_asset_data = 10;
+  string maker_asset_amount = 11;
+  string taker_asset_amount = 12;
+  string maker_address = 13;
+  string not_maker_address = 14;
+  string taker_address = 15;
+  string trader_address = 16;
+  string fee_recipient_address = 17;
+  // Filters orders with the specified makerFeeAssetData
+  string maker_fee_asset_data = 18;
+  // Filters orders with the specified takerFeeAssetData
+  string taker_fee_asset_data = 19;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryDerivativeOrdersRequest {
-    OrderFilters filters = 1;
-    // Filter by status of the order
-    string status = 2;
-    // Filter by collection of the order
-    string collection = 3;
-    // Filter by trade pair hash
-    string trade_pair_hash = 4;
+  OrderFilters filters = 1;
+  // Filter by status of the order
+  string status = 2;
+  // Filter by collection of the order
+  string collection = 3;
+  // Filter by trade pair hash
+  string trade_pair_hash = 4;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QuerySpotOrdersRequest {
-    OrderFilters filters = 1;
-    // Filter by status of the order
-    string status = 2;
-    // Filter by collection of the order
-    string collection = 3;
-    // Filter by trade pair hash
-    string trade_pair_hash = 4;
+  OrderFilters filters = 1;
+  // Filter by status of the order
+  string status = 2;
+  // Filter by collection of the order
+  string collection = 3;
+  // Filter by trade pair hash
+  string trade_pair_hash = 4;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QuerySpotOrdersResponse {
-    // An array of matched orders.
-    repeated Order records = 1;
+  // An array of matched orders.
+  repeated Order records = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryFillRequestsRequest {
-    // EIP712 hash of order (see LibOrder.getTypedDataHash)
-    string order_hash = 1;
+  // EIP712 hash of order (see LibOrder.getTypedDataHash)
+  string order_hash = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message OrderFillRequest {
-    string tx_hash = 1;
-    string order_hash = 2;
-    repeated string approval_signatures = 3;
-    sint64 expiry_at = 4;
-    string taker_asset_fill_amount = 5;
+  string tx_hash = 1;
+  string order_hash = 2;
+  repeated string approval_signatures = 3;
+  sint64 expiry_at = 4;
+  string taker_asset_fill_amount = 5;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message OrderSoftCancelRequest {
-    string tx_hash = 1;
-    string order_hash = 2;
-    repeated string approval_signatures = 3;
+  string tx_hash = 1;
+  string order_hash = 2;
+  repeated string approval_signatures = 3;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryFillRequestsResponse {
-    // Information about the signatures to fill the order.
-    repeated OrderFillRequest fill_requests = 1;
+  // Information about the signatures to fill the order.
+  repeated OrderFillRequest fill_requests = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
-message QueryOutstandingFillRequestsRequest {
-    string tx_hash = 1;
-}
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
+message QueryOutstandingFillRequestsRequest { string tx_hash = 1; }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryOutstandingFillRequestsResponse {
-    // Information about the signatures to fill the order.
-    repeated OrderFillRequest fill_requests = 1;
+  // Information about the signatures to fill the order.
+  repeated OrderFillRequest fill_requests = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryTradePairRequest {
-    // Specify name of the trade pair.
-    string name = 1;
-    // Most effective way is to specify hash of the trade pair.
-    string hash = 2;
-    // ABIv2 encoded data that can be decoded by a specified proxy contract when
-    // transferring makerAsset.
-    string maker_asset_data = 3;
-    // ABIv2 encoded data that can be decoded by a specified proxy contract when
-    // transferring takerAsset.
-    string taker_asset_data = 4;
+  // Specify name of the trade pair.
+  string name = 1;
+  // Most effective way is to specify hash of the trade pair.
+  string hash = 2;
+  // ABIv2 encoded data that can be decoded by a specified proxy contract when
+  // transferring makerAsset.
+  string maker_asset_data = 3;
+  // ABIv2 encoded data that can be decoded by a specified proxy contract when
+  // transferring takerAsset.
+  string taker_asset_data = 4;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryTradePairResponse {
-    // A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -
-    // taker's asset.
-    string name = 1;
-    // ABIv2 encoded data that can be decoded by a specified proxy contract when
-    // transferring makerAsset.
-    string maker_asset_data = 2;
-    // ABIv2 encoded data that can be decoded by a specified proxy contract when
-    // transferring takerAsset.
-    string taker_asset_data = 3;
-    // Hash of both asset data, to identify the trading pair in store.
-    string hash = 4;
-    // If false, then the pair is suspended and trades cannot be made.
-    bool enabled = 5;
+  // A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -
+  // taker's asset.
+  string name = 1;
+  // ABIv2 encoded data that can be decoded by a specified proxy contract when
+  // transferring makerAsset.
+  string maker_asset_data = 2;
+  // ABIv2 encoded data that can be decoded by a specified proxy contract when
+  // transferring takerAsset.
+  string taker_asset_data = 3;
+  // Hash of both asset data, to identify the trading pair in store.
+  string hash = 4;
+  // If false, then the pair is suspended and trades cannot be made.
+  bool enabled = 5;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryDerivativeMarketRequest {
-    string market_id = 1;
-    string ticker = 2;
+  string market_id = 1;
+  string ticker = 2;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
-message QueryDerivativeMarketResponse {
-    DerivativeMarket market = 1;
-}
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
+message QueryDerivativeMarketResponse { DerivativeMarket market = 1; }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
-message QueryTradePairsRequest {
-}
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
+message QueryTradePairsRequest {}
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryTradePairsResponse {
-    // Array of found trade pairs
-    repeated TradePair records = 1;
+  // Array of found trade pairs
+  repeated TradePair records = 1;
 }
 
-// QuerySoftCancelledOrdersRequest defines the request type for Query/SoftCancelledOrders RPC method.
+// QuerySoftCancelledOrdersRequest defines the request type for
+// Query/SoftCancelledOrders RPC method.
 message QueryDerivativeOrdersResponse {
-    // An array of matched orders.
-    repeated Order records = 1;
+  // An array of matched orders.
+  repeated Order records = 1;
 }
