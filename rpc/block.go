@@ -1,10 +1,15 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/big"
 	"strings"
+
+	"google.golang.org/grpc/metadata"
+
+	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -23,6 +28,16 @@ const (
 // NewBlockNumber creates a new BlockNumber instance.
 func NewBlockNumber(n *big.Int) BlockNumber {
 	return BlockNumber(n.Int64())
+}
+
+// ContextWithHeight wraps a context with the a gRPC block height header. If the provided height is
+// 0, it will return an empty context and the gRPC query will use the latest block height for querying.
+func ContextWithHeight(height int64) context.Context {
+	if height == LatestBlockNumber.Int64() {
+		return context.Background()
+	}
+
+	return metadata.AppendToOutgoingContext(context.Background(), grpctypes.GRPCBlockHeightHeader, fmt.Sprintf("%d", height))
 }
 
 // UnmarshalJSON parses the given JSON fragment into a BlockNumber. It supports:
@@ -63,5 +78,16 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 
 // Int64 converts block number to primitive type
 func (bn BlockNumber) Int64() int64 {
-	return (int64)(bn)
+	return int64(bn)
+}
+
+// TmHeight is a util function used for the Tendermint RPC client. It returns
+// nil if the block number is "latest". Otherwise, it returns the pointer of the
+// int64 value of the height.
+func (bn BlockNumber) TmHeight() *int64 {
+	if bn == LatestBlockNumber {
+		return nil
+	}
+	height := bn.Int64()
+	return &height
 }

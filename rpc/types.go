@@ -3,7 +3,28 @@ package rpc
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/grpc/simulate"
+
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
+
+// QueryClient defines a gRPC Client used for:
+//  - Transaction simulation
+//  - EVM module queries
+type QueryClient struct {
+	simulate.SimulateServiceClient
+	evmtypes.QueryClient
+}
+
+// NewQueryClient creates a new gRPC query client
+func NewQueryClient(clientCtx client.Context) *QueryClient {
+	return &QueryClient{
+		SimulateServiceClient: simulate.NewSimulateServiceClient(clientCtx),
+		QueryClient:           evmtypes.NewQueryClient(clientCtx),
+	}
+}
 
 // Copied the Account and StorageResult types since they are registered under an
 // internal pkg on geth.
