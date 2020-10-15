@@ -184,20 +184,10 @@ func (q Keeper) BlockBloom(c context.Context, req *types.QueryBlockBloomRequest)
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if req.Height == 0 {
-		return nil, status.Error(
-			codes.InvalidArgument, "block height cannot be 0",
-		)
-	}
-
 	ctx := sdk.UnwrapSDKContext(c)
 
-	height := req.Height
-	if height < 0 {
-		height = ctx.BlockHeight()
-	}
-
-	bloom, found := q.GetBlockBloom(ctx, height)
+	// use block height provided through the gRPC header
+	bloom, found := q.GetBlockBloom(ctx, ctx.BlockHeight())
 	if !found {
 		return nil, status.Error(
 			codes.NotFound, types.ErrBloomNotFound.Error(),

@@ -24,8 +24,7 @@ type Backend interface {
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
-	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
-	getGasLimit() (int64, error)
+
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
@@ -70,12 +69,12 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 
 // GetBlockByNumber returns the block identified by number.
 func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	blockRes, err := e.clientCtx.Client.Block(e.ctx, blockNum.TmHeight())
+	resBlock, err := e.clientCtx.Client.Block(e.ctx, blockNum.TmHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	return e.getEthBlockByNumber(value, fullTx)
+	return EthBlockFromTendermint(e.clientCtx, e.queryClient, resBlock.Block)
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -85,9 +84,7 @@ func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 		return nil, err
 	}
 
-	// TODO: gas, txs and bloom
-
-	return formatBlock(resBlock.Block.Header, resBlock.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
+	return EthBlockFromTendermint(e.clientCtx, e.queryClient, resBlock.Block)
 }
 
 // HeaderByNumber returns the block header identified by height.
@@ -141,8 +138,8 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 	if err != nil {
 		return nil, err
 	}
-	// TODO: logs to Ethereum
-	return res.Logs, nil
+
+	return evmtypes.LogsToEthereum(res.Logs), nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
@@ -158,10 +155,11 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := RawTxToEthTx(e.clientCtx, tx)
 		if err != nil {
-			return nil, err
+			// ignore non Ethermint EVM transactions
+			continue
 		}
 
-		// * Should check signer and reference against accounts the node manages in future
+		// TODO: check signer and reference against accounts the node manages
 		rpcTx, err := NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err

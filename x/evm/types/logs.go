@@ -49,11 +49,7 @@ func (tx TransactionLogs) Validate() error {
 
 // EthLogs returns the Ethereum type Logs from the Transaction Logs.
 func (tx TransactionLogs) EthLogs() []*ethtypes.Log {
-	logs := make([]*ethtypes.Log, len(tx.Logs))
-	for i := range tx.Logs {
-		logs[i] = tx.Logs[i].ToEthereum()
-	}
-	return logs
+	return LogsToEthereum(tx.Logs)
 }
 
 // Validate performs a basic validation of an ethereum Log fields.
@@ -90,6 +86,15 @@ func (log *Log) ToEthereum() *ethtypes.Log {
 		BlockHash:   ethcmn.HexToHash(log.BlockHash),
 		Removed:     log.Removed,
 	}
+}
+
+// LogsToEthereum casts the Ethermint Logs to a slice of Ethereum Logs.
+func LogsToEthereum(logs []*Log) []*ethtypes.Log {
+	ethLogs := make([]*ethtypes.Log, len(logs))
+	for i := range logs {
+		ethLogs[i] = logs[i].ToEthereum()
+	}
+	return ethLogs
 }
 
 // NewLogFromEth creates a new Log instance from a Ethereum type Log.

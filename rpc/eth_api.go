@@ -17,10 +17,7 @@ import (
 	"github.com/cosmos/ethermint/version"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/libs/log"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -32,8 +29,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/grpc/simulate"
+	"github.com/cosmos/cosmos-sdk/client/tx"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -341,11 +342,12 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 
 	// Sign the requested hash with the wallet
 	signature, err := key.Sign(data)
-	if err == nil {
-		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	if err != nil {
+		return nil, err
 	}
 
-	return signature, err
+	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	return signature, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
@@ -499,24 +501,48 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Set destination address for call
-	var toAddr sdk.AccAddress
-	if args.To != nil {
-		toAddr = sdk.AccAddress(args.To.Bytes())
+	var fromAddr sdk.AccAddress
+	if args.From != nil {
+		fromAddr = sdk.AccAddress(args.From.Bytes())
+	}
+
+	accNum, seq, err := e.clientCtx.AccountRetriever.GetAccountNumberSequence(e.clientCtx, fromAddr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(0, toAddr, sdk.NewIntFromBigInt(value), gas,
-		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
-
+	msg := evmtypes.NewMsgEthereumTx(seq, args.To, value, gas, gasPrice, data)
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}
 
-	// Generate tx to be used to simulate (signature isn't needed)
-	var stdSig authtypes.StdSignature
-	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	privKey, exists := checkKeyInKeyring(e.keys, addr)
+	if !exists {
+		return nil, fmt.Errorf("account with address %s does not exist in keyring", addr.String())
+	}
 
-	// Transaction simulation through query
+	fees := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.NewIntFromBigInt(msg.Fee())))
+	signMode := e.clientCtx.TxConfig.SignModeHandler().DefaultMode()
+	signerData := authsigning.SignerData{ChainID: e.clientCtx.ChainID, AccountNumber: accNum, Sequence: seq}
+
+	// Create a TxBuilder
+	txBuilder := e.clientCtx.TxConfig.NewTxBuilder()
+	txBuilder.SetMsgs(msg)
+	txBuilder.SetFeeAmount(fees)
+	txBuilder.SetGasLimit(gas)
+
+	// sign with the private key
+	sigV2, err := tx.SignWithPrivKey(
+		signMode, signerData,
+		txBuilder, privKey, e.clientCtx.TxConfig, seq,
+	)
+	txBuilder.SetSignatures(sigV2)
+
+	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
+	if !ok {
+		return nil, errors.New("cannot cast to tx")
+	}
 
 	req := &simulate.SimulateRequest{
 		Tx: tx,
@@ -640,6 +666,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 	if err != nil {
 		return nil, err
 	}
+
 	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
 	// Convert tx bytes to eth transaction
@@ -722,6 +749,31 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 	e.logger.Debug("eth_getProof", "address", address, "keys", storageKeys, "number", height)
 
 	ctx := ContextWithHeight(height)
+	clientCtx := e.clientCtx.WithHeight(height)
+
+	// query storage proofs
+	storageProofs := make([]StorageResult, len(storageKeys))
+	for i, key := range storageKeys {
+		hexKey := common.HexToHash(key)
+		valueBz, proof, err := e.queryClient.GetProof(clientCtx, evmtypes.StoreKey, evmtypes.StateKey(address, hexKey.Bytes()))
+		if err != nil {
+			return nil, err
+		}
+
+		// check for proof
+		var proofStr string
+		if proof != nil {
+			proofStr = proof.String()
+		}
+
+		storageProofs[i] = StorageResult{
+			Key:   key,
+			Value: (*hexutil.Big)(new(big.Int).SetBytes(valueBz)),
+			Proof: []string{proofStr},
+		}
+	}
+
+	// query EVM account
 	req := &evmtypes.QueryAccountRequest{
 		Address: address.String(),
 	}
@@ -731,61 +783,17 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 		return nil, err
 	}
 
-	storageProofs := make([]StorageResult, len(storageKeys))
-	opts := rpcclient.ABCIQueryOptions{Height: height, Prove: true}
-
-	for i, key := range storageKeys {
-		req := &evmtypes.QueryStorageRequest{
-			Address: address.String(),
-			Key:     key,
-		}
-
-		res, err := e.queryClient.Storage(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-
-		// Get value for key
-		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorage, address, k)
-		vRes, err := e.clientCtx.Client.ABCIQueryWithOptions(vPath, nil, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		var value evmtypes.QueryResStorage
-		e.clientCtx.Codec.MustUnmarshalJSON(vRes.Response.GetValue(), &value)
-
-		// check for proof
-		proof := vRes.Response.ProofOps
-		proofStr := new(merkle.Proof).String()
-		if proof != nil {
-			proofStr = proof.String()
-		}
-
-		storageProofs[i] = StorageResult{
-			Key:   k,
-			Value: (*hexutil.Big)(common.BytesToHash(value.Value).Big()),
-			Proof: []string{proofStr},
-		}
-	}
-
-	abciReq := abci.RequestQuery{
-		Path:   fmt.Sprintf("store/%s/key", authtypes.StoreKey),
-		Data:   authtypes.AddressStoreKey(sdk.AccAddress(address.Bytes())),
-		Height: height,
-		Prove:  true,
-	}
-
-	abciRes, err := e.clientCtx.QueryABCI(abciReq)
+	// query account proofs
+	accountKey := authtypes.AddressStoreKey(sdk.AccAddress(address.Bytes()))
+	_, proof, err := e.queryClient.GetProof(clientCtx, authtypes.StoreKey, accountKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// check for proof
-	accountProofs := abciRes.ProofOps
 	var accProofStr string
-	if len(accountProofs.Ops) != 0 {
-		accProofStr = accountProofs.String()
+	if proof != nil {
+		accProofStr = proof.String()
 	}
 
 	balance, err := ethermint.UnmarshalBigInt(res.Balance)
@@ -799,7 +807,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 		Balance:      (*hexutil.Big)(balance),
 		CodeHash:     common.BytesToHash(res.CodeHash),
 		Nonce:        hexutil.Uint64(res.Nonce),
-		StorageHash:  common.Hash{}, // Ethermint doesn't have a storage hash
+		StorageHash:  common.Hash{}, // NOTE: Ethermint doesn't have a storage hash. TODO: implement?
 		StorageProof: storageProofs,
 	}, nil
 }
@@ -812,8 +820,8 @@ func (e *PublicEthAPI) generateFromArgs(args SendTxArgs) (*evmtypes.MsgEthereumT
 		err      error
 	)
 
-	amount := (*big.Int)(args.Value)
-	gasPrice := (*big.Int)(args.GasPrice)
+	amount := args.Value.ToInt()
+	gasPrice := args.GasPrice.ToInt()
 
 	if args.GasPrice == nil {
 
@@ -833,8 +841,7 @@ func (e *PublicEthAPI) generateFromArgs(args SendTxArgs) (*evmtypes.MsgEthereumT
 
 		err = accRet.EnsureExists(e.clientCtx, from)
 		if err != nil {
-			// account doesn't exist
-			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.Hex(), err)
+			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.String(), err)
 		}
 
 		_, nonce, err = accRet.GetAccountNumberSequence(e.clientCtx, from)
@@ -842,7 +849,7 @@ func (e *PublicEthAPI) generateFromArgs(args SendTxArgs) (*evmtypes.MsgEthereumT
 			return nil, err
 		}
 	} else {
-		nonce = (uint64)(*args.Nonce)
+		nonce = uint64(*args.Nonce)
 	}
 
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
@@ -879,6 +886,7 @@ func (e *PublicEthAPI) generateFromArgs(args SendTxArgs) (*evmtypes.MsgEthereumT
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
+
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
 	return msg, nil
