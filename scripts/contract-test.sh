@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 
 KEY="mykey"
 TESTKEY="test"
@@ -33,7 +33,7 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["gov"]["deposit_param
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Enable faucet
-cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
+# cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
 $PWD/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a)" 100000000000000000000aphoton

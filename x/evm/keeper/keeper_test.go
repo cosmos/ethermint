@@ -8,18 +8,17 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/app"
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
 const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
@@ -42,17 +41,17 @@ func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
-	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
 	suite.address = ethcmn.HexToAddress(addrHex)
 
-	balance := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.ZeroInt()))
+	balance := ethermint.NewPhotonCoin(sdk.ZeroInt())
 	acc := &ethermint.EthAccount{
-		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
+		BaseAccount: authtypes.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.BankKeeper.SetBalance(suite.ctx, acc.GetAddress(), balance)
 }
 
 func TestKeeperTestSuite(t *testing.T) {
@@ -98,10 +97,10 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	txLogs := suite.app.EvmKeeper.GetAllTxLogs(suite.ctx)
 	suite.Require().Equal(2, len(txLogs))
 
-	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash.String())
+	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash)
 	suite.Require().Equal([]*ethtypes.Log{log2, log3}, txLogs[0].Logs)
 
-	suite.Require().Equal(ethHash.String(), txLogs[1].Hash.String())
+	suite.Require().Equal(ethHash.String(), txLogs[1].Hash)
 	suite.Require().Equal([]*ethtypes.Log{log}, txLogs[1].Logs)
 }
 

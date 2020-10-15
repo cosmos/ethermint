@@ -3,7 +3,6 @@
 export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
 go build -o ./build/ethermintd ./cmd/ethermintd
-go build -o ./build/ethermintcli ./cmd/ethermintcli
 mkdir $GOPATH/bin
 cp ./build/ethermintd $GOPATH/bin
 cp ./build/ethermintcli $GOPATH/bin
@@ -35,7 +34,6 @@ if (( $? != 0 )); then
     echo "initializable test failed: exit code $?"
 fi
 
-killall ethermintcli
 killall ethermintd
 
 echo "Script exited with code $ok"
@@ -56,7 +54,6 @@ if (( $? != 0 )); then
     echo "initializable-buidler test failed: exit code $?"
 fi
 
-killall ethermintcli
 killall ethermintd
 
 echo "Script exited with code $ok"

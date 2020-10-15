@@ -4,69 +4,74 @@ import (
 	"encoding/json"
 	"log"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
-
-	ethcdc "github.com/cosmos/ethermint/codec"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // NewDefaultGenesisState generates the default state for the application.
 func NewDefaultGenesisState() simapp.GenesisState {
-	_ = ethcdc.MakeCodec(ModuleBasics)
-	return ModuleBasics.DefaultGenesis()
+	encCfg := MakeEncodingConfig()
+	return ModuleBasics.DefaultGenesis(encCfg.Marshaler)
 }
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
 // file.
 func (app *EthermintApp) ExportAppStateAndValidators(
-	forZeroHeight bool, jailWhiteList []string,
-) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
+	forZeroHeight bool, jailAllowedAddrs []string,
+) (servertypes.ExportedApp, error) {
 
-	// Creates context with current height and checks txs for ctx to be usable by start of next block
-	ctx := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
+	// as if they could withdraw from the start of the next block
+	ctx := app.NewContext(true, tmproto.Header{Height: app.LastBlockHeight()})
 
+	// We export at last height + 1, because that's the height at which
+	// Tendermint will start InitChain.
+	height := app.LastBlockHeight() + 1
 	if forZeroHeight {
-		app.prepForZeroHeightGenesis(ctx, jailWhiteList)
+		height = 0
+		app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs)
 	}
 
-	// Export genesis to be used by SDK modules
-	genState := app.mm.ExportGenesis(ctx)
-	appState, err = codec.MarshalJSONIndent(app.cdc, genState)
+	genState := app.mm.ExportGenesis(ctx, app.appCodec)
+	appState, err := json.MarshalIndent(genState, "", "  ")
 	if err != nil {
-		return nil, nil, err
+		return servertypes.ExportedApp{}, err
 	}
 
-	// Write validators to staking module to be used by TM node
-	validators = staking.WriteValidators(ctx, app.StakingKeeper)
-	return appState, validators, nil
+	validators := staking.WriteValidators(ctx, app.StakingKeeper)
+	return servertypes.ExportedApp{
+		AppState:        appState,
+		Validators:      validators,
+		Height:          height,
+		ConsensusParams: app.BaseApp.GetConsensusParams(ctx),
+	}, nil
 }
 
 // prepare for fresh start at zero height
 // NOTE zero height genesis is a temporary feature which will be deprecated
 //      in favour of export at a block height
-func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []string) {
-	applyWhiteList := false
+func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
+	applyAllowedAddrs := false
 
-	//Check if there is a whitelist
-	if len(jailWhiteList) > 0 {
-		applyWhiteList = true
+	// check if there is a allowed address list
+	if len(jailAllowedAddrs) > 0 {
+		applyAllowedAddrs = true
 	}
 
-	whiteListMap := make(map[string]bool)
+	allowedAddrsMap := make(map[string]bool)
 
-	for _, addr := range jailWhiteList {
+	for _, addr := range jailAllowedAddrs {
 		_, err := sdk.ValAddressFromBech32(addr)
 		if err != nil {
 			log.Fatal(err)
 		}
-		whiteListMap[addr] = true
+		allowedAddrsMap[addr] = true
 	}
 
 	/* Just to be safe, assert the invariants on current state. */
@@ -83,7 +88,16 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 	// withdraw all delegator rewards
 	dels := app.StakingKeeper.GetAllDelegations(ctx)
 	for _, delegation := range dels {
-		_, _ = app.DistrKeeper.WithdrawDelegationRewards(ctx, delegation.DelegatorAddress, delegation.ValidatorAddress)
+		valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress)
+		if err != nil {
+			panic(err)
+		}
+
+		delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		_, _ = app.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	}
 
 	// clear validator slash events
@@ -110,8 +124,16 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 
 	// reinitialize all delegations
 	for _, del := range dels {
-		app.DistrKeeper.Hooks().BeforeDelegationCreated(ctx, del.DelegatorAddress, del.ValidatorAddress)
-		app.DistrKeeper.Hooks().AfterDelegationModified(ctx, del.DelegatorAddress, del.ValidatorAddress)
+		valAddr, err := sdk.ValAddressFromBech32(del.ValidatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		delAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		app.DistrKeeper.Hooks().BeforeDelegationCreated(ctx, delAddr, valAddr)
+		app.DistrKeeper.Hooks().AfterDelegationModified(ctx, delAddr, valAddr)
 	}
 
 	// reset context height
@@ -120,7 +142,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 	/* Handle staking state. */
 
 	// iterate through redelegations, reset creation height
-	app.StakingKeeper.IterateRedelegations(ctx, func(_ int64, red staking.Redelegation) (stop bool) {
+	app.StakingKeeper.IterateRedelegations(ctx, func(_ int64, red stakingtypes.Redelegation) (stop bool) {
 		for i := range red.Entries {
 			red.Entries[i].CreationHeight = 0
 		}
@@ -129,7 +151,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 	})
 
 	// iterate through unbonding delegations, reset creation height
-	app.StakingKeeper.IterateUnbondingDelegations(ctx, func(_ int64, ubd staking.UnbondingDelegation) (stop bool) {
+	app.StakingKeeper.IterateUnbondingDelegations(ctx, func(_ int64, ubd stakingtypes.UnbondingDelegation) (stop bool) {
 		for i := range ubd.Entries {
 			ubd.Entries[i].CreationHeight = 0
 		}
@@ -139,8 +161,8 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 
 	// Iterate through validators by power descending, reset bond heights, and
 	// update bond intra-tx counters.
-	store := ctx.KVStore(app.keys[staking.StoreKey])
-	iter := sdk.KVStoreReversePrefixIterator(store, staking.ValidatorsKey)
+	store := ctx.KVStore(app.keys[stakingtypes.StoreKey])
+	iter := sdk.KVStoreReversePrefixIterator(store, stakingtypes.ValidatorsKey)
 	counter := int16(0)
 
 	for ; iter.Valid(); iter.Next() {
@@ -151,7 +173,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 		}
 
 		validator.UnbondingHeight = 0
-		if applyWhiteList && !whiteListMap[addr.String()] {
+		if applyAllowedAddrs && !allowedAddrsMap[addr.String()] {
 			validator.Jailed = true
 		}
 
@@ -168,7 +190,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 	// reset start height on signing infos
 	app.SlashingKeeper.IterateValidatorSigningInfos(
 		ctx,
-		func(addr sdk.ConsAddress, info slashing.ValidatorSigningInfo) (stop bool) {
+		func(addr sdk.ConsAddress, info slashingtypes.ValidatorSigningInfo) (stop bool) {
 			info.StartHeight = 0
 			app.SlashingKeeper.SetValidatorSigningInfo(ctx, addr, info)
 			return false

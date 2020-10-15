@@ -3,8 +3,9 @@ package types
 import (
 	"testing"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 func TestStorageValidate(t *testing.T) {

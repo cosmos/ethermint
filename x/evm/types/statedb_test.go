@@ -19,7 +19,7 @@ import (
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
 type StateDBTestSuite struct {
@@ -40,7 +40,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1})
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
@@ -147,6 +147,13 @@ func (suite *StateDBTestSuite) TestStateDB_Balance() {
 				suite.stateDB.AddBalance(suite.address, big.NewInt(200))
 			},
 			big.NewInt(200),
+		},
+		{
+			"sub more than balance",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(300))
+			},
+			big.NewInt(-100),
 		},
 	}
 
@@ -530,6 +537,13 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Commit() {
 			},
 			false, true,
 		},
+		{
+			"faled to update state object",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(10))
+			},
+			false, false,
+		},
 	}
 
 	for _, tc := range testCase {
@@ -586,6 +600,13 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 				suite.stateDB.SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
 			},
 			false, true,
+		},
+		{
+			"faled to update state object",
+			func() {
+				suite.stateDB.SubBalance(suite.address, big.NewInt(10))
+			},
+			false, false,
 		},
 	}
 

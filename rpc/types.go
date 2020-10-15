@@ -1,67 +1,85 @@
 package rpc
 
 import (
-	"fmt"
-	"math"
-	"math/big"
-	"strings"
-
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-// BlockNumber represents decoding hex string to block values
-type BlockNumber int64
+// Copied the Account and StorageResult types since they are registered under an
+// internal pkg on geth.
 
-const (
-	// LatestBlockNumber mapping from "latest" to 0 for tm query
-	LatestBlockNumber = BlockNumber(0)
-
-	// EarliestBlockNumber mapping from "earliest" to 1 for tm query (earliest query not supported)
-	EarliestBlockNumber = BlockNumber(1)
-)
-
-// NewBlockNumber creates a new BlockNumber instance.
-func NewBlockNumber(n *big.Int) BlockNumber {
-	return BlockNumber(n.Int64())
+// AccountResult struct for account proof
+type AccountResult struct {
+	Address      common.Address  `json:"address"`
+	AccountProof []string        `json:"accountProof"`
+	Balance      *hexutil.Big    `json:"balance"`
+	CodeHash     common.Hash     `json:"codeHash"`
+	Nonce        hexutil.Uint64  `json:"nonce"`
+	StorageHash  common.Hash     `json:"storageHash"`
+	StorageProof []StorageResult `json:"storageProof"`
 }
 
-// UnmarshalJSON parses the given JSON fragment into a BlockNumber. It supports:
-// - "latest", "earliest" or "pending" as string arguments
-// - the block number
-// Returned errors:
-// - an invalid block number error when the given argument isn't a known strings
-// - an out of range error when the given block number is either too little or too large
-func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
-	input := strings.TrimSpace(string(data))
-	if len(input) >= 2 && input[0] == '"' && input[len(input)-1] == '"' {
-		input = input[1 : len(input)-1]
-	}
-
-	switch input {
-	case "earliest":
-		*bn = EarliestBlockNumber
-		return nil
-	case "latest":
-		*bn = LatestBlockNumber
-		return nil
-	case "pending":
-		*bn = LatestBlockNumber
-		return nil
-	}
-
-	blckNum, err := hexutil.DecodeUint64(input)
-	if err != nil {
-		return err
-	}
-	if blckNum > math.MaxInt64 {
-		return fmt.Errorf("blocknumber too high")
-	}
-
-	*bn = BlockNumber(blckNum)
-	return nil
+// StorageResult defines the format for storage proof return
+type StorageResult struct {
+	Key   string       `json:"key"`
+	Value *hexutil.Big `json:"value"`
+	Proof []string     `json:"proof"`
 }
 
-// Int64 converts block number to primitive type
-func (bn BlockNumber) Int64() int64 {
-	return (int64)(bn)
+// Transaction represents a transaction returned to RPC clients.
+type Transaction struct {
+	BlockHash        *common.Hash    `json:"blockHash"`
+	BlockNumber      *hexutil.Big    `json:"blockNumber"`
+	From             common.Address  `json:"from"`
+	Gas              hexutil.Uint64  `json:"gas"`
+	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	Hash             common.Hash     `json:"hash"`
+	Input            hexutil.Bytes   `json:"input"`
+	Nonce            hexutil.Uint64  `json:"nonce"`
+	To               *common.Address `json:"to"`
+	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
+	Value            *hexutil.Big    `json:"value"`
+	V                *hexutil.Big    `json:"v"`
+	R                *hexutil.Big    `json:"r"`
+	S                *hexutil.Big    `json:"s"`
+}
+
+// SendTxArgs represents the arguments to submit a new transaction into the transaction pool.
+// Duplicate struct definition since geth struct is in internal package
+// Ref: https://github.com/ethereum/go-ethereum/blob/release/1.9/internal/ethapi/api.go#L1346
+type SendTxArgs struct {
+	From     common.Address  `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *hexutil.Big    `json:"value"`
+	Nonce    *hexutil.Uint64 `json:"nonce"`
+	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+	// newer name and should be preferred by clients.
+	Data  *hexutil.Bytes `json:"data"`
+	Input *hexutil.Bytes `json:"input"`
+}
+
+// CallArgs represents the arguments for a call.
+type CallArgs struct {
+	From     *common.Address `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *hexutil.Big    `json:"value"`
+	Data     *hexutil.Bytes  `json:"data"`
+}
+
+// account indicates the overriding fields of account during the execution of
+// a message call.
+// Note, state and stateDiff can't be specified at the same time. If state is
+// set, message execution will only use the data in the given state. Otherwise
+// if statDiff is set, all diff will be applied first and then execute the call
+// message.
+type account struct {
+	Nonce     *hexutil.Uint64              `json:"nonce"`
+	Code      *hexutil.Bytes               `json:"code"`
+	Balance   **hexutil.Big                `json:"balance"`
+	State     *map[common.Hash]common.Hash `json:"state"`
+	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }

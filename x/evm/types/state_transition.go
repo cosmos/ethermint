@@ -107,7 +107,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		return nil, errors.New("gas price cannot be nil")
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config)
+	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.BigInt(), config)
 
 	var (
 		ret             []byte
@@ -172,15 +172,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := ResultData{
-		Bloom:  bloomFilter,
-		Logs:   logs,
+	resultData := &ResultData{
+		Bloom:  bloomFilter.Bytes(),
+		TxLogs: NewTransactionLogsFromEth(*st.TxHash, logs),
 		Ret:    ret,
-		TxHash: *st.TxHash,
 	}
 
 	if contractCreation {
-		resultData.ContractAddress = contractAddress
+		resultData.ContractAddress = contractAddress.String()
 	}
 
 	resBz, err := EncodeResultData(resultData)

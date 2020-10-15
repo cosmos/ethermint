@@ -49,7 +49,7 @@ You can query an account address using the Cosmos CLI or REST clients:
 
 ```bash
 # NOTE: the --output (-o) flag will define the output format in JSON or YAML (text)
-ethermintcli q auth account $(ethermintcli keys show <MYKEY> -a) -o text
+ethermintd q auth account $(ethermintd keys show <MYKEY> -a) -o text
 |
   address: eth1f8rqrfwut7ngkxwth0gt99h0lxnxsp09ngvzwl
   eth_address: 0x49c601A5DC5FA68b19CBbbd0b296eFF9a66805e5
@@ -70,7 +70,7 @@ curl -X GET "<NODE_IP>/auth/accounts/eth1f8rqrfwut7ngkxwth0gt99h0lxnxsp09ngvzwl"
 ```
 
 ::: tip
-The Cosmos SDK Keyring output (i.e `ethermintcli keys`) only supports addresses and public keys in Bech32 format.
+The Cosmos SDK Keyring output (i.e `ethermintd keys`) only supports addresses and public keys in Bech32 format.
 :::
 
 To retrieve the Ethereum hex address using Web3, use the JSON-RPC `eth_accounts` endpoint:

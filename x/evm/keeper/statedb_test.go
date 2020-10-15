@@ -632,7 +632,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
 
-			vals := make([]ethcmn.Hash, len(storage))
+			vals := make([]string, len(storage))
 			for i := range storage {
 				vals[i] = storage[i].Value
 			}

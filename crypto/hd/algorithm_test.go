@@ -1,124 +1,58 @@
 package hd
 
-import (
-	"strings"
-	"testing"
+// func TestKeyring(t *testing.T) {
+// 	dir, cleanup := tests.NewTestCaseDir(t)
+// 	mockIn := strings.NewReader("")
+// 	t.Cleanup(cleanup)
 
-	"github.com/stretchr/testify/require"
+// 	kr, err := keyring.New("ethermint", keyring.BackendTest, dir, mockIn, EthSecp256k1Option()...)
+// 	require.NoError(t, err)
 
-	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+// 	// fail in retrieving key
+// 	info, err := kr.Get("foo")
+// 	require.Error(t, err)
+// 	require.Nil(t, info)
 
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+// 	mockIn.Reset("password\npassword\n")
+// 	info, mnemonic, err := kr.CreateMnemonic("foo", keyring.English, ethermint.BIP44HDPath, EthSecp256k1)
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, mnemonic)
+// 	require.Equal(t, "foo", info.GetName())
+// 	require.Equal(t, "local", info.GetType().String())
+// 	require.Equal(t, EthSecp256k1, info.GetAlgo())
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
-	"github.com/cosmos/cosmos-sdk/tests"
+// 	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
+// 	hdPath := params.String()
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
-	ethermint "github.com/cosmos/ethermint/types"
-)
+// 	bz, err := DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.Secp256k1)
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, bz)
 
-func TestEthermintKeygenFunc(t *testing.T) {
-	privkey, err := ethsecp256k1.GenerateKey()
-	require.NoError(t, err)
+// 	bz, err = DeriveSecp256k1(mnemonic, keyring.DefaultBIP39Passphrase, hdPath)
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, bz)
 
-	testCases := []struct {
-		name    string
-		privKey []byte
-		algo    keys.SigningAlgo
-		expPass bool
-	}{
-		{
-			"valid ECDSA privKey",
-			ethcrypto.FromECDSA(privkey.ToECDSA()),
-			EthSecp256k1,
-			true,
-		},
-		{
-			"nil bytes, valid algo",
-			nil,
-			EthSecp256k1,
-			true,
-		},
-		{
-			"empty bytes, valid algo",
-			[]byte{},
-			EthSecp256k1,
-			true,
-		},
-		{
-			"invalid algo",
-			nil,
-			keys.MultiAlgo,
-			false,
-		},
-	}
+// 	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.SigningAlgo(""))
+// 	require.Error(t, err)
+// 	require.Empty(t, bz)
 
-	for _, tc := range testCases {
-		privkey, err := EthermintKeygenFunc(tc.privKey, tc.algo)
-		if tc.expPass {
-			require.NoError(t, err, tc.name)
-		} else {
-			require.Error(t, err, tc.name)
-			require.Nil(t, privkey, tc.name)
-		}
-	}
-}
+// 	bz, err = DeriveSecp256k1(mnemonic, keyring.DefaultBIP39Passphrase, "/wrong/hdPath")
+// 	require.Error(t, err)
+// 	require.Empty(t, bz)
 
-func TestKeyring(t *testing.T) {
-	dir, cleanup := tests.NewTestCaseDir(t)
-	mockIn := strings.NewReader("")
-	t.Cleanup(cleanup)
+// 	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, EthSecp256k1)
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, bz)
 
-	kr, err := keys.NewKeyring("ethermint", keys.BackendTest, dir, mockIn, EthSecp256k1Options()...)
-	require.NoError(t, err)
+// 	privkey := &ethsecp256k1.PrivKey{Key: bz}
+// 	addr := common.BytesToAddress(privkey.PubKey().Address().Bytes())
 
-	// fail in retrieving key
-	info, err := kr.Get("foo")
-	require.Error(t, err)
-	require.Nil(t, info)
+// 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+// 	require.NoError(t, err)
 
-	mockIn.Reset("password\npassword\n")
-	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, ethermint.BIP44HDPath, EthSecp256k1)
-	require.NoError(t, err)
-	require.NotEmpty(t, mnemonic)
-	require.Equal(t, "foo", info.GetName())
-	require.Equal(t, "local", info.GetType().String())
-	require.Equal(t, EthSecp256k1, info.GetAlgo())
+// 	path := hdwallet.MustParseDerivationPath(hdPath)
 
-	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
-	hdPath := params.String()
-
-	bz, err := DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, keys.Secp256k1)
-	require.NoError(t, err)
-	require.NotEmpty(t, bz)
-
-	bz, err = DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, hdPath)
-	require.NoError(t, err)
-	require.NotEmpty(t, bz)
-
-	bz, err = DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, keys.SigningAlgo(""))
-	require.Error(t, err)
-	require.Empty(t, bz)
-
-	bz, err = DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, "/wrong/hdPath")
-	require.Error(t, err)
-	require.Empty(t, bz)
-
-	bz, err = DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, EthSecp256k1)
-	require.NoError(t, err)
-	require.NotEmpty(t, bz)
-
-	privkey := ethsecp256k1.PrivKey(bz)
-	addr := common.BytesToAddress(privkey.PubKey().Address().Bytes())
-
-	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
-	require.NoError(t, err)
-
-	path := hdwallet.MustParseDerivationPath(hdPath)
-
-	account, err := wallet.Derive(path, false)
-	require.NoError(t, err)
-	require.Equal(t, addr.String(), account.Address.String())
-}
+// 	account, err := wallet.Derive(path, false)
+// 	require.NoError(t, err)
+// 	require.Equal(t, addr.String(), account.Address.String())
+// }

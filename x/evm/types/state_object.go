@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/types"
 
@@ -65,6 +65,8 @@ type stateObject struct {
 	dbErr   error
 	stateDB *CommitStateDB
 	account *types.EthAccount
+	// balance represents the amount of the EVM denom token that an account holds
+	balance sdk.Int
 
 	keyToOriginStorageIndex map[ethcmn.Hash]int
 	keyToDirtyStorageIndex  map[ethcmn.Hash]int
@@ -80,8 +82,7 @@ type stateObject struct {
 	deleted   bool
 }
 
-func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authtypes.AccountI, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -95,6 +96,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	return &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
+		balance:                 balance,
 		address:                 ethermintAccount.EthAddress(),
 		originStorage:           Storage{},
 		dirtyStorage:            Storage{},
@@ -132,7 +134,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 func (so *stateObject) setState(key, value ethcmn.Hash) {
 	idx, ok := so.keyToDirtyStorageIndex[key]
 	if ok {
-		so.dirtyStorage[idx].Value = value
+		so.dirtyStorage[idx].Value = value.String()
 		return
 	}
 
@@ -176,8 +178,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	evmDenom := so.stateDB.GetParams().EvmDenom
-	newBalance := so.account.GetCoins().AmountOf(evmDenom).Add(amt)
+	newBalance := so.balance.Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -189,26 +190,25 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 		return
 	}
 
-	evmDenom := so.stateDB.GetParams().EvmDenom
-	newBalance := so.account.GetCoins().AmountOf(evmDenom).Sub(amt)
+	newBalance := so.balance.Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
-// SetBalance sets the state object's balance.
+// SetBalance sets the state object's balance. It doesn't perform any validation
+// on the amount value.
 func (so *stateObject) SetBalance(amount *big.Int) {
 	amt := sdk.NewIntFromBigInt(amount)
 
-	evmDenom := so.stateDB.GetParams().EvmDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.GetCoins().AmountOf(evmDenom),
+		prev:    so.balance,
 	})
 
-	so.setBalance(evmDenom, amt)
+	so.setBalance(amt)
 }
 
-func (so *stateObject) setBalance(denom string, amount sdk.Int) {
-	so.account.SetBalance(denom, amount)
+func (so *stateObject) setBalance(amount sdk.Int) {
+	so.balance = amount
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
@@ -248,21 +248,23 @@ func (so *stateObject) commitState() {
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
 
+		key := ethcmn.HexToHash(state.Key)
+		value := ethcmn.HexToHash(state.Value)
 		// delete empty values from the store
-		if (state.Value == ethcmn.Hash{}) {
-			store.Delete(state.Key.Bytes())
+		if IsEmptyHash(state.Value) {
+			store.Delete(key.Bytes())
 		}
 
-		delete(so.keyToDirtyStorageIndex, state.Key)
+		delete(so.keyToDirtyStorageIndex, key)
 
 		// skip no-op changes, persist actual changes
-		idx, ok := so.keyToOriginStorageIndex[state.Key]
+		idx, ok := so.keyToOriginStorageIndex[key]
 		if !ok {
 			continue
 		}
 
-		if (state.Value == ethcmn.Hash{}) {
-			delete(so.keyToOriginStorageIndex, state.Key)
+		if IsEmptyHash(state.Value) {
+			delete(so.keyToOriginStorageIndex, key)
 			continue
 		}
 
@@ -271,7 +273,7 @@ func (so *stateObject) commitState() {
 		}
 
 		so.originStorage[idx].Value = state.Value
-		store.Set(state.Key.Bytes(), state.Value.Bytes())
+		store.Set(key.Bytes(), value.Bytes())
 	}
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
@@ -295,8 +297,7 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	evmDenom := so.stateDB.GetParams().EvmDenom
-	balance := so.account.Balance(evmDenom).BigInt()
+	balance := so.balance.BigInt()
 	if balance == nil {
 		return zeroBalance
 	}
@@ -348,7 +349,8 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
-		return so.dirtyStorage[idx].Value
+		value := ethcmn.HexToHash(so.dirtyStorage[idx].Value)
+		return value
 	}
 
 	// otherwise return the entry's original value
@@ -365,23 +367,26 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {
-		return so.originStorage[idx].Value
+		value := ethcmn.HexToHash(so.originStorage[idx].Value)
+		return value
 	}
 
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
+	value := ethcmn.Hash{}
 
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
-		state.Value.SetBytes(rawValue)
+		value.SetBytes(rawValue)
+		state.Value = value.String()
 	}
 
 	so.originStorage = append(so.originStorage, state)
 	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	return state.Value
+	return value
 }
 
 // ----------------------------------------------------------------------------
@@ -393,7 +398,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newStateObject(db, so.account)
+	newStateObj := newStateObject(db, so.account, so.balance)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
@@ -407,12 +412,10 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	evmDenom := so.stateDB.GetParams().EvmDenom
-	balace := so.account.Balance(evmDenom)
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&
-			(balace.BigInt() == nil || balace.IsZero()) &&
+			(so.balance.BigInt() == nil || so.balance.IsZero()) &&
 			bytes.Equal(so.account.CodeHash, emptyCodeHash))
 }
 

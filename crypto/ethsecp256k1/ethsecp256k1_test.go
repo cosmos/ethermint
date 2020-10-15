@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
-func TestPrivKeyPrivKey(t *testing.T) {
+func TestPrivKey(t *testing.T) {
 	// validate type and equality
 	privKey, err := GenerateKey()
 	require.NoError(t, err)
@@ -31,19 +31,22 @@ func TestPrivKeyPrivKey(t *testing.T) {
 	// validate we can sign some bytes
 	msg := []byte("hello world")
 	sigHash := ethcrypto.Keccak256Hash(msg)
-	expectedSig, _ := ethsecp256k1.Sign(sigHash.Bytes(), privKey)
+	expectedSig, err := secp256k1.Sign(sigHash.Bytes(), privKey.Bytes())
+	require.NoError(t, err)
 
 	sig, err := privKey.Sign(msg)
 	require.NoError(t, err)
 	require.Equal(t, expectedSig, sig)
 }
 
-func TestPrivKeyPubKey(t *testing.T) {
+func TestPrivKey_PubKey(t *testing.T) {
 	privKey, err := GenerateKey()
 	require.NoError(t, err)
 
 	// validate type and equality
-	pubKey := privKey.PubKey().(PubKey)
+	pubKey := &PubKey{
+		Key: privKey.PubKey().Bytes(),
+	}
 	require.Implements(t, (*tmcrypto.PubKey)(nil), pubKey)
 
 	// validate inequality
@@ -56,6 +59,6 @@ func TestPrivKeyPubKey(t *testing.T) {
 	sig, err := privKey.Sign(msg)
 	require.NoError(t, err)
 
-	res := pubKey.VerifyBytes(msg, sig)
+	res := pubKey.VerifySignature(msg, sig)
 	require.True(t, res)
 }

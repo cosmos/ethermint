@@ -19,12 +19,13 @@ COMMIT := $(shell git log -1 --format='%H')
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
-ETHERMINT_DAEMON_BINARY = ethermintd
-ETHERMINT_CLI_BINARY = ethermintcli
+DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuild/buf
+ETHERMINT_BINARY = ethermintd
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
 LEDGER_ENABLED ?= true
+HTTPS_GIT := https://github.com/ChainSafe/ethermint.git
 
 ifeq ($(OS),Windows_NT)
   DETECTED_OS := windows
@@ -102,8 +103,7 @@ build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
 # process linker flags
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
-		  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ETHERMINT_DAEMON_BINARY) \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ETHERMINT_CLI_BINARY) \
+		  -X github.com/cosmos/cosmos-sdk/version.AppName=$(ETHERMINT_BINARY) \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -124,18 +124,15 @@ all: tools verify install
 
 build: go.sum
 ifeq ($(OS), Windows_NT)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY).exe ./cmd/$(ETHERMINT_BINARY)
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY) ./cmd/$(ETHERMINT_BINARY)
 endif
-	go build -mod=readonly ./...
+	go build ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_CLI_BINARY)
+	go build $(BUILD_FLAGS) -o $(BUILDDIR) ./cmd/$(ETHERMINT_BINARY)
 
 build-ethermint-linux: go.sum
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(MAKE) build-ethermint
@@ -143,8 +140,7 @@ build-ethermint-linux: go.sum
 .PHONY: build build-ethermint build-ethermint-linux
 
 install:
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_DAEMON_BINARY)
-	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_CLI_BINARY)
+	${GO_MOD} go install $(BUILD_FLAGS) ./cmd/$(ETHERMINT_BINARY)
 
 clean:
 	@rm -rf ./build ./vendor
@@ -161,8 +157,7 @@ docker-build:
 	docker create --name ethermint -t -i cosmos/ethermint:latest ethermint
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
-	docker cp ethermint:/usr/bin/ethermintd ./build/ ; \
-	docker cp ethermint:/usr/bin/ethermintcli ./build/
+	docker cp ethermint:/usr/bin/ethermintd ./build/
 
 docker-localnet:
 	docker build -f ./networks/local/ethermintnode/Dockerfile . -t ethermintd/node
@@ -230,7 +225,7 @@ else
 endif
 
 tools: tools-stamp
-tools-stamp: contract-tools docs-tools runsim
+tools-stamp: contract-tools docs-tools proto-tools runsim
 	# Create dummy file to satisfy dependency and avoid
 	# rebuilding when this Makefile target is hit twice
 	# in a row.
@@ -246,7 +241,7 @@ docs-tools-stamp: docs-tools
 	# in a row.
 	touch $@
 
-.PHONY: runsim tools tools-stamp tools-clean docs-tools-stamp
+.PHONY: runsim tools contract-tools docs-tools proto-tools  tools-stamp tools-clean docs-tools-stamp
 
 ###############################################################################
 ###                           Tests & Simulation                            ###
@@ -281,8 +276,8 @@ test-sim-nondeterminism:
 
 test-sim-custom-genesis-fast:
 	@echo "Running custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json \
+	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json \
 		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
 
 test-sim-import-export: runsim
@@ -295,8 +290,8 @@ test-sim-after-import: runsim
 
 test-sim-custom-genesis-multi-seed: runsim
 	@echo "Running multi-seed custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json will be used."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DAEMON_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
 
 test-sim-multi-seed-long: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"
@@ -337,33 +332,48 @@ format:
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-gen proto-lint proto-check-breaking
+proto-all: proto-tools proto-gen proto-lint proto-check-breaking proto-swagger-gen proto-format
 
 proto-gen:
 	@./scripts/protocgen.sh
 
+proto-format:
+	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
+
+proto-swagger-gen:
+	@./scripts/protoc-swagger-gen.sh
+
 proto-lint:
 	@buf check lint --error-format=json
 
-# NOTE: should match the default repo branch 
 proto-check-breaking:
 	@buf check breaking --against-input '.git#branch=development'
 
+proto-lint-docker:
+	@$(DOCKER_BUF) check lint --error-format=json
+.PHONY: proto-lint
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.33.3
+proto-check-breaking-docker:
+	@$(DOCKER_BUF) check breaking --against-input $(HTTPS_GIT)#branch=development
+.PHONY: proto-check-breaking-ci
+
+TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.0-rc4/proto/tendermint
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-SDK_PROTO_URL 	 = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+COSMOS_SDK_URL = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+CONFIO_URL 		 = https://raw.githubusercontent.com/confio/ics23/v0.6.2
 
-TM_KV_TYPES         = third_party/proto/tendermint/libs/kv
-TM_MERKLE_TYPES     = third_party/proto/tendermint/crypto/merkle
-TM_ABCI_TYPES       = third_party/proto/tendermint/abci/types
+TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
+TM_ABCI_TYPES       = third_party/proto/tendermint/abci
+TM_TYPES     			  = third_party/proto/tendermint/types
+TM_VERSION 					= third_party/proto/tendermint/version
+TM_LIBS							= third_party/proto/tendermint/libs/bits
+
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
-COSMOS_PROTO_TYPES  = third_party/proto/cosmos-proto
-SDK_PROTO_TYPES     = third_party/proto/cosmos-sdk/types
-AUTH_PROTO_TYPES    = third_party/proto/cosmos-sdk/x/auth/types
-VESTING_PROTO_TYPES = third_party/proto/cosmos-sdk/x/auth/vesting/types
-SUPPLY_PROTO_TYPES  = third_party/proto/cosmos-sdk/x/supply/types
+COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
+CONFIO_TYPES        = third_party/proto/confio
+
+COSMOS_SDK_PROTO  = third_party/proto/cosmos-sdk
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
@@ -372,33 +382,31 @@ proto-update-deps:
 	@mkdir -p $(COSMOS_PROTO_TYPES)
 	@curl -sSL $(COSMOS_PROTO_URL)/cosmos.proto > $(COSMOS_PROTO_TYPES)/cosmos.proto
 
+## Importing of tendermint protobuf definitions currently requires the
+## use of `sed` in order to build properly with cosmos-sdk's proto file layout
+## (which is the standard Buf.build FILE_LAYOUT)
+## Issue link: https://github.com/tendermint/tendermint/issues/5021
 	@mkdir -p $(TM_ABCI_TYPES)
-	@curl -sSL $(TM_URL)/abci/types/types.proto > $(TM_ABCI_TYPES)/types.proto
-	@sed -i '' '8 s|crypto/merkle/merkle.proto|third_party/proto/tendermint/crypto/merkle/merkle.proto|g' $(TM_ABCI_TYPES)/types.proto
-	@sed -i '' '9 s|libs/kv/types.proto|third_party/proto/tendermint/libs/kv/types.proto|g' $(TM_ABCI_TYPES)/types.proto
+	@curl -sSL $(TM_URL)/abci/types.proto > $(TM_ABCI_TYPES)/types.proto
 
-	@mkdir -p $(TM_KV_TYPES)
-	@curl -sSL $(TM_URL)/libs/kv/types.proto > $(TM_KV_TYPES)/types.proto
+	@mkdir -p $(TM_VERSION)
+	@curl -sSL $(TM_URL)/version/types.proto > $(TM_VERSION)/types.proto
 
-	@mkdir -p $(TM_MERKLE_TYPES)
-	@curl -sSL $(TM_URL)/crypto/merkle/merkle.proto > $(TM_MERKLE_TYPES)/merkle.proto
+	@mkdir -p $(TM_TYPES)
+	@curl -sSL $(TM_URL)/types/types.proto > $(TM_TYPES)/types.proto
+	@curl -sSL $(TM_URL)/types/evidence.proto > $(TM_TYPES)/evidence.proto
+	@curl -sSL $(TM_URL)/types/params.proto > $(TM_TYPES)/params.proto
+	@curl -sSL $(TM_URL)/types/validator.proto > $(TM_TYPES)/validator.proto
 
-	@mkdir -p $(SDK_PROTO_TYPES)
-	@curl -sSL $(SDK_PROTO_URL)/types/types.proto > $(SDK_PROTO_TYPES)/types.proto
+	@mkdir -p $(TM_CRYPTO_TYPES)
+	@curl -sSL $(TM_URL)/crypto/proof.proto > $(TM_CRYPTO_TYPES)/proof.proto
+	@curl -sSL $(TM_URL)/crypto/keys.proto > $(TM_CRYPTO_TYPES)/keys.proto
 
-	@mkdir -p $(AUTH_PROTO_TYPES)
-	@curl -sSL $(SDK_PROTO_URL)/x/auth/types/types.proto > $(AUTH_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(AUTH_PROTO_TYPES)/types.proto
+	@mkdir -p $(TM_LIBS)
+	@curl -sSL $(TM_URL)/libs/bits/types.proto > $(TM_LIBS)/types.proto
 
-	@mkdir -p $(VESTING_PROTO_TYPES)
-	curl -sSL $(SDK_PROTO_URL)/x/auth/vesting/types/types.proto > $(VESTING_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
-	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(VESTING_PROTO_TYPES)/types.proto
-
-	@mkdir -p $(SUPPLY_PROTO_TYPES)
-	curl -sSL $(SDK_PROTO_URL)/x/supply/types/types.proto > $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '5 s|types/types.proto|third_party/proto/cosmos-sdk/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
-	@sed -i '' '6 s|x/auth/types/types.proto|third_party/proto/cosmos-sdk/x/auth/types/types.proto|g' $(SUPPLY_PROTO_TYPES)/types.proto
+	@mkdir -p $(CONFIO_TYPES)
+	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
 
 
 .PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
@@ -438,13 +446,13 @@ ifeq ($(OS),Windows_NT)
 	mkdir build &
 	@$(MAKE) docker-localnet
 
-	IF not exist "build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
+	IF not exist "build/node0/$(ETHERMINT_BINARY)/config/genesis.json" docker run --rm -v $(CURDIR)/build\ethermint\Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"
 	docker-compose up -d
 else
 	mkdir -p ./build/
 	@$(MAKE) docker-localnet
 
-	if ! [ -f build/node0/$(ETHERMINT_DAEMON_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
+	if ! [ -f build/node0/$(ETHERMINT_BINARY)/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/ethermint:Z ethermintd/node "ethermintd testnet --v 4 -o /ethermint --starting-ip-address 192.168.10.2 --keyring-backend=test"; fi
 	docker-compose up -d
 endif
 

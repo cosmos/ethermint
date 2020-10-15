@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	emint "github.com/cosmos/ethermint/types"
 
@@ -43,8 +43,9 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
-	paramSpace    params.Subspace
+	paramSpace    paramtypes.Subspace
 	accountKeeper AccountKeeper
+	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -87,13 +88,15 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace,
+	ak AccountKeeper, bankKeeper BankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
 		paramSpace:           paramSpace,
 		accountKeeper:        ak,
+		bankKeeper:           bankKeeper,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -176,7 +179,9 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
 	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz, err := MarshalLogs(logs)
+
+	txLogs := NewTransactionLogsFromEth(hash, logs)
+	bz, err := ModuleCdc.MarshalBinaryBare(&txLogs)
 	if err != nil {
 		return err
 	}
@@ -348,7 +353,12 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 		return []*ethtypes.Log{}, nil
 	}
 
-	return UnmarshalLogs(bz)
+	var txLogs TransactionLogs
+	if err := ModuleCdc.UnmarshalBinaryBare(bz, &txLogs); err != nil {
+		return []*ethtypes.Log{}, err
+	}
+
+	return txLogs.EthLogs(), nil
 }
 
 // AllLogs returns all the current logs in the state.
@@ -359,9 +369,9 @@ func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 
 	allLogs := []*ethtypes.Log{}
 	for ; iterator.Valid(); iterator.Next() {
-		var logs []*ethtypes.Log
-		ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		allLogs = append(allLogs, logs...)
+		var txLogs TransactionLogs
+		ModuleCdc.MustUnmarshalBinaryBare(iterator.Value(), &txLogs)
+		allLogs = append(allLogs, txLogs.EthLogs()...)
 	}
 
 	return allLogs
@@ -510,18 +520,8 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
 
-	coins := so.account.GetCoins()
-	balance := coins.AmountOf(newBalance.Denom)
-	if balance.IsZero() || !balance.Equal(newBalance.Amount) {
-		coins = coins.Add(newBalance)
-	}
-
-	if err := so.account.SetCoins(coins); err != nil {
-		return err
-	}
-
+	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.GetAddress(), newBalance)
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
 }
 
@@ -640,21 +640,22 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 // UpdateAccounts updates the nonce and coin balances of accounts
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
-		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
-		emintAcc, ok := currAcc.(*emint.EthAccount)
+		address := sdk.AccAddress(stateEntry.address.Bytes())
+		currAccount := csdb.accountKeeper.GetAccount(csdb.ctx, address)
+		ethAccount, ok := currAccount.(*emint.EthAccount)
 		if !ok {
 			continue
 		}
 
 		evmDenom := csdb.GetParams().EvmDenom
-		balance := sdk.Coin{
-			Denom:  evmDenom,
-			Amount: emintAcc.GetCoins().AmountOf(evmDenom),
+		balance := csdb.bankKeeper.GetBalance(csdb.ctx, address, evmDenom)
+
+		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() {
+			stateEntry.stateObject.balance = balance.Amount
 		}
 
-		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
-			stateEntry.stateObject.Nonce() != emintAcc.GetSequence() {
-			stateEntry.stateObject.account = emintAcc
+		if stateEntry.stateObject.Nonce() != ethAccount.GetSequence() {
+			stateEntry.stateObject.account = ethAccount
 		}
 	}
 }
@@ -693,8 +694,7 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewIntFromBigInt(prevobj.Balance()))
+		newobj.setBalance(sdk.NewIntFromBigInt(prevobj.Balance()))
 	}
 }
 
@@ -711,6 +711,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 		storeKey:             csdb.storeKey,
 		paramSpace:           csdb.paramSpace,
 		accountKeeper:        csdb.accountKeeper,
+		bankKeeper:           csdb.bankKeeper,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -776,7 +777,7 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 
 		if idx, dirty := so.keyToDirtyStorageIndex[key]; dirty {
 			// check if iteration stops
-			if cb(key, so.dirtyStorage[idx].Value) {
+			if cb(key, ethcmn.HexToHash(so.dirtyStorage[idx].Value)) {
 				break
 			}
 
@@ -810,7 +811,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, sdk.ZeroInt())
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -851,8 +852,11 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 		return nil
 	}
 
+	evmDenom := csdb.GetParams().EvmDenom
+	balance := csdb.bankKeeper.GetBalance(csdb.ctx, acc.GetAddress(), evmDenom)
+
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
+	so := newStateObject(csdb, acc, balance.Amount)
 	csdb.setStateObject(so)
 
 	return so

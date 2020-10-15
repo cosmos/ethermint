@@ -27,7 +27,7 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
 type EvmTestSuite struct {
@@ -37,17 +37,17 @@ type EvmTestSuite struct {
 	handler sdk.Handler
 	querier sdk.Querier
 	app     *app.EthermintApp
-	codec   *codec.Codec
+	codec   *codec.LegacyAmino
 }
 
 func (suite *EvmTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
-	suite.codec = codec.New()
+	suite.codec = codec.NewLegacyAminoLegacyAmino()
 }
 
 func TestEvmTestSuite(t *testing.T) {
@@ -143,8 +143,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 func (suite *EvmTestSuite) TestMsgEthermint() {
 	var (
 		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+		from = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
+		to   = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
 	)
 
 	testCases := []struct {

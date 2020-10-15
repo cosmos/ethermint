@@ -1,88 +1,127 @@
 package cli
 
 import (
-	"fmt"
+	"context"
+	"strconv"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-// GetQueryCmd defines evm module queries through the cli
-func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
-	evmQueryCmd := &cobra.Command{
+// GetQueryCmd returns the parent command for all x/bank CLi query commands.
+func GetQueryCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the evm module",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	evmQueryCmd.AddCommand(flags.GetCommands(
-		GetCmdGetStorageAt(moduleName, cdc),
-		GetCmdGetCode(moduleName, cdc),
-	)...)
-	return evmQueryCmd
+
+	cmd.AddCommand(
+		GetStorageCmd(),
+		GetCodeCmd(),
+	)
+	return cmd
 }
 
-// GetCmdGetStorageAt queries a key in an accounts storage
-func GetCmdGetStorageAt(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "storage [account] [key]",
-		Short: "Gets storage for an account at a given key",
-		Args:  cobra.ExactArgs(2),
+// GetStorageCmd queries a key in an accounts storage
+func GetStorageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "storage [account] [key] [height]",
+		Short: "Gets storage for an account with a given key and height",
+		Long:  "Gets storage for an account with a given key and height. If the height is not provided, it will use the latest height from context.",
+		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			account, err := accountToHex(args[0])
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
 			if err != nil {
-				return errors.Wrap(err, "could not parse account address")
+				return err
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+
+			address, err := accountToHex(args[0])
+			if err != nil {
+				return err
 			}
 
 			key := formatKeyToHash(args[1])
 
-			res, _, err := cliCtx.Query(
-				fmt.Sprintf("custom/%s/storage/%s/%s", queryRoute, account, key))
-
-			if err != nil {
-				return fmt.Errorf("could not resolve: %s", err)
+			var height int64
+			if len(args) == 3 {
+				height, err = strconv.ParseInt(args[2], 10, 64)
+				if err != nil {
+					return err
+				}
 			}
-			var out types.QueryResStorage
-			cdc.MustUnmarshalJSON(res, &out)
-			return cliCtx.PrintOutput(out)
+
+			req := &types.QueryStorageRequest{
+				Address: address,
+				Key:     key,
+				Height:  height,
+			}
+
+			res, err := queryClient.Storage(context.Background(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintOutput(res)
 		},
 	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
 }
 
-// GetCmdGetCode queries the code field of a given address
-func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "code [account]",
+// GetCodeCmd queries the code field of a given address
+func GetCodeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "code [account] [height]",
 		Short: "Gets code from an account",
-		Args:  cobra.ExactArgs(1),
+		Long:  "Gets code from an account. If the height is not provided, it will use the latest height from context.",
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			account, err := accountToHex(args[0])
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
 			if err != nil {
-				return errors.Wrap(err, "could not parse account address")
+				return err
 			}
 
-			res, _, err := cliCtx.Query(
-				fmt.Sprintf("custom/%s/code/%s", queryRoute, account))
+			queryClient := types.NewQueryClient(clientCtx)
 
+			address, err := accountToHex(args[0])
 			if err != nil {
-				return fmt.Errorf("could not resolve: %s", err)
+				return err
 			}
 
-			var out types.QueryResCode
-			cdc.MustUnmarshalJSON(res, &out)
-			return cliCtx.PrintOutput(out)
+			var height int64
+			if len(args) == 2 {
+				height, err = strconv.ParseInt(args[1], 10, 64)
+				if err != nil {
+					return err
+				}
+			}
+
+			req := &types.QueryCodeRequest{
+				Address: address,
+				Height:  height,
+			}
+
+			res, err := queryClient.Code(context.Background(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintOutput(res)
 		},
 	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
 }
