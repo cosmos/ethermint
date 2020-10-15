@@ -13,13 +13,12 @@ require (
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.40.0-rc0
-	github.com/cosmos/iavl v0.15.0-rc3
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.21
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2
@@ -31,11 +30,12 @@ require (
 	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.0
+	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.4.1 // indirect
 	github.com/spf13/cast v1.3.1
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.0
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969
 	github.com/stretchr/testify v1.6.1
@@ -44,8 +44,8 @@ require (
 	github.com/tyler-smith/go-bip39 v1.0.2
 	github.com/xlab/suplog v1.0.0
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
-	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
-	google.golang.org/grpc v1.32.0
+	google.golang.org/genproto v0.0.0-20201015140912-32ed001d685c
+	google.golang.org/grpc v1.33.0
 	gopkg.in/yaml.v2 v2.3.0
 	modernc.org/b v1.0.0
 )
