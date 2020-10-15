@@ -2,7 +2,6 @@ package hd
 
 import (
 	"encoding/hex"
-	"fmt"
 	"log"
 	"strings"
 	"testing"
@@ -179,15 +178,14 @@ func TestDerivation(t *testing.T) {
 	// Inequality of wrong derivation path address
 	require.NotEqual(t, account.Address.Hex(), badAccount.Address.Hex())
 	// Equality of Ethermint implementation
-	fmt.Println(privkey.PubKey().Address())
 	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address().Bytes()), strings.ToLower("0xA588C66983a81e800Db4dF74564F09f91c026351"))
 	require.Equal(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address().Bytes()), strings.ToLower("0xF8D6FDf2B8b488ea37e54903750dcd13F67E71cb"))
 
 	// Equality of Eth and Ethermint implementation
-	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
-	require.Equal(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address()), strings.ToLower(badAccount.Address.Hex()))
+	require.Equal(t, common.BytesToAddress(privkey.PubKey().Address()).Hex(), account.Address.Hex())
+	require.Equal(t, common.BytesToAddress(badPrivKey.PubKey().Address()).Hex(), badAccount.Address.Hex())
 
 	// Inequality of wrong derivation path of Eth and Ethermint impl
-	require.NotEqual(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(badAccount.Address.Hex()))
-	require.NotEqual(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
+	require.NotEqual(t, common.BytesToAddress(privkey.PubKey().Address()).Hex(), badAccount.Address.Hex())
+	require.NotEqual(t, common.BytesToAddress(badPrivKey.PubKey().Address()).Hex(), account.Address.Hex())
 }
