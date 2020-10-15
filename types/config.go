@@ -2,7 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	eth "github.com/ethereum/go-ethereum/accounts"
+	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 )
 
 const (
