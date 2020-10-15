@@ -134,7 +134,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg *types.MsgEthereumTx) (*
 // 		return nil, err
 // 	}
 
-// 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+// 	txHash := tmtypes.Tx(ctx.TxBytes()).ComputeHash()
 // 	ethHash := common.BytesToHash(txHash)
 
 // 	st := types.StateTransition{
@@ -157,7 +157,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg *types.MsgEthereumTx) (*
 
 // 	if !st.Simulate {
 // 		// Prepare db for logs
-// 		k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
+// 		k.CommitStateDB.Prepare(ethHash, common.ComputeHash{}, k.TxCount)
 // 		k.TxCount++
 // 	}
 

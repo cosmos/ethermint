@@ -1,15 +1,15 @@
 package orders
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/InjectiveLabs/injective-core/legacy/accounts"
+	"github.com/cosmos/ethermint/x/orders/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/sha3"
 	"math/big"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/InjectiveLabs/zeroex-go"
@@ -23,7 +23,6 @@ import (
 	"github.com/cosmos/ethermint/ethereum/provider"
 	"github.com/cosmos/ethermint/ethereum/registry"
 	"github.com/cosmos/ethermint/eventdb"
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 	"github.com/cosmos/ethermint/metrics"
 )
 
@@ -61,8 +60,7 @@ func NewOrderMsgHandler(
 type orderMsgHandler struct {
 	svcTags metrics.Tags
 
-	keeper         Keeper
-	accountsKeeper accounts.Keeper
+	keeper Keeper
 
 	ethContracts             registry.ContractDiscoverer
 	devUtilsContractCaller   *wrappers.DevUtilsCaller
@@ -72,7 +70,7 @@ type orderMsgHandler struct {
 	ethOrderEventDB           eventdb.OrderEventDB
 	ethFuturesPositionEventDB eventdb.FuturesPositionEventDB
 
-	ethProvider          func() provider.EVMProvider
+	ethProvider func() provider.EVMProvider
 }
 
 func (h *orderMsgHandler) postInit() {
@@ -108,33 +106,33 @@ func (h *orderMsgHandler) Handler() sdk.Handler {
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
-		case MsgRegisterDerivativeMarket:
+		case *types.MsgRegisterDerivativeMarket:
 			return h.handleMsgRegisterDerivativeMarket(ctx, msg)
-		case MsgSuspendDerivativeMarket:
+		case *types.MsgSuspendDerivativeMarket:
 			return h.handleMsgSuspendDerivativeMarket(ctx, msg)
-		case MsgResumeDerivativeMarket:
+		case *types.MsgResumeDerivativeMarket:
 			return h.handleMsgResumeDerivativeMarket(ctx, msg)
-		case MsgCreateDerivativeOrder:
+		case *types.MsgCreateDerivativeOrder:
 			return h.handleMsgCreateDerivativeOrder(ctx, msg)
-		case MsgFilledDerivativeOrder:
+		case *types.MsgFilledDerivativeOrder:
 			return h.handleMsgFilledDerivativeOrder(ctx, msg)
-		case MsgCancelledDerivativeOrder:
+		case *types.MsgCancelledDerivativeOrder:
 			return h.handleMsgCancelledDerivativeOrder(ctx, msg)
-		case MsgRegisterSpotMarket:
+		case *types.MsgRegisterSpotMarket:
 			return h.handleMsgRegisterSpotMarket(ctx, msg)
-		case MsgSuspendSpotMarket:
+		case *types.MsgSuspendSpotMarket:
 			return h.handleMsgSuspendSpotMarket(ctx, msg)
-		case MsgResumeSpotMarket:
+		case *types.MsgResumeSpotMarket:
 			return h.handleMsgResumeSpotMarket(ctx, msg)
-		case MsgCreateSpotOrder:
+		case *types.MsgCreateSpotOrder:
 			return h.handleMsgCreateSpotOrder(ctx, msg)
-		case MsgFilledSpotOrder:
+		case *types.MsgFilledSpotOrder:
 			return h.handleMsgFilledSpotOrder(ctx, msg)
-		case MsgCancelledSpotOrder:
+		case *types.MsgCancelledSpotOrder:
 			return h.handleMsgCancelledSpotOrder(ctx, msg)
-		case MsgRequestFillSpotOrder:
+		case *types.MsgRequestFillSpotOrder:
 			return h.handleMsgRequestFillSpotOrder(ctx, msg)
-		case MsgRequestSoftCancelSpotOrder:
+		case *types.MsgRequestSoftCancelSpotOrder:
 			return h.handleMsgRequestSoftCancelSpotOrder(ctx, msg)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest,
@@ -158,7 +156,7 @@ func Recover(err *error) {
 // Registers the Derivative Market in the keeper, enabling trades of this Derivative Market
 func (h *orderMsgHandler) handleMsgRegisterDerivativeMarket(
 	ctx sdk.Context,
-	msg MsgRegisterDerivativeMarket,
+	msg *types.MsgRegisterDerivativeMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -169,40 +167,33 @@ func (h *orderMsgHandler) handleMsgRegisterDerivativeMarket(
 		"handler", "MsgRegisterDerivativeMarket",
 	)
 
-	market := &types.DerivativeMarket{
-		Ticker:       msg.Ticker,
-		Oracle:       msg.Oracle.Bytes(),
-		BaseCurrency: msg.BaseCurrency.Bytes(),
-		Nonce:        msg.Nonce,
-		MarketID:     msg.MarketID,
-		Enabled:      true,
-	}
+	market := msg.Market
+
 	hash, err := market.Hash()
 	if err != nil {
 		logger.Error("market hash failed", "error", err.Error())
 		metrics.ReportFuncError(h.svcTags)
 		return nil, sdkerrors.Wrap(err, "market hash error")
 	}
-	if hash != msg.MarketID.Hash {
-		logger.Error("The MarketID provided does not match the MarketID computed", "error", err.Error())
+	if hash != common.HexToHash(market.MarketId) {
+		logger.Error("The MarketID provided does not match the MarketID computed", "error", err)
 		metrics.ReportFuncError(h.svcTags)
 		return nil, sdkerrors.Wrap(types.ErrMarketInvalid, "The MarketID provided does not match the MarketID computed")
 	}
-	market.MarketID.Hash = msg.MarketID.Hash
-	if m := h.keeper.GetDerivativeMarket(ctx, hash); m != nil {
-		logger.Error("derivative market exists already", "marketID", msg.MarketID.Hex())
+	if m := h.keeper.GetDerivativeMarket(ctx, hash.Hex()); m != nil {
+		logger.Error("derivative market exists already", "marketID", market.MarketId)
 		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(types.ErrMarketExists, msg.Ticker)
+		return nil, sdkerrors.Wrap(types.ErrMarketExists, market.Ticker)
 	}
 
 	h.keeper.SetDerivativeMarket(ctx, market)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Stores a new order in the orderbook, it will be published and can be filled.
 // Requires the TradePair of order to exist in the keeper and be enabled.
-func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg MsgCreateSpotOrder) (*sdk.Result, error) {
+func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg *types.MsgCreateSpotOrder) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
@@ -215,7 +206,7 @@ func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg MsgCreat
 	tradePairHash, _ := (&TradePair{
 		MakerAssetData: msg.Order.MakerAssetData,
 		TakerAssetData: msg.Order.TakerAssetData,
-	}).Hash()
+	}).ComputeHash()
 
 	tradePair := h.keeper.GetTradePair(ctx, tradePairHash)
 	if tradePair == nil {
@@ -229,12 +220,13 @@ func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg MsgCreat
 		metrics.ReportFuncError(h.svcTags)
 		return nil, sdkerrors.Wrap(types.ErrPairSuspended, "trade pair is suspended: "+tradePair.Name)
 	}
-
-	h.keeper.SetOrder(ctx, &types.Order{
+	order := &types.Order{
 		Order:         msg.Order,
-		TradePairHash: tradePairHash,
-		Status:        StatusUnfilled,
-	})
+		TradePairHash: tradePairHash.Hex(),
+		Status:        int64(types.StatusUnfilled),
+	}
+
+	h.keeper.SetOrder(ctx, order)
 
 	signedOrder := msg.Order.ToSignedOrder()
 	json, _ := signedOrder.MarshalJSON()
@@ -250,12 +242,12 @@ func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg MsgCreat
 		),
 	)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Stores a new derivative order in the orderbook, it will be published and can be filled.
 // Requires the market of the order to exist in the keeper and be enabled.
-func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg MsgCreateDerivativeOrder) (*sdk.Result, error) {
+func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg *types.MsgCreateDerivativeOrder) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
@@ -265,34 +257,31 @@ func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg Ms
 		"handler", "MsgCreateDerivativeOrder",
 	)
 
-	marketID := msg.Order.TakerAssetData[:32]
-	marketIDHex := common.Bytes2Hex(marketID)
+	marketID := msg.Order.TakerAssetData
 	// TODO: Do stricter validation in validate basic
-	if marketIDHex == "0000000000000000000000000000000000000000000000000000000000000000" {
-		marketID = msg.Order.MakerAssetData[:32]
-		marketIDHex = common.Bytes2Hex(marketID)
+	if marketID == "0000000000000000000000000000000000000000000000000000000000000000" {
+		marketID = msg.Order.MakerAssetData
 	}
-	log.Info(marketIDHex)
-	market := h.keeper.GetDerivativeMarket(ctx, common.BytesToHash(marketID))
+	market := h.keeper.GetDerivativeMarket(ctx, marketID)
 	if market == nil {
 		logger.Error("Derivative market doesn't exist", "id", msg.Order.TakerAssetData)
 		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, "Derivative market doesn't exist: "+marketIDHex)
+		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, "Derivative market doesn't exist: "+marketID)
 	}
 
 	if !market.Enabled {
 		logger.With("ticker", market.Ticker).Error("Derivative market is suspended", "marketID", market.String())
 		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(types.ErrMarketSuspended, "Derivative market is suspended: "+market.MarketID.String())
+		return nil, sdkerrors.Wrap(types.ErrMarketSuspended, "Derivative market is suspended: "+marketID)
 	}
-	order := types.Order{
-		Order:                  msg.Order,
-		TradePairHash:          market.MarketID.Hash,
-		Status:                 StatusUnfilled,
-		FilledTakerAssetAmount: msg.InitialQuantityMatched,
+	order := &types.Order{
+		Order:         msg.Order,
+		TradePairHash: market.MarketId,
+		Status:        int64(StatusUnfilled),
+		FilledAmount:  msg.InitialQuantityMatched,
 	}
 
-	h.keeper.SetOrder(ctx, &order)
+	h.keeper.SetOrder(ctx, order)
 
 	signedOrder := msg.Order.ToSignedOrder()
 	json, _ := signedOrder.MarshalJSON()
@@ -303,16 +292,16 @@ func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg Ms
 		sdk.NewEvent(
 			types.EventTypeNewDerivativeOrder,
 			sdk.NewAttribute(types.AttributeKeyOrderHash, hash.String()),
-			sdk.NewAttribute(types.AttributeKeyMarketID, market.MarketID.Hash.String()),
+			sdk.NewAttribute(types.AttributeKeyMarketID, market.MarketId),
 			sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
-			sdk.NewAttribute(types.AttributeKeyFilledAmount, msg.InitialQuantityMatched.Decimal().String()),
+			sdk.NewAttribute(types.AttributeKeyFilledAmount, msg.InitialQuantityMatched),
 		),
 	)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg MsgRequestFillSpotOrder) (*sdk.Result, error) {
+func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg *types.MsgRequestFillSpotOrder) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
@@ -324,16 +313,16 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg Msg
 
 	tx := &zeroex.SignedTransaction{
 		Transaction: zeroex.Transaction{
-			Salt:                  msg.SignedTransaction.Salt.Int(),
-			SignerAddress:         msg.SignedTransaction.SignerAddress.Address,
-			Data:                  msg.SignedTransaction.Data,
-			ExpirationTimeSeconds: msg.SignedTransaction.ExpirationTimeSeconds.Int(),
-			GasPrice:              msg.SignedTransaction.GasPrice.Int(),
+			Salt:                  BigNum(msg.SignedTransaction.Salt).Int(),
+			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
+			Data:                  common.FromHex(msg.SignedTransaction.Data),
+			ExpirationTimeSeconds: BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+			GasPrice:              BigNum(msg.SignedTransaction.GasPrice).Int(),
 		},
-		Signature: msg.SignedTransaction.Signature,
+		Signature: common.Hex2Bytes(msg.SignedTransaction.Signature),
 	}
-	tx.Domain.VerifyingContract = msg.SignedTransaction.Domain.VerifyingContract.Address
-	tx.Domain.ChainID = msg.SignedTransaction.Domain.ChainID.Int()
+	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
+	tx.Domain.ChainID = BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
 	txData, err := tx.DecodeTransactionData()
 	if err != nil {
@@ -359,7 +348,7 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg Msg
 	}
 
 	approval := &zeroex.CoordinatorApproval{
-		TxOrigin:             msg.TxOrigin.Address,
+		TxOrigin:             common.HexToAddress(msg.TxOrigin),
 		TransactionHash:      txHash,
 		TransactionSignature: tx.Signature,
 		Domain: zeroex.EIP712Domain{
@@ -370,20 +359,20 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg Msg
 
 	approvalHash, _ := approval.ComputeApprovalHash()
 
-	coordinatorAddr, err := h.addressFromSignature(approvalHash.Bytes(), msg.ApprovalSignature)
+	_, err = h.addressFromSignature(approvalHash.Bytes(), common.FromHex(msg.ApprovalSignature))
 	if err != nil {
 		err = errors.New("unable to get address from approval sig")
 		logger.Error("rejecting fill request", "error", err)
 		metrics.ReportFuncError(h.svcTags)
 		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
 	}
-
-	if !h.isActiveStaker(ctx, coordinatorAddr) {
-		err = errors.Errorf("coordinator is not found in active stakers")
-		logger.Error("rejecting fill request", "error", err, "address", coordinatorAddr.Hex())
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
-	}
+	// TODO: (@albertchon) re-introduce coordinator account logic
+	//if !h.isActiveStaker(ctx, coordinatorAddr) {
+	//	err = errors.Errorf("coordinator is not found in active stakers")
+	//	logger.Error("rejecting fill request", "error", err, "address", coordinatorAddr.Hex())
+	//	metrics.ReportFuncError(h.svcTags)
+	//	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
+	//}
 
 	if err = txData.ValidateAssetFillAmounts(); err != nil {
 		logger.Error("ValidateAssetFillAmounts rejected orders", "error", err)
@@ -397,12 +386,12 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg Msg
 		req, ok := fillRequests[orderHash]
 		if !ok {
 			req = &types.OrderFillRequest{
-				OrderHash: orderHash,
-				ApprovalSignatures: [][]byte{
+				OrderHash: orderHash.String(),
+				ApprovalSignatures: []string{
 					msg.ApprovalSignature,
 				},
 				ExpiryAt:             tx.ExpirationTimeSeconds.Int64(),
-				TakerAssetFillAmount: BigNum(order.TakerAssetAmount.String()),
+				TakerAssetFillAmount: order.TakerAssetAmount.String(),
 			}
 		} else {
 			logger.Error("seen order multiple times, a different fee payer?", "orderHash", orderHash.Hex())
@@ -418,29 +407,21 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg Msg
 
 	// sort fill requests after mapping to their corresponding order hash
 	sort.Slice(fillRequestsSorted, func(i, j int) bool {
-		return bytes.Compare(
-			fillRequestsSorted[i].OrderHash.Bytes(),
-			fillRequestsSorted[j].OrderHash.Bytes(),
-		) < 0
+		return strings.Compare(fillRequestsSorted[i].OrderHash, fillRequestsSorted[j].OrderHash) < 0
 	})
 
-	orderHashes := make([]common.Hash, 0, len(fillRequestsSorted))
+	orderHashes := make([]string, 0, len(fillRequestsSorted))
 	// fillRequestsSorted at this point have grouped-per-order signatures
 	for _, fillRequest := range fillRequestsSorted {
 		h.keeper.SetOrderFillRequest(ctx, txHash, fillRequest)
 		orderHashes = append(orderHashes, fillRequest.OrderHash)
 	}
 	h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
-		Type:   types.ZeroExOrderFillRequestTx,
-		Orders: orderHashes,
+		ZeroExTransactionType: int64(types.ZeroExOrderFillRequestTx),
+		Orders:                orderHashes,
 	})
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
-}
-
-func (h *orderMsgHandler) isActiveStaker(ctx sdk.Context, stakerAddr common.Address) bool {
-	acc := h.accountsKeeper.GetRelayerAccountByStakerAddress(ctx, stakerAddr)
-	return acc != nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 func (h *orderMsgHandler) addressFromSignature(message, sig []byte) (address common.Address, err error) {
@@ -497,7 +478,7 @@ func (h *orderMsgHandler) hasCancelledOrders(ctx sdk.Context, orders []*zeroex.O
 
 func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 	ctx sdk.Context,
-	msg MsgRequestSoftCancelSpotOrder,
+	msg *types.MsgRequestSoftCancelSpotOrder,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -510,16 +491,16 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 
 	tx := &zeroex.SignedTransaction{
 		Transaction: zeroex.Transaction{
-			Salt:                  msg.SignedTransaction.Salt.Int(),
-			SignerAddress:         msg.SignedTransaction.SignerAddress.Address,
-			Data:                  msg.SignedTransaction.Data,
-			ExpirationTimeSeconds: msg.SignedTransaction.ExpirationTimeSeconds.Int(),
-			GasPrice:              msg.SignedTransaction.GasPrice.Int(),
+			Salt:                  BigNum(msg.SignedTransaction.Salt).Int(),
+			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
+			Data:                  common.FromHex(msg.SignedTransaction.Data),
+			ExpirationTimeSeconds: BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+			GasPrice:              BigNum(msg.SignedTransaction.GasPrice).Int(),
 		},
-		Signature: msg.SignedTransaction.Signature,
+		Signature: common.FromHex(msg.SignedTransaction.Signature),
 	}
-	tx.Domain.VerifyingContract = msg.SignedTransaction.Domain.VerifyingContract.Address
-	tx.Domain.ChainID = msg.SignedTransaction.Domain.ChainID.Int()
+	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
+	tx.Domain.ChainID = BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
 	txData, err := tx.DecodeTransactionData()
 	if err != nil {
@@ -542,9 +523,9 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 		req, ok := cancelRequests[orderHash]
 		if !ok {
 			req = &types.OrderSoftCancelRequest{
-				TxHash:             txHash,
-				OrderHash:          orderHash,
-				ApprovalSignatures: [][]byte{},
+				TxHash:             txHash.String(),
+				OrderHash:          orderHash.String(),
+				ApprovalSignatures: []string{},
 			}
 
 			orderObj := h.keeper.GetOrder(ctx, orderHash)
@@ -575,33 +556,30 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 	}
 	// sort canсel requests after mapping to their corresponding order hash
 	sort.Slice(cancelRequestsSorted, func(i, j int) bool {
-		return bytes.Compare(
-			cancelRequestsSorted[i].OrderHash.Bytes(),
-			cancelRequestsSorted[j].OrderHash.Bytes(),
-		) < 0
+		return strings.Compare(cancelRequestsSorted[i].OrderHash, cancelRequestsSorted[j].OrderHash) < 0
 	})
 
-	orderHashes := make([]common.Hash, 0, len(cancelRequestsSorted))
+	orderHashes := make([]string, 0, len(cancelRequestsSorted))
 	// cancelRequests at this point have grouped-per-order signatures
 	for _, cancelRequest := range cancelRequestsSorted {
 		h.keeper.SetOrderSoftCancelRequest(ctx, txHash, cancelRequest)
-		h.keeper.SetActiveOrderStatus(ctx, cancelRequest.OrderHash, StatusSoftCancelled)
+		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(cancelRequest.OrderHash), StatusSoftCancelled)
 		orderHashes = append(orderHashes, cancelRequest.OrderHash)
 	}
 
 	h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
-		Type:   types.ZeroExOrderSoftCancelRequestTx,
-		Orders: orderHashes,
+		ZeroExTransactionType: int64(types.ZeroExOrderSoftCancelRequestTx),
+		Orders:                orderHashes,
 	})
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 const defaultOnlineLookupTimeout = 250 * time.Millisecond
 
 func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 	ctx sdk.Context,
-	msg MsgFilledSpotOrder,
+	msg *types.MsgFilledSpotOrder,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -615,7 +593,7 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		"orderHash", msg.OrderHash,
 	)
 
-	order := h.keeper.GetActiveOrder(ctx, msg.OrderHash.Hash)
+	order := h.keeper.GetActiveOrder(ctx, common.HexToHash(msg.OrderHash))
 	if order == nil {
 		logger.Info("no active order found for hash")
 		// no active order, the event is irrelevant
@@ -624,19 +602,19 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 
 	msgEvent := &eventdb.OrderEvent{
 		Type:       eventdb.OrderUpdateFilled,
-		BlockNum:   msg.BlockNum,
-		TxHash:     msg.TxHash.Hash,
-		OrderHash:  msg.OrderHash.Hash,
-		FillAmount: msg.AmountFilled.Int(),
+		BlockNum:   uint64(msg.BlockNum),
+		TxHash:     common.HexToHash(msg.TxHash),
+		OrderHash:  common.HexToHash(msg.OrderHash),
+		FillAmount: BigNum(msg.AmountFilled).Int(),
 	}
 
 	// validate against local cache of events
-	ev, ok := h.ethOrderEventDB.GetFillEvent(msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+	ev, ok := h.ethOrderEventDB.GetFillEvent(uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 	if !ok {
 		// if not found, lookup online with a timeout
 		logger.Info("order event not found in DB")
 		onlineCtx, cancelFn := context.WithTimeout(context.Background(), defaultOnlineLookupTimeout)
-		ev, ok = h.getOrderFillEventFromNode(onlineCtx, msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+		ev, ok = h.getOrderFillEventFromNode(onlineCtx, uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 		cancelFn()
 
 		if !ok {
@@ -661,7 +639,7 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	prevAmount := order.FilledTakerAssetAmount.Int()
+	prevAmount := BigNum(order.FilledAmount).Int()
 	newAmount := prevAmount.Add(prevAmount, ev.FillAmount)
 
 	logger.With(
@@ -669,14 +647,14 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		"newAmount", newAmount.String(),
 	).Info("updating FilledTakerAssetAmount")
 
-	order.FilledTakerAssetAmount = BigNum(newAmount.String())
-	if newAmount.Cmp(order.Order.TakerAssetAmount.Int()) != -1 { // >=
-		order.Status = types.StatusFilled
-		h.keeper.SetActiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusFilled)
+	order.FilledAmount = newAmount.String()
+	if newAmount.Cmp(BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
+		order.Status = int64(types.StatusFilled)
+		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusFilled)
 
 		logger.Info("order is fully filled")
 	} else {
-		order.Status = types.StatusPartialFilled
+		order.Status = int64(types.StatusPartialFilled)
 
 		logger.Info("order is partially filled")
 	}
@@ -702,10 +680,10 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		})
 	}
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg MsgCancelledSpotOrder) (*sdk.Result, error) {
+func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg *types.MsgCancelledSpotOrder) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
@@ -718,16 +696,16 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg MsgCa
 		"orderHash", msg.OrderHash,
 	)
 
-	order := h.keeper.GetActiveOrder(ctx, msg.OrderHash.Hash)
+	order := h.keeper.GetActiveOrder(ctx, common.HexToHash(msg.OrderHash))
 	if order == nil {
 		// no active order, the event is irrelevant
 		logger.Info("no active order found for hash")
 
-		order = h.keeper.GetArchiveOrder(ctx, msg.OrderHash.Hash)
+		order = h.keeper.GetArchiveOrder(ctx, common.HexToHash(msg.OrderHash))
 		if order == nil {
 			logger.Info("no archived order found for hash")
 			return &sdk.Result{}, nil
-		} else if order.Status != StatusSoftCancelled {
+		} else if OrderStatus(order.Status) != StatusSoftCancelled {
 			logger.With("orderStatus", order.Status).Info("refusing to hard-cancel order that is not soft-cancelled")
 			return &sdk.Result{}, nil
 		}
@@ -735,19 +713,19 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg MsgCa
 
 	msgEvent := &eventdb.OrderEvent{
 		Type:      eventdb.OrderUpdateHardCancelled,
-		BlockNum:  msg.BlockNum,
-		TxHash:    msg.TxHash.Hash,
-		OrderHash: msg.OrderHash.Hash,
+		BlockNum:  uint64(msg.BlockNum),
+		TxHash:    common.HexToHash(msg.TxHash),
+		OrderHash: common.HexToHash(msg.OrderHash),
 	}
 
 	// validate against local cache of events
-	ev, ok := h.ethOrderEventDB.GetCancelEvent(msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+	ev, ok := h.ethOrderEventDB.GetCancelEvent(uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 	if !ok {
 		logger.Info("order event not found in DB")
 
 		// if not found, lookup online with a timeout
 		onlineCtx, cancelFn := context.WithTimeout(context.Background(), defaultOnlineLookupTimeout)
-		ev, ok = h.getOrderCancelEventFromNode(onlineCtx, msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+		ev, ok = h.getOrderCancelEventFromNode(onlineCtx, uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 		cancelFn()
 
 		if !ok {
@@ -772,12 +750,12 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg MsgCa
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	if order.Status == types.StatusSoftCancelled {
-		order.Status = types.StatusHardCancelled
-		h.keeper.SetArchiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusHardCancelled)
+	if OrderStatus(order.Status) == types.StatusSoftCancelled {
+		order.Status = int64(types.StatusHardCancelled)
+		h.keeper.SetArchiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	} else {
-		order.Status = types.StatusHardCancelled
-		h.keeper.SetActiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusHardCancelled)
+		order.Status = int64(types.StatusHardCancelled)
+		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	}
 
 	syncStatus := h.keeper.GetEvmSyncStatus(ctx)
@@ -799,7 +777,7 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg MsgCa
 		})
 	}
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 func (h *orderMsgHandler) getOrderFillEventFromNode(ctx context.Context, blockNum uint64, txHash, orderHash common.Hash) (*eventdb.OrderEvent, bool) {
@@ -907,7 +885,7 @@ func (h *orderMsgHandler) getOrderCancelEventFromNode(ctx context.Context, block
 
 func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 	ctx sdk.Context,
-	msg MsgFilledDerivativeOrder,
+	msg *types.MsgFilledDerivativeOrder,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -921,7 +899,7 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		"orderHash", msg.OrderHash,
 	)
 
-	order := h.keeper.GetActiveOrder(ctx, msg.OrderHash.Hash)
+	order := h.keeper.GetActiveOrder(ctx, common.HexToHash(msg.OrderHash))
 	if order == nil {
 		// no active order, the event is irrelevant
 		return &sdk.Result{}, nil
@@ -929,23 +907,23 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 
 	msgEvent := &eventdb.FuturesPositionEvent{
 		Type:           eventdb.FuturesPositionUpdateFilled,
-		BlockNum:       msg.BlockNum,
-		TxHash:         msg.TxHash.Hash,
-		MakerAddress:   msg.MakerAddress.Address,
-		OrderHash:      msg.OrderHash.Hash,
-		MarketID:       msg.MarketID.Hash,
-		QuantityFilled: msg.QuantityFilled.Int(),
-		ContractPrice:  msg.ContractPrice.Int(),
-		PositionID:     msg.PositionID.Int(),
+		BlockNum:       uint64(msg.BlockNum),
+		TxHash:         common.HexToHash(msg.TxHash),
+		MakerAddress:   common.HexToAddress(msg.MakerAddress),
+		OrderHash:      common.HexToHash(msg.OrderHash),
+		MarketID:       common.HexToHash(msg.MarketId),
+		QuantityFilled: BigNum(msg.QuantityFilled).Int(),
+		ContractPrice:  BigNum(msg.ContractPrice).Int(),
+		PositionID:     BigNum(msg.PositionId).Int(),
 		IsLong:         msg.IsLong,
 	}
 
 	// validate against local cache of events
-	ev, ok := h.ethFuturesPositionEventDB.GetFillEvent(msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash, msg.IsLong)
+	ev, ok := h.ethFuturesPositionEventDB.GetFillEvent(uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash), msg.IsLong)
 	if !ok {
 		// if not found, lookup online with a timeout
 		onlineCtx, cancelFn := context.WithTimeout(context.Background(), defaultOnlineLookupTimeout)
-		ev, ok = h.getFuturesPositionFillEventFromNode(onlineCtx, msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash, msg.IsLong)
+		ev, ok = h.getFuturesPositionFillEventFromNode(onlineCtx, uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash), msg.IsLong)
 		cancelFn()
 
 		if !ok {
@@ -969,10 +947,10 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	prevAmount := order.FilledTakerAssetAmount.Int()
+	prevAmount := BigNum(order.FilledAmount).Int()
 	// if pre-filled from a match, just update the state
-	if prevAmount.Cmp(ev.QuantityFilled) == 0 && order.Status == types.StatusUnfilled {
-		order.Status = types.StatusPartialFilled
+	if prevAmount.Cmp(ev.QuantityFilled) == 0 && OrderStatus(order.Status) == types.StatusUnfilled {
+		order.Status = int64(types.StatusPartialFilled)
 	} else {
 		newAmount := prevAmount.Add(prevAmount, ev.QuantityFilled)
 
@@ -981,17 +959,18 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 			"newAmount", newAmount.String(),
 		).Info("updating FilledTakerAssetAmount")
 
-		order.FilledTakerAssetAmount = BigNum(newAmount.String())
-		if newAmount.Cmp(order.Order.TakerAssetAmount.Int()) != -1 { // >=
-			order.Status = types.StatusFilled
-			h.keeper.SetActiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusFilled)
+		order.FilledAmount = newAmount.String()
+		if newAmount.Cmp(BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
+			order.Status = int64(types.StatusFilled)
+			h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusFilled)
 
 			logger.Info("position is fully filled")
 		} else {
-			order.Status = types.StatusPartialFilled
+			order.Status = int64(types.StatusPartialFilled)
 			logger.Info("position is partially filled")
 		}
 	}
+
 	h.keeper.SetOrder(ctx, order)
 
 	syncStatus := h.keeper.GetFuturesEvmSyncStatus(ctx)
@@ -1013,10 +992,10 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		})
 	}
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg MsgCancelledDerivativeOrder) (*sdk.Result, error) {
+func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg *types.MsgCancelledDerivativeOrder) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
@@ -1029,15 +1008,15 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		"orderHash", msg.OrderHash,
 	)
 
-	order := h.keeper.GetActiveOrder(ctx, msg.OrderHash.Hash)
+	order := h.keeper.GetActiveOrder(ctx, common.HexToHash(msg.OrderHash))
 	if order == nil {
 		// no active order, the event is irrelevant
 
-		order = h.keeper.GetArchiveOrder(ctx, msg.OrderHash.Hash)
+		order = h.keeper.GetArchiveOrder(ctx, common.HexToHash(msg.OrderHash))
 		if order == nil {
 			logger.Info("no archived order found for hash")
 			return &sdk.Result{}, nil
-		} else if order.Status != StatusSoftCancelled {
+		} else if OrderStatus(order.Status) != StatusSoftCancelled {
 			logger.With("orderStatus", order.Status).Info("refusing to hard-cancel order that is not soft-cancelled")
 			return &sdk.Result{}, nil
 		}
@@ -1045,20 +1024,20 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 
 	msgEvent := &eventdb.FuturesPositionEvent{
 		Type:         eventdb.FuturesPositionUpdateHardCancelled,
-		BlockNum:     msg.BlockNum,
-		TxHash:       msg.TxHash.Hash,
-		MakerAddress: msg.MakerAddress.Address,
-		MarketID:     msg.MarketID.Hash,
-		OrderHash:    msg.OrderHash.Hash,
-		PositionID:   msg.PositionID.Int(),
+		BlockNum:     uint64(msg.BlockNum),
+		TxHash:       common.HexToHash(msg.TxHash),
+		MakerAddress: common.HexToAddress(msg.MakerAddress),
+		MarketID:     common.HexToHash(msg.MarketId),
+		OrderHash:    common.HexToHash(msg.OrderHash),
+		PositionID:   BigNum(msg.PositionId).Int(),
 	}
 
 	// validate against local cache of events
-	ev, ok := h.ethFuturesPositionEventDB.GetCancelEvent(msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+	ev, ok := h.ethFuturesPositionEventDB.GetCancelEvent(uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 	if !ok {
 		// if not found, lookup online with a timeout
 		onlineCtx, cancelFn := context.WithTimeout(context.Background(), defaultOnlineLookupTimeout)
-		ev, ok = h.getFuturesPositionCancelEventFromNode(onlineCtx, msg.BlockNum, msg.TxHash.Hash, msg.OrderHash.Hash)
+		ev, ok = h.getFuturesPositionCancelEventFromNode(onlineCtx, uint64(msg.BlockNum), common.HexToHash(msg.TxHash), common.HexToHash(msg.OrderHash))
 		cancelFn()
 
 		if !ok {
@@ -1083,12 +1062,12 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	if order.Status == types.StatusSoftCancelled {
-		order.Status = types.StatusHardCancelled
-		h.keeper.SetArchiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusHardCancelled)
+	if OrderStatus(order.Status) == types.StatusSoftCancelled {
+		order.Status = int64(types.StatusHardCancelled)
+		h.keeper.SetArchiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	} else {
-		order.Status = types.StatusHardCancelled
-		h.keeper.SetActiveOrderStatus(ctx, msg.OrderHash.Hash, types.StatusHardCancelled)
+		order.Status = int64(types.StatusHardCancelled)
+		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	}
 
 	syncStatus := h.keeper.GetFuturesEvmSyncStatus(ctx)
@@ -1110,7 +1089,7 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		})
 	}
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 func (h *orderMsgHandler) getFuturesPositionFillEventFromNode(
@@ -1229,7 +1208,7 @@ func (h *orderMsgHandler) getFuturesPositionCancelEventFromNode(
 // Registers the TradePair in the keeper, enabling trades of this TradePair
 func (h *orderMsgHandler) handleMsgRegisterSpotMarket(
 	ctx sdk.Context,
-	msg MsgRegisterSpotMarket,
+	msg *types.MsgRegisterSpotMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -1246,7 +1225,7 @@ func (h *orderMsgHandler) handleMsgRegisterSpotMarket(
 		TakerAssetData: msg.TakerAssetData,
 		Enabled:        msg.Enabled,
 	}
-	hash, err := tradePair.Hash()
+	hash, err := tradePair.ComputeHash()
 	if err != nil {
 		logger.Error("trade pair hash failed", "error", err.Error())
 		metrics.ReportFuncError(h.svcTags)
@@ -1260,13 +1239,13 @@ func (h *orderMsgHandler) handleMsgRegisterSpotMarket(
 
 	h.keeper.SetTradePair(ctx, tradePair)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Disables trading of the TradePair
 func (h *orderMsgHandler) handleMsgSuspendSpotMarket(
 	ctx sdk.Context,
-	msg MsgSuspendSpotMarket,
+	msg *types.MsgSuspendSpotMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -1282,7 +1261,7 @@ func (h *orderMsgHandler) handleMsgSuspendSpotMarket(
 		hash, _ := (&TradePair{
 			MakerAssetData: msg.MakerAssetData,
 			TakerAssetData: msg.TakerAssetData,
-		}).Hash()
+		}).ComputeHash()
 		tradePair = h.keeper.GetTradePair(ctx, hash)
 	} else if len(msg.Name) > 0 {
 		tradePair = h.keeper.GetTradePairByName(ctx, msg.Name)
@@ -1293,17 +1272,17 @@ func (h *orderMsgHandler) handleMsgSuspendSpotMarket(
 		return nil, sdkerrors.Wrap(types.ErrPairNotFound, msg.Name)
 	}
 
-	hash, _ := tradePair.Hash()
+	hash, _ := tradePair.ComputeHash()
 
 	h.keeper.SetTradePairEnabled(ctx, hash, false)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Enables trading of the TradePair
 func (h *orderMsgHandler) handleMsgResumeSpotMarket(
 	ctx sdk.Context,
-	msg MsgResumeSpotMarket,
+	msg *types.MsgResumeSpotMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -1320,7 +1299,7 @@ func (h *orderMsgHandler) handleMsgResumeSpotMarket(
 		hash, _ := (&TradePair{
 			MakerAssetData: msg.MakerAssetData,
 			TakerAssetData: msg.TakerAssetData,
-		}).Hash()
+		}).ComputeHash()
 		tradePair = h.keeper.GetTradePair(ctx, hash)
 	} else if len(msg.Name) > 0 {
 		tradePair = h.keeper.GetTradePairByName(ctx, msg.Name)
@@ -1331,17 +1310,17 @@ func (h *orderMsgHandler) handleMsgResumeSpotMarket(
 		return nil, sdkerrors.Wrap(types.ErrPairNotFound, msg.Name)
 	}
 
-	hash, _ := tradePair.Hash()
+	hash, _ := tradePair.ComputeHash()
 
 	h.keeper.SetTradePairEnabled(ctx, hash, true)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Disables trading of the derivative market
 func (h *orderMsgHandler) handleMsgSuspendDerivativeMarket(
 	ctx sdk.Context,
-	msg MsgSuspendDerivativeMarket,
+	msg *types.MsgSuspendDerivativeMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -1352,22 +1331,22 @@ func (h *orderMsgHandler) handleMsgSuspendDerivativeMarket(
 		"handler", "MsgSuspendDerivativeMarket",
 	)
 
-	oldDerivativeMarket := h.keeper.GetDerivativeMarket(ctx, msg.MarketID.Hash)
+	oldDerivativeMarket := h.keeper.GetDerivativeMarket(ctx, msg.MarketId)
 	if oldDerivativeMarket == nil {
 		logger.Error("derivative market doesn't exist")
 		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, msg.MarketID.String())
+		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, msg.MarketId)
 	}
 
-	h.keeper.SetMarketEnabled(ctx, msg.MarketID.Hash, false)
+	h.keeper.SetMarketEnabled(ctx, common.HexToHash(msg.MarketId), false)
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 // Re-enables trading of the derivative market
 func (h *orderMsgHandler) handleMsgResumeDerivativeMarket(
 	ctx sdk.Context,
-	msg MsgResumeDerivativeMarket,
+	msg *types.MsgResumeDerivativeMarket,
 ) (*sdk.Result, error) {
 	metrics.ReportFuncCall(h.svcTags)
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
@@ -1378,14 +1357,14 @@ func (h *orderMsgHandler) handleMsgResumeDerivativeMarket(
 		"handler", "MsgResumeDerivativeMarket",
 	)
 
-	oldDerivativeMarket := h.keeper.GetDerivativeMarket(ctx, msg.MarketID.Hash)
+	oldDerivativeMarket := h.keeper.GetDerivativeMarket(ctx, msg.MarketId)
 	if oldDerivativeMarket == nil {
 		logger.Error("derivative market doesn't exist")
 		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, msg.MarketID.String())
+		return nil, sdkerrors.Wrap(types.ErrMarketNotFound, msg.MarketId)
 	} else if !oldDerivativeMarket.Enabled {
-		h.keeper.SetMarketEnabled(ctx, msg.MarketID.Hash, true)
+		h.keeper.SetMarketEnabled(ctx, common.HexToHash(msg.MarketId), true)
 	}
 
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }

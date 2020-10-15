@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/cosmos/ethermint/x/orders"
 	"io"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	transfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer"
+	"github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer"
 	ibctransferkeeper "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	ibc "github.com/cosmos/cosmos-sdk/x/ibc/core"
@@ -132,6 +133,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		evm.AppModuleBasic{},
+		orders.AppModule{},
 		// faucet.AppModuleBasic{},
 	)
 
@@ -194,7 +196,9 @@ type EthermintApp struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// ethermint keepers
-	EvmKeeper evm.Keeper
+	EvmKeeper   evm.Keeper
+	OrderKeeper orders.Keeper
+
 	// FaucetKeeper faucet.Keeper
 
 	// the module manager
@@ -242,6 +246,7 @@ func NewEthermintApp(
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		// ethermint keys
 		evm.StoreKey,
+		orders.StoreKey,
 		// faucet.StoreKey,
 	)
 
@@ -342,6 +347,11 @@ func NewEthermintApp(
 	app.EvmKeeper = evm.NewKeeper(
 		appCodec, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.BankKeeper,
 	)
+
+	app.OrderKeeper = orders.NewKeeper(
+		keys[orders.StoreKey],
+		appCodec,
+	)
 	// app.FaucetKeeper = faucet.NewKeeper(
 	// 	app.cdc, keys[faucet.StoreKey], app.BankKeeper,
 	// )
@@ -402,6 +412,7 @@ func NewEthermintApp(
 		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName,
 		// Ethermint modules
 		evm.ModuleName,
+		orders.ModuleName,
 		// faucet.ModuleName,
 	)
 

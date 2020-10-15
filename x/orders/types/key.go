@@ -97,6 +97,6 @@ func EvmFuturesSyncStatusKey() []byte {
 }
 
 // DerivativeMarketStoreKey turns a pair hash to key used to get it from the store.
-func DerivativeMarketStoreKey(hash common.Hash) []byte {
-	return append(DerivativeMarketStoreKeyPrefix, hash.Bytes()...)
+func DerivativeMarketStoreKey(hash string) []byte {
+	return append(DerivativeMarketStoreKeyPrefix, []byte(hash)...)
 }

@@ -93,11 +93,11 @@ const (
 //		if err := am.cosmosClient.QueueBroadcastMsg(MsgFilledSpotOrder{
 //			Sender:   am.cosmosClient.FromAddress(),
 //			BlockNum: ev.BlockNum,
-//			TxHash: Hash{
-//				Hash: ev.TxHash,
+//			TxHash: ComputeHash{
+//				ComputeHash: ev.TxHash,
 //			},
-//			OrderHash: Hash{
-//				Hash: ev.OrderHash,
+//			OrderHash: ComputeHash{
+//				ComputeHash: ev.OrderHash,
 //			},
 //			AmountFilled: BigNum(ev.FillAmount.String()),
 //		}); err != nil {
@@ -155,11 +155,11 @@ const (
 //		if err := am.cosmosClient.QueueBroadcastMsg(MsgCancelledSpotOrder{
 //			Sender:   proposer,
 //			BlockNum: ev.BlockNum,
-//			TxHash: Hash{
-//				Hash: ev.TxHash,
+//			TxHash: ComputeHash{
+//				ComputeHash: ev.TxHash,
 //			},
-//			OrderHash: Hash{
-//				Hash: ev.OrderHash,
+//			OrderHash: ComputeHash{
+//				ComputeHash: ev.OrderHash,
 //			},
 //		}); err != nil {
 //			proposerLog.WithError(err).Errorln("failed to broadcast order cancel msg")
@@ -215,17 +215,17 @@ const (
 //		if err := am.cosmosClient.QueueBroadcastMsg(MsgFilledDerivativeOrder{
 //			Sender:   proposer,
 //			BlockNum: ev.BlockNum,
-//			TxHash: Hash{
-//				Hash: ev.TxHash,
+//			TxHash: ComputeHash{
+//				ComputeHash: ev.TxHash,
 //			},
 //			MakerAddress: Address{
 //				Address: ev.MakerAddress,
 //			},
-//			MarketID: Hash{
-//				Hash: ev.MarketID,
+//			MarketID: ComputeHash{
+//				ComputeHash: ev.MarketID,
 //			},
-//			OrderHash: Hash{
-//				Hash: ev.OrderHash,
+//			OrderHash: ComputeHash{
+//				ComputeHash: ev.OrderHash,
 //			},
 //			PositionID:     BigNum(ev.PositionID.String()),
 //			QuantityFilled: BigNum(ev.QuantityFilled.String()),
@@ -286,17 +286,17 @@ const (
 //		if err := am.cosmosClient.QueueBroadcastMsg(MsgCancelledDerivativeOrder{
 //			Sender:   proposer,
 //			BlockNum: ev.BlockNum,
-//			TxHash: Hash{
-//				Hash: ev.TxHash,
+//			TxHash: ComputeHash{
+//				ComputeHash: ev.TxHash,
 //			},
 //			MakerAddress: Address{
 //				Address: ev.MakerAddress,
 //			},
-//			MarketID: Hash{
-//				Hash: ev.MarketID,
+//			MarketID: ComputeHash{
+//				ComputeHash: ev.MarketID,
 //			},
-//			OrderHash: Hash{
-//				Hash: ev.OrderHash,
+//			OrderHash: ComputeHash{
+//				ComputeHash: ev.OrderHash,
 //			},
 //			PositionID: BigNum(ev.PositionID.String()),
 //		}); err != nil {

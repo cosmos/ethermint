@@ -332,7 +332,7 @@ format:
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-tools proto-gen proto-lint proto-check-breaking proto-swagger-gen proto-format
+proto-all: proto-tools proto-gen proto-lint proto-check-breaking proto-format
 
 proto-gen:
 	@./scripts/protocgen.sh

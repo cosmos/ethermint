@@ -2,9 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	types "github.com/cosmos/ethermint/x/orders/types"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // Returns Order from hash
@@ -91,6 +90,7 @@ func (k Keeper) GetArchiveOrders(ctx sdk.Context) []*types.Order {
 
 // Stores Order order in keeper
 func (k Keeper) SetOrder(ctx sdk.Context, order *types.Order) {
+
 	hash, err := order.Order.ToSignedOrder().ComputeOrderHash()
 	if err != nil {
 		k.Logger(ctx).Error("failed to compute order hash:", "error", err.Error())
@@ -98,7 +98,7 @@ func (k Keeper) SetOrder(ctx sdk.Context, order *types.Order) {
 	}
 
 	var key []byte
-	if isActiveStatus(order.Status) {
+	if isActiveStatus(types.OrderStatus(order.Status)) {
 		key = types.ActiveOrdersStoreKey(hash)
 	} else {
 		key = types.ArchiveOrdersStoreKey(hash)
@@ -117,7 +117,7 @@ func (k Keeper) SetActiveOrderStatus(ctx sdk.Context, hash common.Hash, status t
 		return
 	}
 
-	order.Status = status
+	order.Status = int64(status)
 	if !isActiveStatus(status) {
 		// status is not active anymore
 		store := ctx.KVStore(k.storeKey)
@@ -138,7 +138,7 @@ func (k Keeper) SetArchiveOrderStatus(ctx sdk.Context, hash common.Hash, status 
 		return
 	}
 
-	order.Status = status
+	order.Status = int64(status)
 	k.SetOrder(ctx, order)
 }
 

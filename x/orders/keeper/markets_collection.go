@@ -2,13 +2,12 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	types "github.com/cosmos/ethermint/x/orders/types"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // Returns Derivative Market from hash
-func (k Keeper) GetDerivativeMarket(ctx sdk.Context, hash common.Hash) *types.DerivativeMarket {
+func (k Keeper) GetDerivativeMarket(ctx sdk.Context, hash string) *types.DerivativeMarket {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.DerivativeMarketStoreKey(hash))
 	if bz == nil {
@@ -26,31 +25,31 @@ func (k Keeper) SetDerivativeMarket(ctx sdk.Context, market *types.DerivativeMar
 		k.Logger(ctx).Error("failed to compute tradePair hash:", "error", err.Error())
 		return
 	}
-	market.MarketID.Hash = hash
+	market.MarketId = hash.Hex()
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(market)
-	store.Set(types.DerivativeMarketStoreKey(hash), bz)
+	store.Set(types.DerivativeMarketStoreKey(market.MarketId), bz)
 }
 
 // SetBaseCurrencyInDerivativeMarket changes base currency address in a derivative market.
 func (k Keeper) SetBaseCurrencyInDerivativeMarket(ctx sdk.Context, hash common.Hash, baseCurrency common.Address) {
-	m := k.GetDerivativeMarket(ctx, hash)
+	m := k.GetDerivativeMarket(ctx, hash.Hex())
 	if m == nil {
 		return
 	}
 
-	m.BaseCurrency = baseCurrency.Bytes()
+	m.BaseCurrency = baseCurrency.Hex()
 	k.SetDerivativeMarket(ctx, m)
 }
 
 // SetOracleInDerivativeMarket changes oracle address in a derivative market.
 func (k Keeper) SetOracleInDerivativeMarket(ctx sdk.Context, hash common.Hash, oracle common.Address) {
-	m := k.GetDerivativeMarket(ctx, hash)
+	m := k.GetDerivativeMarket(ctx, hash.Hex())
 	if m == nil {
 		return
 	}
 
-	m.Oracle = oracle.Bytes()
+	m.Oracle = oracle.Hex()
 	k.SetDerivativeMarket(ctx, m)
 }
 
@@ -86,7 +85,7 @@ func (k Keeper) GetAllDerivativeMarkets(ctx sdk.Context) []*types.DerivativeMark
 
 // Sets Derivative Market status to Enabled in keeper
 func (k Keeper) SetMarketEnabled(ctx sdk.Context, hash common.Hash, enabled bool) {
-	m := k.GetDerivativeMarket(ctx, hash)
+	m := k.GetDerivativeMarket(ctx, hash.Hex())
 	if m == nil {
 		k.Logger(ctx).Error("derivative market not found", "marketID", hash.String())
 		return

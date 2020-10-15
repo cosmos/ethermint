@@ -1,0 +1,295 @@
+syntax = "proto3";
+package ethermint.orders.v1beta1;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/cosmos/ethermint/x/orders/types";
+
+// An object describing a derivative market in the Injective Futures Protocol.
+message DerivativeMarket {
+    // Ticker for the derivative contract.
+    string ticker = 1;
+    // Address of the oracle for the derivative contract
+    string oracle = 2;
+    // Address of the base currency for the derivative contract
+    string base_currency = 3;
+    // Random number to faciltate uniqueness of the derivative market ID
+    string nonce = 4;
+    // Unique market ID.
+    string market_id = 5;
+    // If false, then the pair is suspended and trades cannot be made.
+    bool enabled = 6;
+}
+
+// An object describing trade pair of two assets.
+message TradePair {
+    // A name of the pair in format AAA/BBB, where AAA - maker's asset, BBB -
+    // taker's asset.
+    string name = 1;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring makerAsset.
+    string maker_asset_data = 2;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring takerAsset.
+    string taker_asset_data = 3;
+    // Hash of both asset data, to identify the trading pair in store.
+    string hash = 4;
+    // If false, then the pair is suspended and trades cannot be made.
+    bool enabled = 5;
+}
+
+// A contract set.
+message ContractSet {
+    // Coordinator contract address.
+    string coordinator_contract = 1;
+    // Exchange DevUtils contract address.
+    string dev_utils_contract = 2;
+    // Exchange v3 contract address.
+    string exchange_contract = 3;
+    // Futures contract address.
+    string futures_contract = 4;
+}
+
+// A valid signed 0x order based on the schema.
+message BaseOrder {
+    // Specify chain ID.
+    sint64 chain_id = 1;
+    // Exchange v3 contract address.
+    string exchange_address = 2;
+    // Address that created the order.
+    string maker_address = 3;
+    // Address that is allowed to fill the order. If set to 0, any address is
+    // allowed to fill the order.
+    string taker_address = 4;
+    // Address that will receive fees when order is filled.
+    string fee_recipient_address = 5;
+    // Address that is allowed to call Exchange contract methods that affect this
+    // order. If set to 0, any address is allowed to call these methods.
+    string sender_address = 6;
+    // Amount of makerAsset being offered by maker. Must be greater than 0.
+    string maker_asset_amount = 7;
+    // Amount of takerAsset being bid on by maker. Must be greater than 0.
+    string taker_asset_amount = 8;
+    // Amount of ZRX paid to feeRecipient by maker when order is filled. If set to
+    // 0, no transfer of ZRX from maker to feeRecipient will be attempted.
+    string maker_fee = 9;
+    // Amount of ZRX paid to feeRecipient by taker when order is filled. If set to
+    // 0, no transfer of ZRX from taker to feeRecipient will be attempted.
+    string taker_fee = 10;
+    // Timestamp in seconds at which order expires.
+    string expiration_time_seconds = 11;
+    // Arbitrary number to facilitate uniqueness of the order's hash.
+    string salt = 12;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring makerAsset.
+    string maker_asset_data = 13;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring takerAsset.
+    string taker_asset_data = 14;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring makerFee.
+    string maker_fee_asset_data = 15;
+    // ABIv2 encoded data that can be decoded by a specified proxy contract when
+    // transferring takerFee.
+    string taker_fee_asset_data = 16;
+    // Order signature.
+    string signature = 17;
+}
+
+message Order {
+    BaseOrder order = 1;
+    string trade_pair_hash = 2;
+    string filled_amount = 3;
+    sint64 status = 4;
+}
+
+message SignedTransaction {
+    // Arbitrary number to facilitate uniqueness of the transactions's hash.
+    string salt = 1;
+    // Address of transaction signer
+    string signer_address = 2;
+    // The calldata that is to be executed. This must call an Exchange contract
+    // method.
+    string data = 3;
+    // Timestamp in seconds at which transaction expires.
+    string expiration_time_seconds = 4;
+    // gasPrice that transaction is required to be executed with.
+    string gas_price = 5;
+    // Exchange Domain specific values.
+    ExchangeDomain domain = 6;
+    // Signature of the 0x Transaction
+    string signature = 7;
+}
+
+message ExchangeDomain {
+    // Address of the Injective Coordinator Contract.
+    string verifying_contract = 1;
+    // Ethereum Chain ID of the transaction
+    string chain_id = 2;
+}
+
+message FillSignatures {
+    // EIP712 hash of order (see LibOrder.getTypedDataHash)
+    string order_hash = 1;
+    // Array of signatures that correspond to the required signatures to execute
+    // each order in the transaction
+    repeated string approval_signatures = 2;
+    // Timestamp in seconds at which approval expires
+    string expiration_time_seconds = 3;
+    // Desired amount of takerAsset to sell
+    string taker_asset_fill_amount = 4;
+}
+
+message EvmSyncStatus {
+    sint64 latest_block_synced = 1;
+}
+
+message ZeroExTransaction {
+    sint64 zero_ex_transaction_type = 1;
+    repeated string orders = 2;
+}
+
+message MsgCreateSpotOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    BaseOrder order = 2;
+}
+
+message MsgCreateDerivativeOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    BaseOrder order = 2;
+    string initial_quantity_matched = 3;
+}
+
+message MsgRequestFillSpotOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    SignedTransaction signed_transaction = 2;
+    string tx_origin = 3;
+    string approval_signature = 4;
+}
+
+message MsgRequestSoftCancelSpotOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    SignedTransaction signed_transaction = 2;
+    string tx_origin = 3;
+    string approval_signature = 4;
+}
+
+message MsgFilledSpotOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    sint64 block_num = 2;
+    string tx_hash = 3;
+    string order_hash = 4;
+    string amount_filled = 5;
+}
+
+message MsgCancelledSpotOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    sint64 block_num = 2;
+    string tx_hash = 3;
+    string order_hash = 4;
+}
+
+message MsgFilledDerivativeOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    sint64 block_num = 2;
+    string tx_hash = 3;
+    string maker_address = 4;
+    string market_id = 5;
+    string order_hash = 6;
+    string position_id = 7;
+    string quantity_filled = 8;
+    string contract_price = 9;
+    bool is_long = 10;
+}
+
+message MsgCancelledDerivativeOrder {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    sint64 block_num = 2;
+    string tx_hash = 3;
+    string maker_address = 4;
+    string market_id = 5;
+    string order_hash = 6;
+    string position_id = 7;
+}
+
+message MsgRegisterSpotMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    string name = 2;
+    string maker_asset_data = 3;
+    string taker_asset_data = 4;
+    bool enabled = 5;
+}
+
+message MsgSuspendSpotMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    string name = 2;
+    string maker_asset_data = 3;
+    string taker_asset_data = 4;
+}
+
+message MsgResumeSpotMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    string name = 2;
+    string maker_asset_data = 3;
+    string taker_asset_data = 4;
+}
+
+message MsgRegisterDerivativeMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    DerivativeMarket market = 2;
+}
+
+message MsgSuspendDerivativeMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    string market_id = 2;
+}
+
+message MsgResumeDerivativeMarket {
+    option (gogoproto.goproto_getters) = false;
+    string sender = 1;
+    string market_id = 2;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

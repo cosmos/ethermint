@@ -1,9 +1,8 @@
 package orders
 
 import (
-	"github.com/cosmos/ethermint/x/orders/internal/client/cli"
-	"github.com/cosmos/ethermint/x/orders/internal/keeper"
-	"github.com/cosmos/ethermint/x/orders/internal/types"
+	"github.com/cosmos/ethermint/x/orders/keeper"
+	"github.com/cosmos/ethermint/x/orders/types"
 )
 
 const (
@@ -36,10 +35,9 @@ const (
 
 var (
 	NewKeeper     = keeper.NewKeeper
-	NewQuerier    = keeper.NewQuerier
-	RegisterCodec = types.RegisterCodec
-	ModuleCdc     = types.ModuleCdc
-	NewTxCmd      = cli.NewTxCmd
+	//NewQuerier    = keeper.NewQuerier
+	//ModuleCdc     = types.ModuleCdc
+	//NewTxCmd      = cli.NewTxCmd
 
 	ActiveOrdersStoreKey               = types.ActiveOrdersStoreKey
 	ArchiveOrdersStoreKey              = types.ArchiveOrdersStoreKey
@@ -63,48 +61,32 @@ var (
 type (
 	Keeper = keeper.Keeper
 
-	MsgCreateSpotOrder            = types.MsgCreateSpotOrder
-	MsgCreateDerivativeOrder      = types.MsgCreateDerivativeOrder
-	MsgRequestFillSpotOrder       = types.MsgRequestFillSpotOrder
-	MsgRequestSoftCancelSpotOrder = types.MsgRequestSoftCancelSpotOrder
-	MsgFilledSpotOrder            = types.MsgFilledSpotOrder
-	MsgCancelledSpotOrder         = types.MsgCancelledSpotOrder
-	MsgFilledDerivativeOrder      = types.MsgFilledDerivativeOrder
-	MsgCancelledDerivativeOrder   = types.MsgCancelledDerivativeOrder
-
-	MsgRegisterSpotMarket       = types.MsgRegisterSpotMarket
-	MsgSuspendSpotMarket        = types.MsgSuspendSpotMarket
-	MsgResumeSpotMarket         = types.MsgResumeSpotMarket
-	MsgRegisterDerivativeMarket = types.MsgRegisterDerivativeMarket
-	MsgSuspendDerivativeMarket  = types.MsgSuspendDerivativeMarket
-	MsgResumeDerivativeMarket   = types.MsgResumeDerivativeMarket
-
 	QueryOrderParams        = types.QueryOrderParams
 	QueryActiveOrderParams  = types.QueryActiveOrderParams
-	QueryArchiveOrderParams = types.QueryArchiveOrderParams
-	QueryOrdersListParams   = types.QueryOrdersListParams
-	QueryPairParams         = types.QueryPairParams
-	QueryPairsListParams    = types.QueryPairsListParams
-	QueryMarketParams       = types.QueryPairParams
-	QueryMarketsListParams  = types.QueryMarketsListParams
+	//QueryArchiveOrderParams = types.QueryArchiveOrderParams
+	//QueryOrdersListParams   = types.QueryOrdersListParams
+	//QueryPairParams         = types.QueryPairParams
+	//QueryPairsListParams    = types.QueryPairsListParams
+	//QueryMarketParams       = types.QueryPairParams
+	//QueryMarketsListParams  = types.QueryMarketsListParams
 
 	QueryZeroExTransactionParams       = types.QueryZeroExTransactionParams
 	QuerySoftCancelledOrdersParams     = types.QuerySoftCancelledOrdersParams
 	QueryOutstandingFillRequestsParams = types.QueryOutstandingFillRequestsParams
 	QueryOrderFillRequestsParams       = types.QueryOrderFillRequestsParams
 
-	QueryOrderResponse        = types.QueryOrderResponse
+	//QueryOrderResponse        = types.QueryOrderResponse
 	QueryActiveOrderResponse  = types.QueryActiveOrderResponse
 	QueryArchiveOrderResponse = types.QueryArchiveOrderResponse
-	QueryOrdersListResponse   = types.QueryOrdersListResponse
-	QueryPairResponse         = types.QueryPairResponse
-	QueryPairsListResponse    = types.QueryPairsListResponse
-	QueryMarketsListResponse  = types.QueryMarketsListResponse
+	//QueryOrdersListResponse   = types.QueryOrdersListResponse
+	//QueryPairResponse         = types.QueryPairResponse
+	//QueryPairsListResponse    = types.QueryPairsListResponse
+	//QueryMarketsListResponse  = types.QueryMarketsListResponse
 
 	QueryZeroExTransactionResponse       = types.QueryZeroExTransactionResponse
 	QuerySoftCancelledOrdersResponse     = types.QuerySoftCancelledOrdersResponse
-	QueryOutstandingFillRequestsResponse = types.QueryOutstandingFillRequestsResponse
-	QueryOrderFillRequestsResponse       = types.QueryOrderFillRequestsResponse
+	//QueryOutstandingFillRequestsResponse = types.QueryOutstandingFillRequestsResponse
+	//QueryOrderFillRequestsResponse       = types.QueryOrderFillRequestsResponse
 
 	OrderStatus         = types.OrderStatus
 	OrderCollectionType = types.OrderCollectionType
@@ -116,7 +98,7 @@ type (
 	OrderSoftCancelRequest = types.OrderSoftCancelRequest
 	SignedTransaction      = types.SignedTransaction
 	ZeroExTransactionType  = types.ZeroExTransactionType
-	CoordinatorDomain      = types.CoordinatorDomain
+	//CoordinatorDomain      = types.CoordinatorDomain
 	SafeSignedOrder        = types.SafeSignedOrder
 	TradePair              = types.TradePair
 	DerivativeMarket       = types.DerivativeMarket

@@ -1,0 +1,15 @@
+syntax = "proto3";
+package ethermint.orders.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "ethermint/orders/v1beta1/orders.proto";
+
+option go_package = "github.com/cosmos/ethermint/x/orders/types";
+
+// GenesisState defines the evm module's genesis state.
+message GenesisState {
+    // accounts is an array containing the genesis trade pairs
+    repeated TradePair tradePairs = 1;
+    // accounts is an array containing the genesis derivative markets
+    repeated DerivativeMarket derivativeMarkets = 2;
+}

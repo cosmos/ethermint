@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	zeroex "github.com/InjectiveLabs/zeroex-go"
+	"github.com/InjectiveLabs/zeroex-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -16,11 +16,23 @@ import (
 
 const RouterKey = ModuleName
 
-// MsgCreateSpotOrder
-type MsgCreateSpotOrder struct {
-	Sender sdk.AccAddress   `json:"sender"`
-	Order  *SafeSignedOrder `json:"order"`
-}
+var (
+	_ sdk.Msg = &MsgRegisterDerivativeMarket{}
+	_ sdk.Msg = &MsgSuspendDerivativeMarket{}
+	_ sdk.Msg = &MsgResumeDerivativeMarket{}
+	_ sdk.Msg = &MsgRegisterDerivativeMarket{}
+	_ sdk.Msg = &MsgCreateDerivativeOrder{}
+	_ sdk.Msg = &MsgFilledDerivativeOrder{}
+	_ sdk.Msg = &MsgCancelledDerivativeOrder{}
+	_ sdk.Msg = &MsgRegisterSpotMarket{}
+	_ sdk.Msg = &MsgSuspendSpotMarket{}
+	_ sdk.Msg = &MsgResumeSpotMarket{}
+	_ sdk.Msg = &MsgCreateSpotOrder{}
+	_ sdk.Msg = &MsgRequestFillSpotOrder{}
+	_ sdk.Msg = &MsgRequestSoftCancelSpotOrder{}
+	_ sdk.Msg = &MsgFilledSpotOrder{}
+	_ sdk.Msg = &MsgCancelledSpotOrder{}
+)
 
 // Route should return the name of the module
 func (msg MsgCreateSpotOrder) Route() string { return RouterKey }
@@ -30,8 +42,8 @@ func (msg MsgCreateSpotOrder) Type() string { return "createSpotOrder" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCreateSpotOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if msg.Order == nil {
@@ -46,7 +58,8 @@ func (msg MsgCreateSpotOrder) ValidateBasic() error {
 }
 
 // isValidSignature checks that the signature of the order is correct
-func isValidSignature(signature []byte) bool {
+func isValidSignature(sig string) bool {
+	signature := common.Hex2Bytes(sig)
 	signatureType := zeroex.SignatureType(signature[len(signature)-1])
 
 	switch signatureType {
@@ -82,20 +95,17 @@ func isValidSignature(signature []byte) bool {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgCreateSpotOrder) GetSignBytes() []byte {
+func (msg *MsgCreateSpotOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgCreateSpotOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgCreateDerivativeOrder
-type MsgCreateDerivativeOrder struct {
-	Sender                 sdk.AccAddress   `json:"sender"`
-	Order                  *SafeSignedOrder `json:"order"`
-	InitialQuantityMatched BigNum           `json:"initialQuantityMatched"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -106,8 +116,8 @@ func (msg MsgCreateDerivativeOrder) Type() string { return "createDerivativeOrde
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCreateDerivativeOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if msg.Order == nil {
@@ -122,21 +132,17 @@ func (msg MsgCreateDerivativeOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgCreateDerivativeOrder) GetSignBytes() []byte {
+func (msg *MsgCreateDerivativeOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgCreateDerivativeOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgRequestFillSpotOrder
-type MsgRequestFillSpotOrder struct {
-	Sender            sdk.AccAddress     `json:"sender"`
-	SignedTransaction *SignedTransaction `json:"signedTransaction"`
-	TxOrigin          Address            `json:"txOrigin"`
-	ApprovalSignature HexBytes           `json:"approvalSignature"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -147,19 +153,19 @@ func (msg MsgRequestFillSpotOrder) Type() string { return "requestFillSpotOrder"
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRequestFillSpotOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
-	if msg.TxOrigin.IsEmpty() {
+	if msg.TxOrigin == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txOrigin address specified")
 	} else if len(msg.SignedTransaction.Salt) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no salt specified")
-	} else if msg.SignedTransaction.SignerAddress.IsEmpty() {
+	} else if msg.SignedTransaction.SignerAddress == "" {
 		return sdkerrors.Wrap(ErrBadField, "no signerAddress address specified")
-	} else if msg.SignedTransaction.Domain.VerifyingContract.IsEmpty() {
+	} else if msg.SignedTransaction.Domain.VerifyingContract == "" {
 		return sdkerrors.Wrap(ErrBadField, "no verifyingContract address specified")
-	} else if len(msg.SignedTransaction.Domain.ChainID) == 0 {
+	} else if len(msg.SignedTransaction.Domain.ChainId) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no chainID specified")
 	} else if len(msg.SignedTransaction.GasPrice) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no gasPrice specified")
@@ -175,21 +181,17 @@ func (msg MsgRequestFillSpotOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgRequestFillSpotOrder) GetSignBytes() []byte {
+func (msg *MsgRequestFillSpotOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgRequestFillSpotOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgRequestSoftCancelSpotOrder
-type MsgRequestSoftCancelSpotOrder struct {
-	Sender            sdk.AccAddress     `json:"sender"`
-	SignedTransaction *SignedTransaction `json:"signedTransaction"`
-	TxOrigin          Address            `json:"txOrigin"`
-	ApprovalSignature HexBytes           `json:"approvalSignature"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -200,18 +202,18 @@ func (msg MsgRequestSoftCancelSpotOrder) Type() string { return "softCancelSpotO
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRequestSoftCancelSpotOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
-	if msg.TxOrigin.IsEmpty() {
+	if msg.TxOrigin == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txOrigin address specified")
 	} else if len(msg.SignedTransaction.Salt) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no salt specified")
-	} else if msg.SignedTransaction.SignerAddress.IsEmpty() {
+	} else if msg.SignedTransaction.SignerAddress == "" {
 		return sdkerrors.Wrap(ErrBadField, "no signerAddress address specified")
-	} else if msg.SignedTransaction.Domain.VerifyingContract.IsEmpty() {
+	} else if msg.SignedTransaction.Domain.VerifyingContract == "" {
 		return sdkerrors.Wrap(ErrBadField, "no verifyingContract address specified")
-	} else if len(msg.SignedTransaction.Domain.ChainID) == 0 {
+	} else if len(msg.SignedTransaction.Domain.ChainId) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no chainID specified")
 	} else if len(msg.SignedTransaction.GasPrice) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no gasPrice specified")
@@ -222,23 +224,17 @@ func (msg MsgRequestSoftCancelSpotOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgRequestSoftCancelSpotOrder) GetSignBytes() []byte {
+func (msg *MsgRequestSoftCancelSpotOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgRequestSoftCancelSpotOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgFilledSpotOrder encodes an update msg when order
-// becomes fully or partially filled.
-type MsgFilledSpotOrder struct {
-	Sender       sdk.AccAddress `json:"sender"`
-	BlockNum     uint64         `json:"blockNum"`
-	TxHash       Hash           `json:"txHash"`
-	OrderHash    Hash           `json:"orderHash"`
-	AmountFilled BigNum         `json:"amountFilled"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -249,15 +245,15 @@ func (msg MsgFilledSpotOrder) Type() string { return "filledSpotOrder" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgFilledSpotOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if msg.BlockNum == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no blockNum is specified")
-	} else if (msg.TxHash == Hash{}) {
+	} else if msg.TxHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txHash is specified")
-	} else if (msg.OrderHash == Hash{}) {
+	} else if msg.OrderHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no orderHash is specified")
 	}
 
@@ -265,21 +261,17 @@ func (msg MsgFilledSpotOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgFilledSpotOrder) GetSignBytes() []byte {
+func (msg *MsgFilledSpotOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgFilledSpotOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgCancelledSpotOrder
-type MsgCancelledSpotOrder struct {
-	Sender    sdk.AccAddress `json:"sender"`
-	BlockNum  uint64         `json:"blockNum"`
-	TxHash    Hash           `json:"txHash"`
-	OrderHash Hash           `json:"orderHash"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -290,15 +282,14 @@ func (msg MsgCancelledSpotOrder) Type() string { return "cancelledSpotOrder" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCancelledSpotOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
-
 	if msg.BlockNum == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no blockNum is specified")
-	} else if (msg.TxHash == Hash{}) {
+	} else if msg.TxHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txHash is specified")
-	} else if (msg.OrderHash == Hash{}) {
+	} else if msg.OrderHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no orderHash is specified")
 	}
 
@@ -306,28 +297,17 @@ func (msg MsgCancelledSpotOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgCancelledSpotOrder) GetSignBytes() []byte {
+func (msg *MsgCancelledSpotOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgCancelledSpotOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgFilledDerivativeOrder encodes an update msg when a position
-// becomes fully or partially filled.
-type MsgFilledDerivativeOrder struct {
-	Sender         sdk.AccAddress `json:"sender"`
-	BlockNum       uint64         `json:"blockNum"`
-	TxHash         Hash           `json:"txHash"`
-	MakerAddress   Address        `json:"makerAddress"`
-	MarketID       Hash           `json:"marketId"`
-	OrderHash      Hash           `json:"orderHash"`
-	PositionID     BigNum         `json:"positionId"`
-	QuantityFilled BigNum         `json:"quantityFilled"`
-	ContractPrice  BigNum         `json:"contractPrice"`
-	IsLong         bool           `json:"isLong"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -338,19 +318,19 @@ func (msg MsgFilledDerivativeOrder) Type() string { return "filledDerivativeOrde
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgFilledDerivativeOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if msg.BlockNum == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no blockNum is specified")
-	} else if (msg.TxHash == Hash{}) {
+	} else if msg.TxHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txHash is specified")
-	} else if (msg.OrderHash == Hash{}) {
+	} else if msg.OrderHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no orderHash is specified")
-	} else if (msg.MarketID == Hash{}) {
+	} else if msg.MarketId == "" {
 		return sdkerrors.Wrap(ErrBadField, "no marketId is specified")
-	} else if (msg.MakerAddress == Address{}) {
+	} else if msg.MakerAddress == "" {
 		return sdkerrors.Wrap(ErrBadField, "no makerAddress is specified")
 	}
 
@@ -358,24 +338,17 @@ func (msg MsgFilledDerivativeOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgFilledDerivativeOrder) GetSignBytes() []byte {
+func (msg *MsgFilledDerivativeOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgFilledDerivativeOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgCancelledDerivativeOrder
-type MsgCancelledDerivativeOrder struct {
-	Sender       sdk.AccAddress `json:"sender"`
-	BlockNum     uint64         `json:"blockNum"`
-	TxHash       Hash           `json:"txHash"`
-	MakerAddress Address        `json:"makerAddress"`
-	MarketID     Hash           `json:"marketId"`
-	OrderHash    Hash           `json:"orderHash"`
-	PositionID   BigNum         `json:"positionId"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -386,19 +359,19 @@ func (msg MsgCancelledDerivativeOrder) Type() string { return "cancelledDerivati
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCancelledDerivativeOrder) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if msg.BlockNum == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no blockNum is specified")
-	} else if (msg.TxHash == Hash{}) {
+	} else if msg.TxHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no txHash is specified")
-	} else if (msg.OrderHash == Hash{}) {
+	} else if msg.OrderHash == "" {
 		return sdkerrors.Wrap(ErrBadField, "no orderHash is specified")
-	} else if (msg.MarketID == Hash{}) {
+	} else if msg.MarketId == "" {
 		return sdkerrors.Wrap(ErrBadField, "no marketId is specified")
-	} else if (msg.MakerAddress == Address{}) {
+	} else if msg.MakerAddress == "" {
 		return sdkerrors.Wrap(ErrBadField, "no makerAddress is specified")
 	}
 
@@ -406,22 +379,17 @@ func (msg MsgCancelledDerivativeOrder) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgCancelledDerivativeOrder) GetSignBytes() []byte {
+func (msg *MsgCancelledDerivativeOrder) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgCancelledDerivativeOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgRegisterSpotMarket defines a RegisterSpotMarket message
-type MsgRegisterSpotMarket struct {
-	Sender         sdk.AccAddress `json:"sender"`
-	Name           string         `json:"name"`
-	MakerAssetData HexBytes       `json:"makerAssetData"`
-	TakerAssetData HexBytes       `json:"takerAssetData"`
-	Enabled        bool           `json:"enabled"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -432,8 +400,8 @@ func (msg MsgRegisterSpotMarket) Type() string { return "registerSpotMarket" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRegisterSpotMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 	if len(msg.Name) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no trade pair name specified")
@@ -450,24 +418,17 @@ func (msg MsgRegisterSpotMarket) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgRegisterSpotMarket) GetSignBytes() []byte {
+func (msg *MsgRegisterSpotMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgRegisterSpotMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgRegisterDerivativeMarket defines a RegisterDerivativeMarket message
-type MsgRegisterDerivativeMarket struct {
-	Sender       sdk.AccAddress `json:"sender"`
-	Ticker       string         `json:"ticker"`
-	Oracle       common.Address `json:"oracle"`
-	BaseCurrency common.Address `json:"baseCurrency"`
-	Nonce        BigNum         `json:"nonce"`
-	MarketID     Hash           `json:"marketID"`
-	Enabled      bool           `json:"enabled"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -478,52 +439,42 @@ func (msg MsgRegisterDerivativeMarket) Type() string { return "registerDerivativ
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRegisterDerivativeMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
+	market := msg.Market
 
-	market := DerivativeMarket{
-		Ticker:       msg.Ticker,
-		Oracle:       msg.Oracle.Bytes(),
-		BaseCurrency: msg.BaseCurrency.Bytes(),
-		Nonce:        msg.Nonce,
-		MarketID:     Hash{},
-		Enabled:      true,
-	}
-	if len(msg.Ticker) == 0 {
+	if len(market.Ticker) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "no market ticker name specified")
-	} else if parts := strings.Split(msg.Ticker, "/"); len(parts) != 2 ||
+	} else if parts := strings.Split(market.Ticker, "/"); len(parts) != 2 ||
 		len(strings.TrimSpace(parts[0])) == 0 || len(strings.TrimSpace(parts[1])) == 0 {
 		return sdkerrors.Wrap(ErrBadField, "market ticker must be in format AAA/BBB")
 	}
 	hash, err := market.Hash()
-	if hash != msg.MarketID.Hash {
-
-		errMsg := "The MarketID " + msg.MarketID.String() + " provided does not match the MarketID " + hash.String() + " computed"
-		errMsg += "\n for Ticker: " + msg.Ticker + "\nOracle: " + msg.Oracle.Hex() + "\nBaseCurrency: " + msg.BaseCurrency.Hex() + "\nNonce: " + msg.Nonce.Decimal().String()
-		return sdkerrors.Wrap(ErrMarketInvalid, errMsg)
-	}
 	if err != nil {
 		return sdkerrors.Wrap(ErrMarketInvalid, err.Error())
+	}
+	if hash.String() != market.MarketId {
+		errMsg := "The MarketID " + market.MarketId + " provided does not match the MarketID " + hash.String() + " computed"
+		errMsg += "\n for Ticker: " + market.Ticker + "\nOracle: " + market.Oracle + "\nBaseCurrency: " + market.BaseCurrency + "\nNonce: " + market.Nonce
+		return sdkerrors.Wrap(ErrMarketInvalid, errMsg)
 	}
 
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgRegisterDerivativeMarket) GetSignBytes() []byte {
+func (msg *MsgRegisterDerivativeMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgRegisterDerivativeMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgSuspendDerivativeMarket allows to suspend a derivative market.
-type MsgSuspendDerivativeMarket struct {
-	Sender   sdk.AccAddress `json:"sender"`
-	MarketID Hash           `json:"marketId"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -536,28 +487,26 @@ func (msg MsgSuspendDerivativeMarket) Type() string {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgSuspendDerivativeMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
-	} else if (msg.MarketID.Hash == common.Hash{}) {
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
+	} else if msg.MarketId == "" {
 		return sdkerrors.Wrap(ErrBadField, "no derivative market ID specified")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgSuspendDerivativeMarket) GetSignBytes() []byte {
+func (msg *MsgSuspendDerivativeMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgSuspendDerivativeMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgResumeDerivativeMarket allows to resume a suspended derivative market.
-type MsgResumeDerivativeMarket struct {
-	Sender   sdk.AccAddress `json:"sender"`
-	MarketID Hash           `json:"marketId"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -570,30 +519,26 @@ func (msg MsgResumeDerivativeMarket) Type() string {
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgResumeDerivativeMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
-	} else if (msg.MarketID.Hash == common.Hash{}) {
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
+	} else if msg.MarketId == "" {
 		return sdkerrors.Wrap(ErrBadField, "no derivative market ID specified")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgResumeDerivativeMarket) GetSignBytes() []byte {
+func (msg *MsgResumeDerivativeMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgResumeDerivativeMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgSuspendSpotMarket defines a SuspendSpotMarket message
-type MsgSuspendSpotMarket struct {
-	Sender         sdk.AccAddress `json:"sender"`
-	Name           string         `json:"name"`
-	MakerAssetData HexBytes       `json:"makerAssetData"`
-	TakerAssetData HexBytes       `json:"takerAssetData"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -604,8 +549,8 @@ func (msg MsgSuspendSpotMarket) Type() string { return "suspendSpotMarket" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgSuspendSpotMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if len(msg.Name) == 0 {
@@ -616,21 +561,17 @@ func (msg MsgSuspendSpotMarket) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgSuspendSpotMarket) GetSignBytes() []byte {
+func (msg *MsgSuspendSpotMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgSuspendSpotMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
-}
-
-// MsgResumeSpotMarket defines a ResumeSpotMarket message
-type MsgResumeSpotMarket struct {
-	Sender         sdk.AccAddress `json:"sender"`
-	Name           string         `json:"name"`
-	MakerAssetData HexBytes       `json:"makerAssetData"`
-	TakerAssetData HexBytes       `json:"takerAssetData"`
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // Route should return the name of the module
@@ -641,8 +582,8 @@ func (msg MsgResumeSpotMarket) Type() string { return "resumeSpotMarket" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgResumeSpotMarket) ValidateBasic() error {
-	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+	if msg.Sender == "" {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender)
 	}
 
 	if len(msg.Name) == 0 {
@@ -653,13 +594,17 @@ func (msg MsgResumeSpotMarket) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgResumeSpotMarket) GetSignBytes() []byte {
+func (msg *MsgResumeSpotMarket) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
 func (msg MsgResumeSpotMarket) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Sender}
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
 }
 
 // SafeSignedOrder is a special signed order structure
@@ -716,7 +661,7 @@ func NewSafeSignedOrder(o *zeroex.SignedOrder) *SafeSignedOrder {
 }
 
 // ToSignedOrder returns an appropriate zeroex.SignedOrder defined by SafeSignedOrder.
-func (m *SafeSignedOrder) ToSignedOrder() *zeroex.SignedOrder {
+func (m *BaseOrder) ToSignedOrder() *zeroex.SignedOrder {
 	o, err := so2zo(m)
 	if err != nil {
 		panic(err)
@@ -751,22 +696,23 @@ func zo2so(o *zeroex.SignedOrder) *SafeSignedOrder {
 }
 
 // so2zo internal function converts model from *SafeSignedOrder to *zeroex.SignedOrder.
-func so2zo(o *SafeSignedOrder) (*zeroex.SignedOrder, error) {
+func so2zo(o *BaseOrder) (*zeroex.SignedOrder, error) {
 	if o == nil {
 		return nil, nil
 	}
 	order := zeroex.Order{
-		ChainID:             big.NewInt(o.ChainID),
-		ExchangeAddress:     o.ExchangeAddress.Address,
-		MakerAddress:        o.MakerAddress.Address,
-		TakerAddress:        o.TakerAddress.Address,
-		MakerAssetData:      o.MakerAssetData,
-		TakerAssetData:      o.TakerAssetData,
-		MakerFeeAssetData:   o.MakerFeeAssetData,
-		TakerFeeAssetData:   o.TakerFeeAssetData,
-		SenderAddress:       o.SenderAddress.Address,
-		FeeRecipientAddress: o.FeeRecipientAddress.Address,
+		ChainID:             big.NewInt(o.ChainId),
+		ExchangeAddress:     common.HexToAddress(o.ExchangeAddress),
+		MakerAddress:        common.HexToAddress(o.MakerAddress),
+		TakerAddress:        common.HexToAddress(o.TakerAddress),
+		SenderAddress:       common.HexToAddress(o.SenderAddress),
+		FeeRecipientAddress: common.HexToAddress(o.FeeRecipientAddress),
+		MakerAssetData:      common.Hex2Bytes(o.MakerAssetData),
+		MakerFeeAssetData:   common.Hex2Bytes(o.MakerFeeAssetData),
+		TakerAssetData:      common.Hex2Bytes(o.TakerAssetData),
+		TakerFeeAssetData:   common.Hex2Bytes(o.TakerFeeAssetData),
 	}
+
 	if v, ok := math.ParseBig256(string(o.MakerAssetAmount)); !ok {
 		return nil, errors.New("makerAssetAmmount parse failed")
 	} else {
@@ -799,7 +745,125 @@ func so2zo(o *SafeSignedOrder) (*zeroex.SignedOrder, error) {
 	}
 	signedOrder := &zeroex.SignedOrder{
 		Order:     order,
-		Signature: o.Signature,
+		Signature: common.Hex2Bytes(o.Signature),
 	}
 	return signedOrder, nil
 }
+// MsgCreateSpotOrder
+//type MsgCreateSpotOrder struct {
+//	Sender sdk.AccAddress   `json:"sender"`
+//	Order  *SafeSignedOrder `json:"order"`
+//}
+
+//// MsgRegisterDerivativeMarket defines a RegisterDerivativeMarket message
+//type MsgRegisterDerivativeMarket struct {
+//	Sender       sdk.AccAddress `json:"sender"`
+//	Ticker       string         `json:"ticker"`
+//	Oracle       common.Address `json:"oracle"`
+//	BaseCurrency common.Address `json:"baseCurrency"`
+//	Nonce        BigNum         `json:"nonce"`
+//	MarketID     ComputeHash           `json:"marketID"`
+//	Enabled      bool           `json:"enabled"`
+//}
+
+// MsgCreateDerivativeOrder
+//type MsgCreateDerivativeOrder struct {
+//	Sender                 sdk.AccAddress   `json:"sender"`
+//	Order                  *SafeSignedOrder `json:"order"`
+//	InitialQuantityMatched BigNum           `json:"initialQuantityMatched"`
+//}
+
+//// MsgRequestFillSpotOrder
+//type MsgRequestFillSpotOrder struct {
+//	Sender            sdk.AccAddress     `json:"sender"`
+//	SignedTransaction *SignedTransaction `json:"signedTransaction"`
+//	TxOrigin          Address            `json:"txOrigin"`
+//	ApprovalSignature HexBytes           `json:"approvalSignature"`
+//}
+
+// MsgRequestSoftCancelSpotOrder
+//type MsgRequestSoftCancelSpotOrder struct {
+//	Sender            sdk.AccAddress     `json:"sender"`
+//	SignedTransaction *SignedTransaction `json:"signedTransaction"`
+//	TxOrigin          Address            `json:"txOrigin"`
+//	ApprovalSignature HexBytes           `json:"approvalSignature"`
+//}
+
+// MsgFilledSpotOrder encodes an update msg when order
+//// becomes fully or partially filled.
+//type MsgFilledSpotOrder struct {
+//	Sender       sdk.AccAddress `json:"sender"`
+//	BlockNum     uint64         `json:"blockNum"`
+//	TxHash       ComputeHash           `json:"txHash"`
+//	OrderHash    ComputeHash           `json:"orderHash"`
+//	AmountFilled BigNum         `json:"amountFilled"`
+//}
+
+// MsgCancelledSpotOrder
+//type MsgCancelledSpotOrder struct {
+//	Sender    sdk.AccAddress `json:"sender"`
+//	BlockNum  uint64         `json:"blockNum"`
+//	TxHash    ComputeHash           `json:"txHash"`
+//	OrderHash ComputeHash           `json:"orderHash"`
+//}
+
+// MsgFilledDerivativeOrder encodes an update msg when a position
+// becomes fully or partially filled.
+//type MsgFilledDerivativeOrder struct {
+//	Sender         sdk.AccAddress `json:"sender"`
+//	BlockNum       uint64         `json:"blockNum"`
+//	TxHash         ComputeHash           `json:"txHash"`
+//	MakerAddress   Address        `json:"makerAddress"`
+//	MarketID       ComputeHash           `json:"marketId"`
+//	OrderHash      ComputeHash           `json:"orderHash"`
+//	PositionID     BigNum         `json:"positionId"`
+//	QuantityFilled BigNum         `json:"quantityFilled"`
+//	ContractPrice  BigNum         `json:"contractPrice"`
+//	IsLong         bool           `json:"isLong"`
+//}
+
+// MsgCancelledDerivativeOrder
+//type MsgCancelledDerivativeOrder struct {
+//	Sender       sdk.AccAddress `json:"sender"`
+//	BlockNum     uint64         `json:"blockNum"`
+//	TxHash       ComputeHash           `json:"txHash"`
+//	MakerAddress Address        `json:"makerAddress"`
+//	MarketID     ComputeHash           `json:"marketId"`
+//	OrderHash    ComputeHash           `json:"orderHash"`
+//	PositionID   BigNum         `json:"positionId"`
+//}
+
+//// MsgRegisterSpotMarket defines a RegisterSpotMarket message
+//type MsgRegisterSpotMarket struct {
+//	Sender         sdk.AccAddress `json:"sender"`
+//	Name           string         `json:"name"`
+//	MakerAssetData HexBytes       `json:"makerAssetData"`
+//	TakerAssetData HexBytes       `json:"takerAssetData"`
+//	Enabled        bool           `json:"enabled"`
+//}
+
+//// MsgSuspendDerivativeMarket allows to suspend a derivative market.
+//type MsgSuspendDerivativeMarket struct {
+//	Sender   sdk.AccAddress `json:"sender"`
+//	MarketID ComputeHash           `json:"marketId"`
+//}
+//// MsgResumeDerivativeMarket allows to resume a suspended derivative market.
+//type MsgResumeDerivativeMarket struct {
+//	Sender   sdk.AccAddress `json:"sender"`
+//	MarketID ComputeHash           `json:"marketId"`
+//}
+
+//// MsgSuspendSpotMarket defines a SuspendSpotMarket message
+//type MsgSuspendSpotMarket struct {
+//	Sender         sdk.AccAddress `json:"sender"`
+//	Name           string         `json:"name"`
+//	MakerAssetData HexBytes       `json:"makerAssetData"`
+//	TakerAssetData HexBytes       `json:"takerAssetData"`
+//}
+//// MsgResumeSpotMarket defines a ResumeSpotMarket message
+//type MsgResumeSpotMarket struct {
+//	Sender         sdk.AccAddress `json:"sender"`
+//	Name           string         `json:"name"`
+//	MakerAssetData HexBytes       `json:"makerAssetData"`
+//	TakerAssetData HexBytes       `json:"takerAssetData"`
+//}

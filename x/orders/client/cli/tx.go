@@ -1,28 +1,20 @@
 package cli
 
 import (
-	"bufio"
-	"math/big"
-	"strconv"
+	"github.com/cosmos/cosmos-sdk/client/tx"
+	"github.com/cosmos/ethermint/x/orders/types"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // NewTxCmd returns a root CLI command handler for certain modules/orders transaction commands.
-func NewTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewTxCmd() *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Orders admin subcommands",
@@ -31,148 +23,163 @@ func NewTxCmd(cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	txCmd.AddCommand(NewRegisterDerivativeMarketTxCmd(cdc))
-	txCmd.AddCommand(NewSuspendDerivativeMarketTxCmd(cdc))
-	txCmd.AddCommand(NewResumeDerivativeMarketTxCmd(cdc))
-
-	txCmd.AddCommand(NewMsgRegisterSpotMarketTxCmd(cdc))
-	txCmd.AddCommand(NewMsgSuspendSpotMarketTxCmd(cdc))
-	txCmd.AddCommand(NewMsgResumeSpotMarketTxCmd(cdc))
-
+	txCmd.AddCommand(
+		NewRegisterDerivativeMarketTxCmd(),
+		NewSuspendDerivativeMarketTxCmd(),
+		NewResumeDerivativeMarketTxCmd(),
+		NewMsgRegisterSpotMarketTxCmd(),
+		NewMsgSuspendSpotMarketTxCmd(),
+		NewMsgResumeSpotMarketTxCmd(),
+	)
 	return txCmd
 }
 
 // NewRegisterDerivativeMarketTxCmd returns a CLI command handler for creating
 // a MsgRegisterDerivativeMarket transaction.
-func NewRegisterDerivativeMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewRegisterDerivativeMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "derivativemarket-register [from_key_or_address] [market_name] [market_id] [oracle_address] [base_currency_address] [nonce]",
 		Short: "Create and/or sign and broadcast a MsgRegisterDerivativeMarket transaction",
 		Args:  cobra.ExactArgs(6),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			marketName, err := validateMarketName(args[1])
 			if err != nil {
 				return err
 			}
-			nonce, _ := strconv.Atoi(args[5])
-			msg := types.MsgRegisterDerivativeMarket{
-				Sender:       cliCtx.GetFromAddress(),
-				Ticker:       marketName,
-				Oracle:       common.HexToAddress(args[3]),
-				BaseCurrency: common.HexToAddress(args[4]),
-				Nonce:        types.NewBigNum(big.NewInt(int64(nonce))),
-				MarketID: types.Hash{
-					Hash: common.HexToHash(args[2]),
+
+			marketId := args[2]
+			oracleAddress := args[3]
+			baseCurrencyAddress := args[4]
+			nonce := args[5]
+			msg := &types.MsgRegisterDerivativeMarket{
+				Sender: cliCtx.GetFromAddress().String(),
+				Market: &types.DerivativeMarket{
+					Ticker:       marketName,
+					Oracle:       oracleAddress,
+					BaseCurrency: baseCurrencyAddress,
+					Nonce:        nonce,
+					MarketId:     marketId,
+					Enabled:      true,
 				},
-				Enabled: true,
 			}
+
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
+
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
+	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 
 // NewSuspendDerivativeMarketTxCmd returns a CLI command handler for creating
 // a MsgSuspendDerivativeMarket transaction.
-func NewSuspendDerivativeMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewSuspendDerivativeMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "derivativemarket-suspend [from_key_or_address] [market_id]",
 		Short: "Create and/or sign and broadcast a MsgSuspendDerivativeMarket transaction",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
-
-			msg := types.MsgSuspendDerivativeMarket{
-				Sender: cliCtx.GetFromAddress(),
-				MarketID: types.Hash{
-					Hash: common.HexToHash(args[1]),
-				},
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
 			}
+
+			marketId := args[1]
+			msg := &types.MsgSuspendDerivativeMarket{
+				Sender:   cliCtx.GetFromAddress().String(),
+				MarketId: marketId,
+			}
+
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
+
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
+	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 
 // NewResumeDerivativeMarketCmd returns a CLI command handler for creating
 // a MsgResumeDerivativeMarket transaction.
-func NewResumeDerivativeMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewResumeDerivativeMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "derivativemarket-resume [from_key_or_address] [market_id]",
 		Short: "Create and/or sign and broadcast a MsgResumeDerivativeMarket transaction",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
-
-			msg := types.MsgResumeDerivativeMarket{
-				Sender: cliCtx.GetFromAddress(),
-				MarketID: types.Hash{
-					Hash: common.HexToHash(args[1]),
-				},
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
 			}
+
+			marketId := args[1]
+			msg := &types.MsgResumeDerivativeMarket{
+				Sender:   cliCtx.GetFromAddress().String(),
+				MarketId: marketId,
+			}
+
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
+	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 
 // NewMsgRegisterSpotMarketTxCmd returns a CLI command handler for creating a MsgRegisterSpotMarket transaction.
-func NewMsgRegisterSpotMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewMsgRegisterSpotMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "spotmarket-register [from_key_or_address] [spot_market_name] [makerAssetData] [takerAssetData]",
 		Short: "Create and/or sign and broadcast a MsgRegisterSpotMarket transaction",
 		Args:  cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			pairName, err := validatePairName(args[1])
 			if err != nil {
 				return err
 			}
 
-			makerAssetData, err := validateAssetDataHex(args[2])
+			_, err = validateAssetDataHex(args[2])
 			if err != nil {
 				return err
 			}
 
-			takerAssetData, err := validateAssetDataHex(args[3])
+			_, err = validateAssetDataHex(args[3])
 			if err != nil {
 				return err
 			}
 
-			msg := types.MsgRegisterSpotMarket{
-				Sender:         cliCtx.GetFromAddress(),
+			msg := &types.MsgRegisterSpotMarket{
+				Sender:         cliCtx.GetFromAddress().String(),
 				Name:           pairName,
-				MakerAssetData: types.HexBytes(makerAssetData),
-				TakerAssetData: types.HexBytes(takerAssetData),
+				MakerAssetData: args[2],
+				TakerAssetData: args[3],
 				Enabled:        true,
 			}
 
@@ -180,104 +187,105 @@ func NewMsgRegisterSpotMarketTxCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
+	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
 }
 
 // NewMsgSuspendSpotMarketTxCmd returns a CLI command handler for creating a MsgSuspendSpotMarket transaction.
-func NewMsgSuspendSpotMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewMsgSuspendSpotMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "spotmarket-suspend [from_key_or_address] [spot_market_name] [makerAssetData] [takerAssetData]",
 		Short: "Create and/or sign and broadcast a MsgSuspendSpotMarket transaction",
 		Args:  cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			pairName, err := validatePairName(args[1])
 			if err != nil {
 				return err
 			}
 
-			makerAssetData, err := validateAssetDataHex(args[2])
+			_, err = validateAssetDataHex(args[2])
 			if err != nil {
 				return err
 			}
 
-			takerAssetData, err := validateAssetDataHex(args[3])
+			_, err = validateAssetDataHex(args[3])
 			if err != nil {
 				return err
 			}
-
-			msg := types.MsgSuspendSpotMarket{
-				Sender:         cliCtx.GetFromAddress(),
+			msg := &types.MsgSuspendSpotMarket{
+				Sender:         cliCtx.GetFromAddress().String(),
 				Name:           pairName,
-				MakerAssetData: types.HexBytes(makerAssetData),
-				TakerAssetData: types.HexBytes(takerAssetData),
+				MakerAssetData: args[2],
+				TakerAssetData: args[3],
 			}
 
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
+	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
 }
 
 // NewMsgResumeSpotMarketTxCmd returns a CLI command handler for creating a MsgResumeSpotMarket transaction.
-func NewMsgResumeSpotMarketTxCmd(cdc *codec.Codec) *cobra.Command {
+func NewMsgResumeSpotMarketTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "spotmarket-suspend [from_key_or_address] [spot_market_name] [makerAssetData] [takerAssetData]",
 		Short: "Create and/or sign and broadcast a MsgResumeSpotMarket transaction",
 		Args:  cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
+			cliCtx := client.GetClientContextFromCmd(cmd)
+			cliCtx, err := client.ReadTxCommandFlags(cliCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
 
 			pairName, err := validatePairName(args[1])
 			if err != nil {
 				return err
 			}
 
-			makerAssetData, err := validateAssetDataHex(args[2])
+			_, err = validateAssetDataHex(args[2])
 			if err != nil {
 				return err
 			}
 
-			takerAssetData, err := validateAssetDataHex(args[3])
+			_, err = validateAssetDataHex(args[3])
 			if err != nil {
 				return err
 			}
-
-			msg := types.MsgResumeSpotMarket{
-				Sender:         cliCtx.GetFromAddress(),
+			msg := &types.MsgResumeSpotMarket{
+				Sender:         cliCtx.GetFromAddress().String(),
 				Name:           pairName,
-				MakerAssetData: types.HexBytes(makerAssetData),
-				TakerAssetData: types.HexBytes(takerAssetData),
+				MakerAssetData: args[2],
+				TakerAssetData: args[3],
 			}
 
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
 		},
 	}
 
-	cmd = flags.PostCommands(cmd)[0]
-
+	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 

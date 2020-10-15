@@ -2,9 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	types "github.com/cosmos/ethermint/x/orders/types"
 	log "github.com/xlab/suplog"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // Returns EvmSyncStatus from keeper for spot market

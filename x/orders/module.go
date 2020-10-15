@@ -1,9 +1,16 @@
 package orders
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/client"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/ethermint/x/orders/client/cli"
+	"github.com/cosmos/ethermint/x/orders/types"
+	grpc1 "github.com/gogo/protobuf/grpc"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -14,8 +21,6 @@ import (
 	"github.com/cosmos/ethermint/ethereum/provider"
 	"github.com/cosmos/ethermint/ethereum/registry"
 	"github.com/cosmos/ethermint/eventdb"
-	"github.com/cosmos/ethermint/loopback"
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 	"github.com/cosmos/ethermint/metrics"
 )
 
@@ -32,38 +37,52 @@ func (AppModuleBasic) Name() string {
 	return ModuleName
 }
 
-func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
-	RegisterCodec(cdc)
+// RegisterLegacyAminoCodec performs a no-op as the evm module doesn't support amino.
+func (AppModuleBasic) RegisterLegacyAminoCodec(_ *codec.LegacyAmino) {
 }
 
-func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+// RegisterInterfaces registers interfaces and implementations of the orders module.
+func (b AppModuleBasic) RegisterInterfaces(interfaceRegistry codectypes.InterfaceRegistry) {
+	types.RegisterInterfaces(interfaceRegistry)
 }
 
-// Validation check of the Genesis
-func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	var data GenesisState
-	err := ModuleCdc.UnmarshalJSON(bz, &data)
-	if err != nil {
-		return err
+// DefaultGenesis returns default genesis state as raw bytes for the evm
+// module.
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
+	return cdc.MustMarshalJSON(types.DefaultGenesisState())
+}
+
+func (b AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, config client.TxEncodingConfig, bz json.RawMessage) error {
+	var genesisState types.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &genesisState); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
 	}
-	// Once json successfully marshalled, passes along to genesis.go
-	return ValidateGenesis(data)
+
+	return genesisState.Validate()
 }
 
-// Register rest routes
-func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
+// RegisterRESTRoutes performs a no-op as the orders module doesn't expose REST
+// endpoints
+func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
 	return
 }
 
-// Get the root query command of this module
-func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return nil
+// RegisterGRPCRoutes registers the gRPC Gateway routes for the orders module.
+func (b AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, serveMux *runtime.ServeMux) {
+	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
+	if err != nil {
+		panic("Failed to RegisterGRPCRoutes in orders module")
+	}
 }
 
-// Get the root tx command of this module
-func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return nil
+// GetTxCmd returns the root tx command for the orders module.
+func (b AppModuleBasic) GetTxCmd() *cobra.Command {
+	return cli.NewTxCmd()
+}
+
+// GetQueryCmd returns no root query command for the orders module.
+func (b AppModuleBasic) GetQueryCmd() *cobra.Command {
+	return cli.GetQueryCmd()
 }
 
 type AppModule struct {
@@ -71,7 +90,7 @@ type AppModule struct {
 
 	svcTags      metrics.Tags
 	keeper       Keeper
-	cosmosClient loopback.CosmosClient
+	//cosmosClient loopback.CosmosClient
 	isExportOnly bool
 
 	ethOrderEventDB           eventdb.OrderEventDB
@@ -89,7 +108,7 @@ type AppModule struct {
 func NewAppModule(
 	keeper Keeper,
 	isExportOnly bool,
-	cosmosClient loopback.CosmosClient,
+	//cosmosClient loopback.CosmosClient,
 	ethOrderEventDB eventdb.OrderEventDB,
 	ethFuturesPositionEventDB eventdb.FuturesPositionEventDB,
 	ethProvider func() provider.EVMProvider,
@@ -104,7 +123,7 @@ func NewAppModule(
 		},
 		keeper:       keeper,
 		isExportOnly: isExportOnly,
-		cosmosClient: cosmosClient,
+		//cosmosClient: cosmosClient,
 
 		ethOrderEventDB:           ethOrderEventDB,
 		ethFuturesPositionEventDB: ethFuturesPositionEventDB,
@@ -121,9 +140,6 @@ func (AppModule) Name() string {
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
-func (am AppModule) Route() string {
-	return RouterKey
-}
 
 func (am AppModule) NewHandler() sdk.Handler {
 	return NewOrderMsgHandler(
@@ -136,30 +152,43 @@ func (am AppModule) NewHandler() sdk.Handler {
 	)
 }
 
-func (am AppModule) QuerierRoute() string {
-	return ModuleName
+func (am AppModule) Route() sdk.Route {
+	return sdk.NewRoute(types.RouterKey, am.NewHandler())
 }
 
-func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return NewQuerier(am.keeper)
+func (am AppModule) QuerierRoute() string {
+	return RouterKey
+}
+
+
+func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier {
+	return nil
+}
+
+func (am AppModule) RegisterQueryService(server grpc1.Server) {
+	types.RegisterQueryServer(server, am.keeper)
 }
 
 func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
-	// am.BeginBlocker(ctx)
+	am.BeginBlocker(ctx)
 }
 
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
 
-func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState GenesisState
-	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
+	var genesisState types.GenesisState
+
+	cdc.MustUnmarshalJSON(data, &genesisState)
 	InitGenesis(ctx, am.keeper, genesisState)
 	return []abci.ValidatorUpdate{}
 }
 
-func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
-	return ModuleCdc.MustMarshalJSON(gs)
+	return cdc.MustMarshalJSON(gs)
 }
+
+
+

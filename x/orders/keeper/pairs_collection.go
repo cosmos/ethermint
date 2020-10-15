@@ -2,9 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	types "github.com/cosmos/ethermint/x/orders/types"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // Returns TradePair from hash
@@ -43,12 +42,12 @@ func (k Keeper) GetAllTradePairs(ctx sdk.Context) []*types.TradePair {
 
 // Sets TradePair in keeper
 func (k Keeper) SetTradePair(ctx sdk.Context, tradePair *types.TradePair) {
-	hash, err := tradePair.Hash()
+	hash, err := tradePair.ComputeHash()
 	if err != nil {
 		k.Logger(ctx).Error("failed to compute tradePair hash:", "error", err.Error())
 		return
 	}
-	tradePair.TradePairHash.Hash = hash
+	tradePair.Hash = hash.Hex()
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(tradePair)
 	store.Set(types.TradePairsStoreKey(hash), bz)

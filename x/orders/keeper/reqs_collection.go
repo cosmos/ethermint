@@ -2,9 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/ethermint/x/orders/types"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/cosmos/ethermint/x/orders/internal/types"
 )
 
 // GETTERS SECTION
@@ -156,7 +155,7 @@ func (k Keeper) SetOrderFillRequest(
 	req *types.OrderFillRequest,
 ) {
 	store := ctx.KVStore(k.storeKey)
-	keyPrefix := types.OrderFillRequestsStorePrefix(req.OrderHash)
+	keyPrefix := types.OrderFillRequestsStorePrefix(common.HexToHash(req.OrderHash))
 
 	bz := k.cdc.MustMarshalBinaryBare(req)
 
@@ -171,7 +170,7 @@ func (k Keeper) SetOrderSoftCancelRequest(
 	req *types.OrderSoftCancelRequest,
 ) {
 	store := ctx.KVStore(k.storeKey)
-	keyPrefix := types.OrderSoftCancelRequestsStorePrefix(req.OrderHash)
+	keyPrefix := types.OrderSoftCancelRequestsStorePrefix(common.HexToHash(req.OrderHash))
 
 	bz := k.cdc.MustMarshalBinaryBare(req)
 
@@ -226,12 +225,12 @@ func (k Keeper) IterateOrderFillRequestsByTxHash(
 	process func(*types.OrderFillRequest) (stop bool),
 ) {
 	tx := k.GetZeroExTransaction(ctx, txHash)
-	if tx.Type != types.ZeroExOrderFillRequestTx {
+	if types.ZeroExTransactionType(tx.ZeroExTransactionType) != types.ZeroExOrderFillRequestTx {
 		return
 	}
 
 	for _, orderHash := range tx.Orders {
-		req := k.GetOrderFillRequest(ctx, orderHash, txHash)
+		req := k.GetOrderFillRequest(ctx, common.HexToHash(orderHash), txHash)
 		if req != nil {
 			if process(req) {
 				return
@@ -274,12 +273,12 @@ func (k Keeper) IterateOrderSoftCancelRequestsByTxHash(
 	process func(*types.OrderSoftCancelRequest) (stop bool),
 ) {
 	tx := k.GetZeroExTransaction(ctx, txHash)
-	if tx.Type != types.ZeroExOrderSoftCancelRequestTx {
+	if types.ZeroExTransactionType(tx.ZeroExTransactionType) != types.ZeroExOrderSoftCancelRequestTx {
 		return
 	}
 
 	for _, orderHash := range tx.Orders {
-		req := k.GetOrderSoftCancelRequest(ctx, orderHash, txHash)
+		req := k.GetOrderSoftCancelRequest(ctx, common.HexToHash(orderHash), txHash)
 		if req != nil {
 			if process(req) {
 				return

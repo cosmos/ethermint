@@ -19,7 +19,7 @@ var (
 	// ErrZeroAddress returns an error resulting from an zero (empty) ethereum Address.
 	ErrZeroAddress = sdkerrors.Register(ModuleName, 5, "invalid zero address")
 
-	// ErrEmptyHash returns an error resulting from an empty ethereum Hash.
+	// ErrEmptyHash returns an error resulting from an empty ethereum ComputeHash.
 	ErrEmptyHash = sdkerrors.Register(ModuleName, 6, "empty hash")
 
 	// ErrBloomNotFound returns an error if the block bloom cannot be found on the store.
