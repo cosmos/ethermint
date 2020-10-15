@@ -51,7 +51,7 @@ func (k Keeper) QueryTradePairs(c context.Context, req *types.QueryTradePairsReq
 	return &types.QueryTradePairsResponse{Records: pairs}, nil
 }
 
-func (k Keeper) QueryDerivativeOrders(c context.Context, req *types.QueryOrdersRequest) (*types.QueryDerivativeOrdersResponse, error) {
+func (k Keeper) QueryDerivativeOrders(c context.Context, req *types.QueryDerivativeOrdersRequest) (*types.QueryDerivativeOrdersResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -59,6 +59,15 @@ func (k Keeper) QueryDerivativeOrders(c context.Context, req *types.QueryOrdersR
 
 	resp := &types.QueryDerivativeOrdersResponse{}
 
+	orderStatus := types.OrderStatusFromString(req.Status)
+	tradePairHash := common.HexToHash(req.TradePairHash)
+
+	resp.Records = k.queryOrders(ctx, &orderStatus, &tradePairHash, req.Filters, req.Collection)
+	return resp, nil
+}
+
+func (k Keeper) queryOrders(ctx sdk.Context, byStatus *types.OrderStatus, byTradePair *common.Hash, byOrderFilters *types.OrderFilters, collection string) []*types.Order {
+	var records []*types.Order
 	orderFilterPredicate := func(
 		byStatus *types.OrderStatus,
 		byTradePair *common.Hash,
@@ -83,20 +92,18 @@ func (k Keeper) QueryDerivativeOrders(c context.Context, req *types.QueryOrdersR
 				}
 			}
 
-			resp.Records = append(resp.Records, order)
+			records = append(records, order)
 			return false
 		}
 	}
 
-	orderStatus := types.OrderStatusFromString(req.Status)
-	tradePairHash := common.HexToHash(req.TradePairHash)
 	predicateFn := orderFilterPredicate(
-		&orderStatus,
-		&tradePairHash,
-		req.Filters,
+		byStatus,
+		byTradePair,
+		byOrderFilters,
 	)
 
-	switch types.OrderCollectionType(req.Collection) {
+	switch types.OrderCollectionType(collection) {
 	case types.OrderCollectionActive:
 		k.IterateActiveOrders(ctx, predicateFn)
 	case types.OrderCollectionArchive:
@@ -105,7 +112,7 @@ func (k Keeper) QueryDerivativeOrders(c context.Context, req *types.QueryOrdersR
 		k.IterateActiveOrders(ctx, predicateFn)
 		k.IterateArchiveOrders(ctx, predicateFn)
 	}
-	return resp, nil
+	return records
 }
 
 func (k Keeper) QuerySoftCancelledOrders(c context.Context, req *types.QuerySoftCancelledOrdersRequest) (*types.QuerySoftCancelledOrdersResponse, error) {
@@ -145,18 +152,19 @@ func (k Keeper) QueryArchiveOrder(c context.Context, req *types.QueryArchiveOrde
 	return &types.QueryArchiveOrderResponse{Order: order}, nil
 }
 
-func (k Keeper) QuerySpotOrders(c context.Context, req *types.QueryOrdersRequest) (*types.QuerySpotOrdersResponse, error) {
+func (k Keeper) QuerySpotOrders(c context.Context, req *types.QuerySpotOrdersRequest) (*types.QuerySpotOrdersResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
-	res := &types.QuerySpotOrdersResponse{}
+	ctx := sdk.UnwrapSDKContext(c)
 
-	resp, err := k.QueryDerivativeOrders(c, req)
-	if err != nil {
-		return res, err
-	}
-	res.Records = resp.Records
-	return res, nil
+	resp := &types.QuerySpotOrdersResponse{}
+
+	orderStatus := types.OrderStatusFromString(req.Status)
+	tradePairHash := common.HexToHash(req.TradePairHash)
+
+	resp.Records = k.queryOrders(ctx, &orderStatus, &tradePairHash, req.Filters, req.Collection)
+	return resp, nil
 }
 
 func (k Keeper) QueryFillRequests(c context.Context, req *types.QueryFillRequestsRequest) (*types.QueryFillRequestsResponse, error) {

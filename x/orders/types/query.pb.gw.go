@@ -144,7 +144,7 @@ var (
 )
 
 func request_Query_QuerySpotOrders_0(ctx context.Context, marshaler runtime.Marshaler, client QueryClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq QueryOrdersRequest
+	var protoReq QuerySpotOrdersRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {
@@ -160,7 +160,7 @@ func request_Query_QuerySpotOrders_0(ctx context.Context, marshaler runtime.Mars
 }
 
 func local_request_Query_QuerySpotOrders_0(ctx context.Context, marshaler runtime.Marshaler, server QueryServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq QueryOrdersRequest
+	var protoReq QuerySpotOrdersRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {
@@ -288,7 +288,7 @@ var (
 )
 
 func request_Query_QueryDerivativeOrders_0(ctx context.Context, marshaler runtime.Marshaler, client QueryClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq QueryOrdersRequest
+	var protoReq QueryDerivativeOrdersRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {
@@ -304,7 +304,7 @@ func request_Query_QueryDerivativeOrders_0(ctx context.Context, marshaler runtim
 }
 
 func local_request_Query_QueryDerivativeOrders_0(ctx context.Context, marshaler runtime.Marshaler, server QueryServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq QueryOrdersRequest
+	var protoReq QueryDerivativeOrdersRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {

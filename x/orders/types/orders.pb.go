@@ -470,6 +470,7 @@ func (m *BaseOrder) GetSignature() string {
 	return ""
 }
 
+// A valid signed 0x order with Metadata.
 type Order struct {
 	Order         *BaseOrder `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
 	TradePairHash string     `protobuf:"bytes,2,opt,name=trade_pair_hash,json=tradePairHash,proto3" json:"trade_pair_hash,omitempty"`
@@ -538,6 +539,7 @@ func (m *Order) GetStatus() int64 {
 	return 0
 }
 
+// A valid signed 0x Signed Transaction
 type SignedTransaction struct {
 	// Arbitrary number to facilitate uniqueness of the transactions's hash.
 	Salt string `protobuf:"bytes,1,opt,name=salt,proto3" json:"salt,omitempty"`
@@ -638,6 +640,7 @@ func (m *SignedTransaction) GetSignature() string {
 	return ""
 }
 
+// A 0x Transaction Exchange Domain
 type ExchangeDomain struct {
 	// Address of the Injective Coordinator Contract.
 	VerifyingContract string `protobuf:"bytes,1,opt,name=verifying_contract,json=verifyingContract,proto3" json:"verifying_contract,omitempty"`
@@ -692,6 +695,7 @@ func (m *ExchangeDomain) GetChainId() string {
 	return ""
 }
 
+// A 0x Coordinator Transaction Fill Signatures
 type FillSignatures struct {
 	// EIP712 hash of order (see LibOrder.getTypedDataHash)
 	OrderHash string `protobuf:"bytes,1,opt,name=order_hash,json=orderHash,proto3" json:"order_hash,omitempty"`
@@ -765,6 +769,7 @@ func (m *FillSignatures) GetTakerAssetFillAmount() string {
 	return ""
 }
 
+// Injectived EVM sync status
 type EvmSyncStatus struct {
 	LatestBlockSynced int64 `protobuf:"zigzag64,1,opt,name=latest_block_synced,json=latestBlockSynced,proto3" json:"latest_block_synced,omitempty"`
 }
@@ -809,6 +814,7 @@ func (m *EvmSyncStatus) GetLatestBlockSynced() int64 {
 	return 0
 }
 
+// A 0x Transaction Exchange Domain
 type ZeroExTransaction struct {
 	ZeroExTransactionType int64    `protobuf:"zigzag64,1,opt,name=zero_ex_transaction_type,json=zeroExTransactionType,proto3" json:"zero_ex_transaction_type,omitempty"`
 	Orders                []string `protobuf:"bytes,2,rep,name=orders,proto3" json:"orders,omitempty"`
@@ -861,6 +867,7 @@ func (m *ZeroExTransaction) GetOrders() []string {
 	return nil
 }
 
+// A 0x Transaction Exchange Domain
 type MsgCreateSpotOrder struct {
 	Sender string     `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Order  *BaseOrder `protobuf:"bytes,2,opt,name=order,proto3" json:"order,omitempty"`
@@ -899,6 +906,7 @@ func (m *MsgCreateSpotOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgCreateSpotOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgCreateDerivativeOrder
 type MsgCreateDerivativeOrder struct {
 	Sender                 string     `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Order                  *BaseOrder `protobuf:"bytes,2,opt,name=order,proto3" json:"order,omitempty"`
@@ -938,6 +946,7 @@ func (m *MsgCreateDerivativeOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgCreateDerivativeOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgRequestFillSpotOrder
 type MsgRequestFillSpotOrder struct {
 	Sender            string             `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	SignedTransaction *SignedTransaction `protobuf:"bytes,2,opt,name=signed_transaction,json=signedTransaction,proto3" json:"signed_transaction,omitempty"`
@@ -978,6 +987,7 @@ func (m *MsgRequestFillSpotOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgRequestFillSpotOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgRequestSoftCancelSpotOrder
 type MsgRequestSoftCancelSpotOrder struct {
 	Sender            string             `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	SignedTransaction *SignedTransaction `protobuf:"bytes,2,opt,name=signed_transaction,json=signedTransaction,proto3" json:"signed_transaction,omitempty"`
@@ -1018,6 +1028,7 @@ func (m *MsgRequestSoftCancelSpotOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgRequestSoftCancelSpotOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgFilledSpotOrder
 type MsgFilledSpotOrder struct {
 	Sender       string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	BlockNum     int64  `protobuf:"zigzag64,2,opt,name=block_num,json=blockNum,proto3" json:"block_num,omitempty"`
@@ -1059,6 +1070,7 @@ func (m *MsgFilledSpotOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgFilledSpotOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgCancelledSpotOrder
 type MsgCancelledSpotOrder struct {
 	Sender    string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	BlockNum  int64  `protobuf:"zigzag64,2,opt,name=block_num,json=blockNum,proto3" json:"block_num,omitempty"`
@@ -1099,6 +1111,7 @@ func (m *MsgCancelledSpotOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgCancelledSpotOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgFilledDerivativeOrder
 type MsgFilledDerivativeOrder struct {
 	Sender         string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	BlockNum       int64  `protobuf:"zigzag64,2,opt,name=block_num,json=blockNum,proto3" json:"block_num,omitempty"`
@@ -1145,6 +1158,7 @@ func (m *MsgFilledDerivativeOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgFilledDerivativeOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgCancelledDerivativeOrder
 type MsgCancelledDerivativeOrder struct {
 	Sender       string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	BlockNum     int64  `protobuf:"zigzag64,2,opt,name=block_num,json=blockNum,proto3" json:"block_num,omitempty"`
@@ -1188,6 +1202,7 @@ func (m *MsgCancelledDerivativeOrder) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgCancelledDerivativeOrder proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgRegisterSpotMarket
 type MsgRegisterSpotMarket struct {
 	Sender         string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Name           string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -1229,6 +1244,7 @@ func (m *MsgRegisterSpotMarket) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgRegisterSpotMarket proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgSuspendSpotMarket
 type MsgSuspendSpotMarket struct {
 	Sender         string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Name           string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -1269,6 +1285,7 @@ func (m *MsgSuspendSpotMarket) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSuspendSpotMarket proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgResumeSpotMarket
 type MsgResumeSpotMarket struct {
 	Sender         string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Name           string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -1309,6 +1326,7 @@ func (m *MsgResumeSpotMarket) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgResumeSpotMarket proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgRegisterDerivativeMarket
 type MsgRegisterDerivativeMarket struct {
 	Sender string            `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Market *DerivativeMarket `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
@@ -1347,6 +1365,7 @@ func (m *MsgRegisterDerivativeMarket) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgRegisterDerivativeMarket proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgSuspendDerivativeMarket
 type MsgSuspendDerivativeMarket struct {
 	Sender   string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	MarketId string `protobuf:"bytes,2,opt,name=market_id,json=marketId,proto3" json:"market_id,omitempty"`
@@ -1385,6 +1404,7 @@ func (m *MsgSuspendDerivativeMarket) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSuspendDerivativeMarket proto.InternalMessageInfo
 
+// A Cosmos-SDK MsgResumeDerivativeMarket
 type MsgResumeDerivativeMarket struct {
 	Sender   string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	MarketId string `protobuf:"bytes,2,opt,name=market_id,json=marketId,proto3" json:"market_id,omitempty"`

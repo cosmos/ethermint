@@ -96,6 +96,7 @@ message BaseOrder {
     string signature = 17;
 }
 
+// A valid signed 0x order with Metadata.
 message Order {
     BaseOrder order = 1;
     string trade_pair_hash = 2;
@@ -103,6 +104,7 @@ message Order {
     sint64 status = 4;
 }
 
+// A valid signed 0x Signed Transaction
 message SignedTransaction {
     // Arbitrary number to facilitate uniqueness of the transactions's hash.
     string salt = 1;
@@ -121,6 +123,7 @@ message SignedTransaction {
     string signature = 7;
 }
 
+// A 0x Transaction Exchange Domain
 message ExchangeDomain {
     // Address of the Injective Coordinator Contract.
     string verifying_contract = 1;
@@ -128,6 +131,7 @@ message ExchangeDomain {
     string chain_id = 2;
 }
 
+// A 0x Coordinator Transaction Fill Signatures
 message FillSignatures {
     // EIP712 hash of order (see LibOrder.getTypedDataHash)
     string order_hash = 1;
@@ -140,21 +144,25 @@ message FillSignatures {
     string taker_asset_fill_amount = 4;
 }
 
+// Injectived EVM sync status
 message EvmSyncStatus {
     sint64 latest_block_synced = 1;
 }
 
+// A 0x Transaction Exchange Domain
 message ZeroExTransaction {
     sint64 zero_ex_transaction_type = 1;
     repeated string orders = 2;
 }
 
+// A 0x Transaction Exchange Domain
 message MsgCreateSpotOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
     BaseOrder order = 2;
 }
 
+// A Cosmos-SDK MsgCreateDerivativeOrder
 message MsgCreateDerivativeOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -162,6 +170,7 @@ message MsgCreateDerivativeOrder {
     string initial_quantity_matched = 3;
 }
 
+// A Cosmos-SDK MsgRequestFillSpotOrder
 message MsgRequestFillSpotOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -170,6 +179,7 @@ message MsgRequestFillSpotOrder {
     string approval_signature = 4;
 }
 
+// A Cosmos-SDK MsgRequestSoftCancelSpotOrder
 message MsgRequestSoftCancelSpotOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -178,6 +188,7 @@ message MsgRequestSoftCancelSpotOrder {
     string approval_signature = 4;
 }
 
+// A Cosmos-SDK MsgFilledSpotOrder
 message MsgFilledSpotOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -187,6 +198,7 @@ message MsgFilledSpotOrder {
     string amount_filled = 5;
 }
 
+// A Cosmos-SDK MsgCancelledSpotOrder
 message MsgCancelledSpotOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -195,6 +207,7 @@ message MsgCancelledSpotOrder {
     string order_hash = 4;
 }
 
+// A Cosmos-SDK MsgFilledDerivativeOrder
 message MsgFilledDerivativeOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -209,6 +222,7 @@ message MsgFilledDerivativeOrder {
     bool is_long = 10;
 }
 
+// A Cosmos-SDK MsgCancelledDerivativeOrder
 message MsgCancelledDerivativeOrder {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -220,6 +234,7 @@ message MsgCancelledDerivativeOrder {
     string position_id = 7;
 }
 
+// A Cosmos-SDK MsgRegisterSpotMarket
 message MsgRegisterSpotMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -229,6 +244,7 @@ message MsgRegisterSpotMarket {
     bool enabled = 5;
 }
 
+// A Cosmos-SDK MsgSuspendSpotMarket
 message MsgSuspendSpotMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -237,6 +253,7 @@ message MsgSuspendSpotMarket {
     string taker_asset_data = 4;
 }
 
+// A Cosmos-SDK MsgResumeSpotMarket
 message MsgResumeSpotMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
@@ -245,18 +262,21 @@ message MsgResumeSpotMarket {
     string taker_asset_data = 4;
 }
 
+// A Cosmos-SDK MsgRegisterDerivativeMarket
 message MsgRegisterDerivativeMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
     DerivativeMarket market = 2;
 }
 
+// A Cosmos-SDK MsgSuspendDerivativeMarket
 message MsgSuspendDerivativeMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
     string market_id = 2;
 }
 
+// A Cosmos-SDK MsgResumeDerivativeMarket
 message MsgResumeDerivativeMarket {
     option (gogoproto.goproto_getters) = false;
     string sender = 1;
