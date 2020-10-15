@@ -131,3 +131,4 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (`x/evm`) [\#319](https://github.com/cosmos/ethermint/pull/319) Fix `SetBlockHash` that was setting the incorrect height during `BeginBlock`.
 * (`x/evm`) [\#176](https://github.com/cosmos/ethermint/issues/176) Updated Web3 transaction hash from using RLP hash. Now all transaction hashes exposed are amino hashes:
   * Removes `Hash()` (RLP) function from `MsgEthereumTx` to avoid confusion or misuse in future.
+* (crypto) Fix `BIP44HDPath` that did not prepend `m/` to the path. Now uses the BIP44HDPath variable from go-ethereum to conform to the path used in ethereum.
