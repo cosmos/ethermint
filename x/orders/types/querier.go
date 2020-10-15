@@ -1,32 +1,38 @@
 package types
 
-import "github.com/ethereum/go-ethereum/common"
+
+type OrderCollectionType string
 
 const (
-	QueryOrder         = "order"
-	QueryPair          = "pair"
-	QueryActiveOrder   = "activeOrder"
-	QueryArchiveOrder  = "archiveOrder"
-	QueryOrdersList    = "ordersList"
-	QueryPairsList     = "pairsList"
-	QueryMarketsList   = "marketsList"
-	QueryEvmSyncStatus = "evmSyncStatus"
-
-	QueryZeroExTransaction       = "queryZeroExTransaction"
-	QuerySoftCancelledOrders     = "querySoftCancelledOrders"
-	QueryOutstandingFillRequests = "queryOutstandingFillRequests"
-	QueryOrderFillRequests       = "queryOrderFillRequests"
+	OrderCollectionAny     OrderCollectionType = ""
+	OrderCollectionActive  OrderCollectionType = "active"
+	OrderCollectionArchive OrderCollectionType = "archive"
 )
-
-// QueryOrderParams defines the params for querying an order.
-type QueryOrderParams struct {
-	Hash common.Hash `json:"hash"`
-}
-
-// QueryActiveOrderParams defines the params for querying an active order.
-type QueryActiveOrderParams struct {
-	Hash common.Hash `json:"hash"`
-}
+//const (
+//	QueryOrder         = "order"
+//	QueryPair          = "pair"
+//	QueryActiveOrder   = "activeOrder"
+//	QueryArchiveOrder  = "archiveOrder"
+//	QueryOrdersList    = "ordersList"
+//	QueryPairsList     = "pairsList"
+//	QueryMarketsList   = "marketsList"
+//	QueryEvmSyncStatus = "evmSyncStatus"
+//
+//	QueryZeroExTransaction       = "queryZeroExTransaction"
+//	QuerySoftCancelledOrders     = "querySoftCancelledOrders"
+//	QueryOutstandingFillRequests = "queryOutstandingFillRequests"
+//	QueryOrderFillRequests       = "queryOrderFillRequests"
+//)
+//
+//// QueryOrderParams defines the params for querying an order.
+//type QueryOrderParams struct {
+//	Hash common.Hash `json:"hash"`
+//}
+//
+//// QueryActiveOrderParams defines the params for querying an active order.
+//type QueryActiveOrderParams struct {
+//	Hash common.Hash `json:"hash"`
+//}
 
 // QueryArchiveOrderParams defines the params for querying an archive order.
 //type QueryArchiveOrderParams struct {
@@ -69,14 +75,6 @@ type QueryActiveOrderParams struct {
 //	FeeRecipientAddress *common.Address `json:"feeRecipientAddress"`
 //}
 
-type OrderCollectionType string
-
-const (
-	OrderCollectionAny     OrderCollectionType = ""
-	OrderCollectionActive  OrderCollectionType = "active"
-	OrderCollectionArchive OrderCollectionType = "archive"
-)
-
 // TODO: use
 //// QueryMarketParams defines the params for querying a derivative market.
 //type QueryMarketParams struct {
@@ -104,27 +102,27 @@ const (
 //	All bool `json:"all"`
 //}
 
-type QueryZeroExTransactionParams struct {
-	TxHash common.Hash `json:"txHash"`
-}
+//type QueryZeroExTransactionParams struct {
+//	TxHash common.Hash `json:"txHash"`
+//}
 //
 //type QueryZeroExTransactionResponse struct {
 //	TxType             ZeroExTransactionType     `json:"txType"`
 //	FillRequests       []*OrderFillRequest       `json:"fillRequests,omitempty"`
 //	SoftCancelRequests []*OrderSoftCancelRequest `json:"softCancelRequests,omitempty"`
 //}
-
-type QueryOutstandingFillRequestsParams struct {
-	TxHash common.Hash `json:"txHash"`
-}
-
-type QuerySoftCancelledOrdersParams struct {
-	OrderHashes []common.Hash `json:"orderHashes"`
-}
-
-type QueryOrderFillRequestsParams struct {
-	OrderHash common.Hash `json:"orderHash"`
-}
-
-type QueryEvmSyncStatusParams struct {
-}
+//
+//type QueryOutstandingFillRequestsParams struct {
+//	TxHash common.Hash `json:"txHash"`
+//}
+//
+//type QuerySoftCancelledOrdersParams struct {
+//	OrderHashes []common.Hash `json:"orderHashes"`
+//}
+//
+//type QueryOrderFillRequestsParams struct {
+//	OrderHash common.Hash `json:"orderHash"`
+//}
+//
+//type QueryEvmSyncStatusParams struct {
+//}

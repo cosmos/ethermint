@@ -229,11 +229,6 @@ func keccak256(data ...[]byte) []byte {
 	}
 	return d.Sum(nil)
 }
-//
-//type ZeroExTransaction struct {
-//	Type   ZeroExTransactionType `json:"type"`
-//	Orders []common.Hash         `json:"orders"`
-//}
 
 type ZeroExTransactionType int
 
@@ -242,6 +237,12 @@ const (
 	ZeroExOrderFillRequestTx       ZeroExTransactionType = 1
 	ZeroExOrderSoftCancelRequestTx ZeroExTransactionType = 2
 )
+
+//
+//type ZeroExTransaction struct {
+//	Type   ZeroExTransactionType `json:"type"`
+//	Orders []common.Hash         `json:"orders"`
+//}
 
 //// Order contains original signed order and status fields.
 //type Order struct {

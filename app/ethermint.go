@@ -133,7 +133,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		evm.AppModuleBasic{},
-		orders.AppModule{},
+		orders.AppModuleBasic{},
 		// faucet.AppModuleBasic{},
 	)
 
@@ -381,6 +381,7 @@ func NewEthermintApp(
 		transferModule,
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
+		//orders.NewAppModule(),
 		// faucet.NewAppModule(app.FaucetKeeper),
 	)
 

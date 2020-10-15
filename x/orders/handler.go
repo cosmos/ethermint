@@ -203,7 +203,7 @@ func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg *types.M
 		"handler", "MsgCreateSpotOrder",
 	)
 
-	tradePairHash, _ := (&TradePair{
+	tradePairHash, _ := (&types.TradePair{
 		MakerAssetData: msg.Order.MakerAssetData,
 		TakerAssetData: msg.Order.TakerAssetData,
 	}).ComputeHash()
@@ -277,7 +277,7 @@ func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg *t
 	order := &types.Order{
 		Order:         msg.Order,
 		TradePairHash: market.MarketId,
-		Status:        int64(StatusUnfilled),
+		Status:        int64(types.StatusUnfilled),
 		FilledAmount:  msg.InitialQuantityMatched,
 	}
 
@@ -313,16 +313,16 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg *ty
 
 	tx := &zeroex.SignedTransaction{
 		Transaction: zeroex.Transaction{
-			Salt:                  BigNum(msg.SignedTransaction.Salt).Int(),
+			Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
 			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
 			Data:                  common.FromHex(msg.SignedTransaction.Data),
-			ExpirationTimeSeconds: BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
-			GasPrice:              BigNum(msg.SignedTransaction.GasPrice).Int(),
+			ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+			GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
 		},
 		Signature: common.Hex2Bytes(msg.SignedTransaction.Signature),
 	}
 	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
-	tx.Domain.ChainID = BigNum(msg.SignedTransaction.Domain.ChainId).Int()
+	tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
 	txData, err := tx.DecodeTransactionData()
 	if err != nil {
@@ -491,16 +491,16 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 
 	tx := &zeroex.SignedTransaction{
 		Transaction: zeroex.Transaction{
-			Salt:                  BigNum(msg.SignedTransaction.Salt).Int(),
+			Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
 			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
 			Data:                  common.FromHex(msg.SignedTransaction.Data),
-			ExpirationTimeSeconds: BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
-			GasPrice:              BigNum(msg.SignedTransaction.GasPrice).Int(),
+			ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+			GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
 		},
 		Signature: common.FromHex(msg.SignedTransaction.Signature),
 	}
 	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
-	tx.Domain.ChainID = BigNum(msg.SignedTransaction.Domain.ChainId).Int()
+	tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
 	txData, err := tx.DecodeTransactionData()
 	if err != nil {
@@ -563,7 +563,7 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 	// cancelRequests at this point have grouped-per-order signatures
 	for _, cancelRequest := range cancelRequestsSorted {
 		h.keeper.SetOrderSoftCancelRequest(ctx, txHash, cancelRequest)
-		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(cancelRequest.OrderHash), StatusSoftCancelled)
+		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(cancelRequest.OrderHash), types.StatusSoftCancelled)
 		orderHashes = append(orderHashes, cancelRequest.OrderHash)
 	}
 
@@ -605,7 +605,7 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		BlockNum:   uint64(msg.BlockNum),
 		TxHash:     common.HexToHash(msg.TxHash),
 		OrderHash:  common.HexToHash(msg.OrderHash),
-		FillAmount: BigNum(msg.AmountFilled).Int(),
+		FillAmount: types.BigNum(msg.AmountFilled).Int(),
 	}
 
 	// validate against local cache of events
@@ -639,7 +639,7 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	prevAmount := BigNum(order.FilledAmount).Int()
+	prevAmount := types.BigNum(order.FilledAmount).Int()
 	newAmount := prevAmount.Add(prevAmount, ev.FillAmount)
 
 	logger.With(
@@ -648,7 +648,7 @@ func (h *orderMsgHandler) handleMsgFilledSpotOrder(
 	).Info("updating FilledTakerAssetAmount")
 
 	order.FilledAmount = newAmount.String()
-	if newAmount.Cmp(BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
+	if newAmount.Cmp(types.BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
 		order.Status = int64(types.StatusFilled)
 		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusFilled)
 
@@ -705,7 +705,7 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg *type
 		if order == nil {
 			logger.Info("no archived order found for hash")
 			return &sdk.Result{}, nil
-		} else if OrderStatus(order.Status) != StatusSoftCancelled {
+		} else if types.OrderStatus(order.Status) != types.StatusSoftCancelled {
 			logger.With("orderStatus", order.Status).Info("refusing to hard-cancel order that is not soft-cancelled")
 			return &sdk.Result{}, nil
 		}
@@ -750,7 +750,7 @@ func (h *orderMsgHandler) handleMsgCancelledSpotOrder(ctx sdk.Context, msg *type
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	if OrderStatus(order.Status) == types.StatusSoftCancelled {
+	if types.OrderStatus(order.Status) == types.StatusSoftCancelled {
 		order.Status = int64(types.StatusHardCancelled)
 		h.keeper.SetArchiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	} else {
@@ -912,9 +912,9 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		MakerAddress:   common.HexToAddress(msg.MakerAddress),
 		OrderHash:      common.HexToHash(msg.OrderHash),
 		MarketID:       common.HexToHash(msg.MarketId),
-		QuantityFilled: BigNum(msg.QuantityFilled).Int(),
-		ContractPrice:  BigNum(msg.ContractPrice).Int(),
-		PositionID:     BigNum(msg.PositionId).Int(),
+		QuantityFilled: types.BigNum(msg.QuantityFilled).Int(),
+		ContractPrice:  types.BigNum(msg.ContractPrice).Int(),
+		PositionID:     types.BigNum(msg.PositionId).Int(),
 		IsLong:         msg.IsLong,
 	}
 
@@ -947,9 +947,9 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	prevAmount := BigNum(order.FilledAmount).Int()
+	prevAmount := types.BigNum(order.FilledAmount).Int()
 	// if pre-filled from a match, just update the state
-	if prevAmount.Cmp(ev.QuantityFilled) == 0 && OrderStatus(order.Status) == types.StatusUnfilled {
+	if prevAmount.Cmp(ev.QuantityFilled) == 0 && types.OrderStatus(order.Status) == types.StatusUnfilled {
 		order.Status = int64(types.StatusPartialFilled)
 	} else {
 		newAmount := prevAmount.Add(prevAmount, ev.QuantityFilled)
@@ -960,7 +960,7 @@ func (h *orderMsgHandler) handleMsgFilledDerivativeOrder(
 		).Info("updating FilledTakerAssetAmount")
 
 		order.FilledAmount = newAmount.String()
-		if newAmount.Cmp(BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
+		if newAmount.Cmp(types.BigNum(order.Order.TakerAssetAmount).Int()) != -1 { // >=
 			order.Status = int64(types.StatusFilled)
 			h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusFilled)
 
@@ -1016,7 +1016,7 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		if order == nil {
 			logger.Info("no archived order found for hash")
 			return &sdk.Result{}, nil
-		} else if OrderStatus(order.Status) != StatusSoftCancelled {
+		} else if types.OrderStatus(order.Status) != types.StatusSoftCancelled {
 			logger.With("orderStatus", order.Status).Info("refusing to hard-cancel order that is not soft-cancelled")
 			return &sdk.Result{}, nil
 		}
@@ -1029,7 +1029,7 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		MakerAddress: common.HexToAddress(msg.MakerAddress),
 		MarketID:     common.HexToHash(msg.MarketId),
 		OrderHash:    common.HexToHash(msg.OrderHash),
-		PositionID:   BigNum(msg.PositionId).Int(),
+		PositionID:   types.BigNum(msg.PositionId).Int(),
 	}
 
 	// validate against local cache of events
@@ -1062,7 +1062,7 @@ func (h *orderMsgHandler) handleMsgCancelledDerivativeOrder(ctx sdk.Context, msg
 		return nil, types.ErrBadUpdateEvent
 	}
 
-	if OrderStatus(order.Status) == types.StatusSoftCancelled {
+	if types.OrderStatus(order.Status) == types.StatusSoftCancelled {
 		order.Status = int64(types.StatusHardCancelled)
 		h.keeper.SetArchiveOrderStatus(ctx, common.HexToHash(msg.OrderHash), types.StatusHardCancelled)
 	} else {
@@ -1256,9 +1256,9 @@ func (h *orderMsgHandler) handleMsgSuspendSpotMarket(
 		"handler", "MsgSuspendSpotMarket",
 	)
 
-	var tradePair *TradePair
+	var tradePair *types.TradePair
 	if len(msg.MakerAssetData) > 0 && len(msg.TakerAssetData) > 0 {
-		hash, _ := (&TradePair{
+		hash, _ := (&types.TradePair{
 			MakerAssetData: msg.MakerAssetData,
 			TakerAssetData: msg.TakerAssetData,
 		}).ComputeHash()
@@ -1294,9 +1294,9 @@ func (h *orderMsgHandler) handleMsgResumeSpotMarket(
 		"pairName", msg.Name,
 	)
 
-	var tradePair *TradePair
+	var tradePair *types.TradePair
 	if len(msg.MakerAssetData) > 0 && len(msg.TakerAssetData) > 0 {
-		hash, _ := (&TradePair{
+		hash, _ := (&types.TradePair{
 			MakerAssetData: msg.MakerAssetData,
 			TakerAssetData: msg.TakerAssetData,
 		}).ComputeHash()

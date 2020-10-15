@@ -1,15 +1,12 @@
 package orders
 
 import (
-	"time"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 )
 
 // defaultCatchingUpOffset allows to detect if node is syncing state,
 // not producing real-time blocks.
-const defaultCatchingUpOffset = -10 * time.Second
+//const defaultCatchingUpOffset = -10 * time.Second
 
 func (am AppModule) BeginBlocker(ctx sdk.Context) {
 	//if ctx.BlockTime().Before(time.Now().Add(defaultCatchingUpOffset)) {
@@ -53,10 +50,10 @@ func (am AppModule) BeginBlocker(ctx sdk.Context) {
 	//}
 }
 
-const (
-	defaultOnlineThreshold       = time.Minute
-	defaultForgetBlocksThreshold = 5
-)
+//const (
+//	defaultOnlineThreshold       = time.Minute
+//	defaultForgetBlocksThreshold = 5
+//)
 
 //func (am AppModule) proposeOrderFillUpdates(ctx sdk.Context, proposer sdk.AccAddress, blockNum uint64) {
 //	metrics.ReportFuncCall(am.svcTags)
@@ -345,7 +342,7 @@ const (
 //}
 
 
-const DefaultVersion = "none"
+//const DefaultVersion = "none"
 
 //func proposerAt(ctx sdk.Context, accKeeper accounts.Keeper, past bool) sdk.AccAddress {
 //	relayerAccounts := accKeeper.GetAllRelayerAccounts(ctx)
