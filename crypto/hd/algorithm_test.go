@@ -134,16 +134,27 @@ func TestHDPath(t *testing.T) {
 }
 
 func TestDerivation(t *testing.T) {
-
 	mnemonic := "picnic rent average infant boat squirrel federal assault mercy purity very motor fossil wheel verify upset box fresh horse vivid copy predict square regret"
 
 	bz, err := DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, "m/44'/60'/0'/0/0")
 	require.NoError(t, err)
 	require.NotEmpty(t, bz)
 
+	badBz, err := DeriveSecp256k1(mnemonic, keys.DefaultBIP39Passphrase, "44'/60'/0'/0/0")
+	require.NoError(t, err)
+	require.NotEmpty(t, badBz)
+
+	require.NotEqual(t, bz, badBz)
+
 	privkey, err := EthermintKeygenFunc(bz, EthSecp256k1)
 	require.NoError(t, err)
 	require.NotEmpty(t, privkey)
+
+	badPrivKey, err := EthermintKeygenFunc(badBz, EthSecp256k1)
+	require.NoError(t, err)
+	require.NotEmpty(t, badPrivKey)
+
+	require.NotEqual(t, privkey, badPrivKey)
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
@@ -156,12 +167,27 @@ func TestDerivation(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	// Equality of Address BIP44 ian
+	badPath := hdwallet.MustParseDerivationPath("44'/60'/0'/0/0")
+	badAccount, err := wallet.Derive(badPath, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Equality of Address BIP44
 	require.Equal(t, account.Address.Hex(), "0xA588C66983a81e800Db4dF74564F09f91c026351")
+	require.Equal(t, badAccount.Address.Hex(), "0xF8D6FDf2B8b488ea37e54903750dcd13F67E71cb")
+	// Inequality of wrong derivation path address
+	require.NotEqual(t, account.Address.Hex(), badAccount.Address.Hex())
 	// Equality of Ethermint implementation
 	fmt.Println(privkey.PubKey().Address())
 	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address().Bytes()), strings.ToLower("0xA588C66983a81e800Db4dF74564F09f91c026351"))
-	// // Equality of Eth and Ethermint implementation
-	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
+	require.Equal(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address().Bytes()), strings.ToLower("0xF8D6FDf2B8b488ea37e54903750dcd13F67E71cb"))
 
+	// Equality of Eth and Ethermint implementation
+	require.Equal(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
+	require.Equal(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address()), strings.ToLower(badAccount.Address.Hex()))
+
+	// Inequality of wrong derivation path of Eth and Ethermint impl
+	require.NotEqual(t, "0x"+hex.EncodeToString(privkey.PubKey().Address()), strings.ToLower(badAccount.Address.Hex()))
+	require.NotEqual(t, "0x"+hex.EncodeToString(badPrivKey.PubKey().Address()), strings.ToLower(account.Address.Hex()))
 }
