@@ -10,7 +10,7 @@ import (
 )
 
 // NewTransactionLogs creates a new NewTransactionLogs instance.
-func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
+func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs { // nolint: interfacer
 	return TransactionLogs{
 		Hash: hash.String(),
 		Logs: logs,
@@ -18,7 +18,7 @@ func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
 }
 
 // NewTransactionLogsFromEth creates a new NewTransactionLogs instance using []*ethtypes.Log.
-func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs {
+func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs { // nolint: interfacer
 	logs := make([]*Log, len(ethlogs))
 	for i := range ethlogs {
 		logs[i] = NewLogFromEth(ethlogs[i])

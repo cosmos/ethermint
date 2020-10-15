@@ -178,18 +178,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	keyring, err := keyring.New(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		e.clientCtx.Input,
-		hd.EthSecp256k1Option(),
-	)
-	if err != nil {
-		return addresses, err
-	}
-
-	infos, err := keyring.List()
+	infos, err := e.clientCtx.Keyring.List()
 	if err != nil {
 		return addresses, err
 	}
@@ -211,7 +200,7 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) {
+func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) { // nolint: interfacer
 	e.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 
 	req := &evmtypes.QueryBalanceRequest{
@@ -232,7 +221,7 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
-func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) { // nolint: interfacer
 	e.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
 
 	req := &evmtypes.QueryStorageRequest{
@@ -309,7 +298,7 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 }
 
 // GetCode returns the contract code at the given address and block number.
-func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
+func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) { // nolint: interfacer
 	e.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
 
 	req := &evmtypes.QueryCodeRequest{
@@ -528,16 +517,27 @@ func (e *PublicEthAPI) doCall(
 
 	// Create a TxBuilder
 	txBuilder := e.clientCtx.TxConfig.NewTxBuilder()
-	txBuilder.SetMsgs(msg)
+	if err := txBuilder.SetMsgs(msg); err != nil {
+		return nil, err
+	}
 	txBuilder.SetFeeAmount(fees)
 	txBuilder.SetGasLimit(gas)
+
+	// TODO: use tx.Factory
 
 	// sign with the private key
 	sigV2, err := tx.SignWithPrivKey(
 		signMode, signerData,
 		txBuilder, privKey, e.clientCtx.TxConfig, seq,
 	)
-	txBuilder.SetSignatures(sigV2)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := txBuilder.SetSignatures(sigV2); err != nil {
+		return nil, err
+	}
 
 	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
 	if !ok {

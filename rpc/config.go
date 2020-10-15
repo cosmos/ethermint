@@ -1,33 +1,17 @@
 package rpc
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server/config"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
-	"github.com/cosmos/ethermint/crypto/hd"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-const (
-	flagUnlockKey = "unlock-key"
-	flagWebsocket = "wsport"
-)
-
 // RegisterRoutes creates a new ethereum JSON-RPC server and recreates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
-func RegisterRoutes(clientCtx client.Context, r *mux.Router, apiConfig config.APIConfig) {
+func RegisterRoutes(clientCtx client.Context, r *mux.Router, _ config.APIConfig) {
 	server := rpc.NewServer()
 	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
@@ -115,44 +99,44 @@ func StartEthereumWebsocket(clientCtx client.Context, apiConfig config.APIConfig
 // 	ws.start()
 // }
 
-func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]*ethsecp256k1.PrivKey, error) {
-	kr, err := keyring.New(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		os.Stdin,
-		hd.EthSecp256k1Option(),
-	)
-	if err != nil {
-		return nil, err
-	}
+// func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]*ethsecp256k1.PrivKey, error) {
+// 	kr, err := keyring.New(
+// 		sdk.KeyringServiceName(),
+// 		viper.GetString(flags.FlagKeyringBackend),
+// 		viper.GetString(flags.FlagHome),
+// 		os.Stdin,
+// 		hd.EthSecp256k1Option(),
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// try the for loop with array []string accountNames
-	// run through the bottom code inside the for loop
+// 	// try the for loop with array []string accountNames
+// 	// run through the bottom code inside the for loop
 
-	keys := make([]*ethsecp256k1.PrivKey, len(accountNames))
-	for i, acc := range accountNames {
-		// With keyring keybase, password is not required as it is pulled from the OS prompt
-		armor, err := kr.ExportPrivKeyArmor(acc, passphrase)
-		if err != nil {
-			return nil, err
-		}
+// 	keys := make([]*ethsecp256k1.PrivKey, len(accountNames))
+// 	for i, acc := range accountNames {
+// 		// With keyring keybase, password is not required as it is pulled from the OS prompt
+// 		armor, err := kr.ExportPrivKeyArmor(acc, passphrase)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		privKey, algo, err := crypto.UnarmorDecryptPrivKey(armor, passphrase)
-		if err != nil {
-			return nil, err
-		}
+// 		privKey, algo, err := crypto.UnarmorDecryptPrivKey(armor, passphrase)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		if algo != ethsecp256k1.KeyType {
-			return nil, fmt.Errorf("invalid key algorithm, got %s, expected %s", algo, ethsecp256k1.KeyType)
-		}
+// 		if algo != ethsecp256k1.KeyType {
+// 			return nil, fmt.Errorf("invalid key algorithm, got %s, expected %s", algo, ethsecp256k1.KeyType)
+// 		}
 
-		var ok bool
-		keys[i], ok = privKey.(*ethsecp256k1.PrivKey)
-		if !ok {
-			return nil, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
-		}
-	}
+// 		var ok bool
+// 		keys[i], ok = privKey.(*ethsecp256k1.PrivKey)
+// 		if !ok {
+// 			return nil, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
+// 		}
+// 	}
 
-	return keys, nil
-}
+// 	return keys, nil
+// }

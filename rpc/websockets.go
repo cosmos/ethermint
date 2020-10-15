@@ -443,7 +443,8 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 
-				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var resultData *evmtypes.ResultData
+				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}

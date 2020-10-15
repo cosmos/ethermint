@@ -36,8 +36,8 @@ const (
 
 // NewMsgEthermint returns a reference to a new Ethermint transaction
 func NewMsgEthermint(
-	nonce uint64, to sdk.AccAddress, amount sdk.Int,
-	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
+	nonce uint64, to sdk.AccAddress, amount sdk.Int, // nolint: interfacer
+	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress, // nolint: interfacer
 ) *MsgEthermint {
 	return &MsgEthermint{
 		AccountNonce: nonce,
@@ -121,7 +121,7 @@ func NewMsgEthereumTxContract(
 }
 
 func newMsgEthereumTx(
-	nonce uint64, to *ethcmn.Address, amount *big.Int,
+	nonce uint64, to *ethcmn.Address, amount *big.Int, // nolint: interfacer
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
 ) *MsgEthereumTx {
 	if len(payload) > 0 {

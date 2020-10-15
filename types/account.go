@@ -137,11 +137,11 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 
 	case alias.Address != "" && alias.EthAddress == "":
 		// unmarshal sdk.AccAddress only. Do nothing here
-	case alias.Address != "" && alias.EthAddress != "":
+	case alias.Address == "" && alias.EthAddress != "":
 		// retrieve sdk.AccAddress from ethereum address
 		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
 		alias.Address = sdk.AccAddress(ethAddress.Bytes()).String()
-	case alias.Address != "" && alias.EthAddress == "":
+	case alias.Address == "" && alias.EthAddress == "":
 		err = sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidAddress,
 			"account must contain address in Ethereum Hex or Cosmos Bech32 format",
@@ -163,7 +163,9 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		if err != nil {
 			return err
 		}
-		acc.SetPubKey(pubkey)
+		if err := acc.SetPubKey(pubkey); err != nil {
+			return err
+		}
 	}
 
 	acc.CodeHash = ethcmn.HexToHash(alias.CodeHash).Bytes()

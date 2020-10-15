@@ -34,7 +34,7 @@ func (s Storage) Validate() error {
 func (s Storage) String() string {
 	var str string
 	for _, state := range s {
-		str += fmt.Sprintf("%s: %s\n", state.Key, state.Value)
+		str += fmt.Sprintf("%s\n", state)
 	}
 
 	return str
@@ -58,7 +58,7 @@ func (s State) Validate() error {
 }
 
 // NewState creates a new State instance
-func NewState(key, value ethcmn.Hash) State {
+func NewState(key, value ethcmn.Hash) State { // nolint: interfacer
 	return State{
 		Key:   key.String(),
 		Value: value.String(),
