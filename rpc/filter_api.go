@@ -14,8 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // FiltersBackend defines the methods requided by the PublicFilterAPI backend
