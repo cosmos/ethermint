@@ -3,9 +3,9 @@ module github.com/cosmos/ethermint
 go 1.14
 
 require (
-	github.com/InjectiveLabs/zeroex-go v1.8.1 // indirect
+	github.com/InjectiveLabs/zeroex-go v1.8.1
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
+	github.com/alexcesaro/statsd v2.0.0+incompatible
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -26,11 +26,13 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
+	github.com/oklog/ulid v1.3.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.0
-	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b // indirect
+	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
+	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.4.1 // indirect
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.0.0
@@ -40,12 +42,12 @@ require (
 	github.com/tendermint/tendermint v0.34.0-rc4.0.20201005135527-d7d0ffea13c6
 	github.com/tendermint/tm-db v0.6.2
 	github.com/tyler-smith/go-bip39 v1.0.2
-	github.com/xlab/suplog v1.0.0 // indirect
+	github.com/xlab/suplog v1.0.0
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
 	google.golang.org/grpc v1.32.0
 	gopkg.in/yaml.v2 v2.3.0
-	modernc.org/b v1.0.0 // indirect
+	modernc.org/b v1.0.0
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
