@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -48,13 +48,16 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
 
-	balance := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.ZeroInt()))
+	balance := ethermint.NewPhotonCoin(sdk.ZeroInt())
 	acc := &ethermint.EthAccount{
-		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
+		BaseAccount: authtypes.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	err = suite.app.BankKeeper.SetBalance(suite.ctx, acc.GetAddress(), balance)
+	suite.Require().NoError(err)
+
 	suite.stateObject = suite.stateDB.GetOrNewStateObject(suite.address)
 }
 
@@ -706,7 +709,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
 
-			vals := make([]ethcmn.Hash, len(storage))
+			vals := make([]string, len(storage))
 			for i := range storage {
 				vals[i] = storage[i].Value
 			}
