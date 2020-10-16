@@ -7,7 +7,6 @@ import (
 
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	bip39 "github.com/tyler-smith/go-bip39"
 
 	"github.com/tendermint/tendermint/crypto"
 

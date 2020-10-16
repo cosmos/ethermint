@@ -75,7 +75,7 @@
         ]
       }
     },
-    "/ethermint/evm/v1beta1/block_bloom/{height}": {
+    "/ethermint/evm/v1beta1/block_bloom": {
       "get": {
         "summary": "BlockBloom queries the block bloom filter bytes at a given height.",
         "operationId": "BlockBloom",
@@ -93,16 +93,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "height",
-            "description": "height defines the block height to query the bloom bytes for. If height \u003c 0\nthe request will use the latest height from context.",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "int64"
-          }
-        ],
         "tags": [
           "Query"
         ]
@@ -165,14 +155,6 @@
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "height",
-            "description": "height defines the height at which the code is queried.",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "int64"
           }
         ],
         "tags": [
@@ -203,7 +185,7 @@
         ]
       }
     },
-    "/ethermint/evm/v1beta1/storage/{address}/{key}/{height}": {
+    "/ethermint/evm/v1beta1/storage/{address}/{key}": {
       "get": {
         "summary": "Storage queries the balance of all coins for a single account.",
         "operationId": "Storage",
@@ -235,14 +217,6 @@
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "height",
-            "description": "height defines the height at which the storage is queried.",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "int64"
           }
         ],
         "tags": [
@@ -382,7 +356,7 @@
           "description": "bloom represents bloom filter for the given block hash."
         }
       },
-      "description": "QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC\nmethod."
+      "description": "QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC method."
     },
     "ethermint.evm.v1beta1.QueryBlockLogsResponse": {
       "type": "object",
