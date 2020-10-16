@@ -4,23 +4,21 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/cosmos/ethermint/x/orders/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/sha3"
-	"math/big"
-	"sort"
-	"strings"
-	"time"
 
-	"github.com/InjectiveLabs/zeroex-go"
-	"github.com/InjectiveLabs/zeroex-go/wrappers"
+	// "github.com/InjectiveLabs/zeroex-go"
+	// "github.com/InjectiveLabs/zeroex-go/wrappers"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	log "github.com/xlab/suplog"
 
-	"github.com/cosmos/ethermint/ethereum/provider"
 	"github.com/cosmos/ethermint/ethereum/registry"
 	"github.com/cosmos/ethermint/eventdb"
 	"github.com/cosmos/ethermint/metrics"
@@ -35,7 +33,7 @@ func NewOrderMsgHandler(
 	isExportOnly bool,
 	ethOrderEventDB eventdb.OrderEventDB,
 	ethFuturesPositionEventDB eventdb.FuturesPositionEventDB,
-	ethProvider func() provider.EVMProvider,
+	// ethProvider func() provider.EVMProvider,
 	ethContracts registry.ContractDiscoverer,
 ) sdk.Handler {
 
@@ -46,8 +44,8 @@ func NewOrderMsgHandler(
 		keeper:                    keeper,
 		ethOrderEventDB:           ethOrderEventDB,
 		ethFuturesPositionEventDB: ethFuturesPositionEventDB,
-		ethProvider:               ethProvider,
-		ethContracts:              ethContracts,
+		// ethProvider:               ethProvider,
+		ethContracts: ethContracts,
 	}
 
 	if !isExportOnly {
@@ -62,41 +60,41 @@ type orderMsgHandler struct {
 
 	keeper Keeper
 
-	ethContracts             registry.ContractDiscoverer
-	devUtilsContractCaller   *wrappers.DevUtilsCaller
-	exchangeContractFilterer *wrappers.ExchangeFilterer
-	futuresContractFilterer  *wrappers.FuturesFilterer
+	ethContracts registry.ContractDiscoverer
+	// devUtilsContractCaller   *wrappers.DevUtilsCaller
+	// exchangeContractFilterer *wrappers.ExchangeFilterer
+	// futuresContractFilterer  *wrappers.FuturesFilterer
 
 	ethOrderEventDB           eventdb.OrderEventDB
 	ethFuturesPositionEventDB eventdb.FuturesPositionEventDB
 
-	ethProvider func() provider.EVMProvider
+	// ethProvider func() provider.EVMProvider
 }
 
 func (h *orderMsgHandler) postInit() {
-	set := h.ethContracts.GetContracts()
+	// set := h.ethContracts.GetContracts()
 
-	devUtilsContractCaller, err := wrappers.NewDevUtilsCaller(set.DevUtilsContract, h.ethProvider())
-	if err != nil && (set.DevUtilsContract != common.Address{}) {
-		err = errors.Wrap(err, "failed to init devutils caller")
-		log.Fatalln(err)
-	}
+	// devUtilsContractCaller, err := wrappers.NewDevUtilsCaller(set.DevUtilsContract, h.ethProvider())
+	// if err != nil && (set.DevUtilsContract != common.Address{}) {
+	// 	err = errors.Wrap(err, "failed to init devutils caller")
+	// 	log.Fatalln(err)
+	// }
 
-	exchangeContractFilterer, err := wrappers.NewExchangeFilterer(set.ExchangeContract, h.ethProvider())
-	if err != nil && (set.ExchangeContract != common.Address{}) {
-		err = errors.Wrap(err, "failed to init exchange events filterer")
-		log.Fatalln(err)
-	}
+	// exchangeContractFilterer, err := wrappers.NewExchangeFilterer(set.ExchangeContract, h.ethProvider())
+	// if err != nil && (set.ExchangeContract != common.Address{}) {
+	// 	err = errors.Wrap(err, "failed to init exchange events filterer")
+	// 	log.Fatalln(err)
+	// }
 
-	futuresContractFilterer, err := wrappers.NewFuturesFilterer(set.FuturesContract, h.ethProvider())
-	if err != nil && (set.FuturesContract != common.Address{}) {
-		err = errors.Wrap(err, "failed to init exchange events filterer")
-		log.Fatalln(err)
-	}
+	// futuresContractFilterer, err := wrappers.NewFuturesFilterer(set.FuturesContract, h.ethProvider())
+	// if err != nil && (set.FuturesContract != common.Address{}) {
+	// 	err = errors.Wrap(err, "failed to init exchange events filterer")
+	// 	log.Fatalln(err)
+	// }
 
-	h.devUtilsContractCaller = devUtilsContractCaller
-	h.exchangeContractFilterer = exchangeContractFilterer
-	h.futuresContractFilterer = futuresContractFilterer
+	// h.devUtilsContractCaller = devUtilsContractCaller
+	// h.exchangeContractFilterer = exchangeContractFilterer
+	// h.futuresContractFilterer = futuresContractFilterer
 }
 
 // Handler returns a handler for "orders" type messages.
@@ -228,19 +226,19 @@ func (h *orderMsgHandler) handleMsgCreateSpotOrder(ctx sdk.Context, msg *types.M
 
 	h.keeper.SetOrder(ctx, order)
 
-	signedOrder := msg.Order.ToSignedOrder()
-	json, _ := signedOrder.MarshalJSON()
-	orderString := string(json)
-	hash, _ := signedOrder.ComputeOrderHash()
+	// signedOrder := msg.Order.ToSignedOrder()
+	// json, _ := signedOrder.MarshalJSON()
+	// orderString := string(json)
+	// hash, _ := signedOrder.ComputeOrderHash()
 
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeNewOrder,
-			sdk.NewAttribute(types.AttributeKeyOrderHash, hash.String()),
-			sdk.NewAttribute(types.AttributeKeyTradePairHash, tradePairHash.String()),
-			sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
-		),
-	)
+	// ctx.EventManager().EmitEvent(
+	// 	sdk.NewEvent(
+	// 		types.EventTypeNewOrder,
+	// 		sdk.NewAttribute(types.AttributeKeyOrderHash, hash.String()),
+	// 		sdk.NewAttribute(types.AttributeKeyTradePairHash, tradePairHash.String()),
+	// 		sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
+	// 	),
+	// )
 
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
@@ -283,20 +281,20 @@ func (h *orderMsgHandler) handleMsgCreateDerivativeOrder(ctx sdk.Context, msg *t
 
 	h.keeper.SetOrder(ctx, order)
 
-	signedOrder := msg.Order.ToSignedOrder()
-	json, _ := signedOrder.MarshalJSON()
-	orderString := string(json)
-	hash, _ := signedOrder.ComputeOrderHash()
+	// signedOrder := msg.Order.ToSignedOrder()
+	// json, _ := signedOrder.MarshalJSON()
+	// orderString := string(json)
+	// hash, _ := signedOrder.ComputeOrderHash()
 
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeNewDerivativeOrder,
-			sdk.NewAttribute(types.AttributeKeyOrderHash, hash.String()),
-			sdk.NewAttribute(types.AttributeKeyMarketID, market.MarketId),
-			sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
-			sdk.NewAttribute(types.AttributeKeyFilledAmount, msg.InitialQuantityMatched),
-		),
-	)
+	// ctx.EventManager().EmitEvent(
+	// 	sdk.NewEvent(
+	// 		types.EventTypeNewDerivativeOrder,
+	// 		sdk.NewAttribute(types.AttributeKeyOrderHash, hash.String()),
+	// 		sdk.NewAttribute(types.AttributeKeyMarketID, market.MarketId),
+	// 		sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
+	// 		sdk.NewAttribute(types.AttributeKeyFilledAmount, msg.InitialQuantityMatched),
+	// 	),
+	// )
 
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
@@ -306,120 +304,120 @@ func (h *orderMsgHandler) handleMsgRequestFillSpotOrder(ctx sdk.Context, msg *ty
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	logger := ctx.Logger().With(
-		"module", "orders",
-		"handler", "MsgRequestFillSpotOrder",
-	)
+	// logger := ctx.Logger().With(
+	// 	"module", "orders",
+	// 	"handler", "MsgRequestFillSpotOrder",
+	// )
 
-	tx := &zeroex.SignedTransaction{
-		Transaction: zeroex.Transaction{
-			Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
-			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
-			Data:                  common.FromHex(msg.SignedTransaction.Data),
-			ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
-			GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
-		},
-		Signature: common.Hex2Bytes(msg.SignedTransaction.Signature),
-	}
-	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
-	tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
+	// tx := &zeroex.SignedTransaction{
+	// 	Transaction: zeroex.Transaction{
+	// 		Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
+	// 		SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
+	// 		Data:                  common.FromHex(msg.SignedTransaction.Data),
+	// 		ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+	// 		GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
+	// 	},
+	// 	Signature: common.Hex2Bytes(msg.SignedTransaction.Signature),
+	// }
+	// tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
+	// tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
-	txData, err := tx.DecodeTransactionData()
-	if err != nil {
-		logger.Error("failed to decode tx data", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to decode tx data: "+err.Error())
-	}
-	if txData.FunctionName == zeroex.BatchMatchOrdersWithMaximalFill {
-		// TODO: refactor
-		txData.Orders = append(txData.LeftOrders, txData.RightOrders[0])
-	}
-	if h.hasCancelledOrders(ctx, txData.Orders) {
-		err = errors.New("transaction contains soft-cancelled orders")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "transaction contains soft-cancelled orders: "+err.Error())
-	}
+	// txData, err := tx.DecodeTransactionData()
+	// if err != nil {
+	// 	logger.Error("failed to decode tx data", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to decode tx data: "+err.Error())
+	// }
+	// if txData.FunctionName == zeroex.BatchMatchOrdersWithMaximalFill {
+	// 	// TODO: refactor
+	// 	txData.Orders = append(txData.LeftOrders, txData.RightOrders[0])
+	// }
+	// if h.hasCancelledOrders(ctx, txData.Orders) {
+	// 	err = errors.New("transaction contains soft-cancelled orders")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "transaction contains soft-cancelled orders: "+err.Error())
+	// }
 
-	txHash, err := tx.ComputeTransactionHash()
-	if err != nil {
-		logger.Error("failed to compute zeroex tx hash", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to compute zeroex tx hash: "+err.Error())
-	}
+	// txHash, err := tx.ComputeTransactionHash()
+	// if err != nil {
+	// 	logger.Error("failed to compute zeroex tx hash", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to compute zeroex tx hash: "+err.Error())
+	// }
 
-	approval := &zeroex.CoordinatorApproval{
-		TxOrigin:             common.HexToAddress(msg.TxOrigin),
-		TransactionHash:      txHash,
-		TransactionSignature: tx.Signature,
-		Domain: zeroex.EIP712Domain{
-			VerifyingContract: h.ethContracts.GetContracts().CoordinatorContract,
-			ChainID:           tx.Domain.ChainID,
-		},
-	}
+	// approval := &zeroex.CoordinatorApproval{
+	// 	TxOrigin:             common.HexToAddress(msg.TxOrigin),
+	// 	TransactionHash:      txHash,
+	// 	TransactionSignature: tx.Signature,
+	// 	Domain: zeroex.EIP712Domain{
+	// 		VerifyingContract: h.ethContracts.GetContracts().CoordinatorContract,
+	// 		ChainID:           tx.Domain.ChainID,
+	// 	},
+	// }
 
-	approvalHash, _ := approval.ComputeApprovalHash()
+	// approvalHash, _ := approval.ComputeApprovalHash()
 
-	_, err = h.addressFromSignature(approvalHash.Bytes(), common.FromHex(msg.ApprovalSignature))
-	if err != nil {
-		err = errors.New("unable to get address from approval sig")
-		logger.Error("rejecting fill request", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
-	}
-	// TODO: (@albertchon) re-introduce coordinator account logic
-	//if !h.isActiveStaker(ctx, coordinatorAddr) {
-	//	err = errors.Errorf("coordinator is not found in active stakers")
-	//	logger.Error("rejecting fill request", "error", err, "address", coordinatorAddr.Hex())
-	//	metrics.ReportFuncError(h.svcTags)
-	//	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
-	//}
+	// _, err = h.addressFromSignature(approvalHash.Bytes(), common.FromHex(msg.ApprovalSignature))
+	// if err != nil {
+	// 	err = errors.New("unable to get address from approval sig")
+	// 	logger.Error("rejecting fill request", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
+	// }
+	// // TODO: (@albertchon) re-introduce coordinator account logic
+	// //if !h.isActiveStaker(ctx, coordinatorAddr) {
+	// //	err = errors.Errorf("coordinator is not found in active stakers")
+	// //	logger.Error("rejecting fill request", "error", err, "address", coordinatorAddr.Hex())
+	// //	metrics.ReportFuncError(h.svcTags)
+	// //	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
+	// //}
 
-	if err = txData.ValidateAssetFillAmounts(); err != nil {
-		logger.Error("ValidateAssetFillAmounts rejected orders", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
-	}
+	// if err = txData.ValidateAssetFillAmounts(); err != nil {
+	// 	logger.Error("ValidateAssetFillAmounts rejected orders", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "rejecting fill request: "+err.Error())
+	// }
 
-	fillRequests := make(map[common.Hash]*types.OrderFillRequest, len(txData.Orders))
-	for _, order := range txData.Orders {
-		orderHash, _ := order.ComputeOrderHash()
-		req, ok := fillRequests[orderHash]
-		if !ok {
-			req = &types.OrderFillRequest{
-				OrderHash: orderHash.String(),
-				ApprovalSignatures: []string{
-					msg.ApprovalSignature,
-				},
-				ExpiryAt:             tx.ExpirationTimeSeconds.Int64(),
-				TakerAssetFillAmount: order.TakerAssetAmount.String(),
-			}
-		} else {
-			logger.Error("seen order multiple times, a different fee payer?", "orderHash", orderHash.Hex())
-			// req.ApprovalSignatures = append(req.ApprovalSignatures, txData.Signatures[orderIdx])
-		}
-		fillRequests[orderHash] = req
-	}
+	// fillRequests := make(map[common.Hash]*types.OrderFillRequest, len(txData.Orders))
+	// for _, order := range txData.Orders {
+	// 	orderHash, _ := order.ComputeOrderHash()
+	// 	req, ok := fillRequests[orderHash]
+	// 	if !ok {
+	// 		req = &types.OrderFillRequest{
+	// 			OrderHash: orderHash.String(),
+	// 			ApprovalSignatures: []string{
+	// 				msg.ApprovalSignature,
+	// 			},
+	// 			ExpiryAt:             tx.ExpirationTimeSeconds.Int64(),
+	// 			TakerAssetFillAmount: order.TakerAssetAmount.String(),
+	// 		}
+	// 	} else {
+	// 		logger.Error("seen order multiple times, a different fee payer?", "orderHash", orderHash.Hex())
+	// 		// req.ApprovalSignatures = append(req.ApprovalSignatures, txData.Signatures[orderIdx])
+	// 	}
+	// 	fillRequests[orderHash] = req
+	// }
 
-	fillRequestsSorted := make([]*types.OrderFillRequest, 0, len(fillRequests))
-	for _, req := range fillRequests {
-		fillRequestsSorted = append(fillRequestsSorted, req)
-	}
+	// fillRequestsSorted := make([]*types.OrderFillRequest, 0, len(fillRequests))
+	// for _, req := range fillRequests {
+	// 	fillRequestsSorted = append(fillRequestsSorted, req)
+	// }
 
-	// sort fill requests after mapping to their corresponding order hash
-	sort.Slice(fillRequestsSorted, func(i, j int) bool {
-		return strings.Compare(fillRequestsSorted[i].OrderHash, fillRequestsSorted[j].OrderHash) < 0
-	})
+	// // sort fill requests after mapping to their corresponding order hash
+	// sort.Slice(fillRequestsSorted, func(i, j int) bool {
+	// 	return strings.Compare(fillRequestsSorted[i].OrderHash, fillRequestsSorted[j].OrderHash) < 0
+	// })
 
-	orderHashes := make([]string, 0, len(fillRequestsSorted))
-	// fillRequestsSorted at this point have grouped-per-order signatures
-	for _, fillRequest := range fillRequestsSorted {
-		h.keeper.SetOrderFillRequest(ctx, txHash, fillRequest)
-		orderHashes = append(orderHashes, fillRequest.OrderHash)
-	}
-	h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
-		ZeroExTransactionType: int64(types.ZeroExOrderFillRequestTx),
-		Orders:                orderHashes,
-	})
+	// orderHashes := make([]string, 0, len(fillRequestsSorted))
+	// // fillRequestsSorted at this point have grouped-per-order signatures
+	// for _, fillRequest := range fillRequestsSorted {
+	// 	h.keeper.SetOrderFillRequest(ctx, txHash, fillRequest)
+	// 	orderHashes = append(orderHashes, fillRequest.OrderHash)
+	// }
+	// h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
+	// 	ZeroExTransactionType: int64(types.ZeroExOrderFillRequestTx),
+	// 	Orders:                orderHashes,
+	// })
 
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
@@ -464,17 +462,17 @@ func textAndHash(data []byte) ([]byte, string) {
 	return hasher.Sum(nil), msg
 }
 
-func (h *orderMsgHandler) hasCancelledOrders(ctx sdk.Context, orders []*zeroex.Order) bool {
-	orderHashes := make([]common.Hash, 0, len(orders))
-	for _, order := range orders {
-		orderHash, _ := order.ComputeOrderHash()
-		orderHashes = append(orderHashes, orderHash)
-	}
+// func (h *orderMsgHandler) hasCancelledOrders(ctx sdk.Context, orders []*zeroex.Order) bool {
+// 	orderHashes := make([]common.Hash, 0, len(orders))
+// 	for _, order := range orders {
+// 		orderHash, _ := order.ComputeOrderHash()
+// 		orderHashes = append(orderHashes, orderHash)
+// 	}
 
-	cancelledOrders := h.keeper.FindAllSoftCancelledOrders(ctx, orderHashes)
+// 	cancelledOrders := h.keeper.FindAllSoftCancelledOrders(ctx, orderHashes)
 
-	return len(cancelledOrders) > 0
-}
+// 	return len(cancelledOrders) > 0
+// }
 
 func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 	ctx sdk.Context,
@@ -484,93 +482,93 @@ func (h *orderMsgHandler) handleMsgRequestSoftCancelSpotOrder(
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	logger := ctx.Logger().With(
-		"module", "orders",
-		"handler", "MsgRequestSoftCancelSpotOrder",
-	)
+	// logger := ctx.Logger().With(
+	// 	"module", "orders",
+	// 	"handler", "MsgRequestSoftCancelSpotOrder",
+	// )
 
-	tx := &zeroex.SignedTransaction{
-		Transaction: zeroex.Transaction{
-			Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
-			SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
-			Data:                  common.FromHex(msg.SignedTransaction.Data),
-			ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
-			GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
-		},
-		Signature: common.FromHex(msg.SignedTransaction.Signature),
-	}
-	tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
-	tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
+	// tx := &zeroex.SignedTransaction{
+	// 	Transaction: zeroex.Transaction{
+	// 		Salt:                  types.BigNum(msg.SignedTransaction.Salt).Int(),
+	// 		SignerAddress:         common.HexToAddress(msg.SignedTransaction.SignerAddress),
+	// 		Data:                  common.FromHex(msg.SignedTransaction.Data),
+	// 		ExpirationTimeSeconds: types.BigNum(msg.SignedTransaction.ExpirationTimeSeconds).Int(),
+	// 		GasPrice:              types.BigNum(msg.SignedTransaction.GasPrice).Int(),
+	// 	},
+	// 	Signature: common.FromHex(msg.SignedTransaction.Signature),
+	// }
+	// tx.Domain.VerifyingContract = common.HexToAddress(msg.SignedTransaction.Domain.VerifyingContract)
+	// tx.Domain.ChainID = types.BigNum(msg.SignedTransaction.Domain.ChainId).Int()
 
-	txData, err := tx.DecodeTransactionData()
-	if err != nil {
-		logger.Error("failed to decode tx data", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to decode tx data: "+err.Error())
-	}
+	// txData, err := tx.DecodeTransactionData()
+	// if err != nil {
+	// 	logger.Error("failed to decode tx data", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to decode tx data: "+err.Error())
+	// }
 
-	txHash, err := tx.ComputeTransactionHash()
-	if err != nil {
-		logger.Error("failed to compute zeroex tx hash", "error", err)
-		metrics.ReportFuncError(h.svcTags)
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to compute zeroex tx hash: "+err.Error())
-	}
+	// txHash, err := tx.ComputeTransactionHash()
+	// if err != nil {
+	// 	logger.Error("failed to compute zeroex tx hash", "error", err)
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "failed to compute zeroex tx hash: "+err.Error())
+	// }
 
-	cancelRequests := make(map[common.Hash]*types.OrderSoftCancelRequest, len(txData.Orders))
-	for _, order := range txData.Orders {
-		orderHash, _ := order.ComputeOrderHash()
+	// cancelRequests := make(map[common.Hash]*types.OrderSoftCancelRequest, len(txData.Orders))
+	// for _, order := range txData.Orders {
+	// 	orderHash, _ := order.ComputeOrderHash()
 
-		req, ok := cancelRequests[orderHash]
-		if !ok {
-			req = &types.OrderSoftCancelRequest{
-				TxHash:             txHash.String(),
-				OrderHash:          orderHash.String(),
-				ApprovalSignatures: []string{},
-			}
+	// 	req, ok := cancelRequests[orderHash]
+	// 	if !ok {
+	// 		req = &types.OrderSoftCancelRequest{
+	// 			TxHash:             txHash.String(),
+	// 			OrderHash:          orderHash.String(),
+	// 			ApprovalSignatures: []string{},
+	// 		}
 
-			orderObj := h.keeper.GetOrder(ctx, orderHash)
-			if orderObj == nil {
-				return nil, sdkerrors.Wrap(types.ErrOrderNotFound, "order cannot be canceled because not found")
-			}
+	// 		orderObj := h.keeper.GetOrder(ctx, orderHash)
+	// 		if orderObj == nil {
+	// 			return nil, sdkerrors.Wrap(types.ErrOrderNotFound, "order cannot be canceled because not found")
+	// 		}
 
-			signedOrder := orderObj.Order.ToSignedOrder()
-			json, _ := signedOrder.MarshalJSON()
-			orderString := string(json)
+	// 		signedOrder := orderObj.Order.ToSignedOrder()
+	// 		json, _ := signedOrder.MarshalJSON()
+	// 		orderString := string(json)
 
-			ctx.EventManager().EmitEvent(
-				sdk.NewEvent(
-					types.EventTypeSoftCancelOrder,
-					sdk.NewAttribute(types.AttributeKeyOrderHash, orderHash.String()),
-					sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
-				),
-			)
-		} else {
-			logger.Error("seen order multiple times, different fee payer?", "orderHash", orderHash.Hex())
-			// req.ApprovalSignatures = append(req.ApprovalSignatures, signedApproval.Signature)
-		}
-		cancelRequests[orderHash] = req
-	}
-	cancelRequestsSorted := make([]*types.OrderSoftCancelRequest, 0, len(cancelRequests))
-	for _, req := range cancelRequests {
-		cancelRequestsSorted = append(cancelRequestsSorted, req)
-	}
-	// sort canсel requests after mapping to their corresponding order hash
-	sort.Slice(cancelRequestsSorted, func(i, j int) bool {
-		return strings.Compare(cancelRequestsSorted[i].OrderHash, cancelRequestsSorted[j].OrderHash) < 0
-	})
+	// 		ctx.EventManager().EmitEvent(
+	// 			sdk.NewEvent(
+	// 				types.EventTypeSoftCancelOrder,
+	// 				sdk.NewAttribute(types.AttributeKeyOrderHash, orderHash.String()),
+	// 				sdk.NewAttribute(types.AttributeKeySignedOrder, orderString),
+	// 			),
+	// 		)
+	// 	} else {
+	// 		logger.Error("seen order multiple times, different fee payer?", "orderHash", orderHash.Hex())
+	// 		// req.ApprovalSignatures = append(req.ApprovalSignatures, signedApproval.Signature)
+	// 	}
+	// 	cancelRequests[orderHash] = req
+	// }
+	// cancelRequestsSorted := make([]*types.OrderSoftCancelRequest, 0, len(cancelRequests))
+	// for _, req := range cancelRequests {
+	// 	cancelRequestsSorted = append(cancelRequestsSorted, req)
+	// }
+	// // sort canсel requests after mapping to their corresponding order hash
+	// sort.Slice(cancelRequestsSorted, func(i, j int) bool {
+	// 	return strings.Compare(cancelRequestsSorted[i].OrderHash, cancelRequestsSorted[j].OrderHash) < 0
+	// })
 
-	orderHashes := make([]string, 0, len(cancelRequestsSorted))
-	// cancelRequests at this point have grouped-per-order signatures
-	for _, cancelRequest := range cancelRequestsSorted {
-		h.keeper.SetOrderSoftCancelRequest(ctx, txHash, cancelRequest)
-		h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(cancelRequest.OrderHash), types.StatusSoftCancelled)
-		orderHashes = append(orderHashes, cancelRequest.OrderHash)
-	}
+	// orderHashes := make([]string, 0, len(cancelRequestsSorted))
+	// // cancelRequests at this point have grouped-per-order signatures
+	// for _, cancelRequest := range cancelRequestsSorted {
+	// 	h.keeper.SetOrderSoftCancelRequest(ctx, txHash, cancelRequest)
+	// 	h.keeper.SetActiveOrderStatus(ctx, common.HexToHash(cancelRequest.OrderHash), types.StatusSoftCancelled)
+	// 	orderHashes = append(orderHashes, cancelRequest.OrderHash)
+	// }
 
-	h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
-		ZeroExTransactionType: int64(types.ZeroExOrderSoftCancelRequestTx),
-		Orders:                orderHashes,
-	})
+	// h.keeper.SetZeroExTransaction(ctx, txHash, &types.ZeroExTransaction{
+	// 	ZeroExTransactionType: int64(types.ZeroExOrderSoftCancelRequestTx),
+	// 	Orders:                orderHashes,
+	// })
 
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
@@ -785,37 +783,37 @@ func (h *orderMsgHandler) getOrderFillEventFromNode(ctx context.Context, blockNu
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
-	if err != nil {
-		// TODO: detect "not found" error and return false
-		// because faking txHash is not allowed
+	// receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
+	// if err != nil {
+	// 	// TODO: detect "not found" error and return false
+	// 	// because faking txHash is not allowed
 
-		log.WithError(err).Errorln("failed to get transaction receipt from node")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, true // technical error
-	}
+	// 	log.WithError(err).Errorln("failed to get transaction receipt from node")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, true // technical error
+	// }
 
-	if uint64(receipt.BlockNumber) != blockNum {
-		err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
-		log.WithError(err).Errorln("failed verify transaction log")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, false
-	}
+	// if uint64(receipt.BlockNumber) != blockNum {
+	// 	err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
+	// 	log.WithError(err).Errorln("failed verify transaction log")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, false
+	// }
 
 	var eventFound bool
 	var amountFilled *big.Int
-	for _, log := range receipt.Logs {
-		fillEvent, err := h.exchangeContractFilterer.ParseFill(*log)
-		if err != nil {
-			continue
-		}
-		if common.Hash(fillEvent.OrderHash) != orderHash {
-			continue
-		}
+	// for _, log := range receipt.Logs {
+	// 	// fillEvent, err := h.exchangeContractFilterer.ParseFill(*log)
+	// 	// if err != nil {
+	// 	// 	continue
+	// 	// }
+	// 	// if common.Hash(fillEvent.OrderHash) != orderHash {
+	// 	// 	continue
+	// 	// }
 
-		eventFound = true
-		amountFilled = fillEvent.TakerAssetFilledAmount
-	}
+	// 	eventFound = true
+	// 	amountFilled = fillEvent.TakerAssetFilledAmount
+	// }
 
 	if !eventFound {
 		metrics.ReportFuncError(h.svcTags)
@@ -838,35 +836,35 @@ func (h *orderMsgHandler) getOrderCancelEventFromNode(ctx context.Context, block
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
-	if err != nil {
-		// TODO: detect "not found" error and return false
-		// because faking txHash is not allowed
+	// receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
+	// if err != nil {
+	// 	// TODO: detect "not found" error and return false
+	// 	// because faking txHash is not allowed
 
-		log.WithError(err).Errorln("failed to get transaction receipt from node")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, true // technical error
-	}
+	// 	log.WithError(err).Errorln("failed to get transaction receipt from node")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, true // technical error
+	// }
 
-	if uint64(receipt.BlockNumber) != blockNum {
-		err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
-		log.WithError(err).Errorln("failed verify transaction log")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, false
-	}
+	// if uint64(receipt.BlockNumber) != blockNum {
+	// 	err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
+	// 	log.WithError(err).Errorln("failed verify transaction log")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, false
+	// }
 
 	var eventFound bool
-	for _, log := range receipt.Logs {
-		cancelEvent, err := h.exchangeContractFilterer.ParseCancel(*log)
-		if err != nil {
-			continue
-		}
-		if common.Hash(cancelEvent.OrderHash) != orderHash {
-			continue
-		}
+	// for _, log := range receipt.Logs {
+	// 	cancelEvent, err := h.exchangeContractFilterer.ParseCancel(*log)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	if common.Hash(cancelEvent.OrderHash) != orderHash {
+	// 		continue
+	// 	}
 
-		eventFound = true
-	}
+	// 	eventFound = true
+	// }
 
 	if !eventFound {
 		metrics.ReportFuncError(h.svcTags)
@@ -1101,39 +1099,39 @@ func (h *orderMsgHandler) getFuturesPositionFillEventFromNode(
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
-	if err != nil {
-		// TODO: detect "not found" error and return false
-		// because faking txHash is not allowed
+	// receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
+	// if err != nil {
+	// 	// TODO: detect "not found" error and return false
+	// 	// because faking txHash is not allowed
 
-		log.WithError(err).Errorln("failed to get transaction receipt from node")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, true // technical error
-	}
+	// 	log.WithError(err).Errorln("failed to get transaction receipt from node")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, true // technical error
+	// }
 
-	if uint64(receipt.BlockNumber) != blockNum {
-		err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
-		log.WithError(err).Errorln("failed verify transaction log")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, false
-	}
+	// if uint64(receipt.BlockNumber) != blockNum {
+	// 	err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
+	// 	log.WithError(err).Errorln("failed verify transaction log")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, false
+	// }
 
 	var eventFound bool
 	var quantityFilled *big.Int
-	for _, log := range receipt.Logs {
-		fillEvent, err := h.futuresContractFilterer.ParseFuturesPosition(*log)
-		if err != nil {
-			continue
-		}
-		if common.Hash(fillEvent.OrderHash) != orderHash {
-			continue
-		} else if fillEvent.IsLong != isLong {
-			continue
-		}
+	// for _, log := range receipt.Logs {
+	// 	fillEvent, err := h.futuresContractFilterer.ParseFuturesPosition(*log)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	if common.Hash(fillEvent.OrderHash) != orderHash {
+	// 		continue
+	// 	} else if fillEvent.IsLong != isLong {
+	// 		continue
+	// 	}
 
-		eventFound = true
-		quantityFilled = fillEvent.QuantityFilled
-	}
+	// 	eventFound = true
+	// 	quantityFilled = fillEvent.QuantityFilled
+	// }
 
 	if !eventFound {
 		metrics.ReportFuncError(h.svcTags)
@@ -1160,35 +1158,35 @@ func (h *orderMsgHandler) getFuturesPositionCancelEventFromNode(
 	doneFn := metrics.ReportFuncTiming(h.svcTags)
 	defer doneFn()
 
-	receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
-	if err != nil {
-		// TODO: detect "not found" error and return false
-		// because faking txHash is not allowed
+	// receipt, err := h.ethProvider().TransactionReceiptByHash(ctx, txHash)
+	// if err != nil {
+	// 	// TODO: detect "not found" error and return false
+	// 	// because faking txHash is not allowed
 
-		log.WithError(err).Errorln("failed to get transaction receipt from node")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, true // technical error
-	}
+	// 	log.WithError(err).Errorln("failed to get transaction receipt from node")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, true // technical error
+	// }
 
-	if uint64(receipt.BlockNumber) != blockNum {
-		err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
-		log.WithError(err).Errorln("failed verify transaction log")
-		metrics.ReportFuncError(h.svcTags)
-		return nil, false
-	}
+	// if uint64(receipt.BlockNumber) != blockNum {
+	// 	err = fmt.Errorf("block num mismatch: %d != %d", uint64(receipt.BlockNumber), blockNum)
+	// 	log.WithError(err).Errorln("failed verify transaction log")
+	// 	metrics.ReportFuncError(h.svcTags)
+	// 	return nil, false
+	// }
 
 	var eventFound bool
-	for _, log := range receipt.Logs {
-		cancelEvent, err := h.futuresContractFilterer.ParseFuturesCancel(*log)
-		if err != nil {
-			continue
-		}
-		if common.Hash(cancelEvent.OrderHash) != orderHash {
-			continue
-		}
+	// for _, log := range receipt.Logs {
+	// 	cancelEvent, err := h.futuresContractFilterer.ParseFuturesCancel(*log)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	if common.Hash(cancelEvent.OrderHash) != orderHash {
+	// 		continue
+	// 	}
 
-		eventFound = true
-	}
+	// 	eventFound = true
+	// }
 
 	if !eventFound {
 		metrics.ReportFuncError(h.svcTags)

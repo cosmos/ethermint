@@ -91,22 +91,22 @@ func (k Keeper) GetArchiveOrders(ctx sdk.Context) []*types.Order {
 // Stores Order order in keeper
 func (k Keeper) SetOrder(ctx sdk.Context, order *types.Order) {
 
-	hash, err := order.Order.ToSignedOrder().ComputeOrderHash()
-	if err != nil {
-		k.Logger(ctx).Error("failed to compute order hash:", "error", err.Error())
-		return
-	}
+	// hash, err := order.Order.ToSignedOrder().ComputeOrderHash()
+	// if err != nil {
+	// 	k.Logger(ctx).Error("failed to compute order hash:", "error", err.Error())
+	// 	return
+	// }
 
-	var key []byte
-	if isActiveStatus(types.OrderStatus(order.Status)) {
-		key = types.ActiveOrdersStoreKey(hash)
-	} else {
-		key = types.ArchiveOrdersStoreKey(hash)
-	}
+	// var key []byte
+	// if isActiveStatus(types.OrderStatus(order.Status)) {
+	// 	key = types.ActiveOrdersStoreKey(hash)
+	// } else {
+	// 	key = types.ArchiveOrdersStoreKey(hash)
+	// }
 
-	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinaryBare(order)
-	store.Set(key, bz)
+	// store := ctx.KVStore(k.storeKey)
+	// bz := k.cdc.MustMarshalBinaryBare(order)
+	// store.Set(key, bz)
 }
 
 // Update OrderStatus of order from the provided order hash in the active collection

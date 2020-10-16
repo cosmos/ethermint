@@ -7,9 +7,6 @@ import (
 
 	log "github.com/xlab/suplog"
 
-	"github.com/cosmos/ethermint/contracts"
-	"github.com/cosmos/ethermint/ethereum/provider"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -29,16 +26,16 @@ type contractDiscoverer struct {
 	finalSet    *ContractsSet
 	finalSetMux *sync.RWMutex
 
-	lazyProvider func() provider.EVMProvider
+	// lazyProvider func() provider.EVMProvider
 }
 
-// NewContractDiscoverer inits only from provider func that returns when provider is ready.
-func NewContractDiscoverer(lazyProvider func() provider.EVMProvider) ContractDiscoverer {
-	return &contractDiscoverer{
-		lazyProvider: lazyProvider,
-		finalSetMux:  new(sync.RWMutex),
-	}
-}
+// // NewContractDiscoverer inits only from provider func that returns when provider is ready.
+// func NewContractDiscoverer(lazyProvider func() provider.EVMProvider) ContractDiscoverer {
+// 	return &contractDiscoverer{
+// 		lazyProvider: lazyProvider,
+// 		finalSetMux:  new(sync.RWMutex),
+// 	}
+// }
 
 func (c *contractDiscoverer) GetContracts() ContractsSet {
 	c.finalSetMux.RLock()
@@ -47,16 +44,16 @@ func (c *contractDiscoverer) GetContracts() ContractsSet {
 	}
 	c.finalSetMux.RUnlock()
 
-	ethProvider := c.lazyProvider()
+	// ethProvider := c.lazyProvider()
 
 	var set ContractsSet
 	for {
 		ts := time.Now()
-		discoverCtx, cancelFn := context.WithTimeout(context.Background(), defaultRPCTimeout)
-		set.ExchangeContract = discoverContractAddress(discoverCtx, "@0x/exchange", ethProvider)
-		set.DevUtilsContract = discoverContractAddress(discoverCtx, "@0x/devutils", ethProvider)
-		set.CoordinatorContract = discoverContractAddress(discoverCtx, "@injective/coordinator", ethProvider)
-		set.FuturesContract = discoverContractAddress(discoverCtx, "@injective/futures", ethProvider)
+		_, cancelFn := context.WithTimeout(context.Background(), defaultRPCTimeout)
+		// set.ExchangeContract = discoverContractAddress(discoverCtx, "@0x/exchange", ethProvider)
+		// set.DevUtilsContract = discoverContractAddress(discoverCtx, "@0x/devutils", ethProvider)
+		// set.CoordinatorContract = discoverContractAddress(discoverCtx, "@injective/coordinator", ethProvider)
+		// set.FuturesContract = discoverContractAddress(discoverCtx, "@injective/futures", ethProvider)
 		cancelFn()
 		log.Infoln("Contract addresses discovered in", time.Since(ts))
 
@@ -103,18 +100,18 @@ func hasEmptyAddresses(addresses ...common.Address) bool {
 	return false
 }
 
-func discoverContractAddress(ctx context.Context, name string, provider provider.EVMProvider) common.Address {
-	caller, _ := contracts.NewRegistryCaller(defaultRegistryAddress, provider)
+// func discoverContractAddress(ctx context.Context, name string, provider provider.EVMProvider) common.Address {
+// 	caller, _ := contracts.NewRegistryCaller(defaultRegistryAddress, provider)
 
-	opts := &bind.CallOpts{
-		From:    defaultReadonlyAddress,
-		Context: ctx,
-	}
+// 	opts := &bind.CallOpts{
+// 		From:    defaultReadonlyAddress,
+// 		Context: ctx,
+// 	}
 
-	address, err := caller.GetContractAddress(opts, name)
-	if err != nil {
-		return common.Address{}
-	}
+// 	address, err := caller.GetContractAddress(opts, name)
+// 	if err != nil {
+// 		return common.Address{}
+// 	}
 
-	return address
-}
+// 	return address
+// }

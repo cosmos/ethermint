@@ -1,17 +1,11 @@
 package types
 
 import (
-	"errors"
-	"fmt"
-	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/InjectiveLabs/zeroex-go"
+	// "github.com/InjectiveLabs/zeroex-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/ethereum/go-ethereum/common/math"
 )
 
 const RouterKey = ModuleName
@@ -48,8 +42,8 @@ func (msg MsgCreateSpotOrder) ValidateBasic() error {
 
 	if msg.Order == nil {
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no make order specified")
-	} else if _, err := msg.Order.ToSignedOrder().ComputeOrderHash(); err != nil {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, fmt.Sprintf("hash check failed: %v", err))
+		// } else if _, err := msg.Order.ToSignedOrder().ComputeOrderHash(); err != nil {
+		// 	return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, fmt.Sprintf("hash check failed: %v", err))
 	} else if !isValidSignature(msg.Order.Signature) {
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "invalid signature")
 	}
@@ -59,39 +53,40 @@ func (msg MsgCreateSpotOrder) ValidateBasic() error {
 
 // isValidSignature checks that the signature of the order is correct
 func isValidSignature(sig string) bool {
-	signature := common.Hex2Bytes(sig)
-	signatureType := zeroex.SignatureType(signature[len(signature)-1])
-
-	switch signatureType {
-	case zeroex.InvalidSignature, zeroex.IllegalSignature:
-		return false
-
-	case zeroex.EIP712Signature:
-		if len(signature) != 66 {
-			return false
-		}
-		// TODO: Do further validation by splitting into r,s,v and do ECRecover
-
-	case zeroex.EthSignSignature:
-		if len(signature) != 66 {
-			return false
-		}
-		// TODO: Do further validation by splitting into r,s,v, add prefix to hash
-		// and do ECRecover
-
-	case zeroex.ValidatorSignature:
-		if len(signature) < 21 {
-			return false
-		}
-
-	case zeroex.PreSignedSignature, zeroex.WalletSignature, zeroex.EIP1271WalletSignature:
-		return true
-
-	default:
-		return false
-	}
-
 	return true
+	// signature := common.Hex2Bytes(sig)
+	// signatureType := zeroex.SignatureType(signature[len(signature)-1])
+
+	// switch signatureType {
+	// case zeroex.InvalidSignature, zeroex.IllegalSignature:
+	// 	return false
+
+	// case zeroex.EIP712Signature:
+	// 	if len(signature) != 66 {
+	// 		return false
+	// 	}
+	// 	// TODO: Do further validation by splitting into r,s,v and do ECRecover
+
+	// case zeroex.EthSignSignature:
+	// 	if len(signature) != 66 {
+	// 		return false
+	// 	}
+	// 	// TODO: Do further validation by splitting into r,s,v, add prefix to hash
+	// 	// and do ECRecover
+
+	// case zeroex.ValidatorSignature:
+	// 	if len(signature) < 21 {
+	// 		return false
+	// 	}
+
+	// case zeroex.PreSignedSignature, zeroex.WalletSignature, zeroex.EIP1271WalletSignature:
+	// 	return true
+
+	// default:
+	// 	return false
+	// }
+
+	// return true
 }
 
 // GetSignBytes encodes the message for signing
@@ -122,8 +117,8 @@ func (msg MsgCreateDerivativeOrder) ValidateBasic() error {
 
 	if msg.Order == nil {
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no make order specified")
-	} else if _, err := msg.Order.ToSignedOrder().ComputeOrderHash(); err != nil {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, fmt.Sprintf("hash check failed: %v", err))
+		// } else if _, err := msg.Order.ToSignedOrder().ComputeOrderHash(); err != nil {
+		// 	return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, fmt.Sprintf("hash check failed: %v", err))
 	} else if !isValidSignature(msg.Order.Signature) {
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "invalid signature")
 	}
@@ -655,100 +650,100 @@ type SafeSignedOrder struct {
 	Signature HexBytes `json:"signature,omitempty"`
 }
 
-// NewSafeSignedOrder constructs a new SafeSignedOrder from given zeroex.SignedOrder.
-func NewSafeSignedOrder(o *zeroex.SignedOrder) *SafeSignedOrder {
-	return zo2so(o)
-}
+// // NewSafeSignedOrder constructs a new SafeSignedOrder from given zeroex.SignedOrder.
+// func NewSafeSignedOrder(o *zeroex.SignedOrder) *SafeSignedOrder {
+// 	return zo2so(o)
+// }
 
-// ToSignedOrder returns an appropriate zeroex.SignedOrder defined by SafeSignedOrder.
-func (m *BaseOrder) ToSignedOrder() *zeroex.SignedOrder {
-	o, err := so2zo(m)
-	if err != nil {
-		panic(err)
-	}
-	return o
-}
+// // ToSignedOrder returns an appropriate zeroex.SignedOrder defined by SafeSignedOrder.
+// func (m *BaseOrder) ToSignedOrder() *zeroex.SignedOrder {
+// 	o, err := so2zo(m)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return o
+// }
 
-// zo2so internal function converts model from *zeroex.SignedOrder to *SafeSignedOrder.
-func zo2so(o *zeroex.SignedOrder) *SafeSignedOrder {
-	if o == nil {
-		return nil
-	}
-	return &SafeSignedOrder{
-		ChainID:               o.ChainID.Int64(),
-		ExchangeAddress:       Address{o.ExchangeAddress},
-		MakerAddress:          Address{o.MakerAddress},
-		TakerAddress:          Address{o.TakerAddress},
-		FeeRecipientAddress:   Address{o.FeeRecipientAddress},
-		SenderAddress:         Address{o.SenderAddress},
-		MakerAssetAmount:      BigNum(o.MakerAssetAmount.String()),
-		TakerAssetAmount:      BigNum(o.TakerAssetAmount.String()),
-		MakerFee:              BigNum(o.MakerFee.String()),
-		TakerFee:              BigNum(o.TakerFee.String()),
-		ExpirationTimeSeconds: BigNum(o.ExpirationTimeSeconds.String()),
-		Salt:                  BigNum(o.Salt.String()),
-		MakerAssetData:        o.MakerAssetData,
-		TakerAssetData:        o.TakerAssetData,
-		MakerFeeAssetData:     o.MakerFeeAssetData,
-		TakerFeeAssetData:     o.TakerFeeAssetData,
-		Signature:             o.Signature,
-	}
-}
+// // zo2so internal function converts model from *zeroex.SignedOrder to *SafeSignedOrder.
+// func zo2so(o *zeroex.SignedOrder) *SafeSignedOrder {
+// 	if o == nil {
+// 		return nil
+// 	}
+// 	return &SafeSignedOrder{
+// 		ChainID:               o.ChainID.Int64(),
+// 		ExchangeAddress:       Address{o.ExchangeAddress},
+// 		MakerAddress:          Address{o.MakerAddress},
+// 		TakerAddress:          Address{o.TakerAddress},
+// 		FeeRecipientAddress:   Address{o.FeeRecipientAddress},
+// 		SenderAddress:         Address{o.SenderAddress},
+// 		MakerAssetAmount:      BigNum(o.MakerAssetAmount.String()),
+// 		TakerAssetAmount:      BigNum(o.TakerAssetAmount.String()),
+// 		MakerFee:              BigNum(o.MakerFee.String()),
+// 		TakerFee:              BigNum(o.TakerFee.String()),
+// 		ExpirationTimeSeconds: BigNum(o.ExpirationTimeSeconds.String()),
+// 		Salt:                  BigNum(o.Salt.String()),
+// 		MakerAssetData:        o.MakerAssetData,
+// 		TakerAssetData:        o.TakerAssetData,
+// 		MakerFeeAssetData:     o.MakerFeeAssetData,
+// 		TakerFeeAssetData:     o.TakerFeeAssetData,
+// 		Signature:             o.Signature,
+// 	}
+// }
 
-// so2zo internal function converts model from *SafeSignedOrder to *zeroex.SignedOrder.
-func so2zo(o *BaseOrder) (*zeroex.SignedOrder, error) {
-	if o == nil {
-		return nil, nil
-	}
-	order := zeroex.Order{
-		ChainID:             big.NewInt(o.ChainId),
-		ExchangeAddress:     common.HexToAddress(o.ExchangeAddress),
-		MakerAddress:        common.HexToAddress(o.MakerAddress),
-		TakerAddress:        common.HexToAddress(o.TakerAddress),
-		SenderAddress:       common.HexToAddress(o.SenderAddress),
-		FeeRecipientAddress: common.HexToAddress(o.FeeRecipientAddress),
-		MakerAssetData:      common.Hex2Bytes(o.MakerAssetData),
-		MakerFeeAssetData:   common.Hex2Bytes(o.MakerFeeAssetData),
-		TakerAssetData:      common.Hex2Bytes(o.TakerAssetData),
-		TakerFeeAssetData:   common.Hex2Bytes(o.TakerFeeAssetData),
-	}
+// // so2zo internal function converts model from *SafeSignedOrder to *zeroex.SignedOrder.
+// func so2zo(o *BaseOrder) (*zeroex.SignedOrder, error) {
+// 	if o == nil {
+// 		return nil, nil
+// 	}
+// 	order := zeroex.Order{
+// 		ChainID:             big.NewInt(o.ChainId),
+// 		ExchangeAddress:     common.HexToAddress(o.ExchangeAddress),
+// 		MakerAddress:        common.HexToAddress(o.MakerAddress),
+// 		TakerAddress:        common.HexToAddress(o.TakerAddress),
+// 		SenderAddress:       common.HexToAddress(o.SenderAddress),
+// 		FeeRecipientAddress: common.HexToAddress(o.FeeRecipientAddress),
+// 		MakerAssetData:      common.Hex2Bytes(o.MakerAssetData),
+// 		MakerFeeAssetData:   common.Hex2Bytes(o.MakerFeeAssetData),
+// 		TakerAssetData:      common.Hex2Bytes(o.TakerAssetData),
+// 		TakerFeeAssetData:   common.Hex2Bytes(o.TakerFeeAssetData),
+// 	}
 
-	if v, ok := math.ParseBig256(string(o.MakerAssetAmount)); !ok {
-		return nil, errors.New("makerAssetAmmount parse failed")
-	} else {
-		order.MakerAssetAmount = v
-	}
-	if v, ok := math.ParseBig256(string(o.MakerFee)); !ok {
-		return nil, errors.New("makerFee parse failed")
-	} else {
-		order.MakerFee = v
-	}
-	if v, ok := math.ParseBig256(string(o.TakerAssetAmount)); !ok {
-		return nil, errors.New("takerAssetAmmount parse failed")
-	} else {
-		order.TakerAssetAmount = v
-	}
-	if v, ok := math.ParseBig256(string(o.TakerFee)); !ok {
-		return nil, errors.New("takerFee parse failed")
-	} else {
-		order.TakerFee = v
-	}
-	if v, ok := math.ParseBig256(string(o.ExpirationTimeSeconds)); !ok {
-		return nil, errors.New("expirationTimeSeconds parse failed")
-	} else {
-		order.ExpirationTimeSeconds = v
-	}
-	if v, ok := math.ParseBig256(string(o.Salt)); !ok {
-		return nil, errors.New("salt parse failed")
-	} else {
-		order.Salt = v
-	}
-	signedOrder := &zeroex.SignedOrder{
-		Order:     order,
-		Signature: common.Hex2Bytes(o.Signature),
-	}
-	return signedOrder, nil
-}
+// 	if v, ok := math.ParseBig256(string(o.MakerAssetAmount)); !ok {
+// 		return nil, errors.New("makerAssetAmmount parse failed")
+// 	} else {
+// 		order.MakerAssetAmount = v
+// 	}
+// 	if v, ok := math.ParseBig256(string(o.MakerFee)); !ok {
+// 		return nil, errors.New("makerFee parse failed")
+// 	} else {
+// 		order.MakerFee = v
+// 	}
+// 	if v, ok := math.ParseBig256(string(o.TakerAssetAmount)); !ok {
+// 		return nil, errors.New("takerAssetAmmount parse failed")
+// 	} else {
+// 		order.TakerAssetAmount = v
+// 	}
+// 	if v, ok := math.ParseBig256(string(o.TakerFee)); !ok {
+// 		return nil, errors.New("takerFee parse failed")
+// 	} else {
+// 		order.TakerFee = v
+// 	}
+// 	if v, ok := math.ParseBig256(string(o.ExpirationTimeSeconds)); !ok {
+// 		return nil, errors.New("expirationTimeSeconds parse failed")
+// 	} else {
+// 		order.ExpirationTimeSeconds = v
+// 	}
+// 	if v, ok := math.ParseBig256(string(o.Salt)); !ok {
+// 		return nil, errors.New("salt parse failed")
+// 	} else {
+// 		order.Salt = v
+// 	}
+// 	signedOrder := &zeroex.SignedOrder{
+// 		Order:     order,
+// 		Signature: common.Hex2Bytes(o.Signature),
+// 	}
+// 	return signedOrder, nil
+// }
 // MsgCreateSpotOrder
 //type MsgCreateSpotOrder struct {
 //	Sender sdk.AccAddress   `json:"sender"`

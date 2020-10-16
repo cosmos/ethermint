@@ -1,10 +1,11 @@
 package app
 
 import (
-	"github.com/cosmos/ethermint/x/orders"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/cosmos/ethermint/x/orders"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
@@ -382,8 +383,6 @@ func NewEthermintApp(
 		orders.NewAppModule(
 			app.OrderKeeper,
 			false,
-			nil,
-			nil,
 			nil,
 			nil,
 			nil,
