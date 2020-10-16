@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdkstore "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,8 +27,8 @@ import (
 	paramkeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
+	"github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/core"
-	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
 	"github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
@@ -67,18 +68,16 @@ func init() {
 	flag.Parse()
 }
 
-func newTestCodec() *sdkcodec.LegacyAmino {
-	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
+func newTestCodec() (sdkcodec.BinaryMarshaler, *sdkcodec.LegacyAmino) {
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	cdc := sdkcodec.NewProtoCodec(interfaceRegistry)
+	amino := sdkcodec.NewLegacyAmino()
 
-	evmtypes.RegisterLegacyAminoCodec(cdc)
-	types.RegisterLegacyAminoCodec(cdc)
-	authtypes.RegisterLegacyAminoCodec(cdc)
-	banktypes.RegisterLegacyAminoCodec(cdc)
-	sdk.RegisterLegacyAminoCodec(cdc)
-	cryptocodec.RegisterLegacyAminoCodec(cdc)
-	sdkcodec.RegisterCrypto(cdc)
+	sdk.RegisterLegacyAminoCodec(amino)
 
-	return cdc
+	codec.RegisterInterfaces(interfaceRegistry)
+
+	return cdc, amino
 }
 
 func cleanup() {
@@ -171,11 +170,13 @@ func TestImportBlocks(t *testing.T) {
 		require.NoError(t, err, "failed to start CPU profile")
 	}
 
-	db := dbm.NewDB("state", dbm.GoLevelDBBackend, flagDataDir)
+	db, err := dbm.NewDB("state", dbm.GoLevelDBBackend, flagDataDir)
+	require.NoError(t, err)
+
 	defer cleanup()
 	trapSignals()
 
-	cdc := newTestCodec()
+	cdc, amino := newTestCodec()
 
 	cms := store.NewCommitMultiStore(db)
 
@@ -193,22 +194,22 @@ func TestImportBlocks(t *testing.T) {
 
 	cms.MountStoreWithDB(paramsTransientStoreKey, sdk.StoreTypeTransient, nil)
 
-	paramsKeeper := paramkeeper.NewKeeper(cdc, paramsStoreKey, paramsTransientStoreKey)
+	paramsKeeper := paramkeeper.NewKeeper(cdc, amino, paramsStoreKey, paramsTransientStoreKey)
 
 	// Set specific subspaces
-	authSubspace := paramsKeeper.Subspace(authtypes.DefaultParamspace)
-	bankSubspace := paramsKeeper.Subspace(bankkeeper.DefaultParamspace)
-	evmSubspace := paramsKeeper.Subspace(evmtypes.DefaultParamspace).WithKeyTable(evmtypes.ParamKeyTable())
+	authSubspace := paramsKeeper.Subspace(authtypes.ModuleName)
+	bankSubspace := paramsKeeper.Subspace(banktypes.ModuleName)
+	evmSubspace := paramsKeeper.Subspace(evmtypes.ModuleName).WithKeyTable(evmtypes.ParamKeyTable())
 
 	// create keepers
-	ak := authkeeper.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount)
-	bk := bankkeeper.NewBaseKeeper(ak, bankSubspace, nil)
+	ak := authkeeper.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount, nil)
+	bk := bankkeeper.NewBaseKeeper(cdc, bankStoreKey, ak, bankSubspace, nil)
 	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak, bk)
 
 	cms.SetPruning(sdkstore.PruneNothing)
 
 	// load latest version (root)
-	err := cms.LoadLatestVersion()
+	err = cms.LoadLatestVersion()
 	require.NoError(t, err)
 
 	// set and test genesis block

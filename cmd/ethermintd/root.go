@@ -40,7 +40,6 @@ import (
 // NewRootCmd creates a new root command for simd. It is called once in the
 // main function.
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
-	// TODO: define Ethermint's own encoding config?
 	encodingConfig := app.MakeEncodingConfig()
 	initClientCtx := client.Context{}.
 		WithJSONMarshaler(encodingConfig.Marshaler).
