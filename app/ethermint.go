@@ -2,6 +2,8 @@ package app
 
 import (
 	"github.com/cosmos/ethermint/x/orders"
+	orderskeeper "github.com/cosmos/ethermint/x/orders/keeper"
+	orderstypes "github.com/cosmos/ethermint/x/orders/types"
 	"io"
 	"os"
 	"path/filepath"
@@ -197,7 +199,7 @@ type EthermintApp struct {
 
 	// ethermint keepers
 	EvmKeeper   evm.Keeper
-	OrderKeeper orders.Keeper
+	OrderKeeper orderskeeper.Keeper
 
 	// FaucetKeeper faucet.Keeper
 
@@ -246,7 +248,7 @@ func NewEthermintApp(
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		// ethermint keys
 		evm.StoreKey,
-		orders.StoreKey,
+		orderstypes.StoreKey,
 		//faucet.StoreKey,
 	)
 
@@ -346,8 +348,8 @@ func NewEthermintApp(
 	app.EvmKeeper = evm.NewKeeper(
 		appCodec, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.BankKeeper,
 	)
-	app.OrderKeeper = orders.NewKeeper(
-		keys[orders.StoreKey],
+	app.OrderKeeper = orderskeeper.NewKeeper(
+		keys[orderstypes.StoreKey],
 		appCodec,
 	)
 	// app.FaucetKeeper = faucet.NewKeeper(
@@ -400,7 +402,7 @@ func NewEthermintApp(
 		upgradetypes.ModuleName,
 		evm.ModuleName,
 		minttypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
-		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName, orders.ModuleName,
+		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName, orderstypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		evm.ModuleName,
@@ -419,7 +421,7 @@ func NewEthermintApp(
 		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName,
 		// Ethermint modules
 		evm.ModuleName,
-		orders.ModuleName,
+		orderstypes.ModuleName,
 		// faucet.ModuleName,
 	)
 
@@ -640,7 +642,7 @@ func initParamsKeeper(
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	// ethermint subspaces
 	paramsKeeper.Subspace(evm.ModuleName)
-	paramsKeeper.Subspace(orders.ModuleName)
+	paramsKeeper.Subspace(orderstypes.ModuleName)
 
 	return paramsKeeper
 }

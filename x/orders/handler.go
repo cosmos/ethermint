@@ -24,6 +24,7 @@ import (
 	"github.com/cosmos/ethermint/ethereum/registry"
 	"github.com/cosmos/ethermint/eventdb"
 	"github.com/cosmos/ethermint/metrics"
+	"github.com/cosmos/ethermint/x/orders/keeper"
 )
 
 type OrderMsgHandler interface {
@@ -31,7 +32,7 @@ type OrderMsgHandler interface {
 }
 
 func NewOrderMsgHandler(
-	keeper Keeper,
+	keeper keeper.Keeper,
 	isExportOnly bool,
 	ethOrderEventDB eventdb.OrderEventDB,
 	ethFuturesPositionEventDB eventdb.FuturesPositionEventDB,
@@ -60,7 +61,7 @@ func NewOrderMsgHandler(
 type orderMsgHandler struct {
 	svcTags metrics.Tags
 
-	keeper Keeper
+	keeper keeper.Keeper
 
 	ethContracts             registry.ContractDiscoverer
 	devUtilsContractCaller   *wrappers.DevUtilsCaller

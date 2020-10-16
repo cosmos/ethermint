@@ -8,6 +8,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/ethermint/x/orders/client/cli"
 	"github.com/cosmos/ethermint/x/orders/types"
+	"github.com/cosmos/ethermint/x/orders/keeper"
 	grpc "github.com/gogo/protobuf/grpc"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
@@ -34,7 +35,7 @@ var (
 type AppModuleBasic struct{}
 
 func (AppModuleBasic) Name() string {
-	return ModuleName
+	return types.ModuleName
 }
 
 // RegisterLegacyAminoCodec performs a no-op as the evm module doesn't support amino.
@@ -89,7 +90,7 @@ type AppModule struct {
 	AppModuleBasic
 
 	svcTags      metrics.Tags
-	keeper       Keeper
+	keeper       keeper.Keeper
 	//cosmosClient loopback.CosmosClient
 	isExportOnly bool
 
@@ -106,7 +107,7 @@ type AppModule struct {
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(
-	keeper Keeper,
+	keeper keeper.Keeper,
 	isExportOnly bool,
 	//cosmosClient loopback.CosmosClient,
 	ethOrderEventDB eventdb.OrderEventDB,
@@ -135,7 +136,7 @@ func NewAppModule(
 }
 
 func (AppModule) Name() string {
-	return ModuleName
+	return types.ModuleName
 }
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
@@ -157,7 +158,7 @@ func (am AppModule) Route() sdk.Route {
 }
 
 func (am AppModule) QuerierRoute() string {
-	return RouterKey
+	return types.RouterKey
 }
 
 
