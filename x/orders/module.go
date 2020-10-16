@@ -31,7 +31,7 @@ var (
 type AppModuleBasic struct{}
 
 func (AppModuleBasic) Name() string {
-	return ModuleName
+	return types.ModuleName
 }
 
 // RegisterLegacyAminoCodec performs a no-op as the evm module doesn't support amino.
@@ -107,7 +107,7 @@ type AppModule struct {
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(
-	keeper Keeper,
+	keeper keeper.Keeper,
 	isExportOnly bool,
 	//cosmosClient loopback.CosmosClient,
 	ethOrderEventDB eventdb.OrderEventDB,
@@ -136,7 +136,7 @@ func NewAppModule(
 }
 
 func (AppModule) Name() string {
-	return ModuleName
+	return types.ModuleName
 }
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
@@ -157,7 +157,7 @@ func (am AppModule) Route() sdk.Route {
 }
 
 func (am AppModule) QuerierRoute() string {
-	return RouterKey
+	return types.RouterKey
 }
 
 func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier {
