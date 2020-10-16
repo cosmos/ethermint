@@ -9,8 +9,8 @@ import (
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
-// RegisterLegacyAmino registers Interfaces from types, crypto, and SDK std.
-func RegisterLegacyAmino(cdc *codec.LegacyAmino) {
+// RegisterLegacyAminoCodec registers Interfaces from types, crypto, and SDK std.
+func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	std.RegisterLegacyAminoCodec(cdc)
 	cryptocodec.RegisterCrypto(cdc)
 }

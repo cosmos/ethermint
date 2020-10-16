@@ -13,9 +13,15 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	ethermintcodec "github.com/cosmos/ethermint/codec"
+	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/types"
 )
+
+func init() {
+	amino := codec.NewLegacyAmino()
+	cryptocodec.RegisterCrypto(amino)
+}
 
 type AccountTestSuite struct {
 	suite.Suite
