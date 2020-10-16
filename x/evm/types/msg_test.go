@@ -8,21 +8,19 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func TestMsgEthermint(t *testing.T) {
-	addr := newSdkAddress()
-	fromAddr := newSdkAddress()
+	addr := newSdkAddress(t)
+	fromAddr := newSdkAddress(t)
 
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
+	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 	require.NotNil(t, msg)
 	require.Equal(t, msg.Recipient, &addr)
 
@@ -33,7 +31,7 @@ func TestMsgEthermint(t *testing.T) {
 func TestMsgEthermintValidation(t *testing.T) {
 	testCases := []struct {
 		nonce      uint64
-		to         *sdk.AccAddress
+		to         sdk.AccAddress
 		amount     sdk.Int
 		gasLimit   uint64
 		gasPrice   sdk.Int
@@ -60,10 +58,10 @@ func TestMsgEthermintValidation(t *testing.T) {
 }
 
 func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
-	addr := newSdkAddress()
-	fromAddr := newSdkAddress()
+	addr := newSdkAddress(t)
+	fromAddr := newSdkAddress(t)
 
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
+	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 
 	raw, err := ModuleCdc.MarshalBinaryBare(msg)
 	require.NoError(t, err)
@@ -81,9 +79,11 @@ func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
 	require.Equal(t, msg.From, msg2.From)
 }
 
-func newSdkAddress() sdk.AccAddress {
-	tmpKey := ethsecp256k1.GenPrivKey().PubKey()
-	return sdk.AccAddress(tmpKey.Address().Bytes())
+func newSdkAddress(t *testing.T) sdk.AccAddress {
+	priv, err := ethsecp256k1.GenerateKey()
+	require.NoError(t, err)
+
+	return sdk.AccAddress(priv.PubKey().Address().Bytes())
 }
 
 func TestMsgEthereumTx(t *testing.T) {
@@ -91,7 +91,7 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, *msg.Data.Recipient, addr)
+	require.Equal(t, msg.Data.Recipient, addr)
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())
@@ -185,39 +185,4 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
-}
-
-func TestMarshalAndUnmarshalLogs(t *testing.T) {
-	var cdc = codec.NewLegacyAminoLegacyAmino()
-
-	logs := []*ethtypes.Log{
-		{
-			Address: ethcmn.BytesToAddress([]byte{0x11}),
-			TxHash:  ethcmn.HexToHash("0x01"),
-			// May need to find workaround since Topics is required to unmarshal from JSON
-			Topics:  []ethcmn.Hash{},
-			Removed: true,
-		},
-		{Address: ethcmn.BytesToAddress([]byte{0x01, 0x11}), Topics: []ethcmn.Hash{}},
-	}
-
-	raw, err := codec.MarshalJSONIndent(cdc, logs)
-	require.NoError(t, err)
-
-	var logs2 []*ethtypes.Log
-	err = cdc.UnmarshalJSON(raw, &logs2)
-	require.NoError(t, err)
-
-	require.Len(t, logs2, 2)
-	require.Equal(t, logs[0].Address, logs2[0].Address)
-	require.Equal(t, logs[0].TxHash, logs2[0].TxHash)
-	require.True(t, logs[0].Removed)
-
-	emptyLogs := []*ethtypes.Log{}
-
-	raw, err = codec.MarshalJSONIndent(cdc, emptyLogs)
-	require.NoError(t, err)
-
-	err = cdc.UnmarshalJSON(raw, &logs2)
-	require.NoError(t, err)
 }

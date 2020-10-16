@@ -45,13 +45,12 @@ import (
 )
 
 var (
-	flagNodeDirPrefix     = "node-dir-prefix"
-	flagNumValidators     = "v"
-	flagOutputDir         = "output-dir"
-	flagNodeDaemonHome    = "node-daemon-home"
-	flagStartingIPAddress = "starting-ip-address"
-	flagCoinDenom         = "coin-denom"
-	flagIPAddrs           = "ip-addrs"
+	flagNodeDirPrefix  = "node-dir-prefix"
+	flagNumValidators  = "v"
+	flagOutputDir      = "output-dir"
+	flagNodeDaemonHome = "node-daemon-home"
+	flagCoinDenom      = "coin-denom"
+	flagIPAddrs        = "ip-addresses"
 )
 
 const nodeDirPerm = 0755
@@ -68,7 +67,7 @@ necessary files (private validator, genesis, config, etc.).
 
 Note, strict routability for addresses is turned off in the config file.`,
 
-		Example: "ethermintd testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
+		Example: "ethermintd testnet --v 4 --keyring-backend test --output-dir ./output --ip-addresses 192.168.10.2",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
 

@@ -2,10 +2,7 @@ package rpc
 
 import (
 	"context"
-	"fmt"
-	"math/big"
 	"os"
-	"strconv"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -27,8 +24,7 @@ type Backend interface {
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
-	getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error)
-	getGasLimit() (int64, error)
+
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
@@ -46,9 +42,8 @@ var _ Backend = (*EthermintBackend)(nil)
 type EthermintBackend struct {
 	ctx         context.Context
 	clientCtx   client.Context
-	queryClient evmtypes.QueryClient // gRPC query client
+	queryClient *QueryClient // gRPC query client
 	logger      log.Logger
-	gasLimit    int64
 }
 
 // NewEthermintBackend creates a new EthermintBackend instance
@@ -56,9 +51,8 @@ func NewEthermintBackend(clientCtx client.Context) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:         context.Background(),
 		clientCtx:   clientCtx,
-		queryClient: evmtypes.NewQueryClient(clientCtx),
+		queryClient: NewQueryClient(clientCtx),
 		logger:      log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		gasLimit:    int64(^uint32(0)),
 	}
 }
 
@@ -75,14 +69,12 @@ func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 
 // GetBlockByNumber returns the block identified by number.
 func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	height := blockNum.Int64()
-
-	blockRes, err := e.clientCtx.Client.Block(e.ctx, &height)
+	resBlock, err := e.clientCtx.Client.Block(e.ctx, blockNum.TmHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	return e.getEthBlockByNumber(value, fullTx)
+	return EthBlockFromTendermint(e.clientCtx, e.queryClient, resBlock.Block)
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -92,33 +84,19 @@ func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 		return nil, err
 	}
 
-	// TODO: gas, txs and bloom
-
-	return formatBlock(resBlock.Block.Header, resBlock.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
+	return EthBlockFromTendermint(e.clientCtx, e.queryClient, resBlock.Block)
 }
 
 // HeaderByNumber returns the block header identified by height.
 func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error) {
-	height := blockNum.Int64()
-
-	if blockNum == LatestBlockNumber {
-		// get latest block height
-		num, err := e.BlockNumber()
-		if err != nil {
-			return nil, err
-		}
-
-		height = int64(num)
-	}
-
-	resBlock, err := e.clientCtx.Client.Block(e.ctx, &height)
+	resBlock, err := e.clientCtx.Client.Block(e.ctx, blockNum.TmHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	req := &evmtypes.QueryBlockBloomRequest{Height: resBlock.Block.Height}
+	req := &evmtypes.QueryBlockBloomRequest{}
 
-	res, err := e.queryClient.BlockBloom(e.ctx, req)
+	res, err := e.queryClient.BlockBloom(ContextWithHeight(blockNum.Int64()), req)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +113,9 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 		return nil, err
 	}
 
-	req := &evmtypes.QueryBlockBloomRequest{Height: resBlock.Block.Height}
+	req := &evmtypes.QueryBlockBloomRequest{}
 
-	res, err := e.queryClient.BlockBloom(e.ctx, req)
+	res, err := e.queryClient.BlockBloom(ContextWithHeight(resBlock.Block.Height), req)
 	if err != nil {
 		return nil, err
 	}
@@ -145,81 +123,6 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 	ethHeader := EthHeaderFromTendermint(resBlock.Block.Header)
 	ethHeader.Bloom = ethtypes.BytesToBloom(res.Bloom)
 	return ethHeader, nil
-}
-
-func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[string]interface{}, error) {
-	// Remove this check when 0 query is fixed ref: (https://github.com/tendermint/tendermint/issues/4014)
-	var blkNumPtr *int64
-	if height != 0 {
-		blkNumPtr = &height
-	}
-
-	block, err := e.clientCtx.Client.Block(e.ctx, blkNumPtr)
-	if err != nil {
-		return nil, err
-	}
-	header := block.Block.Header
-
-	gasLimit, err := e.getGasLimit()
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		gasUsed      *big.Int
-		transactions []common.Hash
-	)
-
-	if fullTx {
-		// Populate full transaction data
-		transactions, gasUsed, err = ConvertTxs(
-			e.clientCtx, block.Block.Txs, common.BytesToHash(header.Hash()), uint64(header.Height),
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// TODO: Gas used not saved and cannot be calculated by hashes
-		// Return slice of transaction hashes
-		transactions = make([]common.Hash, len(block.Block.Txs))
-		for i, tx := range block.Block.Txs {
-			transactions[i] = common.BytesToHash(tx.Hash())
-		}
-	}
-
-	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryBloom, strconv.FormatInt(block.Block.Height, 10)))
-	if err != nil {
-		return nil, err
-	}
-
-	var out evmtypes.QueryBloomFilter
-	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return formatBlock(header, block.Block.Size(), gasLimit, gasUsed, transactions, out.Bloom), nil
-}
-
-// getGasLimit returns the gas limit per block set in genesis
-func (e *EthermintBackend) getGasLimit() (int64, error) {
-	// Retrieve from gasLimit variable cache
-	if e.gasLimit != -1 {
-		return e.gasLimit, nil
-	}
-
-	// Query genesis block if hasn't been retrieved yet
-	genesis, err := e.clientCtx.Client.Genesis(e.ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	// Save value to gasLimit cached value
-	gasLimit := genesis.Genesis.ConsensusParams.Block.MaxGas
-	if gasLimit == -1 {
-		// Sets gas limit to max uint32 to not error with javascript dev tooling
-		// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
-		// which errors certain javascript dev tooling which only supports up to 53 bits
-		gasLimit = int64(^uint32(0))
-	}
-	e.gasLimit = gasLimit
-	return gasLimit, nil
 }
 
 // GetTransactionLogs returns the logs given a transaction hash.
@@ -235,8 +138,8 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 	if err != nil {
 		return nil, err
 	}
-	// TODO: logs to Ethereum
-	return res.Logs, nil
+
+	return evmtypes.LogsToEthereum(res.Logs), nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
@@ -252,10 +155,11 @@ func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := RawTxToEthTx(e.clientCtx, tx)
 		if err != nil {
-			return nil, err
+			// ignore non Ethermint EVM transactions
+			continue
 		}
 
-		// * Should check signer and reference against accounts the node manages in future
+		// TODO: check signer and reference against accounts the node manages
 		rpcTx, err := NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err

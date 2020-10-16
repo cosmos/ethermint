@@ -38,3 +38,10 @@ func BloomKey(height int64) []byte {
 func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
 }
+
+// StateKey defines the full key under which an account state is stored.
+func StateKey(address ethcmn.Address, key []byte) []byte {
+	return append(AddressStoragePrefix(address), key...)
+}
+
+// TODO: fix Logs key and append block hash

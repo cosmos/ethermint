@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -93,17 +92,7 @@ func (q Keeper) Storage(c context.Context, req *types.QueryStorageRequest) (*typ
 		)
 	}
 
-	if req.Height < 0 {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			sdkerrors.ErrInvalidHeight.Error(),
-		)
-	}
-
 	ctx := sdk.UnwrapSDKContext(c)
-	if req.Height != 0 {
-		ctx = ctx.WithBlockHeight(req.Height)
-	}
 
 	address := ethcmn.HexToAddress(req.Address)
 	key := ethcmn.HexToHash(req.Key)
@@ -128,17 +117,7 @@ func (q Keeper) Code(c context.Context, req *types.QueryCodeRequest) (*types.Que
 		)
 	}
 
-	if req.Height < 0 {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			sdkerrors.ErrInvalidHeight.Error(),
-		)
-	}
-
 	ctx := sdk.UnwrapSDKContext(c)
-	if req.Height != 0 {
-		ctx = ctx.WithBlockHeight(req.Height)
-	}
 
 	address := ethcmn.HexToAddress(req.Address)
 	code := q.GetCode(ctx, address)
@@ -205,20 +184,10 @@ func (q Keeper) BlockBloom(c context.Context, req *types.QueryBlockBloomRequest)
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if req.Height == 0 {
-		return nil, status.Error(
-			codes.InvalidArgument, "block height cannot be 0",
-		)
-	}
-
 	ctx := sdk.UnwrapSDKContext(c)
 
-	height := req.Height
-	if height < 0 {
-		height = ctx.BlockHeight()
-	}
-
-	bloom, found := q.GetBlockBloom(ctx, height)
+	// use block height provided through the gRPC header
+	bloom, found := q.GetBlockBloom(ctx, ctx.BlockHeight())
 	if !found {
 		return nil, status.Error(
 			codes.NotFound, types.ErrBloomNotFound.Error(),

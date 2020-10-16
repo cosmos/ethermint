@@ -10,7 +10,7 @@ import (
 )
 
 // NewTransactionLogs creates a new NewTransactionLogs instance.
-func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
+func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs { // nolint: interfacer
 	return TransactionLogs{
 		Hash: hash.String(),
 		Logs: logs,
@@ -18,7 +18,7 @@ func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs {
 }
 
 // NewTransactionLogsFromEth creates a new NewTransactionLogs instance using []*ethtypes.Log.
-func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs {
+func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) TransactionLogs { // nolint: interfacer
 	logs := make([]*Log, len(ethlogs))
 	for i := range ethlogs {
 		logs[i] = NewLogFromEth(ethlogs[i])
@@ -49,11 +49,7 @@ func (tx TransactionLogs) Validate() error {
 
 // EthLogs returns the Ethereum type Logs from the Transaction Logs.
 func (tx TransactionLogs) EthLogs() []*ethtypes.Log {
-	logs := make([]*ethtypes.Log, len(tx.Logs))
-	for i := range tx.Logs {
-		logs[i] = tx.Logs[i].ToEthereum()
-	}
-	return logs
+	return LogsToEthereum(tx.Logs)
 }
 
 // Validate performs a basic validation of an ethereum Log fields.
@@ -90,6 +86,15 @@ func (log *Log) ToEthereum() *ethtypes.Log {
 		BlockHash:   ethcmn.HexToHash(log.BlockHash),
 		Removed:     log.Removed,
 	}
+}
+
+// LogsToEthereum casts the Ethermint Logs to a slice of Ethereum Logs.
+func LogsToEthereum(logs []*Log) []*ethtypes.Log {
+	ethLogs := make([]*ethtypes.Log, len(logs))
+	for i := range logs {
+		ethLogs[i] = logs[i].ToEthereum()
+	}
+	return ethLogs
 }
 
 // NewLogFromEth creates a new Log instance from a Ethereum type Log.

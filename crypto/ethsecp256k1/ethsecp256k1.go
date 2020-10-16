@@ -13,7 +13,6 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"github.com/tendermint/tendermint/crypto"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
 
@@ -69,7 +68,7 @@ func (privKey PrivKey) PubKey() tmcrypto.PubKey {
 }
 
 // Equals returns true if two ECDSA private keys are equal and false otherwise.
-func (privKey *PrivKey) Equals(other crypto.PrivKey) bool {
+func (privKey *PrivKey) Equals(other tmcrypto.PrivKey) bool {
 	return privKey.Type() == other.Type() && subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
 }
 

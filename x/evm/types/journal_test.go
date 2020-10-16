@@ -11,7 +11,6 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
 
-	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -36,19 +35,6 @@ type JournalTestSuite struct {
 	journal *journal
 	ctx     sdk.Context
 	stateDB *CommitStateDB
-}
-
-func newTestCodec() *sdkcodec.LegacyAmino {
-	cdc := sdkcodec.NewLegacyAminoLegacyAmino()
-
-	RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
-	ethsecp256k1.RegisterCodec(cdc)
-	sdkcodec.RegisterCrypto(cdc)
-	authtypes.RegisterLegacyAminoCodec(cdc)
-	ethermint.RegisterLegacyAminoCodec(cdc)
-
-	return cdc
 }
 
 func (suite *JournalTestSuite) SetupTest() {
@@ -105,7 +91,9 @@ func (suite *JournalTestSuite) setup() {
 	bankKey := sdk.NewKVStoreKey(banktypes.StoreKey)
 	storeKey := sdk.NewKVStoreKey(StoreKey)
 
-	db := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
+	db, err := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
+	suite.Require().NoError(err)
+
 	defer func() {
 		os.RemoveAll("temp")
 	}()
@@ -116,10 +104,8 @@ func (suite *JournalTestSuite) setup() {
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
-	err := cms.LoadLatestVersion()
+	err = cms.LoadLatestVersion()
 	suite.Require().NoError(err)
-
-	cdc := newTestCodec()
 
 	paramsKeeper := paramkeeper.NewKeeper(cdc, paramsKey, paramsTKey)
 
@@ -127,9 +113,9 @@ func (suite *JournalTestSuite) setup() {
 	bankSubspace := paramsKeeper.Subspace(banktypes.ModuleName)
 	evmSubspace := paramsKeeper.Subspace(ModuleName).WithKeyTable(ParamKeyTable())
 
-	ak := authkeeper.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
+	ak := authkeeper.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount, nil)
 	bk := bankkeeper.NewBaseKeeper(cdc, bankKey, ak, bankSubspace, nil)
-	suite.ctx = sdk.NewContext(cms, tmproto.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
+	suite.ctx = sdk.NewContext(cms, tmproto.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
 	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, bk).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }

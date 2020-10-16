@@ -6,6 +6,7 @@ require (
 	github.com/InjectiveLabs/zeroex-go v1.8.1
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/alexcesaro/statsd v2.0.0+incompatible
+	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d // indirect
 	github.com/btcsuite/btcd v0.21.0-beta

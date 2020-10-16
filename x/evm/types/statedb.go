@@ -520,7 +520,10 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
 
-	csdb.bankKeeper.SetBalance(csdb.ctx, so.account.GetAddress(), newBalance)
+	err := csdb.bankKeeper.SetBalance(csdb.ctx, so.account.GetAddress(), newBalance)
+	if err != nil {
+		return err
+	}
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	return nil
 }
