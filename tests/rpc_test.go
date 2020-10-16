@@ -815,8 +815,8 @@ func TestEth_ExportAccount_WithStorage(t *testing.T) {
 	// deployed bytecode
 	bytecode := "0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b8160008190555080827ff3ca124a697ba07e8c5e80bebcfcc48991fc16a63170e8a9206e30508960d00360405160405180910390a3505056fea265627a7a723158201d94d2187aaf3a6790527b615fcc40970febf0385fa6d72a2344848ebd0df3e964736f6c63430005110032"
 	require.Equal(t, addr, account.Address)
-	require.Equal(t, big.NewInt(0).String(), new(big.Int).SetBytes(account.Balance).String())
-	require.Equal(t, bytecode, ethcmn.Bytes2Hex(account.Code))
+	require.Equal(t, big.NewInt(0).String(), account.Balance.String())
+	require.Equal(t, bytecode, account.Code)
 	require.NotEqual(t, types.Storage(nil), account.Storage)
 }
 

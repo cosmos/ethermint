@@ -19,7 +19,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) []ab
 
 		address := ethcmn.HexToAddress(account.Address)
 		k.SetBalance(ctx, address, account.Balance.BigInt())
-		k.SetCode(ctx, address, account.Code)
+		k.SetCode(ctx, address, ethcmn.Hex2Bytes(account.Code))
 
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, ethcmn.HexToHash(storage.Key), ethcmn.HexToHash(storage.Value))
@@ -76,7 +76,7 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *ty
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Balance: sdk.NewIntFromBigInt(k.GetBalance(ctx, addr)),
-			Code:    k.GetCode(ctx, addr),
+			Code:    ethcmn.Bytes2Hex(k.GetCode(ctx, addr)),
 			Storage: storage,
 		}
 

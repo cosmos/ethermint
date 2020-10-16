@@ -12,11 +12,11 @@ var testJSON = `{
       "accounts": [
         {
           "address": "0x00cabdd44664b73cfc3194b9d32eb6c351ef7652",
-          "balance": 34
+          "balance": "34"
         },
         {
           "address": "0x2cc7fdf9fde6746731d7f11979609d455c2c197a",
-          "balance": 0,
+          "balance": "0",
           "code": "0x60806040"
 				}
 			],
@@ -28,7 +28,7 @@ var testJSON = `{
 func (suite *EvmTestSuite) TestInitGenesis() {
 	am := evm.NewAppModule(suite.app.EvmKeeper, suite.app.AccountKeeper)
 	in := json.RawMessage([]byte(testJSON))
-	_ = am.InitGenesis(suite.ctx, in)
+	_ = am.InitGenesis(suite.ctx, suite.app.AppCodec(), in)
 
 	testAddr := common.HexToAddress("0x2cc7fdf9fde6746731d7f11979609d455c2c197a")
 

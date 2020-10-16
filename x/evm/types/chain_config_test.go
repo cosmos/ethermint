@@ -241,5 +241,6 @@ muir_glacier_block: "-1"
 yoloV1_block: "-1"
 ewasm_block: "-1"
 `
-	require.Equal(t, configStr, DefaultChainConfig().String())
+	config := DefaultChainConfig()
+	require.Equal(t, configStr, config.String())
 }

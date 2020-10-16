@@ -128,9 +128,14 @@ func newMsgEthereumTx(
 		payload = ethcmn.CopyBytes(payload)
 	}
 
+	var toStr string
+	if to != nil {
+		toStr = to.String()
+	}
+
 	txData := &TxData{
 		AccountNonce: nonce,
-		Recipient:    to.String(),
+		Recipient:    toStr,
 		Payload:      payload,
 		GasLimit:     gasLimit,
 		Amount:       []byte{},
