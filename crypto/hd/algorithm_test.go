@@ -1,58 +1,113 @@
 package hd
 
-// func TestKeyring(t *testing.T) {
-// 	dir, cleanup := tests.NewTestCaseDir(t)
-// 	mockIn := strings.NewReader("")
-// 	t.Cleanup(cleanup)
+import (
+	"strings"
+	"testing"
 
-// 	kr, err := keyring.New("ethermint", keyring.BackendTest, dir, mockIn, EthSecp256k1Option()...)
-// 	require.NoError(t, err)
+	"github.com/stretchr/testify/require"
 
-// 	// fail in retrieving key
-// 	info, err := kr.Get("foo")
-// 	require.Error(t, err)
-// 	require.Nil(t, info)
+	"github.com/ethereum/go-ethereum/common"
 
-// 	mockIn.Reset("password\npassword\n")
-// 	info, mnemonic, err := kr.CreateMnemonic("foo", keyring.English, ethermint.BIP44HDPath, EthSecp256k1)
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, mnemonic)
-// 	require.Equal(t, "foo", info.GetName())
-// 	require.Equal(t, "local", info.GetType().String())
-// 	require.Equal(t, EthSecp256k1, info.GetAlgo())
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
-// 	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
-// 	hdPath := params.String()
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
-// 	bz, err := DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.Secp256k1)
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, bz)
+	cryptocodec "github.com/cosmos/ethermint/crypto/codec"
+	ethermint "github.com/cosmos/ethermint/types"
+)
 
-// 	bz, err = DeriveSecp256k1(mnemonic, keyring.DefaultBIP39Passphrase, hdPath)
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, bz)
+func init() {
+	amino := codec.NewLegacyAmino()
+	cryptocodec.RegisterCrypto(amino)
+}
 
-// 	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, keyring.SigningAlgo(""))
-// 	require.Error(t, err)
-// 	require.Empty(t, bz)
+func TestKeyring(t *testing.T) {
+	dir := t.TempDir()
+	mockIn := strings.NewReader("")
 
-// 	bz, err = DeriveSecp256k1(mnemonic, keyring.DefaultBIP39Passphrase, "/wrong/hdPath")
-// 	require.Error(t, err)
-// 	require.Empty(t, bz)
+	kr, err := keyring.New("ethermint", keyring.BackendTest, dir, mockIn, EthSecp256k1Option())
+	require.NoError(t, err)
 
-// 	bz, err = DeriveKey(mnemonic, keyring.DefaultBIP39Passphrase, hdPath, EthSecp256k1)
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, bz)
+	// fail in retrieving key
+	info, err := kr.Key("foo")
+	require.Error(t, err)
+	require.Nil(t, info)
 
-// 	privkey := &ethsecp256k1.PrivKey{Key: bz}
-// 	addr := common.BytesToAddress(privkey.PubKey().Address().Bytes())
+	mockIn.Reset("password\npassword\n")
+	info, mnemonic, err := kr.NewMnemonic("foo", keyring.English, ethermint.BIP44HDPath, EthSecp256k1)
+	require.NoError(t, err)
+	require.NotEmpty(t, mnemonic)
+	require.Equal(t, "foo", info.GetName())
+	require.Equal(t, "local", info.GetType().String())
+	require.Equal(t, EthSecp256k1Type, info.GetAlgo())
 
-// 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
-// 	require.NoError(t, err)
+	hdPath := ethermint.BIP44HDPath
 
-// 	path := hdwallet.MustParseDerivationPath(hdPath)
+	bz, err := EthSecp256k1.Derive()(mnemonic, keyring.DefaultBIP39Passphrase, hdPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
 
-// 	account, err := wallet.Derive(path, false)
-// 	require.NoError(t, err)
-// 	require.Equal(t, addr.String(), account.Address.String())
-// }
+	wrongBz, err := EthSecp256k1.Derive()(mnemonic, keyring.DefaultBIP39Passphrase, "/wrong/hdPath")
+	require.Error(t, err)
+	require.Empty(t, wrongBz)
+
+	privkey := EthSecp256k1.Generate()(bz)
+	addr := common.BytesToAddress(privkey.PubKey().Address().Bytes())
+
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	require.NoError(t, err)
+
+	path := hdwallet.MustParseDerivationPath(hdPath)
+
+	account, err := wallet.Derive(path, false)
+	require.NoError(t, err)
+	require.Equal(t, addr.String(), account.Address.String())
+}
+
+func TestDerivation(t *testing.T) {
+	mnemonic := "picnic rent average infant boat squirrel federal assault mercy purity very motor fossil wheel verify upset box fresh horse vivid copy predict square regret"
+
+	bz, err := EthSecp256k1.Derive()(mnemonic, keyring.DefaultBIP39Passphrase, ethermint.BIP44HDPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, bz)
+
+	badBz, err := EthSecp256k1.Derive()(mnemonic, keyring.DefaultBIP39Passphrase, "44'/60'/0'/0/0")
+	require.NoError(t, err)
+	require.NotEmpty(t, badBz)
+
+	require.NotEqual(t, bz, badBz)
+
+	privkey := EthSecp256k1.Generate()(bz)
+	badPrivKey := EthSecp256k1.Generate()(badBz)
+
+	require.False(t, privkey.Equals(badPrivKey))
+
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	require.NoError(t, err)
+
+	path := hdwallet.MustParseDerivationPath(ethermint.BIP44HDPath)
+	account, err := wallet.Derive(path, false)
+	require.NoError(t, err)
+
+	badPath := hdwallet.MustParseDerivationPath("44'/60'/0'/0/0")
+	badAccount, err := wallet.Derive(badPath, false)
+	require.NoError(t, err)
+
+	// Equality of Address BIP44
+	require.Equal(t, account.Address.String(), "0xA588C66983a81e800Db4dF74564F09f91c026351")
+	require.Equal(t, badAccount.Address.String(), "0xF8D6FDf2B8b488ea37e54903750dcd13F67E71cb")
+	// Inequality of wrong derivation path address
+	require.NotEqual(t, account.Address.String(), badAccount.Address.String())
+	// Equality of Ethermint implementation
+	require.Equal(t, common.BytesToAddress(privkey.PubKey().Address().Bytes()).String(), "0xA588C66983a81e800Db4dF74564F09f91c026351")
+	require.Equal(t, common.BytesToAddress(badPrivKey.PubKey().Address().Bytes()).String(), "0xF8D6FDf2B8b488ea37e54903750dcd13F67E71cb")
+
+	// Equality of Eth and Ethermint implementation
+	require.Equal(t, common.BytesToAddress(privkey.PubKey().Address()).String(), account.Address.String())
+	require.Equal(t, common.BytesToAddress(badPrivKey.PubKey().Address()).String(), badAccount.Address.String())
+
+	// Inequality of wrong derivation path of Eth and Ethermint implementation
+	require.NotEqual(t, common.BytesToAddress(privkey.PubKey().Address()).String(), badAccount.Address.String())
+	require.NotEqual(t, common.BytesToAddress(badPrivKey.PubKey().Address()).String(), account.Address.Hex())
+}
