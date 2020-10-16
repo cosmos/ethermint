@@ -83,6 +83,8 @@ import (
 	"github.com/cosmos/ethermint/app/ante"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
+	evmkeeper "github.com/cosmos/ethermint/x/evm/keeper"
+	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 	// "github.com/cosmos/ethermint/x/faucet"
 )
 
@@ -170,9 +172,6 @@ type EthermintApp struct {
 	tkeys   map[string]*sdk.TransientStoreKey
 	memKeys map[string]*sdk.MemoryStoreKey
 
-	// subspaces
-	subspaces map[string]paramstypes.Subspace
-
 	// keepers
 	AccountKeeper    authkeeper.AccountKeeper
 	BankKeeper       bankkeeper.Keeper
@@ -194,7 +193,7 @@ type EthermintApp struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// ethermint keepers
-	EvmKeeper evm.Keeper
+	EvmKeeper evmkeeper.Keeper
 	// FaucetKeeper faucet.Keeper
 
 	// the module manager
@@ -241,7 +240,7 @@ func NewEthermintApp(
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		// ethermint keys
-		evm.StoreKey,
+		evmtypes.StoreKey,
 		// faucet.StoreKey,
 	)
 
@@ -339,8 +338,8 @@ func NewEthermintApp(
 	app.EvidenceKeeper = *evidenceKeeper
 
 	// Create Ethermint keepers
-	app.EvmKeeper = evm.NewKeeper(
-		appCodec, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.BankKeeper,
+	app.EvmKeeper = evmkeeper.NewKeeper(
+		appCodec, keys[evmtypes.StoreKey], app.GetSubspace(evmtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
 	)
 	// app.FaucetKeeper = faucet.NewKeeper(
 	// 	app.cdc, keys[faucet.StoreKey], app.BankKeeper,
@@ -381,12 +380,12 @@ func NewEthermintApp(
 	// NOTE: staking module is required if HistoricalEntries param > 0.
 	app.mm.SetOrderBeginBlockers(
 		upgradetypes.ModuleName,
-		evm.ModuleName,
+		evmtypes.ModuleName,
 		minttypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
 		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		evm.ModuleName,
+		evmtypes.ModuleName,
 		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
 	)
 
@@ -401,7 +400,7 @@ func NewEthermintApp(
 		slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
 		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName,
 		// Ethermint modules
-		evm.ModuleName,
+		evmtypes.ModuleName,
 		// faucet.ModuleName,
 	)
 
@@ -621,7 +620,7 @@ func initParamsKeeper(
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	// ethermint subspaces
-	paramsKeeper.Subspace(evm.ModuleName)
+	paramsKeeper.Subspace(evmtypes.ModuleName)
 
 	return paramsKeeper
 }

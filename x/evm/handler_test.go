@@ -23,7 +23,6 @@ import (
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
-	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -35,9 +34,8 @@ type EvmTestSuite struct {
 
 	ctx     sdk.Context
 	handler sdk.Handler
-	querier sdk.Querier
 	app     *app.EthermintApp
-	codec   *codec.LegacyAmino
+	codec   codec.BinaryMarshaler
 }
 
 func (suite *EvmTestSuite) SetupTest() {
@@ -46,8 +44,7 @@ func (suite *EvmTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
-	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
-	suite.codec = codec.NewLegacyAminoLegacyAmino()
+	suite.codec = suite.app.AppCodec()
 }
 
 func TestEvmTestSuite(t *testing.T) {
@@ -59,7 +56,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -142,8 +139,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 
 func (suite *EvmTestSuite) TestMsgEthermint() {
 	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
+		tx   *types.MsgEthermint
+		from = sdk.AccAddress(ethsecp256k1.GenerateKey().PubKey().Address())
 		to   = sdk.AccAddress(ethsecp256k1.GenPrivKey().PubKey().Address())
 	)
 
@@ -366,7 +363,7 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	// store - changeOwner
 	gasLimit = uint64(100000000000)
 	gasPrice = big.NewInt(100)
-	receiver := common.HexToAddress(resultData.ContractAddress.String())
+	receiver := common.HexToAddress(resultData.ContractAddress)
 
 	storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
 	bytecode = common.FromHex(storeAddr)

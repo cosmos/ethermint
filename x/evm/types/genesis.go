@@ -1,26 +1,19 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (ga GenesisAccount) Validate() error {
-	if bytes.Equal(ethcmn.Hex2Bytes(ga.Address), ethcmn.Address{}.Bytes()) {
+	if IsZeroAddress(ga.Address) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
-	if len(ga.Balance) == 0 {
+	if ga.Balance.IsNil() {
 		return errors.New("balance cannot be empty")
 	}
-
-	balance := new(big.Int).SetBytes(ga.Balance)
-
-	if balance.Sign() == -1 {
+	if ga.Balance.IsNegative() {
 		return errors.New("balance cannot be negative")
 	}
 	if ga.Code != nil && len(ga.Code) == 0 {

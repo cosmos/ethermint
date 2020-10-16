@@ -11,8 +11,10 @@ message GenesisState {
   // accounts is an array containing the ethereum genesis accounts.
   repeated GenesisAccount accounts = 1 [ (gogoproto.nullable) = false ];
   // chain_config defines the Ethereum chain configuration.
-  ChainConfig chain_config = 2
-      [ (gogoproto.moretags) = "yaml:\"chain_config\"" ];
+  ChainConfig chain_config = 2 [
+    (gogoproto.moretags) = "yaml:\"chain_config\"",
+    (gogoproto.nullable) = false
+  ];
   // params defines all the paramaters of the module.
   Params params = 3 [ (gogoproto.nullable) = false ];
 
@@ -27,7 +29,10 @@ message GenesisState {
 // custom storage type and that it doesn't contain the private key field.
 message GenesisAccount {
   string address = 1;
-  bytes balance = 2;
+  string balance = 2 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable) = false
+  ];
   bytes code = 3;
   repeated State storage = 4
       [ (gogoproto.nullable) = false, (gogoproto.castrepeated) = "Storage" ];

@@ -11,6 +11,8 @@ import (
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
+var _ paramtypes.ParamSet = &Params{}
+
 // Parameter keys
 var (
 	ParamStoreKeyEVMDenom = []byte("EVMDenom")

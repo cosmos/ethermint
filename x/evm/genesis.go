@@ -1,8 +1,6 @@
 package evm
 
 import (
-	"math/big"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethermint "github.com/cosmos/ethermint/types"
@@ -20,8 +18,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) []ab
 		// FIXME: this will override bank InitGenesis balance!
 
 		address := ethcmn.HexToAddress(account.Address)
-		balance := new(big.Int).SetBytes(account.Balance)
-		k.SetBalance(ctx, address, balance)
+		k.SetBalance(ctx, address, account.Balance.BigInt())
 		k.SetCode(ctx, address, account.Code)
 
 		for _, storage := range account.Storage {
@@ -37,7 +34,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) []ab
 		}
 	}
 
-	k.SetChainConfig(ctx, *data.ChainConfig)
+	k.SetChainConfig(ctx, data.ChainConfig)
 	k.SetParams(ctx, data.Params)
 
 	// set state objects and code to store
@@ -78,7 +75,7 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *ty
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Balance: k.GetBalance(ctx, addr).Bytes(),
+			Balance: sdk.NewIntFromBigInt(k.GetBalance(ctx, addr)),
 			Code:    k.GetCode(ctx, addr),
 			Storage: storage,
 		}
@@ -91,7 +88,7 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *ty
 	return &types.GenesisState{
 		Accounts:    ethGenAccounts,
 		TxsLogs:     k.GetAllTxLogs(ctx),
-		ChainConfig: &config,
+		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
 }

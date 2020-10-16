@@ -561,7 +561,8 @@ func (m *QueryBlockLogsResponse) GetTxLogs() []TransactionLogs {
 	return nil
 }
 
-// QueryBlockBloomRequest is the request type for the Query/BlockBloom RPC method.
+// QueryBlockBloomRequest is the request type for the Query/BlockBloom RPC
+// method.
 type QueryBlockBloomRequest struct {
 }
 
@@ -598,7 +599,8 @@ func (m *QueryBlockBloomRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryBlockBloomRequest proto.InternalMessageInfo
 
-// QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC method.
+// QueryBlockBloomResponse is the response type for the Query/BlockBloom RPC
+// method.
 type QueryBlockBloomResponse struct {
 	// bloom represents bloom filter for the given block hash.
 	Bloom []byte `protobuf:"bytes,1,opt,name=bloom,proto3" json:"bloom,omitempty"`

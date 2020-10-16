@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -31,10 +30,13 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
+			keyringBackend, _ := cmd.Flags().GetString(flags.FlagKeyringBackend)
+			rootDir, _ := cmd.Flags().GetString(flags.FlagHome)
+
 			kr, err := keyring.New(
 				sdk.KeyringServiceName(),
-				viper.GetString(flags.FlagKeyringBackend),
-				viper.GetString(flags.FlagHome),
+				keyringBackend,
+				rootDir,
 				inBuf,
 				hd.EthSecp256k1Option(),
 			)
@@ -44,7 +46,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 
 			decryptPassword := ""
 			conf := true
-			keyringBackend := viper.GetString(flags.FlagKeyringBackend)
+
 			switch keyringBackend {
 			case keyring.BackendFile:
 				decryptPassword, err = input.GetPassword(

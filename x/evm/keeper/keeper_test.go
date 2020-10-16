@@ -112,14 +112,6 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.app.EvmKeeper.SetState(suite.ctx, suite.address, ethcmn.HexToHash("0x2"), ethcmn.HexToHash("0x3"))
 	suite.app.EvmKeeper.SetCode(suite.ctx, suite.address, []byte{0x1})
 
-	// Test block hash mapping functionality
-	suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 7)
-	height, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
-	suite.Require().True(found)
-	suite.Require().Equal(int64(7), height)
-
-	suite.app.EvmKeeper.SetBlockHash(suite.ctx, []byte{0x43, 0x32}, 8)
-
 	// Test block height mapping functionality
 	testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 	suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 4, testBloom)
@@ -129,13 +121,6 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().Equal(suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address), uint64(4))
 	suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, suite.address, ethcmn.HexToHash("0x2")), ethcmn.HexToHash("0x3"))
 	suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, suite.address), []byte{0x1})
-
-	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, hash)
-	suite.Require().True(found)
-	suite.Require().Equal(height, int64(7))
-	height, found = suite.app.EvmKeeper.GetBlockHash(suite.ctx, []byte{0x43, 0x32})
-	suite.Require().True(found)
-	suite.Require().Equal(height, int64(8))
 
 	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().True(found)

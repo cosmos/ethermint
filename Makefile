@@ -128,7 +128,6 @@ ifeq ($(OS), Windows_NT)
 else
 	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY) ./cmd/$(ETHERMINT_BINARY)
 endif
-	go build ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +8,8 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
@@ -23,7 +24,7 @@ func TestValidateGenesisAccount(t *testing.T) {
 			"valid genesis account",
 			GenesisAccount{
 				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-				Balance: big.NewInt(1).Bytes(),
+				Balance: sdk.OneInt(),
 				Code:    []byte{1, 2, 3},
 				Storage: Storage{
 					NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
@@ -35,23 +36,23 @@ func TestValidateGenesisAccount(t *testing.T) {
 			"empty account address bytes",
 			GenesisAccount{
 				Address: ethcmn.Address{}.String(),
-				Balance: big.NewInt(1).Bytes(),
+				Balance: sdk.OneInt(),
 			},
 			false,
 		},
 		{
-			"nil account balance",
+			"empty account balance",
 			GenesisAccount{
 				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-				Balance: nil,
+				Balance: sdk.Int{},
 			},
 			false,
 		},
 		{
-			"nil account balance",
+			"negative account balance",
 			GenesisAccount{
 				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-				Balance: big.NewInt(-1),
+				Balance: sdk.NewInt(-1),
 			},
 			false,
 		},
@@ -59,7 +60,7 @@ func TestValidateGenesisAccount(t *testing.T) {
 			"empty code bytes",
 			GenesisAccount{
 				Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-				Balance: big.NewInt(1),
+				Balance: sdk.OneInt(),
 				Code:    []byte{},
 			},
 			false,
@@ -98,7 +99,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-						Balance: big.NewInt(1),
+						Balance: sdk.OneInt(),
 						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3}).String()},
@@ -150,7 +151,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-						Balance: big.NewInt(1),
+						Balance: sdk.OneInt(),
 						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
@@ -158,7 +159,7 @@ func TestValidateGenesis(t *testing.T) {
 					},
 					{
 						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-						Balance: big.NewInt(1),
+						Balance: sdk.OneInt(),
 						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
@@ -173,8 +174,8 @@ func TestValidateGenesis(t *testing.T) {
 			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
-						Balance: big.NewInt(1),
+						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
+						Balance: sdk.OneInt(),
 						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3}).String()},
@@ -224,7 +225,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}).String(),
-						Balance: big.NewInt(1),
+						Balance: sdk.OneInt(),
 						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3}).String()},
@@ -246,7 +247,7 @@ func TestValidateGenesis(t *testing.T) {
 		{
 			name: "invalid chain config",
 			genState: &GenesisState{
-				ChainConfig: &ChainConfig{},
+				ChainConfig: ChainConfig{},
 				Params:      DefaultParams(),
 			},
 			expPass: false,

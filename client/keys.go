@@ -2,10 +2,8 @@ package client
 
 import (
 	"bufio"
-	"io"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/libs/cli"
 
@@ -87,26 +85,30 @@ The pass backend requires GnuPG: https://gnupg.org/
 
 func runAddCmd(cmd *cobra.Command, args []string) error {
 	inBuf := bufio.NewReader(cmd.InOrStdin())
-	kb, err := getKeybase(viper.GetBool(flagDryRun), inBuf)
+	keyringBackend, _ := cmd.Flags().GetString(flags.FlagKeyringBackend)
+	rootDir, _ := cmd.Flags().GetString(flags.FlagHome)
+	transient, _ := cmd.Flags().GetBool(flagDryRun)
+
+	var (
+		kr  keyring.Keyring
+		err error
+	)
+
+	if transient {
+		kr = keyring.NewInMemory(hd.EthSecp256k1Option())
+	} else {
+		kr, err = keyring.New(
+			sdk.KeyringServiceName(),
+			keyringBackend,
+			rootDir,
+			inBuf,
+			hd.EthSecp256k1Option(),
+		)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	return keys.RunAddCmd(cmd, args, kb, inBuf)
-}
-
-func getKeybase(transient bool, buf io.Reader) (keyring.Keyring, error) {
-	if transient {
-		return keyring.NewInMemory(
-			hd.EthSecp256k1Option(),
-		), nil
-	}
-
-	return keyring.New(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		buf,
-		hd.EthSecp256k1Option(),
-	)
+	return keys.RunAddCmd(cmd, args, kr, inBuf)
 }

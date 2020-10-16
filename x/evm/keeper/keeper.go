@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -65,31 +64,6 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // ----------------------------------------------------------------------------
-// Block hash mapping functions
-// Required by Web3 API.
-//  TODO: remove once tendermint support block queries by hash.
-// ----------------------------------------------------------------------------
-
-// GetBlockHash gets block height from block consensus hash
-func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	bz := store.Get(hash)
-	if len(bz) == 0 {
-		return 0, false
-	}
-
-	height := binary.BigEndian.Uint64(bz)
-	return int64(height), true
-}
-
-// SetBlockHash sets the mapping from block consensus hash to block height
-func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
-	store.Set(hash, bz)
-}
-
-// ----------------------------------------------------------------------------
 // Block bloom bits mapping functions
 // Required by Web3 API.
 // ----------------------------------------------------------------------------
@@ -145,9 +119,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := ctx.KVStore(k.storeKey)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
-	bz := store.Get([]byte{})
+	bz := store.Get(types.KeyPrefixChainConfig)
 	if len(bz) == 0 {
 		return types.ChainConfig{}, false
 	}
@@ -159,8 +133,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&config)
-	// get to an empty key that's already prefixed by KeyPrefixChainConfig
-	store.Set([]byte{}, bz)
+	store.Set(types.KeyPrefixChainConfig, bz)
 }

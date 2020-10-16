@@ -12,12 +12,10 @@ import (
 
 // BeginBlock sets the block hash -> block height map and resets the Bloom filter and
 // the transaction count to 0.
-func BeginBlock(k Keeper, ctx sdk.Context, req abci.RequestBeginBlock) {
+func BeginBlock(k Keeper, _ sdk.Context, req abci.RequestBeginBlock) {
 	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
 		return
 	}
-
-	k.SetBlockHash(ctx, req.Header.LastBlockId.GetHash(), req.Header.GetHeight()-1)
 
 	// reset counters
 	k.Bloom = big.NewInt(0)
