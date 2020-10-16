@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	// ModuleCdc references the global evm module codec. Note, the codec should
+	// ModuleCdc references the global orders module codec. Note, the codec should
 	// ONLY be used in certain instances of tests and for JSON encoding.
 	//
-	// The actual codec used for serialization should be provided to x/evm and
+	// The actual codec used for serialization should be provided to x/orders and
 	// defined at the application level.
 	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )

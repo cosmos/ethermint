@@ -8,7 +8,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/ethermint/x/orders/client/cli"
 	"github.com/cosmos/ethermint/x/orders/types"
-	grpc1 "github.com/gogo/protobuf/grpc"
+	grpc "github.com/gogo/protobuf/grpc"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -42,11 +42,11 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(_ *codec.LegacyAmino) {
 }
 
 // RegisterInterfaces registers interfaces and implementations of the orders module.
-func (b AppModuleBasic) RegisterInterfaces(interfaceRegistry codectypes.InterfaceRegistry) {
+func (AppModuleBasic) RegisterInterfaces(interfaceRegistry codectypes.InterfaceRegistry) {
 	types.RegisterInterfaces(interfaceRegistry)
 }
 
-// DefaultGenesis returns default genesis state as raw bytes for the evm
+// DefaultGenesis returns default genesis state as raw bytes for the orders
 // module.
 func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
 	return cdc.MustMarshalJSON(types.DefaultGenesisState())
@@ -68,7 +68,7 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Rout
 }
 
 // RegisterGRPCRoutes registers the gRPC Gateway routes for the orders module.
-func (b AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, serveMux *runtime.ServeMux) {
+func (AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, serveMux *runtime.ServeMux) {
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
 		panic("Failed to RegisterGRPCRoutes in orders module")
@@ -76,12 +76,12 @@ func (b AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, serveMux *r
 }
 
 // GetTxCmd returns the root tx command for the orders module.
-func (b AppModuleBasic) GetTxCmd() *cobra.Command {
+func (AppModuleBasic) GetTxCmd() *cobra.Command {
 	return cli.NewTxCmd()
 }
 
 // GetQueryCmd returns no root query command for the orders module.
-func (b AppModuleBasic) GetQueryCmd() *cobra.Command {
+func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 	return cli.GetQueryCmd()
 }
 
@@ -165,7 +165,7 @@ func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier {
 	return nil
 }
 
-func (am AppModule) RegisterQueryService(server grpc1.Server) {
+func (am AppModule) RegisterQueryService(server grpc.Server) {
 	types.RegisterQueryServer(server, am.keeper)
 }
 
@@ -189,6 +189,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json
 	gs := ExportGenesis(ctx, am.keeper)
 	return cdc.MustMarshalJSON(gs)
 }
+
 
 
 

@@ -51,7 +51,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	transfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer"
+	"github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer"
 	ibctransferkeeper "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	ibc "github.com/cosmos/cosmos-sdk/x/ibc/core"
@@ -133,7 +133,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		evm.AppModuleBasic{},
-		orders.AppModuleBasic{},
+		//orders.AppModuleBasic{},
 		// faucet.AppModuleBasic{},
 	)
 
@@ -247,7 +247,7 @@ func NewEthermintApp(
 		// ethermint keys
 		evm.StoreKey,
 		orders.StoreKey,
-		// faucet.StoreKey,
+		//faucet.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -379,7 +379,15 @@ func NewEthermintApp(
 		transferModule,
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
-		//orders.NewAppModule(),
+		orders.NewAppModule(
+			app.OrderKeeper,
+			false,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+		),
 		// faucet.NewAppModule(app.FaucetKeeper),
 	)
 
@@ -392,7 +400,7 @@ func NewEthermintApp(
 		upgradetypes.ModuleName,
 		evm.ModuleName,
 		minttypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
-		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName,
+		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName, orders.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		evm.ModuleName,
@@ -425,23 +433,23 @@ func NewEthermintApp(
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
-	// transactions
-	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		params.NewAppModule(app.ParamsKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
-		ibc.NewAppModule(app.IBCKeeper),
-		transferModule,
-	)
-
-	app.sm.RegisterStoreDecoders()
+	//// transactions
+	//app.sm = module.NewSimulationManager(
+	//	auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
+	//	bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
+	//	capability.NewAppModule(appCodec, *app.CapabilityKeeper),
+	//	gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+	//	mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
+	//	staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+	//	distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+	//	slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+	//	params.NewAppModule(app.ParamsKeeper),
+	//	evidence.NewAppModule(app.EvidenceKeeper),
+	//	ibc.NewAppModule(app.IBCKeeper),
+	//	transferModule,
+	//)
+	//
+	//app.sm.RegisterStoreDecoders()
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -632,6 +640,7 @@ func initParamsKeeper(
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	// ethermint subspaces
 	paramsKeeper.Subspace(evm.ModuleName)
+	paramsKeeper.Subspace(orders.ModuleName)
 
 	return paramsKeeper
 }
