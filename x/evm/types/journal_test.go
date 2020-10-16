@@ -11,6 +11,8 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -24,9 +26,22 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	ethermintcodec "github.com/cosmos/ethermint/codec"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	ethermint "github.com/cosmos/ethermint/types"
 )
+
+func newTestCodec() (codec.BinaryMarshaler, *codec.LegacyAmino) {
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	cdc := codec.NewProtoCodec(interfaceRegistry)
+	amino := codec.NewLegacyAmino()
+
+	sdk.RegisterLegacyAminoCodec(amino)
+
+	ethermintcodec.RegisterInterfaces(interfaceRegistry)
+
+	return cdc, amino
+}
 
 type JournalTestSuite struct {
 	suite.Suite
@@ -100,6 +115,7 @@ func (suite *JournalTestSuite) setup() {
 
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(bankKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
@@ -107,7 +123,9 @@ func (suite *JournalTestSuite) setup() {
 	err = cms.LoadLatestVersion()
 	suite.Require().NoError(err)
 
-	paramsKeeper := paramkeeper.NewKeeper(cdc, paramsKey, paramsTKey)
+	cdc, amino := newTestCodec()
+
+	paramsKeeper := paramkeeper.NewKeeper(cdc, amino, paramsKey, paramsTKey)
 
 	authSubspace := paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSubspace := paramsKeeper.Subspace(banktypes.ModuleName)

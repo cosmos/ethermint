@@ -18,7 +18,7 @@ func (ga GenesisAccount) Validate() error {
 	if ga.Balance.IsNegative() {
 		return errors.New("balance cannot be negative")
 	}
-	if ga.Code != "" || len(ethcmn.Hex2Bytes(ga.Code)) == 0 {
+	if ga.Code == "" || len(ethcmn.Hex2Bytes(ga.Code)) == 0 {
 		return errors.New("code bytes cannot be empty")
 	}
 

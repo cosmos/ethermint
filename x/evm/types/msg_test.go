@@ -22,7 +22,7 @@ func TestMsgEthermint(t *testing.T) {
 
 	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 	require.NotNil(t, msg)
-	require.Equal(t, msg.Recipient, &addr)
+	require.Equal(t, msg.Recipient, addr.String())
 
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthermint)
@@ -91,7 +91,7 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, msg.Data.Recipient, addr)
+	require.Equal(t, msg.Data.Recipient, addr.String())
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())

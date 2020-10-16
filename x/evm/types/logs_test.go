@@ -115,7 +115,7 @@ func TestValidateLog(t *testing.T) {
 			true,
 		},
 		{
-			"nil log", nil, false,
+			"empty log", &Log{}, false,
 		},
 		{
 			"zero address",

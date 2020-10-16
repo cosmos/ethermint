@@ -13,7 +13,7 @@ import (
 )
 
 type GenesisTestSuite struct {
-	*suite.Suite
+	suite.Suite
 
 	address string
 	hash    ethcmn.Hash
