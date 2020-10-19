@@ -45,6 +45,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Bug Fixes
 
+* (evm) [\#584](https://github.com/cosmos/ethermint/pull/584) Fix transaction Logs retrieval, which now only returns the Logs from the current block.
 * (crypto) [\#577](https://github.com/cosmos/ethermint/pull/577) Fix `BIP44HDPath` that did not prepend `m/` to the path. This now uses the `DefaultBaseDerivationPath` variable from go-ethereum to ensure addresses are consistent.
 
 ## [v0.2.1] - 2020-09-30
