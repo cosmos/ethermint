@@ -98,7 +98,7 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bo
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
-		return ethtypes.Bloom{}, true // TODO: sometimes bloom cannot be found, fix this
+		return ethtypes.Bloom{}, true
 	}
 
 	bz := store.Get(types.BloomKey(height))
@@ -111,7 +111,7 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 	store.Set(types.BloomKey(height), bloom.Bytes())
 }
 
-// GetAllTxLogs return all the transaction logs from the store.
+// GetAllTxLogs return all the transaction logs from all transactions from the store.
 func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)

@@ -174,22 +174,22 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // ----------------------------------------------------------------------------
 
 // SetLogs sets the logs for a transaction in the KVStore.
-func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
+func (csdb *CommitStateDB) SetLogs(txHash ethcmn.Hash, logs []*ethtypes.Log) error {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), LogsByBlockKey(csdb.bhash.Bytes()))
 	bz, err := MarshalLogs(logs)
 	if err != nil {
 		return err
 	}
 
-	store.Set(hash.Bytes(), bz)
+	store.Set(txHash.Bytes(), bz)
 	csdb.logSize = uint(len(logs))
 	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
-func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	store.Delete(hash.Bytes())
+func (csdb *CommitStateDB) DeleteLogs(txHash ethcmn.Hash) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), LogsByBlockKey(csdb.bhash.Bytes()))
+	store.Delete(txHash.Bytes())
 }
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
@@ -340,9 +340,9 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 }
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
-func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
+func (csdb *CommitStateDB) GetLogs(txHash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), LogsByBlockKey(csdb.bhash.Bytes()))
+	bz := store.Get(txHash.Bytes())
 	if len(bz) == 0 {
 		// return nil error if logs are not found
 		return []*ethtypes.Log{}, nil
@@ -351,10 +351,10 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	return UnmarshalLogs(bz)
 }
 
-// AllLogs returns all the current logs in the state.
+// AllLogs returns all the logs in the state for the current block.
 func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	store := csdb.ctx.KVStore(csdb.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixLogs)
+	iterator := sdk.KVStorePrefixIterator(store, LogsByBlockKey(csdb.bhash.Bytes()))
 	defer iterator.Close()
 
 	allLogs := []*ethtypes.Log{}

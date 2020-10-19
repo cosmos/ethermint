@@ -34,6 +34,12 @@ func BloomKey(height int64) []byte {
 	return sdk.Uint64ToBigEndian(uint64(height))
 }
 
+// LogsByBlockKey defines the store key to iterate over all the evm transactions
+// logs in a block.
+func LogsByBlockKey(blockHash []byte) []byte {
+	return append(KeyPrefixLogs, blockHash...)
+}
+
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
 func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
