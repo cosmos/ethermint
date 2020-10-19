@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/crypto/hd"
 	params "github.com/cosmos/ethermint/rpc/args"
 	ethermint "github.com/cosmos/ethermint/types"
@@ -25,7 +24,6 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -47,15 +45,12 @@ type PublicEthAPI struct {
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      Backend
-	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *AddrLocker
 	keybaseLock  sync.Mutex
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
-	key []ethsecp256k1.PrivKey) *PublicEthAPI {
-
+func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker) *PublicEthAPI {
 	epoch, err := ethermint.ParseChainID(cliCtx.ChainID)
 	if err != nil {
 		panic(err)
@@ -66,7 +61,6 @@ func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *Addr
 		chainIDEpoch: epoch,
 		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		backend:      backend,
-		keys:         key,
 		nonceLock:    nonceLock,
 	}
 
@@ -343,34 +337,24 @@ func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNu
 	return string(res), nil
 }
 
-func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key ethsecp256k1.PrivKey, exist bool) {
-	if len(keys) > 0 {
-		for _, key := range keys {
-			if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
-				return key, true
-			}
-		}
-	}
-	return nil, false
-}
-
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_sign", "address", address, "data", data)
-	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := checkKeyInKeyring(e.keys, address)
-	if !exist {
-		return nil, keystore.ErrLocked
+	info, err := e.cliCtx.Keybase.GetByAddress(sdk.AccAddress(address.Bytes()))
+	if err != nil {
+		return nil, err
 	}
 
-	// Sign the requested hash with the wallet
-	signature, err := key.Sign(data)
-	if err == nil {
-		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	// Sign the requested data with the private key
+	signature, _, err := e.cliCtx.Keybase.Sign(info.GetName(), "", data)
+	if err != nil {
+		return nil, err
 	}
 
-	return signature, err
+	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+
+	return signature, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
@@ -378,14 +362,9 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	e.logger.Debug("eth_sendTransaction", "args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	for _, key := range e.keys {
-		e.logger.Debug("eth_sendTransaction", "key", fmt.Sprintf("0x%x", key.PubKey().Address().Bytes()))
-	}
-
-	key, exist := checkKeyInKeyring(e.keys, args.From)
-	if !exist {
-		e.logger.Debug("failed to find key in keyring", "key", args.From)
-		return common.Hash{}, keystore.ErrLocked
+	info, err := e.cliCtx.Keybase.GetByAddress(sdk.AccAddress(args.From.Bytes()))
+	if err != nil {
+		return common.Hash{}, err
 	}
 
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
@@ -401,16 +380,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 		return common.Hash{}, err
 	}
 
-	// ChainID must be set as flag to send transaction
-	chainID := viper.GetString(flags.FlagChainID)
-	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	// Sign transaction
-	if err := tx.Sign(chainIDEpoch, key.ToECDSA()); err != nil {
+	if err := tx.Sign(e.chainIDEpoch, info.GetName(), "", e.cliCtx.Keybase.Sign); err != nil {
 		e.logger.Debug("failed to sign tx", "error", err)
 		return common.Hash{}, err
 	}

@@ -57,10 +57,15 @@ func (privkey PrivKey) Bytes() []byte {
 }
 
 // Sign creates a recoverable ECDSA signature on the secp256k1 curve over the
-// Keccak256 hash of the provided message. The produced signature is 65 bytes
+// of the provided message. The produced signature is 65 bytes
 // where the last byte contains the recovery ID.
+// The input message is hashed using Keccak256 if length is different
+// than 32 bytes.
 func (privkey PrivKey) Sign(msg []byte) ([]byte, error) {
-	return ethcrypto.Sign(ethcrypto.Keccak256Hash(msg).Bytes(), privkey.ToECDSA())
+	if len(msg) != ethcrypto.DigestLength {
+		msg = ethcrypto.Keccak256Hash(msg).Bytes()
+	}
+	return ethcrypto.Sign(msg, privkey.ToECDSA())
 }
 
 // Equals returns true if two ECDSA private keys are equal and false otherwise.

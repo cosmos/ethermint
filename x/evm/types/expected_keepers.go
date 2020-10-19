@@ -1,6 +1,8 @@
 package types
 
 import (
+	tmcrypto "github.com/tendermint/tendermint/crypto"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 )
@@ -13,3 +15,6 @@ type AccountKeeper interface {
 	SetAccount(ctx sdk.Context, account authexported.Account)
 	RemoveAccount(ctx sdk.Context, account authexported.Account)
 }
+
+// Signer defines an interface used
+type Signer func(key, passphrase string, msg []byte) ([]byte, tmcrypto.PubKey, error)

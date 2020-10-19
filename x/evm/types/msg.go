@@ -1,7 +1,6 @@
 package types
 
 import (
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -276,10 +274,10 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 // takes a private key and chainID to sign an Ethereum transaction according to
 // EIP155 standard. It mutates the transaction as it populates the V, R, S
 // fields of the Transaction's Signature.
-func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
+func (msg *MsgEthereumTx) Sign(chainID *big.Int, name, passphrase string, signer Signer) error {
 	txHash := msg.RLPSignBytes(chainID)
 
-	sig, err := ethcrypto.Sign(txHash[:], priv)
+	sig, _, err := signer(name, passphrase, txHash.Bytes())
 	if err != nil {
 		return err
 	}

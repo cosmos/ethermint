@@ -1,7 +1,6 @@
 package ante_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -28,6 +27,8 @@ type AnteTestSuite struct {
 	ctx         sdk.Context
 	app         *app.EthermintApp
 	anteHandler sdk.AnteHandler
+
+	signer func(tmcrypto.PrivKey) evmtypes.Signer
 }
 
 func (suite *AnteTestSuite) SetupTest() {
@@ -40,6 +41,13 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper)
+
+	suite.signer = func(priv tmcrypto.PrivKey) evmtypes.Signer {
+		return func(_, _ string, msg []byte) ([]byte, tmcrypto.PubKey, error) {
+			signature, err := priv.Sign(msg)
+			return signature, nil, err
+		}
+	}
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -89,18 +97,13 @@ func newTestSDKTx(
 	return auth.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, signer evmtypes.Signer) (sdk.Tx, error) {
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	privkey, ok := priv.(ethsecp256k1.PrivKey)
-	if !ok {
-		return nil, fmt.Errorf("invalid private key type: %T", priv)
-	}
-
-	if err := msg.Sign(chainIDEpoch, privkey.ToECDSA()); err != nil {
+	if err := msg.Sign(chainIDEpoch, "", "", signer); err != nil {
 		return nil, err
 	}
 

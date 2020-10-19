@@ -26,8 +26,9 @@ import (
 
 // PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PersonalEthAPI struct {
-	ethAPI   *PublicEthAPI
-	keyInfos []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	ethAPI       *PublicEthAPI
+	keyInfos     []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	unlockedKeys []keys.Info
 }
 
 // NewPersonalEthAPI creates an instance of the public Personal Eth API.
@@ -122,15 +123,13 @@ func (e *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 func (e *PersonalEthAPI) LockAccount(address common.Address) bool {
 	e.ethAPI.logger.Debug("personal_lockAccount", "address", address.String())
 
-	for i, key := range e.ethAPI.keys {
-		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
+	for _, info := range e.unlockedKeys {
+		if !bytes.Equal(info.GetAddress().Bytes(), address.Bytes()) {
 			continue
 		}
 
-		tmp := make([]ethsecp256k1.PrivKey, len(e.ethAPI.keys)-1)
-		copy(tmp[:i], e.ethAPI.keys[:i])
-		copy(tmp[i:], e.ethAPI.keys[i+1:])
-		e.ethAPI.keys = tmp
+		e.ethAPI.cliCtx.Keybase.
+			e.ethAPI.keys = tmp
 
 		e.ethAPI.logger.Debug("account unlocked", "address", address.String())
 		return true
@@ -223,12 +222,12 @@ func (e *PersonalEthAPI) SendTransaction(_ context.Context, args params.SendTxAr
 func (e *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
 	e.ethAPI.logger.Debug("personal_sign", "data", data, "address", addr.String())
 
-	key, ok := checkKeyInKeyring(e.ethAPI.keys, addr)
-	if !ok {
-		return nil, fmt.Errorf("cannot find key with address %s", addr.String())
+	info, err := e.ethAPI.cliCtx.Keybase.GetByAddress(sdk.AccAddress(addr.Bytes()))
+	if err != nil {
+		return nil, err
 	}
 
-	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
+	sig, _, err := e.ethAPI.cliCtx.Keybase.Sign(info.GetName(), "", accounts.TextHash(data))
 	if err != nil {
 		return nil, err
 	}
