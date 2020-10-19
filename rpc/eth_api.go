@@ -367,10 +367,8 @@ func (e *PublicEthAPI) SendTransaction(args SendTxArgs) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	// ChainID must be set as flag to send transaction
-	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	chainIDEpoch, err := ethermint.ParseChainID(e.clientCtx.ChainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
