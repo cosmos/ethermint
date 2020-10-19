@@ -339,8 +339,59 @@ func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
 func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) *hexutil.Uint {
+	fmt.Println("blockNum", blockNum)
 	e.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
+
+	var ctx context.CLIContext
+	if blockNum.Int64() == int64(0) || blockNum.Int64() == int64(1) {
+		// uses latest block number for pending: -1 -> 0
+		ctx = e.cliCtx.WithHeight(int64(0))
+		fmt.Println("HEIGHT AT CTX!: ", ctx.Height)
+	}
+
 	height := blockNum.Int64()
+	// pendingQuery := false
+	// if height == int64(-1) {
+	// 	// uses latest block number for pending: -1 -> 0
+	// 	height = int64(0)
+	// 	pendingQuery = true
+	// }
+
+	// fmt.Println("height: ", height)
+
+	// txCount := e.getBlockTransactionCountByNumber(height)
+	// if txCount == nil {
+	// 	fmt.Println("invalid block!")
+	// 	return nil
+	// }
+
+	// totalTxCountCleaned := strings.Replace(txCount.String(), "0x", "", -1)
+	// fmt.Println("totalTxCountCleaned: ", totalTxCountCleaned)
+	// totalTxCount, err := strconv.ParseUint(totalTxCountCleaned, 16, 64)
+	// if err != nil {
+	// 	return nil
+	// }
+	// fmt.Println("totalTxCount: ", totalTxCount)
+
+	// if pendingQuery {
+	// 	pendingtx, err := e.backend.PendingTransactions()
+	// 	if err != nil {
+	// 		return nil
+	// 	}
+
+	// 	for i := range pendingtx {
+	// 		if pendingtx[i] == nil {
+	// 			continue
+	// 		}
+	// 		totalTxCount++
+	// 	}
+	// }
+	// fmt.Println("end totalTxCount: ", totalTxCount)
+
+	// total := hexutil.Uint(totalTxCount)
+
+	// return &total
+
 	return e.getBlockTransactionCountByNumber(height)
 }
 
@@ -350,6 +401,8 @@ func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.U
 		// Return nil if block doesn't exist
 		return nil
 	}
+
+	fmt.Println(block)
 
 	n := hexutil.Uint(len(block.Block.Txs))
 	return &n
