@@ -18,20 +18,22 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	}
 
 	// Gas costs are handled within msg handler so costs should be ignored
-	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
 	k.SetBlockHash(ctx, req.Header.LastBlockId.GetHash(), req.Header.GetHeight()-1)
 
-	// reset counters
+	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
-// deleting the empty ones. It also sets the bloom filers to the store
+// deleting the empty ones. It also sets the bloom filers for the request block to
+// the store. The EVM end block loginc doesn't update the validator set, thus it returns
+// an empty slice.
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
-	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
 	// Update account balances before committing other parts of state
 	k.UpdateAccounts(ctx)
