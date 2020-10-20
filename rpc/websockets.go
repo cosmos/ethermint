@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -71,18 +70,6 @@ func newWebsocketsServer(clientCtx client.Context, rpcAddr, wsAddr string) *webs
 		api:     newPubSubAPI(clientCtx),
 		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
 	}
-}
-
-func (s *websocketsServer) start() {
-	ws := mux.NewRouter()
-	ws.Handle("/", s)
-
-	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
-		if err != nil {
-			s.logger.Error("http error:", err)
-		}
-	}()
 }
 
 func (s *websocketsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

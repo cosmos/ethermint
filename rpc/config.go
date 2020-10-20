@@ -1,6 +1,10 @@
 package rpc
 
 import (
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gorilla/mux"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -27,8 +31,29 @@ func RegisterEthereum(clientCtx client.Context, r *mux.Router, apiConfig config.
 	}
 }
 
-// // StartEthereumWebsocket starts the Filter api websocket
-// func StartEthereumWebsocket(clientCtx client.Context, apiConfig server.APIConfig) {
-// 	ws := newWebsocketsServer(clientCtx, apiConfig.Address, apiConfig.WebsocketAddress)
-// 	ws.start()
-// }
+// StartEthereumWebsocket starts the Filter api websocket
+func StartEthereumWebsocket(clientCtx client.Context, apiConfig server.APIConfig) {
+
+	ws := newWebsocketsServer(clientCtx, apiConfig.Address, apiConfig.WebsocketAddress)
+	ws.start()
+}
+
+func (s *websocketsServer) start() {
+	ws := mux.NewRouter()
+	ws.Handle("/", s)
+
+	errCh := make(chan error)
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to serve: %w", err)
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return nil, err
+	case <-time.After(5 * time.Second): // assume server started successfully
+		return grpcSrv, nil
+	}
+}

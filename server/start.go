@@ -247,6 +247,10 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 	}
 
+	if config.Ethereum.EnableWebsocket {
+
+	}
+
 	var cpuProfileCleanup func()
 
 	if cpuProfile := ctx.Viper.GetString(flagCPUProfile); cpuProfile != "" {
