@@ -213,8 +213,7 @@ func InitTestnet(
 			"Password for account '%s' :\n", nodeDirName,
 		)
 
-		keyPass := clientkeys.DefaultKeyPass
-		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo))
+		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, true, keys.SigningAlgo(algo))
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -360,7 +359,7 @@ func initGenFiles(
 
 // GenerateSaveCoinKey returns the address of a public key, along with the secret
 // phrase to recover the private key.
-func GenerateSaveCoinKey(keybase keys.Keybase, keyName, keyPass string, overwrite bool, algo keys.SigningAlgo) (sdk.AccAddress, string, error) {
+func GenerateSaveCoinKey(keybase keys.Keybase, keyName string, overwrite bool, algo keys.SigningAlgo) (sdk.AccAddress, string, error) {
 	// ensure no overwrite
 	if !overwrite {
 		_, err := keybase.Get(keyName)
@@ -371,7 +370,8 @@ func GenerateSaveCoinKey(keybase keys.Keybase, keyName, keyPass string, overwrit
 	}
 
 	// generate a private key, with recovery phrase
-	info, secret, err := keybase.CreateMnemonic(keyName, keys.English, keyPass, algo)
+	fmt.Println(ethermint.BIP44HDPath)
+	info, secret, err := keybase.CreateMnemonic(keyName, keys.English, ethermint.BIP44HDPath, algo)
 	if err != nil {
 		return sdk.AccAddress([]byte{}), "", err
 	}
