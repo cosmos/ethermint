@@ -36,22 +36,6 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
-// EncodeResultData takes all of the necessary data from the EVM execution
-// and returns the data as a byte slice encoded with protobuf.
-func EncodeResultData(data *ResultData) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
-}
-
-// DecodeResultData decodes an protobuf-encoded byte slice into ResultData
-func DecodeResultData(in []byte) (*ResultData, error) {
-	var data ResultData
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &data)
-	if err != nil {
-		return nil, err
-	}
-	return &data, nil
-}
-
 // ----------------------------------------------------------------------------
 // Auxiliary
 
