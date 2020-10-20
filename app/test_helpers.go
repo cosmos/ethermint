@@ -16,12 +16,12 @@ import (
 var DefaultConsensusParams = &abci.ConsensusParams{
 	Block: &abci.BlockParams{
 		MaxBytes: 200000,
-		MaxGas:   -1, //
+		MaxGas:   -1, // no limit
 	},
 	Evidence: &tmproto.EvidenceParams{
 		MaxAgeNumBlocks: 302400,
 		MaxAgeDuration:  504 * time.Hour, // 3 weeks is the max duration
-		MaxNum:          50,
+		MaxBytes:        10000,
 	},
 	Validator: &tmproto.ValidatorParams{
 		PubKeyTypes: []string{
