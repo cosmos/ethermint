@@ -216,9 +216,9 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 	e.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 	pendingQuery := false
 	var ctx context.CLIContext
-	if blockNum.Int64() == int64(-1) {
+	if blockNum == PendingBlockNumber {
 		// uses latest block number for pending: -1 -> 0
-		ctx = e.cliCtx.WithHeight(int64(0))
+		ctx = e.cliCtx.WithHeight(LatestBlockNumber.Int64())
 		pendingQuery = true
 	} else {
 		ctx = e.cliCtx.WithHeight(blockNum.Int64())
@@ -279,9 +279,9 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 	e.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 	pendingQuery := false
 	var ctx context.CLIContext
-	if blockNum.Int64() == int64(-1) {
+	if blockNum == PendingBlockNumber {
 		// uses latest block number for pending: -1 -> 0
-		ctx = e.cliCtx.WithHeight(int64(0))
+		ctx = e.cliCtx.WithHeight(LatestBlockNumber.Int64())
 		pendingQuery = true
 	} else {
 		ctx = e.cliCtx.WithHeight(blockNum.Int64())
