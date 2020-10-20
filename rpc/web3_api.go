@@ -18,12 +18,12 @@ func NewPublicWeb3API() *PublicWeb3API {
 }
 
 // ClientVersion returns the client version in the Web3 user agent format.
-func (api *PublicWeb3API) ClientVersion() string {
+func (PublicWeb3API) ClientVersion() string {
 	info := version.NewInfo()
 	return fmt.Sprintf("%s-%s", info.Name, info.Version)
 }
 
 // Sha3 returns the keccak-256 hash of the passed-in input.
-func (*PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
+func (PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
 	return crypto.Keccak256(input)
 }

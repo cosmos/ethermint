@@ -35,6 +35,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+## Unreleased
+
 ### API Breaking
 
 * (crypto) [\#559](https://github.com/cosmos/ethermint/pull/559) Refactored crypto package in preparation for the SDK's Stargate release:
@@ -44,6 +46,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ### Improvements
 
 * (rpc) [\#574](https://github.com/cosmos/ethermint/issues/574) `eth_protocolVersion` now always returns the latest protocol version from go-ethereum.
+
+### Bug Fixes
+
+* (crypto) [\#577](https://github.com/cosmos/ethermint/pull/577) Fix `BIP44HDPath` that did not prepend `m/` to the path. This now uses the `DefaultBaseDerivationPath` variable from go-ethereum to ensure addresses are consistent.
 
 ## [v0.2.1] - 2020-09-30
 
