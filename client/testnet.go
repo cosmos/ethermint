@@ -370,7 +370,6 @@ func GenerateSaveCoinKey(keybase keys.Keybase, keyName string, overwrite bool, a
 	}
 
 	// generate a private key, with recovery phrase
-	fmt.Println(ethermint.BIP44HDPath)
 	info, secret, err := keybase.CreateMnemonic(keyName, keys.English, ethermint.BIP44HDPath, algo)
 	if err != nil {
 		return sdk.AccAddress([]byte{}), "", err
