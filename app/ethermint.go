@@ -16,8 +16,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/server/api"
-	"github.com/cosmos/cosmos-sdk/server/config"
+	sdkapi "github.com/cosmos/cosmos-sdk/server/api"
+	sdkconfig "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -81,6 +81,9 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 
 	"github.com/cosmos/ethermint/app/ante"
+	"github.com/cosmos/ethermint/server"
+	"github.com/cosmos/ethermint/server/api"
+	"github.com/cosmos/ethermint/server/config"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 	evmkeeper "github.com/cosmos/ethermint/x/evm/keeper"
@@ -154,7 +157,10 @@ var (
 	}
 )
 
-var _ simapp.App = (*EthermintApp)(nil)
+var (
+	_ simapp.App         = (*EthermintApp)(nil)
+	_ server.Application = (*EthermintApp)(nil)
+)
 
 // EthermintApp implements an extended ABCI application. It is an application
 // that may process transactions through Ethereum's EVM running atop of
@@ -577,7 +583,7 @@ func (app *EthermintApp) SimulationManager() *module.SimulationManager {
 
 // RegisterAPIRoutes registers all application module routes with the provided
 // API server.
-func (app *EthermintApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
+func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkconfig.APIConfig) {
 	clientCtx := apiSvr.ClientCtx
 	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
 	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
@@ -592,6 +598,25 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.
 	if apiConfig.Swagger {
 		simapp.RegisterSwaggerAPI(clientCtx, apiSvr.Router)
 	}
+}
+
+// RegisterEthereumServers registers all application ethereum routes with the provided
+// API server.
+func (app *EthermintApp) RegisterEthereumServers(apiSvr *api.Server, apiConfig config.EthereumConfig) {
+	// clientCtx := apiSvr.ClientCtx
+	// rpc.RegisterRoutes(clientCtx, apiSvr.Router)
+	// authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
+
+	// ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
+	// ModuleBasics.RegisterGRPCRoutes(apiSvr.ClientCtx, apiSvr.GRPCRouter)
+
+	// // Register Ethereum namespaces
+	// // ethermintrpc.RegisterRoutes(clientCtx, apiSvr.Router)
+
+	// // register swagger API from root so that other applications can override easily
+	// if apiConfig.Swagger {
+	// 	simapp.RegisterSwaggerAPI(clientCtx, apiSvr.Router)
+	// }
 }
 
 // GetMaccPerms returns a copy of the module account permissions

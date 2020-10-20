@@ -15,7 +15,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -65,9 +64,9 @@ type websocketsServer struct {
 	logger  log.Logger
 }
 
-func newWebsocketsServer(clientCtx client.Context, wsAddr string) *websocketsServer {
+func newWebsocketsServer(clientCtx client.Context, rpcAddr, wsAddr string) *websocketsServer {
 	return &websocketsServer{
-		rpcAddr: viper.GetString("laddr"),
+		rpcAddr: rpcAddr,
 		wsAddr:  wsAddr,
 		api:     newPubSubAPI(clientCtx),
 		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),

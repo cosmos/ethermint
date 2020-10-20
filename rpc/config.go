@@ -5,14 +5,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 
-	"github.com/cosmos/ethermint/server"
+	"github.com/cosmos/ethermint/server/config"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // RegisterRoutes creates a new ethereum JSON-RPC server and recreates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
-func RegisterRoutes(clientCtx client.Context, r *mux.Router, apiConfig server.APIConfig) {
+func RegisterEthereum(clientCtx client.Context, r *mux.Router, apiConfig config.EthereumConfig) {
 	server := rpc.NewServer()
 	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
@@ -27,8 +27,8 @@ func RegisterRoutes(clientCtx client.Context, r *mux.Router, apiConfig server.AP
 	}
 }
 
-// StartEthereumWebsocket starts the Filter api websocket
-func StartEthereumWebsocket(clientCtx client.Context, apiConfig server.APIConfig) {
-	ws := newWebsocketsServer(clientCtx, apiConfig.WebsocketAddress)
-	ws.start()
-}
+// // StartEthereumWebsocket starts the Filter api websocket
+// func StartEthereumWebsocket(clientCtx client.Context, apiConfig server.APIConfig) {
+// 	ws := newWebsocketsServer(clientCtx, apiConfig.Address, apiConfig.WebsocketAddress)
+// 	ws.start()
+// }
