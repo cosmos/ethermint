@@ -132,13 +132,13 @@ func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sd
 
 // BeginBlock returns the begin block for the evm module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlock(am.keeper, ctx, req)
+	am.keeper.BeginBlock(ctx, req)
 }
 
 // EndBlock returns the end blocker for the evm module. It returns no validator
 // updates.
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return EndBlock(am.keeper, ctx, req)
+	return am.keeper.EndBlock(ctx, req)
 }
 
 // InitGenesis performs genesis initialization for the evm module. It returns
