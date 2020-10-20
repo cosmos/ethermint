@@ -32,8 +32,12 @@ message MsgEthereumTxResponse {
   string contract_address = 1 [(gogoproto.moretags) = "yaml:\"contract_address\""];
   // bloom represents the bloom filter bytes
   bytes bloom = 2;
-  // logs contains the proto-compatible ethereum logs.
-  repeated Log logs = 3;
+  // tx_logs contains the transaction hash and the proto-compatible ethereum
+  // logs.
+  TransactionLogs tx_logs = 3 [
+    (gogoproto.moretags) = "yaml:\"tx_logs\"",
+    (gogoproto.nullable) = false
+  ];
   // ret defines the bytes from the execution.
   bytes ret = 4;
 }

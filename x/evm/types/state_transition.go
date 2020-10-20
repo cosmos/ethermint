@@ -41,10 +41,11 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs    []*ethtypes.Log
-	Bloom   *big.Int
-	Result  *MsgEthereumTxResponse
-	GasInfo GasInfo
+	Logs      []*ethtypes.Log
+	Bloom     *big.Int
+	Response  *MsgEthereumTxResponse
+	ResultLog string
+	GasInfo   GasInfo
 }
 
 func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, config ChainConfig) *vm.EVM {
@@ -171,24 +172,25 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		}
 	}
 
-	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := &MsgEthereumTxResponse{
+	res := &MsgEthereumTxResponse{
 		Bloom:  bloomFilter.Bytes(),
 		TxLogs: NewTransactionLogsFromEth(*st.TxHash, logs),
 		Ret:    ret,
 	}
 
 	if contractCreation {
-		resultData.ContractAddress = contractAddress.String()
+		res.ContractAddress = contractAddress.String()
 	}
+
 	resultLog := fmt.Sprintf(
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
 	executionResult := &ExecutionResult{
-		Logs:   logs,
-		Bloom:  bloomInt,
-		Result: resultData,
+		Logs:      logs,
+		Bloom:     bloomInt,
+		Response:  res,
+		ResultLog: resultLog,
 		GasInfo: GasInfo{
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,

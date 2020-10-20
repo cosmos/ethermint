@@ -4,8 +4,16 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/cosmos/ethermint/x/evm/types"
+	"github.com/armon/go-metrics"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/cosmos/cosmos-sdk/telemetry"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	ethermint "github.com/cosmos/ethermint/types"
+	"github.com/cosmos/ethermint/x/evm/types"
 )
 
 type msgServer struct {
@@ -18,7 +26,7 @@ func NewMsgServerImpl(keeper Keeper) types.MsgServer {
 	return &msgServer{Keeper: keeper}
 }
 
-var _ types.MsgServer = Keeper{}
+var _ types.MsgServer = msgServer{}
 
 func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (*types.MsgEthereumTxResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
@@ -39,9 +47,13 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 	ethHash := common.BytesToHash(txHash)
 
 	var recipient *common.Address
+
+	labels := []metrics.Label{telemetry.NewLabel("operation", "create")}
+
 	if msg.Data.Recipient != "" {
 		addr := common.HexToAddress(msg.Data.Recipient)
 		recipient = &addr
+		labels = []metrics.Label{telemetry.NewLabel("operation", "call")}
 	}
 
 	st := types.StateTransition{
@@ -63,7 +75,6 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 	// other nodes, causing a consensus error
 	if !st.Simulate {
 		// Prepare db for logs
-		// TODO: block hash
 		k.Prepare(ctx, ethHash, common.Hash{}, k.TxCount)
 		k.TxCount++
 	}
@@ -90,8 +101,20 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 	}
 
 	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
+	k.Logger(ctx).Info(executionResult.ResultLog)
 
+	// add metrics for the transaction
+	defer func() {
+		if st.Amount.IsInt64() {
+			telemetry.SetGaugeWithLabels(
+				[]string{"tx", "msg", "ethereum"},
+				float32(st.Amount.Int64()),
+				labels,
+			)
+		}
+	}()
+
+	// emit events
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
