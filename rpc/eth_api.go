@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -733,7 +734,89 @@ func (e *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string
 // GetBlockByNumber returns the block identified by number.
 func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	e.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
-	return e.backend.GetBlockByNumber(blockNum, fullTx)
+
+	var blockNumber hexutil.Uint64
+	switch blockNum {
+	case LatestBlockNumber:
+		bn, err := e.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNumber = bn
+	case PendingBlockNumber:
+		bn, err := e.backend.BlockNumber()
+		if err != nil {
+			return nil, abci.ErrInvalidLengthTypes
+		}
+
+		heightCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		height, err := strconv.ParseInt(heightCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		//latest block info
+		latestBlock, err := e.cliCtx.Client.Block(&height)
+		if err != nil {
+			return nil, err
+		}
+		header := latestBlock.Block.Header
+
+		unconfirmedTxs, err := e.cliCtx.Client.UnconfirmedTxs(100)
+		if err != nil {
+			return nil, err
+		}
+
+		var pendingTxs []common.Hash
+		var gasUsed *big.Int
+		if fullTx {
+			pendingTxs, gasUsed, err = convertTransactionsToRPC(
+				e.cliCtx, unconfirmedTxs.Txs, common.BytesToHash(header.Hash()), uint64(header.Height)+1,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			pendingTxs = make([]common.Hash, len(unconfirmedTxs.Txs))
+			for i, tx := range unconfirmedTxs.Txs {
+				pendingTxs[i] = common.BytesToHash(tx.Hash())
+			}
+		}
+
+		return formatBlock(
+			tmtypes.Header{
+				Version:            header.Version,
+				ChainID:            header.ChainID,
+				Height:             height + 1,
+				Time:               time.Time{},
+				LastBlockID:        latestBlock.BlockID,
+				LastCommitHash:     nil,
+				DataHash:           nil,
+				ValidatorsHash:     nil,
+				NextValidatorsHash: nil,
+				ConsensusHash:      header.ConsensusHash,
+				AppHash:            nil,
+				LastResultsHash:    nil,
+				EvidenceHash:       nil,
+				ProposerAddress:    nil,
+			},
+			0,
+			0,
+			gasUsed,
+			pendingTxs,
+			ethtypes.Bloom{},
+		), nil
+	default:
+		blockNumber = hexutil.Uint64(blockNum.Int64())
+	}
+
+	heightCleaned := strings.Replace(blockNumber.String(), "0x", "", -1)
+	height, err := strconv.ParseInt(heightCleaned, 16, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.backend.GetBlockByNumber(BlockNumber(height), fullTx)
 }
 
 func formatBlock(
