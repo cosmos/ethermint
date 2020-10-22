@@ -303,7 +303,8 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
 func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
-	resBlock, err := api.clientCtx.Client.Block(blockNum.TmHeight())
+	height := blockNum.Int64()
+	resBlock, err := api.clientCtx.Client.Block(&height)
 	if err != nil {
 		return nil
 	}
@@ -623,7 +624,8 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
-	resBlock, err := api.clientCtx.Client.Block(blockNum.TmHeight())
+	height := blockNum.Int64()
+	resBlock, err := api.clientCtx.Client.Block(&height)
 	if err != nil {
 		return nil, err
 	}

@@ -408,7 +408,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 
 // GetLogs returns logs matching the given argument that are stored within the state.
 //
-// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getlogs
+// https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCriteria) ([]*ethtypes.Log, error) {
 	var filter *Filter
 	if crit.BlockHash != nil {
@@ -434,7 +434,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 		return nil, err
 	}
 
-	return returnLogs(logs), err
+	return returnLogs(logs), nil
 }
 
 // UninstallFilter removes the filter with the given filter id.

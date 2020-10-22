@@ -189,7 +189,14 @@ func TestEth_GetLogs_NoLogs(t *testing.T) {
 	param := make([]map[string][]string, 1)
 	param[0] = make(map[string][]string)
 	param[0]["topics"] = []string{}
-	call(t, "eth_getLogs", param)
+	rpcRes := call(t, "eth_getLogs", param)
+	require.NotNil(t, rpcRes)
+	require.Nil(t, rpcRes.Error)
+
+	var logs []*ethtypes.Log
+	err := json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+	require.NotEmpty(t, logs)
 }
 
 func TestEth_GetLogs_Topics_AB(t *testing.T) {
