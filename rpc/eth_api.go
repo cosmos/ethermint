@@ -746,7 +746,7 @@ func (e *PublicEthAPI) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[
 	case PendingBlockNumber:
 		bn, err := e.backend.BlockNumber()
 		if err != nil {
-			return nil, abci.ErrInvalidLengthTypes
+			return nil, err
 		}
 
 		heightCleaned := strings.Replace(bn.String(), "0x", "", -1)
@@ -964,7 +964,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
-func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
+func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint64) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
@@ -977,13 +977,58 @@ func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx h
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber, idx hexutil.Uint) (*Transaction, error) {
+func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber, idx hexutil.Uint64) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
-	value := blockNum.Int64()
-	return e.getTransactionByBlockNumberAndIndex(value, idx)
+	var blockNumber int64
+	pendingQuery := false
+
+	switch blockNum {
+	case LatestBlockNumber:
+		bn, err := e.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		blockNumber, err = strconv.ParseInt(bnCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+	case PendingBlockNumber:
+		bn, err := e.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		blockNumber, err = strconv.ParseInt(bnCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		pendingQuery = true
+	}
+
+	if pendingQuery {
+		pendingtx, err := e.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+		index := hexutil.Uint64(0)
+		for i := range pendingtx {
+			if pendingtx[i] == nil {
+				continue
+			}
+			if index == idx {
+				return pendingtx[i], nil
+			}
+			index++
+
+		}
+		return nil, nil
+	}
+
+	return e.getTransactionByBlockNumberAndIndex(blockNumber, idx)
 }
 
-func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hexutil.Uint) (*Transaction, error) {
+func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hexutil.Uint64) (*Transaction, error) {
 	block, err := e.cliCtx.Client.Block(&number)
 	if err != nil {
 		return nil, err
