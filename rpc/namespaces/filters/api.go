@@ -16,6 +16,7 @@ import (
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
@@ -54,8 +55,8 @@ type PublicFilterAPI struct {
 	filters   map[rpc.ID]*filter
 }
 
-// New returns a new PublicFilterAPI instance.
-func New(clientCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
+// NewAPI returns a new PublicFilterAPI instance.
+func NewAPI(clientCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
 	// start the client to subscribe to Tendermint events
 	err := clientCtx.Client.Start()
 	if err != nil {

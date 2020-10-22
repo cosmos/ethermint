@@ -41,7 +41,8 @@ func NewServer(clientCtx context.CLIContext, wsAddr string) *Server {
 	}
 }
 
-func (s *Server) start() {
+// Start runs the websocket server
+func (s *Server) Start() {
 	ws := mux.NewRouter()
 	ws.Handle("/", s)
 

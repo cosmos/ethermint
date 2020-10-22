@@ -1,4 +1,4 @@
-package rpc
+package web3
 
 import (
 	"github.com/cosmos/ethermint/version"
@@ -11,7 +11,7 @@ import (
 type PublicWeb3API struct{}
 
 // New creates an instance of the Web3 API.
-func New() *PublicWeb3API {
+func NewAPI() *PublicWeb3API {
 	return &PublicWeb3API{}
 }
 

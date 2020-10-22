@@ -1,4 +1,4 @@
-package rpc
+package net
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ type PublicNetAPI struct {
 	networkVersion uint64
 }
 
-// New creates an instance of the public Net Web3 API.
-func New(clientCtx context.CLIContext) *PublicNetAPI {
+// NewAPI creates an instance of the public Net Web3 API.
+func NewAPI(clientCtx context.CLIContext) *PublicNetAPI {
 	// parse the chainID from a integer string
 	chainIDEpoch, err := ethermint.ParseChainID(clientCtx.ChainID)
 	if err != nil {

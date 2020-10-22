@@ -2,6 +2,7 @@ package eth
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -23,6 +24,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -30,7 +32,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -42,7 +44,7 @@ import (
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
 	ctx          context.Context
-	clientCtx    context.CLIContext
+	clientCtx    clientcontext.CLIContext
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      backend.Backend
@@ -51,9 +53,9 @@ type PublicEthAPI struct {
 	keyringLock  sync.Mutex
 }
 
-// New creates an instance of the public ETH Web3 API.
-func New(
-	clientCtx context.CLIContext, backend backend.Backend, nonceLock *AddrLocker,
+// NewAPI creates an instance of the public ETH Web3 API.
+func NewAPI(
+	clientCtx clientcontext.CLIContext, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
 	keys ...ethsecp256k1.PrivKey,
 ) *PublicEthAPI {
 
@@ -66,20 +68,22 @@ func New(
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
 		chainIDEpoch: epoch,
-		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,
 	}
 
-	if err := api.getKeyringInfo(); err != nil {
+	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
 
 	return api
 }
 
-func (api *PublicEthAPI) getKeyringInfo() error {
+// GetKeyringInfo checks if the keyring is present on the client context. If not, it creates a new
+// instance and sets it to the client context for later usage.
+func (api *PublicEthAPI) GetKeyringInfo() error {
 	api.keyringLock.Lock()
 	defer api.keyringLock.Unlock()
 
@@ -100,6 +104,11 @@ func (api *PublicEthAPI) getKeyringInfo() error {
 
 	api.clientCtx.Keybase = keybase
 	return nil
+}
+
+// ClientCtx returns the Cosmos SDK client context.
+func (api *PublicEthAPI) ClientCtx() clientcontext.CLIContext {
+	return api.clientCtx
 }
 
 // ProtocolVersion returns the supported Ethereum protocol version.
@@ -180,7 +189,7 @@ func (api *PublicEthAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	infos, err := api.clientCtx.Keyring.List()
+	infos, err := api.clientCtx.Keybase.List()
 	if err != nil {
 		return addresses, err
 	}
@@ -196,9 +205,9 @@ func (api *PublicEthAPI) Accounts() ([]common.Address, error) {
 }
 
 // rpctypes.BlockNumber returns the current block number.
-func (api *PublicEthAPI) rpctypes.BlockNumber() (hexutil.Uint64, error) {
+func (api *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 	api.logger.Debug("eth_blockNumber")
-	return api.backend.rpctypes.BlockNumber()
+	return api.backend.BlockNumber()
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
@@ -290,6 +299,7 @@ func (api *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.Bloc
 	}
 
 	n := hexutil.Uint(len(resBlock.Block.Txs))
+	return &n
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
@@ -367,7 +377,7 @@ func (api *PublicEthAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash,
 	}
 
 	// Sign transaction
-	if err := tx.Sign(api.ChainID, key.ToECDSA()); err != nil {
+	if err := tx.Sign(api.chainIDEpoch, key.ToECDSA()); err != nil {
 		api.logger.Debug("failed to sign tx", "error", err)
 		return common.Hash{}, err
 	}
@@ -420,7 +430,7 @@ func (api *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, er
 }
 
 // Call performs a raw contract call.
-func (api *PublicEthAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]account) (hexutil.Bytes, error) {
+func (api *PublicEthAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
@@ -556,7 +566,7 @@ func (api *PublicEthAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx 
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
-func (api *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
+func (api *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
@@ -582,7 +592,7 @@ func (api *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, e
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
-func (api *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
+func (api *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
@@ -601,7 +611,7 @@ func (api *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (api *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*Transaction, error) {
+func (api *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
 	resBlock, err := api.clientCtx.Client.Block(blockNum.TmHeight())
 	if err != nil {
@@ -611,7 +621,7 @@ func (api *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.B
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
-func (api *PublicEthAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*Transaction, error) {
+func (api *PublicEthAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	// return if index out of bounds
 	if uint64(idx) >= uint64(len(block.Txs)) {
 		return nil, nil
@@ -705,7 +715,7 @@ func (api *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]int
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (api *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
+func (api *PublicEthAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getPendingTransactions")
 	return api.backend.PendingTransactions()
 }
@@ -721,10 +731,10 @@ func (api *PublicEthAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint, idx 
 }
 
 // GetProof returns an account object with proof and any storage proofs
-func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, block rpctypes.BlockNumber) (*AccountResult, error) {
+func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, block rpctypes.BlockNumber) (*rpctypes.AccountResult, error) {
 	api.logger.Debug("eth_getProof", "address", address, "keys", storageKeys, "number", block)
-	
-	clientCtx = api.clientCtx.WithHeight(int64(block))
+
+	clientCtx := api.clientCtx.WithHeight(int64(block))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
 	// query eth account at block height
@@ -736,7 +746,7 @@ func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, 
 	var account evmtypes.QueryResAccount
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
-	storageProofs := make([]StorageResult, len(storageKeys))
+	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
 	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
 	for i, k := range storageKeys {
 		// Get value for key
@@ -756,7 +766,7 @@ func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, 
 			proofStr = proof.String()
 		}
 
-		storageProofs[i] = StorageResult{
+		storageProofs[i] = rpctypes.StorageResult{
 			Key:   k,
 			Value: (*hexutil.Big)(common.BytesToHash(value.Value).Big()),
 			Proof: []string{proofStr},
@@ -782,7 +792,7 @@ func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, 
 		accProofStr = accountProof.String()
 	}
 
-	return &AccountResult{
+	return &rpctypes.AccountResult{
 		Address:      address,
 		AccountProof: []string{accProofStr},
 		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),

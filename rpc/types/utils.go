@@ -2,13 +2,14 @@ package types
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/big"
 
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -20,7 +21,7 @@ import (
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
-func RawTxToEthTx(clientCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
+func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	tx, err := clientCtx.TxConfig.TxDecoder()(bz)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
@@ -66,7 +67,7 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func EthBlockFromTendermint(clientCtx context.CLIContext, queryClient evmtypes.QueryClient, block *tmtypes.Block) (map[string]interface{}, error) {
+func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, queryClient evmtypes.QueryClient, block *tmtypes.Block) (map[string]interface{}, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func EthBlockFromTendermint(clientCtx context.CLIContext, queryClient evmtypes.Q
 
 	req := &evmtypes.QueryBlockBloomRequest{}
 
-	res, err := queryClient.BlockBloom(ContextWithHeight(block.Height), req)
+	res, err := queryClient.BlockBloom(req)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 
 // EthTransactionsFromTendermint returns a slice of ethereum transaction hashes and the total gas usage from a set of
 // tendermint block transactions.
-func EthTransactionsFromTendermint(clientCtx context.CLIContext, txs []tmtypes.Tx) ([]common.Hash, *big.Int, error) {
+func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx) ([]common.Hash, *big.Int, error) {
 	transactionHashes := []common.Hash{}
 	gasUsed := big.NewInt(0)
 
@@ -129,9 +130,8 @@ func EthTransactionsFromTendermint(clientCtx context.CLIContext, txs []tmtypes.T
 }
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
-func BlockMaxGasFromConsensusParams(ctx context.Context, clientCtx context.CLIContext) (int64, error) {
-	// Query genesis block if hasn't been retrieved yet
-	resConsParams, err := clientCtx.Client.ConsensusParams(ctx, nil)
+func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.CLIContext) (int64, error) {
+	resConsParams, err := clientCtx.Client.ConsensusParams(nil)
 	if err != nil {
 		return 0, err
 	}

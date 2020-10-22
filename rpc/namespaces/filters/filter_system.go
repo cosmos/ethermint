@@ -1,4 +1,4 @@
-package rpc
+package filters
 
 import (
 	"context"
@@ -18,6 +18,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
@@ -279,7 +280,7 @@ func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 	for _, f := range es.index[filters.BlocksSubscription] {
-		f.headers <- EthHeaderFromTendermint(data.Header)
+		f.headers <- rpctypes.EthHeaderFromTendermint(data.Header)
 	}
 	// TODO: light client
 }

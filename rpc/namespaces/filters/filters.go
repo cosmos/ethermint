@@ -1,4 +1,4 @@
-package rpc
+package filters
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
+
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 )
 
 // Filter can be used to retrieve and filter logs.
@@ -89,7 +91,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	// Figure out the limits of the filter range
-	header, err := f.backend.HeaderByNumber(LatestBlockNumber)
+	header, err := f.backend.HeaderByNumber(rpctypes.LatestBlockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +109,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	for i := f.criteria.FromBlock.Int64(); i <= f.criteria.ToBlock.Int64(); i++ {
-		block, err := f.backend.GetBlockByNumber(BlockNumber(i), true)
+		block, err := f.backend.GetBlockByNumber(rpctypes.BlockNumber(i), true)
 		if err != nil {
 			return logs, err
 		}

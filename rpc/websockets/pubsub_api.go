@@ -17,6 +17,7 @@ import (
 
 	context "github.com/cosmos/cosmos-sdk/client/context"
 
+	rpcfilters "github.com/cosmos/ethermint/rpc/namespaces/filters"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
@@ -214,7 +215,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 
-				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+				logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {

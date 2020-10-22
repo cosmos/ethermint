@@ -1,16 +1,17 @@
-package rpc
+package backend
 
 import (
+	"context"
 	"fmt"
-	"math/big"
 	"os"
 	"strconv"
 
 	"github.com/tendermint/tendermint/libs/log"
 
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -31,7 +32,7 @@ type Backend interface {
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
 	// Used by pending transaction filter
-	PendingTransactions() ([]*Transaction, error)
+	PendingTransactions() ([]*rpctypes.Transaction, error)
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
@@ -43,13 +44,13 @@ var _ Backend = (*EthermintBackend)(nil)
 // EthermintBackend implements the Backend interface
 type EthermintBackend struct {
 	ctx       context.Context
-	clientCtx context.CLIContext
+	clientCtx clientcontext.CLIContext
 	logger    log.Logger
 	gasLimit  int64
 }
 
 // New creates a new EthermintBackend instance
-func New(clientCtx context.CLIContext) *EthermintBackend {
+func New(clientCtx clientcontext.CLIContext) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:       context.Background(),
 		clientCtx: clientCtx,
@@ -59,7 +60,7 @@ func New(clientCtx context.CLIContext) *EthermintBackend {
 }
 
 // BlockNumber returns the current block number.
-func (e *EthermintBackend) rpctypes.BlockNumber() (hexutil.Uint64, error) {
+func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
 	info, err := e.clientCtx.Client.BlockchainInfo(0, 0)
 	if err != nil {
@@ -114,7 +115,7 @@ func (e *EthermintBackend) HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethty
 	var bloomRes evmtypes.QueryBloomFilter
 	e.clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
 
-	ethHeader := EthHeaderFromTendermint(resBlock.Block.Header)
+	ethHeader := rpctypes.EthHeaderFromTendermint(resBlock.Block.Header)
 	ethHeader.Bloom = bloomRes.Bloom
 	return ethHeader, nil
 }
@@ -143,7 +144,7 @@ func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 	var bloomRes evmtypes.QueryBloomFilter
 	e.clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
 
-	ethHeader := EthHeaderFromTendermint(resBlock.Block.Header)
+	ethHeader := rpctypes.EthHeaderFromTendermint(resBlock.Block.Header)
 	ethHeader.Bloom = bloomRes.Bloom
 	return ethHeader, nil
 }
@@ -167,7 +168,7 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
+func (e *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error) {
 	pendingTxs, err := e.clientCtx.Client.UnconfirmedTxs(1000)
 	if err != nil {
 		return nil, err
