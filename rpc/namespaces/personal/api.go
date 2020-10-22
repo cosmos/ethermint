@@ -106,7 +106,7 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 	api.logger.Debug("personal_lockAccount", "address", address.String())
 
 	keys := api.ethAPI.GetKeys()
-	for i, key := range api.ethAPI.GetKeys() {
+	for i, key := range keys {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			continue
 		}
@@ -114,13 +114,11 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 		tmp := make([]ethsecp256k1.PrivKey, len(keys)-1)
 		copy(tmp[:i], keys[:i])
 		copy(tmp[i:], keys[i+1:])
-		keys = tmp
+		api.ethAPI.SetKeys(tmp)
 
 		api.logger.Debug("account unlocked", "address", address.String())
 		return true
 	}
-
-	api.ethAPI.SetKeys(keys)
 
 	return false
 }
