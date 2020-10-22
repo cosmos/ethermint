@@ -67,9 +67,9 @@ func (AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, mux *runtime.
 	}
 }
 
-// GetTxCmd returns the root tx command for the evm module.
+// GetTxCmd returns nil as the evm module doesn't support transactions through the CLI.
 func (AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.NewTxCmd()
+	return nil
 }
 
 // GetQueryCmd returns no root query command for the evm module.

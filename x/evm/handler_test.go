@@ -233,20 +233,20 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
-	resultData, err := types.DecodeResultData(result.Data)
+	txResponse, err := types.DecodeTxResponse(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
 
-	suite.Require().Equal(len(resultData.TxLogs.Logs), 1)
-	suite.Require().Equal(len(resultData.TxLogs.Logs[0].Topics), 2)
+	suite.Require().Equal(len(txResponse.TxLogs.Logs), 1)
+	suite.Require().Equal(len(txResponse.TxLogs.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	err = suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), resultData.TxLogs.EthLogs())
+	err = suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), txResponse.TxLogs.EthLogs())
 	suite.Require().NoError(err)
 
 	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
-	suite.Require().Equal(logs, resultData.TxLogs.Logs)
+	suite.Require().Equal(logs, txResponse.TxLogs.Logs)
 }
 
 func (suite *EvmTestSuite) TestQueryTxLogs() {
@@ -266,19 +266,19 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
 
-	resultData, err := types.DecodeResultData(result.Data)
+	txResponse, err := types.DecodeTxResponse(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
 
-	suite.Require().Equal(len(resultData.TxLogs.Logs), 1)
-	suite.Require().Equal(len(resultData.TxLogs.Logs[0].Topics), 2)
+	suite.Require().Equal(len(txResponse.TxLogs.Logs), 1)
+	suite.Require().Equal(len(txResponse.TxLogs.Logs[0].Topics), 2)
 
 	// get logs by tx hash
-	hash := resultData.TxLogs.Hash
+	hash := txResponse.TxLogs.Hash
 
 	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.HexToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
-	suite.Require().Equal(logs, resultData.TxLogs.EthLogs())
+	suite.Require().Equal(logs, txResponse.TxLogs.EthLogs())
 
 	// query tx logs
 	// path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
@@ -289,8 +289,8 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// suite.codec.MustUnmarshalJSON(res, &txLogs)
 
 	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
-	// resultData.TxLogs.Logs[0].Data = []byte{}
-	// suite.Require().Equal(txLogs.Logs[0], resultData.TxLogs.Logs[0])
+	// txResponse.TxLogs.Logs[0].Data = []byte{}
+	// suite.Require().Equal(txLogs.Logs[0], txResponse.TxLogs.Logs[0])
 }
 
 func (suite *EvmTestSuite) TestDeployAndCallContract() {
@@ -363,13 +363,13 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
-	resultData, err := types.DecodeResultData(result.Data)
+	txResponse, err := types.DecodeTxResponse(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
 
 	// store - changeOwner
 	gasLimit = uint64(100000000000)
 	gasPrice = big.NewInt(100)
-	receiver := common.HexToAddress(resultData.ContractAddress)
+	receiver := common.HexToAddress(txResponse.ContractAddress)
 
 	storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
 	bytecode = common.FromHex(storeAddr)
@@ -380,7 +380,7 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
-	resultData, err = types.DecodeResultData(result.Data)
+	txResponse, err = types.DecodeTxResponse(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
 
 	// query - getOwner
@@ -392,10 +392,10 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
-	resultData, err = types.DecodeResultData(result.Data)
+	txResponse, err = types.DecodeTxResponse(result.Data)
 	suite.Require().NoError(err, "failed to decode result data")
 
-	getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
+	getAddr := strings.ToLower(hexutils.BytesToHex(txResponse.Ret))
 	suite.Require().Equal(true, strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
 }
 

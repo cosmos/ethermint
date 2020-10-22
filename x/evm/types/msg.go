@@ -19,7 +19,6 @@ import (
 )
 
 var (
-	// _ sdk.Msg = &MsgEthermint{}
 	_ sdk.Msg = &MsgEthereumTx{}
 	_ sdk.Tx  = &MsgEthereumTx{}
 )
@@ -30,79 +29,7 @@ var big8 = big.NewInt(8)
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgEthereumTx = "ethereum"
-	// TypeMsgEthermint defines the type string of Ethermint message
-	TypeMsgEthermint = "ethermint"
 )
-
-// NewMsgEthermint returns a reference to a new Ethermint transaction
-func NewMsgEthermint(
-	nonce uint64, to sdk.AccAddress, amount sdk.Int, // nolint: interfacer
-	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress, // nolint: interfacer
-) *MsgEthermint {
-	return &MsgEthermint{
-		AccountNonce: nonce,
-		Price:        gasPrice,
-		GasLimit:     gasLimit,
-		Recipient:    to.String(),
-		Amount:       amount,
-		Payload:      payload,
-		From:         from.String(),
-	}
-}
-
-// Route should return the name of the module
-func (msg MsgEthermint) Route() string { return RouterKey }
-
-// Type returns the action of the message
-func (msg MsgEthermint) Type() string { return TypeMsgEthermint }
-
-// GetSignBytes encodes the message for signing
-func (msg *MsgEthermint) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
-}
-
-// ValidateBasic runs stateless checks on the message
-func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.IsZero() {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
-	}
-
-	if msg.Price.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be negative %s", msg.Price)
-	}
-
-	// Amount can be 0
-	if msg.Amount.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount)
-	}
-
-	return nil
-}
-
-// GetSigners defines whose signature is required
-func (msg MsgEthermint) GetSigners() []sdk.AccAddress {
-	from, err := sdk.AccAddressFromBech32(msg.From)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{from}
-}
-
-// To returns the recipient address of the transaction. It returns nil if the
-// transaction is a contract creation.
-func (msg MsgEthermint) To() *ethcmn.Address {
-	if msg.Recipient == "" {
-		return nil
-	}
-
-	recipient, err := sdk.AccAddressFromBech32(msg.Recipient)
-	if err != nil {
-		return nil
-	}
-
-	addr := ethcmn.BytesToAddress(recipient.Bytes())
-	return &addr
-}
 
 // NewMsgEthereumTx returns a reference to a new Ethereum transaction message.
 func NewMsgEthereumTx(

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
@@ -34,6 +35,22 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	_ = hasher.Sum(hash[:0])
 
 	return hash
+}
+
+// EncodeTxResponse takes all of the necessary data from the EVM execution
+// and returns the data as a byte slice encoded with protobuf.
+func EncodeTxResponse(res *MsgEthereumTxResponse) ([]byte, error) {
+	return proto.Marshal(res)
+}
+
+// DecodeTxResponse decodes an protobuf-encoded byte slice into TxResponse
+func DecodeTxResponse(data []byte) (MsgEthereumTxResponse, error) {
+	var txResponse MsgEthereumTxResponse
+	err := proto.Unmarshal(data, &txResponse)
+	if err != nil {
+		return MsgEthereumTxResponse{}, err
+	}
+	return txResponse, nil
 }
 
 // ----------------------------------------------------------------------------

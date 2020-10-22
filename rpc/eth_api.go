@@ -433,7 +433,7 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, _ *map[common.Ad
 		return []byte{}, err
 	}
 
-	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
+	data, err := evmtypes.DecodeTxResponse(simRes.Result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -688,7 +688,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 	txData := tx.TxResult.GetData()
 
-	data, err := evmtypes.DecodeResultData(txData)
+	data, err := evmtypes.DecodeTxResponse(txData)
 	if err != nil {
 		status = 0 // transaction failed
 	}

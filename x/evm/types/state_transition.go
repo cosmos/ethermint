@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -41,11 +40,10 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs      []*ethtypes.Log
-	Bloom     *big.Int
-	Response  *MsgEthereumTxResponse
-	ResultLog string
-	GasInfo   GasInfo
+	Logs     []*ethtypes.Log
+	Bloom    *big.Int
+	Response *MsgEthereumTxResponse
+	GasInfo  GasInfo
 }
 
 func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, config ChainConfig) *vm.EVM {
@@ -114,7 +112,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		ret             []byte
 		leftOverGas     uint64
 		contractAddress common.Address
-		recipientLog    string
 		senderRef       = vm.AccountRef(st.Sender)
 	)
 
@@ -127,12 +124,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	switch contractCreation {
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
+
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -182,15 +178,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		res.ContractAddress = contractAddress.String()
 	}
 
-	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
-	)
-
 	executionResult := &ExecutionResult{
-		Logs:      logs,
-		Bloom:     bloomInt,
-		Response:  res,
-		ResultLog: resultLog,
+		Logs:     logs,
+		Bloom:    bloomInt,
+		Response: res,
 		GasInfo: GasInfo{
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,

@@ -16,74 +16,14 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func TestMsgEthermint(t *testing.T) {
-	addr := newSdkAddress(t)
-	fromAddr := newSdkAddress(t)
-
-	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
-	require.NotNil(t, msg)
-	require.Equal(t, msg.Recipient, addr.String())
-
-	require.Equal(t, msg.Route(), RouterKey)
-	require.Equal(t, msg.Type(), TypeMsgEthermint)
-}
-
-func TestMsgEthermintValidation(t *testing.T) {
-	testCases := []struct {
-		nonce      uint64
-		to         sdk.AccAddress
-		amount     sdk.Int
-		gasLimit   uint64
-		gasPrice   sdk.Int
-		payload    []byte
-		expectPass bool
-		from       sdk.AccAddress
-	}{
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(100000), expectPass: true},
-		{amount: sdk.NewInt(0), gasPrice: sdk.NewInt(100000), expectPass: true},
-		{amount: sdk.NewInt(-1), gasPrice: sdk.NewInt(100000), expectPass: false},
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(-1), expectPass: false},
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(0), expectPass: false},
-	}
-
-	for i, tc := range testCases {
-		msg := NewMsgEthermint(tc.nonce, tc.to, tc.amount, tc.gasLimit, tc.gasPrice, tc.payload, tc.from)
-
-		if tc.expectPass {
-			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
-		} else {
-			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
-		}
-	}
-}
-
-func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
-	addr := newSdkAddress(t)
-	fromAddr := newSdkAddress(t)
-
-	msg := NewMsgEthermint(0, addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
-
-	raw, err := ModuleCdc.MarshalBinaryBare(msg)
-	require.NoError(t, err)
-
-	var msg2 MsgEthermint
-	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
-	require.NoError(t, err)
-
-	require.Equal(t, msg.AccountNonce, msg2.AccountNonce)
-	require.Equal(t, msg.Recipient, msg2.Recipient)
-	require.Equal(t, msg.Amount, msg2.Amount)
-	require.Equal(t, msg.GasLimit, msg2.GasLimit)
-	require.Equal(t, msg.Price, msg2.Price)
-	require.Equal(t, msg.Payload, msg2.Payload)
-	require.Equal(t, msg.From, msg2.From)
-}
-
-func newSdkAddress(t *testing.T) sdk.AccAddress {
+// GenerateEthAddress generates an Ethereum address.
+func GenerateEthAddress() ethcmn.Address {
 	priv, err := ethsecp256k1.GenerateKey()
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 
-	return sdk.AccAddress(priv.PubKey().Address().Bytes())
+	return ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
 }
 
 func TestMsgEthereumTx(t *testing.T) {

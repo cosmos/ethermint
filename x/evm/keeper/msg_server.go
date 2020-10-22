@@ -7,7 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -44,14 +44,14 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
+	ethHash := ethcmn.BytesToHash(txHash)
 
-	var recipient *common.Address
+	var recipient *ethcmn.Address
 
 	labels := []metrics.Label{telemetry.NewLabel("operation", "create")}
 
 	if msg.Data.Recipient != "" {
-		addr := common.HexToAddress(msg.Data.Recipient)
+		addr := ethcmn.HexToAddress(msg.Data.Recipient)
 		recipient = &addr
 		labels = []metrics.Label{telemetry.NewLabel("operation", "call")}
 	}
@@ -75,7 +75,7 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 	// other nodes, causing a consensus error
 	if !st.Simulate {
 		// Prepare db for logs
-		k.Prepare(ctx, ethHash, common.Hash{}, k.TxCount)
+		k.Prepare(ctx, ethHash, ethcmn.Hash{}, k.TxCount)
 		k.TxCount++
 	}
 
@@ -94,14 +94,11 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx, ethcmn.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
 	}
-
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.ResultLog)
 
 	// add metrics for the transaction
 	defer func() {

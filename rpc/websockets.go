@@ -429,13 +429,13 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 
-				var resultData *evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var txResponse *evmtypes.MsgEthereumTxResponse
+				txResponse, err = evmtypes.DecodeTxResponse(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
 
-				logs := filterLogs(resultData.TxLogs.EthLogs(), crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+				logs := filterLogs(txResponse.TxLogs.EthLogs(), crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
