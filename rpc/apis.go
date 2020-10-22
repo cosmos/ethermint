@@ -21,10 +21,10 @@ const (
 )
 
 // GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc.API {
+func GetRPCAPIs(clientCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(cliCtx)
-	ethAPI := NewPublicEthAPI(cliCtx, backend, nonceLock, keys)
+	backend := NewEthermintBackend(clientCtx)
+	ethAPI := NewPublicEthAPI(clientCtx, backend, nonceLock, keys)
 
 	return []rpc.API{
 		{
@@ -48,13 +48,13 @@ func GetRPCAPIs(cliCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc.AP
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicFilterAPI(cliCtx, backend),
+			Service:   NewPublicFilterAPI(clientCtx, backend),
 			Public:    true,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicNetAPI(cliCtx),
+			Service:   NewPublicNetAPI(clientCtx),
 			Public:    true,
 		},
 	}

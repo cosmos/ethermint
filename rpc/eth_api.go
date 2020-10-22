@@ -43,7 +43,7 @@ import (
 
 // PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthAPI struct {
-	cliCtx       context.CLIContext
+	clientCtx    context.CLIContext
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      Backend
@@ -53,16 +53,16 @@ type PublicEthAPI struct {
 }
 
 // NewPublicEthAPI creates an instance of the public ETH Web3 API.
-func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
+func NewPublicEthAPI(clientCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
 	key []ethsecp256k1.PrivKey) *PublicEthAPI {
 
-	epoch, err := ethermint.ParseChainID(cliCtx.ChainID)
+	epoch, err := ethermint.ParseChainID(clientCtx.ChainID)
 	if err != nil {
 		panic(err)
 	}
 
 	api := &PublicEthAPI{
-		cliCtx:       cliCtx,
+		clientCtx:    clientCtx,
 		chainIDEpoch: epoch,
 		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		backend:      backend,
@@ -81,19 +81,19 @@ func (e *PublicEthAPI) getKeybaseInfo() error {
 	e.keybaseLock.Lock()
 	defer e.keybaseLock.Unlock()
 
-	if e.cliCtx.Keybase == nil {
+	if e.clientCtx.Keybase == nil {
 		keybase, err := keys.NewKeyring(
 			sdk.KeyringServiceName(),
 			viper.GetString(flags.FlagKeyringBackend),
 			viper.GetString(flags.FlagHome),
-			e.cliCtx.Input,
+			e.clientCtx.Input,
 			hd.EthSecp256k1Options()...,
 		)
 		if err != nil {
 			return err
 		}
 
-		e.cliCtx.Keybase = keybase
+		e.clientCtx.Keybase = keybase
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func (e *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
 func (e *PublicEthAPI) Syncing() (interface{}, error) {
 	e.logger.Debug("eth_syncing")
 
-	status, err := e.cliCtx.Client.Status()
+	status, err := e.clientCtx.Client.Status()
 	if err != nil {
 		return false, err
 	}
@@ -138,7 +138,7 @@ func (e *PublicEthAPI) Syncing() (interface{}, error) {
 func (e *PublicEthAPI) Coinbase() (common.Address, error) {
 	e.logger.Debug("eth_coinbase")
 
-	node, err := e.cliCtx.GetNode()
+	node, err := e.clientCtx.GetNode()
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -181,7 +181,7 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(flags.FlagHome),
-		e.cliCtx.Input,
+		e.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
 	)
 	if err != nil {
@@ -212,14 +212,14 @@ func (e *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) (*hexutil.Big, error) {
 	e.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	ctx := e.clientCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var out evmtypes.QueryResBalance
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	val, err := utils.UnmarshalBigInt(out.Balance)
 	if err != nil {
 		return nil, err
@@ -231,21 +231,21 @@ func (e *PublicEthAPI) GetBalance(address common.Address, blockNum BlockNumber) 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (e *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum BlockNumber) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
-	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	ctx := e.clientCtx.WithHeight(blockNum.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var out evmtypes.QueryResStorage
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Value, nil
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum BlockNumber) (*hexutil.Uint64, error) {
 	e.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
-	ctx := e.cliCtx.WithHeight(blockNum.Int64())
+	ctx := e.clientCtx.WithHeight(blockNum.Int64())
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
@@ -270,14 +270,14 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
 	e.logger.Debug("eth_getBlockTransactionCountByHash", "hash", hash)
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		// Return nil if block does not exist
 		return nil
 	}
 
 	var out evmtypes.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	return e.getBlockTransactionCountByNumber(out.Number)
 }
 
@@ -289,7 +289,7 @@ func (e *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum BlockNumber) *h
 }
 
 func (e *PublicEthAPI) getBlockTransactionCountByNumber(number int64) *hexutil.Uint {
-	block, err := e.cliCtx.Client.Block(&number)
+	block, err := e.clientCtx.Client.Block(&number)
 	if err != nil {
 		// Return nil if block doesn't exist
 		return nil
@@ -312,14 +312,14 @@ func (e *PublicEthAPI) GetUncleCountByBlockNumber(blockNum BlockNumber) hexutil.
 // GetCode returns the contract code at the given address and block number.
 func (e *PublicEthAPI) GetCode(address common.Address, blockNumber BlockNumber) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
-	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+	ctx := e.clientCtx.WithHeight(blockNumber.Int64())
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var out evmtypes.QueryResCode
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	return out.Code, nil
 }
 
@@ -333,7 +333,7 @@ func (e *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, 
 // TODO: deprecate this once the export genesis command works
 func (e *PublicEthAPI) ExportAccount(address common.Address, blockNumber BlockNumber) (string, error) {
 	e.logger.Debug("eth_exportAccount", "address", address, "block number", blockNumber)
-	ctx := e.cliCtx.WithHeight(blockNumber.Int64())
+	ctx := e.clientCtx.WithHeight(blockNumber.Int64())
 
 	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryExportAccount, address.Hex()), nil)
 	if err != nil {
@@ -416,14 +416,14 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	// Broadcast transaction in sync mode (default)
-	res, err := e.cliCtx.BroadcastTx(txBytes)
+	res, err := e.clientCtx.BroadcastTx(txBytes)
 	// If error is encountered on the node, the broadcast will not return an error
 	if err != nil {
 		return common.Hash{}, err
@@ -445,7 +445,7 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 	}
 
 	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(e.cliCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(e.clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -453,7 +453,7 @@ func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, erro
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// If error is encountered on the node, the broadcast will not return an error
-	res, err := e.cliCtx.BroadcastTx(txBytes)
+	res, err := e.clientCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -508,10 +508,10 @@ func (e *PublicEthAPI) doCall(
 	args CallArgs, blockNr BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
 	// Set height for historical queries
-	ctx := e.cliCtx
+	ctx := e.clientCtx
 
 	if blockNr.Int64() != 0 {
-		ctx = e.cliCtx.WithHeight(blockNr.Int64())
+		ctx = e.clientCtx.WithHeight(blockNr.Int64())
 	}
 
 	// Set sender address or use a default if none specified
@@ -654,12 +654,12 @@ func formatBlock(
 	}
 }
 
-func convertTransactionsToRPC(cliCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
+func convertTransactionsToRPC(clientCtx context.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
 	transactions := make([]common.Hash, len(txs))
 	gasUsed := big.NewInt(0)
 
 	for i, tx := range txs {
-		ethTx, err := bytesToEthTx(cliCtx, tx)
+		ethTx, err := bytesToEthTx(clientCtx, tx)
 		if err != nil {
 			// continue to next transaction in case it's not a MsgEthereumTx
 			continue
@@ -694,10 +694,10 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
+func bytesToEthTx(clientCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-	err := cliCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
+	err := clientCtx.Codec.UnmarshalBinaryLengthPrefixed(bz, &stdTx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -744,20 +744,20 @@ func newRPCTransaction(tx evmtypes.MsgEthereumTx, txHash, blockHash common.Hash,
 // GetTransactionByHash returns the transaction identified by hash.
 func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByHash", "hash", hash)
-	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
+	tx, err := e.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found
 		return nil, nil
 	}
 
 	// Can either cache or just leave this out if not necessary
-	block, err := e.cliCtx.Client.Block(&tx.Height)
+	block, err := e.clientCtx.Client.Block(&tx.Height)
 	if err != nil {
 		return nil, err
 	}
 	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
-	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
+	ethTx, err := bytesToEthTx(e.clientCtx, tx.Tx)
 	if err != nil {
 		return nil, err
 	}
@@ -769,13 +769,13 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
 	e.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	res, _, err := e.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
 	}
 
 	var out evmtypes.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	e.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	return e.getTransactionByBlockNumberAndIndex(out.Number, idx)
 }
 
@@ -787,7 +787,7 @@ func (e *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum BlockNumber,
 }
 
 func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hexutil.Uint) (*Transaction, error) {
-	block, err := e.cliCtx.Client.Block(&number)
+	block, err := e.clientCtx.Client.Block(&number)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +797,7 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 	if uint64(idx) >= uint64(len(txs)) {
 		return nil, nil
 	}
-	ethTx, err := bytesToEthTx(e.cliCtx, txs[idx])
+	ethTx, err := bytesToEthTx(e.clientCtx, txs[idx])
 	if err != nil {
 		return nil, err
 	}
@@ -809,21 +809,21 @@ func (e *PublicEthAPI) getTransactionByBlockNumberAndIndex(number int64, idx hex
 // GetTransactionReceipt returns the transaction receipt identified by hash.
 func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
 	e.logger.Debug("eth_getTransactionReceipt", "hash", hash)
-	tx, err := e.cliCtx.Client.Tx(hash.Bytes(), false)
+	tx, err := e.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found
 		return nil, nil
 	}
 
 	// Query block for consensus hash
-	block, err := e.cliCtx.Client.Block(&tx.Height)
+	block, err := e.clientCtx.Client.Block(&tx.Height)
 	if err != nil {
 		return nil, err
 	}
 	blockHash := common.BytesToHash(block.Block.Header.Hash())
 
 	// Convert tx bytes to eth transaction
-	ethTx, err := bytesToEthTx(e.cliCtx, tx.Tx)
+	ethTx, err := bytesToEthTx(e.clientCtx, tx.Tx)
 	if err != nil {
 		return nil, err
 	}
@@ -920,30 +920,30 @@ type StorageResult struct {
 // GetProof returns an account object with proof and any storage proofs
 func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, block BlockNumber) (*AccountResult, error) {
 	e.logger.Debug("eth_getProof", "address", address, "keys", storageKeys, "number", block)
-	e.cliCtx = e.cliCtx.WithHeight(int64(block))
+	e.clientCtx = e.clientCtx.WithHeight(int64(block))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
 	// query eth account at block height
-	resBz, _, err := e.cliCtx.Query(path)
+	resBz, _, err := e.clientCtx.Query(path)
 	if err != nil {
 		return nil, err
 	}
 
 	var account evmtypes.QueryResAccount
-	e.cliCtx.Codec.MustUnmarshalJSON(resBz, &account)
+	e.clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
 	storageProofs := make([]StorageResult, len(storageKeys))
 	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
 	for i, k := range storageKeys {
 		// Get value for key
 		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorage, address, k)
-		vRes, err := e.cliCtx.Client.ABCIQueryWithOptions(vPath, nil, opts)
+		vRes, err := e.clientCtx.Client.ABCIQueryWithOptions(vPath, nil, opts)
 		if err != nil {
 			return nil, err
 		}
 
 		var value evmtypes.QueryResStorage
-		e.cliCtx.Codec.MustUnmarshalJSON(vRes.Response.GetValue(), &value)
+		e.clientCtx.Codec.MustUnmarshalJSON(vRes.Response.GetValue(), &value)
 
 		// check for proof
 		proof := vRes.Response.GetProof()
@@ -966,7 +966,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 		Prove:  true,
 	}
 
-	res, err := e.cliCtx.QueryABCI(req)
+	res, err := e.clientCtx.QueryABCI(req)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,10 +1010,10 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
-		accRet := authtypes.NewAccountRetriever(e.cliCtx)
+		accRet := authtypes.NewAccountRetriever(e.clientCtx)
 
-		if e.cliCtx.Keybase == nil {
-			return nil, fmt.Errorf("cliCtx.Keybase is nil")
+		if e.clientCtx.Keybase == nil {
+			return nil, fmt.Errorf("clientCtx.Keybase is nil")
 		}
 
 		err = accRet.EnsureExists(from)
