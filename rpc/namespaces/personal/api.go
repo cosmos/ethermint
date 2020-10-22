@@ -23,16 +23,16 @@ import (
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 )
 
-// PersonalEthAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
-type PersonalEthAPI struct {
-	ethAPI   *eth.PublicEthAPI
+// PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
+type PrivateAccountAPI struct {
+	ethAPI   *eth.PublicEthereumAPI
 	logger   log.Logger
 	keyInfos []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
-func NewAPI(ethAPI *eth.PublicEthAPI) *PersonalEthAPI {
-	api := &PersonalEthAPI{
+func NewAPI(ethAPI *eth.PublicEthereumAPI) *PrivateAccountAPI {
+	api := &PrivateAccountAPI{
 		ethAPI: ethAPI,
 		logger: log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "personal"),
 	}
@@ -54,7 +54,7 @@ func NewAPI(ethAPI *eth.PublicEthAPI) *PersonalEthAPI {
 // The name of the key will have the format "personal_<length-keys>", where <length-keys> is the total number of
 // keys stored on the keyring.
 // NOTE: The key will be both armored and encrypted using the same passphrase.
-func (api *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Address, error) {
+func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Address, error) {
 	api.logger.Debug("personal_importRawKey")
 	priv, err := crypto.HexToECDSA(privkey)
 	if err != nil {
@@ -89,7 +89,7 @@ func (api *PersonalEthAPI) ImportRawKey(privkey, password string) (common.Addres
 }
 
 // ListAccounts will return a list of addresses for accounts this node manages.
-func (api *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
+func (api *PrivateAccountAPI) ListAccounts() ([]common.Address, error) {
 	api.logger.Debug("personal_listAccounts")
 	addrs := []common.Address{}
 	for _, info := range api.keyInfos {
@@ -102,7 +102,7 @@ func (api *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
 // It removes the key corresponding to the given address from the API's local keys.
-func (api *PersonalEthAPI) LockAccount(address common.Address) bool {
+func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 	api.logger.Debug("personal_lockAccount", "address", address.String())
 
 	keys := api.ethAPI.GetKeys()
@@ -126,7 +126,7 @@ func (api *PersonalEthAPI) LockAccount(address common.Address) bool {
 }
 
 // NewAccount will create a new account and returns the address for the new account.
-func (api *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
+func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
 	api.logger.Debug("personal_newAccount")
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
@@ -148,7 +148,7 @@ func (api *PersonalEthAPI) NewAccount(password string) (common.Address, error) {
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 // It exports the private key corresponding to the given address from the keyring and stores it in the API's local keys.
-func (api *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
+func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Address, password string, _ *uint64) (bool, error) { // nolint: interfacer
 	api.logger.Debug("personal_unlockAccount", "address", addr.String())
 	// TODO: use duration
 
@@ -184,7 +184,7 @@ func (api *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address,
 // SendTransaction will create a transaction from the given arguments and
 // tries to sign it with the key associated with args.To. If the given password isn't
 // able to decrypt the key it fails.
-func (api *PersonalEthAPI) SendTransaction(_ context.Context, args rpctypes.SendTxArgs, _ string) (common.Hash, error) {
+func (api *PrivateAccountAPI) SendTransaction(_ context.Context, args rpctypes.SendTxArgs, _ string) (common.Hash, error) {
 	return api.ethAPI.SendTransaction(args)
 }
 
@@ -197,7 +197,7 @@ func (api *PersonalEthAPI) SendTransaction(_ context.Context, args rpctypes.Send
 // The key used to calculate the signature is decrypted with the given password.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_sign
-func (api *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
+func (api *PrivateAccountAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
 	api.logger.Debug("personal_sign", "data", data, "address", addr.String())
 
 	key, ok := rpctypes.GetKeyByAddress(api.ethAPI.GetKeys(), addr)
@@ -224,7 +224,7 @@ func (api *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr comm
 // the V value must be 27 or 28 for legacy reasons.
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecove
-func (api *PersonalEthAPI) EcRecover(_ context.Context, data, sig hexutil.Bytes) (common.Address, error) {
+func (api *PrivateAccountAPI) EcRecover(_ context.Context, data, sig hexutil.Bytes) (common.Address, error) {
 	api.logger.Debug("personal_ecRecover", "data", data, "sig", sig)
 
 	if len(sig) != crypto.SignatureLength {

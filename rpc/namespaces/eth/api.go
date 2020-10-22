@@ -41,8 +41,8 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-// PublicEthAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
-type PublicEthAPI struct {
+// PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
+type PublicEthereumAPI struct {
 	ctx          context.Context
 	clientCtx    clientcontext.CLIContext
 	chainIDEpoch *big.Int
@@ -57,14 +57,14 @@ type PublicEthAPI struct {
 func NewAPI(
 	clientCtx clientcontext.CLIContext, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
 	keys ...ethsecp256k1.PrivKey,
-) *PublicEthAPI {
+) *PublicEthereumAPI {
 
 	epoch, err := ethermint.ParseChainID(clientCtx.ChainID)
 	if err != nil {
 		panic(err)
 	}
 
-	api := &PublicEthAPI{
+	api := &PublicEthereumAPI{
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
 		chainIDEpoch: epoch,
@@ -83,7 +83,7 @@ func NewAPI(
 
 // GetKeyringInfo checks if the keyring is present on the client context. If not, it creates a new
 // instance and sets it to the client context for later usage.
-func (api *PublicEthAPI) GetKeyringInfo() error {
+func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	api.keyringLock.Lock()
 	defer api.keyringLock.Unlock()
 
@@ -107,35 +107,35 @@ func (api *PublicEthAPI) GetKeyringInfo() error {
 }
 
 // ClientCtx returns the Cosmos SDK client context.
-func (api *PublicEthAPI) ClientCtx() clientcontext.CLIContext {
+func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
 }
 
 // GetKeys returns the Cosmos SDK client context.
-func (api *PublicEthAPI) GetKeys() []ethsecp256k1.PrivKey {
+func (api *PublicEthereumAPI) GetKeys() []ethsecp256k1.PrivKey {
 	return api.keys
 }
 
 // SetKeys sets the given key slice to the set of private keys
-func (api *PublicEthAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
+func (api *PublicEthereumAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
 	api.keys = keys
 }
 
 // ProtocolVersion returns the supported Ethereum protocol version.
-func (api *PublicEthAPI) ProtocolVersion() hexutil.Uint {
+func (api *PublicEthereumAPI) ProtocolVersion() hexutil.Uint {
 	api.logger.Debug("eth_protocolVersion")
 	return hexutil.Uint(version.ProtocolVersion)
 }
 
 // ChainId returns the chain's identifier in hex format
-func (api *PublicEthAPI) ChainId() (hexutil.Uint, error) { // nolint
+func (api *PublicEthereumAPI) ChainId() (hexutil.Uint, error) { // nolint
 	api.logger.Debug("eth_chainId")
 	return hexutil.Uint(uint(api.chainIDEpoch.Uint64())), nil
 }
 
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
 // outlining the state of the sync if it is.
-func (api *PublicEthAPI) Syncing() (interface{}, error) {
+func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
 	api.logger.Debug("eth_syncing")
 
 	status, err := api.clientCtx.Client.Status()
@@ -157,7 +157,7 @@ func (api *PublicEthAPI) Syncing() (interface{}, error) {
 }
 
 // Coinbase is the address that staking rewards will be send to (alias for Etherbase).
-func (api *PublicEthAPI) Coinbase() (common.Address, error) {
+func (api *PublicEthereumAPI) Coinbase() (common.Address, error) {
 	api.logger.Debug("eth_coinbase")
 
 	node, err := api.clientCtx.GetNode()
@@ -174,26 +174,26 @@ func (api *PublicEthAPI) Coinbase() (common.Address, error) {
 }
 
 // Mining returns whether or not this node is currently mining. Always false.
-func (api *PublicEthAPI) Mining() bool {
+func (api *PublicEthereumAPI) Mining() bool {
 	api.logger.Debug("eth_mining")
 	return false
 }
 
 // Hashrate returns the current node's hashrate. Always 0.
-func (api *PublicEthAPI) Hashrate() hexutil.Uint64 {
+func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 	api.logger.Debug("eth_hashrate")
 	return 0
 }
 
 // GasPrice returns the current gas price based on Ethermint's gas price oracle.
-func (api *PublicEthAPI) GasPrice() *hexutil.Big {
+func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	api.logger.Debug("eth_gasPrice")
 	out := big.NewInt(0)
 	return (*hexutil.Big)(out)
 }
 
 // Accounts returns the list of accounts available to this node.
-func (api *PublicEthAPI) Accounts() ([]common.Address, error) {
+func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	api.logger.Debug("eth_accounts")
 	api.keyringLock.Lock()
 
@@ -215,13 +215,13 @@ func (api *PublicEthAPI) Accounts() ([]common.Address, error) {
 }
 
 // rpctypes.BlockNumber returns the current block number.
-func (api *PublicEthAPI) BlockNumber() (hexutil.Uint64, error) {
+func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	api.logger.Debug("eth_blockNumber")
 	return api.backend.BlockNumber()
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-func (api *PublicEthAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
+func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
@@ -240,7 +240,7 @@ func (api *PublicEthAPI) GetBalance(address common.Address, blockNum rpctypes.Bl
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
-func (api *PublicEthAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
@@ -254,7 +254,7 @@ func (api *PublicEthAPI) GetStorageAt(address common.Address, key string, blockN
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
-func (api *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
+func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 
@@ -279,7 +279,7 @@ func (api *PublicEthAPI) GetTransactionCount(address common.Address, blockNum rp
 }
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
-func (api *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
+func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByHash", "hash", hash)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
@@ -301,7 +301,7 @@ func (api *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexut
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
-func (api *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
+func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
 	resBlock, err := api.clientCtx.Client.Block(blockNum.TmHeight())
 	if err != nil {
@@ -313,17 +313,17 @@ func (api *PublicEthAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.Bloc
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
-func (api *PublicEthAPI) GetUncleCountByBlockHash(_ common.Hash) hexutil.Uint {
+func (api *PublicEthereumAPI) GetUncleCountByBlockHash(_ common.Hash) hexutil.Uint {
 	return 0
 }
 
 // GetUncleCountByBlockNumber returns the number of uncles in the block idenfied by number. Always zero.
-func (api *PublicEthAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber) hexutil.Uint {
+func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber) hexutil.Uint {
 	return 0
 }
 
 // GetCode returns the contract code at the given address and block number.
-func (api *PublicEthAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
 	clientCtx := api.clientCtx.WithHeight(blockNumber.Int64())
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
@@ -337,13 +337,13 @@ func (api *PublicEthAPI) GetCode(address common.Address, blockNumber rpctypes.Bl
 }
 
 // GetTransactionLogs returns the logs given a transaction hash.
-func (api *PublicEthAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	api.logger.Debug("eth_getTransactionLogs", "hash", txHash)
 	return api.backend.GetTransactionLogs(txHash)
 }
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
-func (api *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_sign", "address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
 
@@ -363,7 +363,7 @@ func (api *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexut
 }
 
 // SendTransaction sends an Ethereum transaction.
-func (api *PublicEthAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash, error) {
+func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash, error) {
 	api.logger.Debug("eth_sendTransaction", "args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
@@ -411,7 +411,7 @@ func (api *PublicEthAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash,
 }
 
 // SendRawTransaction send a raw Ethereum transaction.
-func (api *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
+func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
 	api.logger.Debug("eth_sendRawTransaction", "data", data)
 	tx := new(evmtypes.MsgEthereumTx)
 
@@ -440,7 +440,7 @@ func (api *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, er
 }
 
 // Call performs a raw contract call.
-func (api *PublicEthAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
@@ -457,7 +457,7 @@ func (api *PublicEthAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumb
 
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
-func (api *PublicEthAPI) doCall(
+func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
 	// Set height for historical queries
@@ -549,7 +549,7 @@ func (api *PublicEthAPI) doCall(
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
-func (api *PublicEthAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
+func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	api.logger.Debug("eth_estimateGas", "args", args)
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
@@ -564,19 +564,19 @@ func (api *PublicEthAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, er
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
 	return api.backend.GetBlockByHash(hash, fullTx)
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (api *PublicEthAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 	return api.backend.GetBlockByNumber(blockNum, fullTx)
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
-func (api *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
@@ -602,7 +602,7 @@ func (api *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Trans
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
-func (api *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
@@ -621,7 +621,7 @@ func (api *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (api *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
 	resBlock, err := api.clientCtx.Client.Block(blockNum.TmHeight())
 	if err != nil {
@@ -631,7 +631,7 @@ func (api *PublicEthAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.B
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
-func (api *PublicEthAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	// return if index out of bounds
 	if uint64(idx) >= uint64(len(block.Txs)) {
 		return nil, nil
@@ -650,7 +650,7 @@ func (api *PublicEthAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
-func (api *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getTransactionReceipt", "hash", hash)
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
@@ -725,23 +725,23 @@ func (api *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]int
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (api *PublicEthAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getPendingTransactions")
 	return api.backend.PendingTransactions()
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
-func (api *PublicEthAPI) GetUncleByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) map[string]interface{} {
+func (api *PublicEthereumAPI) GetUncleByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) map[string]interface{} {
 	return nil
 }
 
 // GetUncleByBlockNumberAndIndex returns the uncle identified by number and index. Always returns nil.
-func (api *PublicEthAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint, idx hexutil.Uint) map[string]interface{} {
+func (api *PublicEthereumAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint, idx hexutil.Uint) map[string]interface{} {
 	return nil
 }
 
 // GetProof returns an account object with proof and any storage proofs
-func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, block rpctypes.BlockNumber) (*rpctypes.AccountResult, error) {
+func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []string, block rpctypes.BlockNumber) (*rpctypes.AccountResult, error) {
 	api.logger.Debug("eth_getProof", "address", address, "keys", storageKeys, "number", block)
 
 	clientCtx := api.clientCtx.WithHeight(int64(block))
@@ -814,7 +814,7 @@ func (api *PublicEthAPI) GetProof(address common.Address, storageKeys []string, 
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (api *PublicEthAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmtypes.MsgEthereumTx, error) {
+func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmtypes.MsgEthereumTx, error) {
 	var (
 		nonce    uint64
 		gasLimit uint64

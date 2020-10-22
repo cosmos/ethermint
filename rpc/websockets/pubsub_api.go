@@ -17,7 +17,7 @@ import (
 
 	context "github.com/cosmos/cosmos-sdk/client/context"
 
-	rpcfilters "github.com/cosmos/ethermint/rpc/namespaces/filters"
+	rpcfilters "github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )

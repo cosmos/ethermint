@@ -20,8 +20,8 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
 
-// FiltersBackend defines the methods requided by the PublicFilterAPI backend
-type FiltersBackend interface {
+// Backend defines the methods requided by the PublicFilterAPI backend
+type Backend interface {
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
@@ -49,14 +49,14 @@ type filter struct {
 // information related to the Ethereum protocol such as blocks, transactions and logs.
 type PublicFilterAPI struct {
 	clientCtx clientcontext.CLIContext
-	backend   FiltersBackend
+	backend   Backend
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
 }
 
 // NewAPI returns a new PublicFilterAPI instance.
-func NewAPI(clientCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
+func NewAPI(clientCtx clientcontext.CLIContext, backend Backend) *PublicFilterAPI {
 	// start the client to subscribe to Tendermint events
 	err := clientCtx.Client.Start()
 	if err != nil {

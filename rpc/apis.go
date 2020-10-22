@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/rpc/backend"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth"
-	"github.com/cosmos/ethermint/rpc/namespaces/filters"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
 	"github.com/cosmos/ethermint/rpc/namespaces/net"
 	"github.com/cosmos/ethermint/rpc/namespaces/personal"
 	"github.com/cosmos/ethermint/rpc/namespaces/web3"
@@ -45,16 +45,16 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 			Public:    true,
 		},
 		{
-			Namespace: PersonalNamespace,
-			Version:   apiVersion,
-			Service:   personal.NewAPI(ethAPI),
-			Public:    false,
-		},
-		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
 			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
+		},
+		{
+			Namespace: PersonalNamespace,
+			Version:   apiVersion,
+			Service:   personal.NewAPI(ethAPI),
+			Public:    false,
 		},
 		{
 			Namespace: NetNamespace,
