@@ -1,5 +1,3 @@
-// Package rpc contains RPC handler methods and utilities to start
-// Ethermint's Web3-compatibly JSON-RPC server.
 package rpc
 
 import (
@@ -8,6 +6,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/rpc/backend"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth"
+	"github.com/cosmos/ethermint/rpc/namespaces/net"
+	"github.com/cosmos/ethermint/rpc/namespaces/personal"
+	rpc "github.com/cosmos/ethermint/rpc/namespaces/web3"
 )
 
 // RPC namespaces and API version
@@ -20,17 +23,17 @@ const (
 	apiVersion = "1.0"
 )
 
-// GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(clientCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc.API {
+// GetAPIs returns the list of all APIs from the Ethereum namespaces
+func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(clientCtx)
-	ethAPI := NewPublicEthAPI(clientCtx, backend, nonceLock, keys)
+	backend := backend.New(clientCtx)
+	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys)
 
 	return []rpc.API{
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
-			Service:   NewPublicWeb3API(),
+			Service:   web3.NewAPI(),
 			Public:    true,
 		},
 		{
@@ -42,19 +45,19 @@ func GetRPCAPIs(clientCtx context.CLIContext, keys []ethsecp256k1.PrivKey) []rpc
 		{
 			Namespace: PersonalNamespace,
 			Version:   apiVersion,
-			Service:   NewPersonalEthAPI(ethAPI),
+			Service:   personal.NewAPI(ethAPI),
 			Public:    false,
 		},
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicFilterAPI(clientCtx, backend),
+			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicNetAPI(clientCtx),
+			Service:   net.NewAPI(clientCtx),
 			Public:    true,
 		},
 	}

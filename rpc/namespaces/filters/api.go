@@ -1,4 +1,4 @@
-package rpc
+package filters
 
 import (
 	"context"
@@ -21,8 +21,8 @@ import (
 
 // FiltersBackend defines the methods requided by the PublicFilterAPI backend
 type FiltersBackend interface {
-	GetBlockByNumber(blockNum BlockNumber, fullTx bool) (map[string]interface{}, error)
-	HeaderByNumber(blockNr BlockNumber) (*ethtypes.Header, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
+	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
@@ -54,8 +54,8 @@ type PublicFilterAPI struct {
 	filters   map[rpc.ID]*filter
 }
 
-// NewPublicFilterAPI returns a new PublicFilterAPI instance.
-func NewPublicFilterAPI(clientCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
+// New returns a new PublicFilterAPI instance.
+func New(clientCtx clientcontext.CLIContext, backend FiltersBackend) *PublicFilterAPI {
 	// start the client to subscribe to Tendermint events
 	err := clientCtx.Client.Start()
 	if err != nil {
@@ -209,7 +209,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			select {
 			case ev := <-headersCh:
 				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
-				header := EthHeaderFromTendermint(data.Header)
+				header := rpctypes.EthHeaderFromTendermint(data.Header)
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID()]; found {
 					f.hashes = append(f.hashes, header.Hash())
@@ -255,7 +255,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 					return
 				}
 
-				header := EthHeaderFromTendermint(data.Header)
+				header := rpctypes.EthHeaderFromTendermint(data.Header)
 				err = notifier.Notify(rpcSub.ID, header)
 				if err != nil {
 					headersSub.err <- err
@@ -532,22 +532,4 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("invalid filter %s type %d", id, f.typ)
 	}
-}
-
-// returnHashes is a helper that will return an empty hash array case the given hash array is nil,
-// otherwise the given hashes array is returned.
-func returnHashes(hashes []common.Hash) []common.Hash {
-	if hashes == nil {
-		return []common.Hash{}
-	}
-	return hashes
-}
-
-// returnLogs is a helper that will return an empty log array in case the given logs array is nil,
-// otherwise the given logs array is returned.
-func returnLogs(logs []*ethtypes.Log) []*ethtypes.Log {
-	if logs == nil {
-		return []*ethtypes.Log{}
-	}
-	return logs
 }

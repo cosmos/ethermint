@@ -6,14 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
@@ -29,19 +27,9 @@ const (
 	flagWebsocket = "wsport"
 )
 
-// EmintServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
-// Cosmos rest-server endpoints
-func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
-	cmd := lcd.ServeCommand(cdc, registerRoutes)
-	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
-	cmd.Flags().String(flagWebsocket, "8546", "websocket port to listen to")
-	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
-	return cmd
-}
-
-// registerRoutes creates a new server and registers the `/rpc` endpoint.
+// RegisterRoutes creates a new server and registers the `/rpc` endpoint.
 // Rpc calls are enabled based on their associated module (eg. "eth").
-func registerRoutes(rs *lcd.RestServer) {
+func RegisterRoutes(rs *lcd.RestServer) {
 	s := rpc.NewServer()
 	accountName := viper.GetString(flagUnlockKey)
 	accountNames := strings.Split(accountName, ",")
@@ -71,21 +59,13 @@ func registerRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetRPCAPIs(rs.CliCtx, privkeys)
+	apis := GetAPIs(rs.CliCtx, privkeys)
 
-	// TODO: Allow cli to configure modules https://github.com/cosmos/ethermint/issues/74
-	whitelist := make(map[string]bool)
-
-	// Register all the APIs exposed by the services
+	// Register all the APIs exposed by the namespace services
+	// TODO: handle allowlist and private APIs
 	for _, api := range apis {
-		if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
-			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
-				panic(err)
-			}
-		} else if !api.Public { // TODO: how to handle private apis? should only accept local calls
-			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
-				panic(err)
-			}
+		if err := server.RegisterName(api.Namespace, api.Service); err != nil {
+			panic(err)
 		}
 	}
 
@@ -99,7 +79,7 @@ func registerRoutes(rs *lcd.RestServer) {
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := newWebsocketsServer(rs.CliCtx, websocketAddr)
+	ws := NewServer(rs.CliCtx, websocketAddr)
 	ws.start()
 }
 
