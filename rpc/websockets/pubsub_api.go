@@ -25,7 +25,7 @@ import (
 // PubSubAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec
 type PubSubAPI struct {
 	clientCtx context.CLIContext
-	events    *EventSystem
+	events    *rpcfilters.EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*wsSubscription
 	logger    log.Logger
@@ -35,7 +35,7 @@ type PubSubAPI struct {
 func NewAPI(clientCtx context.CLIContext) *PubSubAPI {
 	return &PubSubAPI{
 		clientCtx: clientCtx,
-		events:    NewEventSystem(clientCtx.Client),
+		events:    rpcfilters.NewEventSystem(clientCtx.Client),
 		filters:   make(map[rpc.ID]*wsSubscription),
 		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-client"),
 	}
@@ -128,7 +128,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				return
 			}
 		}
-	}(sub.eventCh, sub.Err())
+	}(sub.Event(), sub.Err())
 
 	return sub.ID(), nil
 }
@@ -246,7 +246,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				return
 			}
 		}
-	}(sub.eventCh, sub.Err())
+	}(sub.Event(), sub.Err())
 
 	return sub.ID(), nil
 }
@@ -299,7 +299,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				api.filtersMu.Unlock()
 			}
 		}
-	}(sub.eventCh, sub.Err())
+	}(sub.Event(), sub.Err())
 
 	return sub.ID(), nil
 }

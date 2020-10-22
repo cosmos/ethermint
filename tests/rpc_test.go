@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/cosmos/ethermint/rpc"
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	"github.com/cosmos/ethermint/version"
 	"github.com/cosmos/ethermint/x/evm/types"
 )
@@ -332,7 +332,7 @@ func TestEth_GetProof(t *testing.T) {
 	rpcRes := call(t, "eth_getProof", params)
 	require.NotNil(t, rpcRes)
 
-	var accRes rpc.AccountResult
+	var accRes rpctypes.AccountResult
 	err := json.Unmarshal(rpcRes.Result, &accRes)
 	require.NoError(t, err)
 	require.NotEmpty(t, accRes.AccountProof)

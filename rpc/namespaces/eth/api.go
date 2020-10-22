@@ -111,6 +111,16 @@ func (api *PublicEthAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
 }
 
+// GetKeys returns the Cosmos SDK client context.
+func (api *PublicEthAPI) GetKeys() []ethsecp256k1.PrivKey {
+	return api.keys
+}
+
+// SetKeys sets the given key slice to the set of private keys
+func (api *PublicEthAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
+	api.keys = keys
+}
+
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (api *PublicEthAPI) ProtocolVersion() hexutil.Uint {
 	api.logger.Debug("eth_protocolVersion")
@@ -337,7 +347,7 @@ func (api *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexut
 	api.logger.Debug("eth_sign", "address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := checkKeyInKeyring(api.keys, address)
+	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
 	if !exist {
 		return nil, keystore.ErrLocked
 	}
@@ -357,7 +367,7 @@ func (api *PublicEthAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash,
 	api.logger.Debug("eth_sendTransaction", "args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := checkKeyInKeyring(api.keys, args.From)
+	key, exist := rpctypes.GetKeyByAddress(api.keys, args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
 		return common.Hash{}, keystore.ErrLocked

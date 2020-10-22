@@ -22,16 +22,16 @@ import (
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
 func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := clientCtx.TxConfig.TxDecoder()(bz)
+	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
+	ethTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, &evmtypes.MsgEthereumTx{})
 	}
-	return ethTx, nil
+	return &ethTx, nil
 }
 
 // NewTransaction returns a transaction that will serialize to the RPC
@@ -46,15 +46,15 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	rpcTx := &Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
-		GasPrice: (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Price)),
+		GasPrice: (*hexutil.Big)(tx.Data.Price),
 		Hash:     txHash,
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
 		To:       tx.To(),
-		Value:    (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Amount)),
-		V:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.V)),
-		R:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.R)),
-		S:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.S)),
+		Value:    (*hexutil.Big)(tx.Data.Amount),
+		V:        (*hexutil.Big)(tx.Data.V),
+		R:        (*hexutil.Big)(tx.Data.R),
+		S:        (*hexutil.Big)(tx.Data.S),
 	}
 
 	if blockHash != (common.Hash{}) {
@@ -67,7 +67,7 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, queryClient evmtypes.QueryClient, block *tmtypes.Block) (map[string]interface{}, error) {
+func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (map[string]interface{}, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -78,14 +78,15 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, queryClient evmt
 		return nil, err
 	}
 
-	req := &evmtypes.QueryBlockBloomRequest{}
-
-	res, err := queryClient.BlockBloom(req)
+	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
 	if err != nil {
 		return nil, err
 	}
 
-	bloom := ethtypes.BytesToBloom(res.Bloom)
+	var bloomRes evmtypes.QueryBloomFilter
+	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
+
+	bloom := bloomRes.Bloom
 
 	return formatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
 }
@@ -179,7 +180,8 @@ func formatBlock(
 	}
 }
 
-func checkKeyInKeyring(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
+// GetKeyByAddress returns the private key matching the given address. If not found it returns false.
+func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
 	for _, key := range keys {
 		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			return &key, true

@@ -105,19 +105,22 @@ func (api *PersonalEthAPI) ListAccounts() ([]common.Address, error) {
 func (api *PersonalEthAPI) LockAccount(address common.Address) bool {
 	api.logger.Debug("personal_lockAccount", "address", address.String())
 
-	for i, key := range api.ethAPI.keys {
+	keys := api.ethAPI.GetKeys()
+	for i, key := range api.ethAPI.GetKeys() {
 		if !bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			continue
 		}
 
-		tmp := make([]ethsecp256k1.PrivKey, len(api.ethAPI.keys)-1)
-		copy(tmp[:i], api.ethAPI.keys[:i])
-		copy(tmp[i:], api.ethAPI.keys[i+1:])
-		api.ethAPI.keys = tmp
+		tmp := make([]ethsecp256k1.PrivKey, len(keys)-1)
+		copy(tmp[:i], keys[:i])
+		copy(tmp[i:], keys[i+1:])
+		keys = tmp
 
 		api.logger.Debug("account unlocked", "address", address.String())
 		return true
 	}
+
+	api.ethAPI.SetKeys(keys)
 
 	return false
 }
@@ -173,7 +176,7 @@ func (api *PersonalEthAPI) UnlockAccount(_ context.Context, addr common.Address,
 		return false, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
 	}
 
-	api.ethAPI.keys = append(api.ethAPI.keys, ethermintPrivKey)
+	api.ethAPI.SetKeys(append(api.ethAPI.GetKeys(), ethermintPrivKey))
 	api.logger.Debug("account unlocked", "address", addr.String())
 	return true, nil
 }
@@ -197,7 +200,7 @@ func (api *PersonalEthAPI) SendTransaction(_ context.Context, args rpctypes.Send
 func (api *PersonalEthAPI) Sign(_ context.Context, data hexutil.Bytes, addr common.Address, _ string) (hexutil.Bytes, error) {
 	api.logger.Debug("personal_sign", "data", data, "address", addr.String())
 
-	key, ok := checkKeyInKeyring(api.ethAPI.keys, addr)
+	key, ok := rpctypes.GetKeyByAddress(api.ethAPI.GetKeys(), addr)
 	if !ok {
 		return nil, fmt.Errorf("cannot find key with address %s", addr.String())
 	}
