@@ -26,7 +26,6 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -347,14 +346,12 @@ func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtype
 func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_sign", "address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
-
-	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
-	if !exist {
-		return nil, keystore.ErrLocked
+	info, err := api.clientCtx.Keybase.GetByAddress(sdk.AccAddress(address.Bytes()))
+	if err != nil {
+		return nil, err
 	}
 
-	// Sign the requested hash with the wallet
-	signature, err := key.Sign(data)
+	signature, _, err := api.clientCtx.Keybase.Sign(info.GetName(), "", data)
 	if err != nil {
 		return nil, err
 	}

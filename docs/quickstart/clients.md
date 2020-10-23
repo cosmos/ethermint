@@ -36,7 +36,7 @@ To run the REST Server, you need to run the Ethermint daemon (`ethermintd`) and 
 process):
 
 ```bash
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace
+ethermintcli rest-server --laddr "tcp://localhost:8545" --chain-id $CHAINID --trace
 ```
 
 You should see the logs from the REST and the RPC server.

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -12,7 +11,6 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -178,14 +176,4 @@ func formatBlock(
 		"uncles":           []string{},
 		"receiptsRoot":     common.Hash{},
 	}
-}
-
-// GetKeyByAddress returns the private key matching the given address. If not found it returns false.
-func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
-	for _, key := range keys {
-		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
-			return &key, true
-		}
-	}
-	return nil, false
 }
