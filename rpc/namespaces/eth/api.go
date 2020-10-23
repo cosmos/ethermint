@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -223,8 +226,16 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
+	pendingQuery := false
+	var ctx clientcontext.CLIContext
+	if blockNum == rpctypes.PendingBlockNumber {
+		// uses latest block number for pending: -1 -> 0
+		ctx = api.clientCtx.WithHeight(rpctypes.LatestBlockNumber.Int64())
+		pendingQuery = true
+	} else {
+		ctx = api.clientCtx.WithHeight(blockNum.Int64())
+	}
+	res, _, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -234,6 +245,28 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	val, err := utils.UnmarshalBigInt(out.Balance)
 	if err != nil {
 		return nil, err
+	}
+
+	if pendingQuery {
+		pendingtx, err := api.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range pendingtx {
+			if pendingtx[i] == nil {
+				continue
+			}
+			if pendingtx[i].From == address {
+				pendingBalance := big.NewInt(0)
+				pendingBalance = pendingBalance.Add(val, pendingtx[i].Value.ToInt())
+				val = pendingBalance
+			} else if *pendingtx[i].To == address {
+				pendingBalance := big.NewInt(0)
+				pendingBalance = pendingBalance.Sub(val, pendingtx[i].Value.ToInt())
+				val = pendingBalance
+			}
+		}
 	}
 
 	return (*hexutil.Big)(val), nil
@@ -256,11 +289,19 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
-	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
+	pendingQuery := false
+	var ctx clientcontext.CLIContext
+	if blockNum == rpctypes.PendingBlockNumber {
+		// uses latest block number for pending: -1 -> 0
+		ctx = api.clientCtx.WithHeight(rpctypes.LatestBlockNumber.Int64())
+		pendingQuery = true
+	} else {
+		ctx = api.clientCtx.WithHeight(blockNum.Int64())
+	}
 
 	// Get nonce (sequence) from account
 	from := sdk.AccAddress(address.Bytes())
-	accRet := authtypes.NewAccountRetriever(clientCtx)
+	accRet := authtypes.NewAccountRetriever(ctx)
 
 	err := accRet.EnsureExists(from)
 	if err != nil {
@@ -272,6 +313,24 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	_, nonce, err := accRet.GetAccountNumberSequence(from)
 	if err != nil {
 		return nil, err
+	}
+
+	pendingNonce := uint64(0)
+	if pendingQuery {
+		pendingtx, err := api.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range pendingtx {
+			if pendingtx[i] == nil {
+				continue
+			}
+			if pendingtx[i].From == address {
+				pendingNonce++
+			}
+		}
+		nonce += pendingNonce
 	}
 
 	n := hexutil.Uint64(nonce)
@@ -300,17 +359,56 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 	return &n
 }
 
-// GetBlockTransactionCountByNumber returns the number of transactions in the block identified by number.
 func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
-	height := blockNum.Int64()
-	resBlock, err := api.clientCtx.Client.Block(&height)
+
+	var blockNumber hexutil.Uint64
+	pendingQuery := false
+	switch bn := blockNum.Int64(); bn {
+	case int64(0):
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil
+		}
+		blockNumber = bn
+	case int64(-1):
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil
+		}
+		blockNumber = bn
+		pendingQuery = true
+	}
+
+	heightCleaned := strings.Replace(blockNumber.String(), "0x", "", -1)
+	height, err := strconv.ParseInt(heightCleaned, 16, 64)
 	if err != nil {
 		return nil
 	}
 
-	n := hexutil.Uint(len(resBlock.Block.Txs))
-	return &n
+	resBlock, err := api.clientCtx.Client.Block(&height)
+	if err != nil {
+		return nil
+	}
+	txCount := hexutil.Uint(len(resBlock.Block.Txs))
+
+	txCountCleaned := strings.Replace(txCount.String(), "0x", "", -1)
+	totalTxCount, err := strconv.ParseUint(txCountCleaned, 16, 32)
+	if err != nil {
+		return nil
+	}
+
+	if pendingQuery {
+		pendingtx, err := api.backend.PendingTransactions()
+		if err != nil {
+			return nil
+		}
+		pendingTxCount := len(pendingtx) / 2
+		totalTxCount += uint64(pendingTxCount)
+	}
+
+	total := hexutil.Uint(totalTxCount)
+	return &total
 }
 
 // GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
@@ -573,7 +671,111 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map
 // GetBlockByNumber returns the block identified by number.
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
-	return api.backend.GetBlockByNumber(blockNum, fullTx)
+
+	var blockNumber hexutil.Uint64
+	switch blockNum {
+	case rpctypes.LatestBlockNumber:
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNumber = bn
+	case rpctypes.PendingBlockNumber:
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+
+		heightCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		height, err := strconv.ParseInt(heightCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		//latest block info
+		latestBlock, err := api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil, err
+		}
+		header := latestBlock.Block.Header
+
+		unconfirmedTxs, err := api.clientCtx.Client.UnconfirmedTxs(100)
+		if err != nil {
+			return nil, err
+		}
+
+		var pendingTxs []common.Hash
+		var gasUsed *big.Int
+		if fullTx {
+			pendingTxs, gasUsed, err = convertTransactionsToRPC(
+				api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(header.Hash()), uint64(header.Height)+1,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			pendingTxs = make([]common.Hash, len(unconfirmedTxs.Txs))
+			for i, tx := range unconfirmedTxs.Txs {
+				pendingTxs[i] = common.BytesToHash(tx.Hash())
+			}
+		}
+
+		return rpctypes.FormatBlock(
+			tmtypes.Header{
+				Version:            header.Version,
+				ChainID:            header.ChainID,
+				Height:             height + 1,
+				Time:               time.Time{},
+				LastBlockID:        latestBlock.BlockID,
+				LastCommitHash:     nil,
+				DataHash:           nil,
+				ValidatorsHash:     nil,
+				NextValidatorsHash: nil,
+				ConsensusHash:      header.ConsensusHash,
+				AppHash:            nil,
+				LastResultsHash:    nil,
+				EvidenceHash:       nil,
+				ProposerAddress:    nil,
+			},
+			0,
+			0,
+			gasUsed,
+			pendingTxs,
+			ethtypes.Bloom{},
+		), nil
+	default:
+		blockNumber = hexutil.Uint64(blockNum.Int64())
+	}
+
+	heightCleaned := strings.Replace(blockNumber.String(), "0x", "", -1)
+	height, err := strconv.ParseInt(heightCleaned, 16, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.backend.GetBlockByNumber(rpctypes.BlockNumber(height), fullTx)
+}
+
+func convertTransactionsToRPC(cliCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
+	transactions := make([]common.Hash, len(txs))
+	gasUsed := big.NewInt(0)
+
+	for i, tx := range txs {
+		ethTx, err := rpctypes.RawTxToEthTx(cliCtx, tx)
+		if err != nil {
+			// continue to next transaction in case it's not a MsgEthereumTx
+			continue
+		}
+		// TODO: Remove gas usage calculation if saving gasUsed per block
+		gasUsed.Add(gasUsed, ethTx.Fee())
+		tx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), blockHash, height, uint64(i))
+		if err != nil {
+			return nil, nil, err
+		}
+		transactions[i] = tx.Hash
+	}
+
+	return transactions, gasUsed, nil
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
