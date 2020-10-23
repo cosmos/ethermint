@@ -34,10 +34,20 @@ func TestPersonal_NewAccount(t *testing.T) {
 }
 
 func TestPersonal_Sign(t *testing.T) {
-	rpcRes := call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
+	privkey, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+	from := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
+
+	rpcRes := call(t, "personal_unlockAccount", []interface{}{from, ""})
+	var unlocked bool
+	err = json.Unmarshal(rpcRes.Result, &unlocked)
+	require.NoError(t, err)
+	require.True(t, unlocked)
+
+	rpcRes = call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
 
 	var res hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &res)
+	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 	require.Equal(t, 65, len(res))
 	// TODO: check that signature is same as with geth, requires importing a key
@@ -62,11 +72,21 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 }
 
 func TestPersonal_EcRecover(t *testing.T) {
-	data := hexutil.Bytes{0x88}
-	rpcRes := call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
+	privkey, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+	from := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
 
+	rpcRes := call(t, "personal_unlockAccount", []interface{}{from, ""})
+	var unlocked bool
+	err = json.Unmarshal(rpcRes.Result, &unlocked)
+	require.NoError(t, err)
+	require.True(t, unlocked)
+
+	data := hexutil.Bytes{0x88}
+
+	rpcRes = call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
 	var res hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &res)
+	err = json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 	require.Equal(t, 65, len(res))
 

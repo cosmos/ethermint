@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/crypto/hd"
 	"github.com/cosmos/ethermint/rpc/backend"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
@@ -47,7 +46,6 @@ type PublicEthereumAPI struct {
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      backend.Backend
-	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
 }
@@ -55,7 +53,6 @@ type PublicEthereumAPI struct {
 // NewAPI creates an instance of the public ETH Web3 API.
 func NewAPI(
 	clientCtx clientcontext.CLIContext, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
-	keys ...ethsecp256k1.PrivKey,
 ) *PublicEthereumAPI {
 
 	epoch, err := ethermint.ParseChainID(clientCtx.ChainID)
@@ -69,7 +66,6 @@ func NewAPI(
 		chainIDEpoch: epoch,
 		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
 		backend:      backend,
-		keys:         keys,
 		nonceLock:    nonceLock,
 	}
 
@@ -108,16 +104,6 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 // ClientCtx returns the Cosmos SDK client context.
 func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
-}
-
-// GetKeys returns the Cosmos SDK client context.
-func (api *PublicEthereumAPI) GetKeys() []ethsecp256k1.PrivKey {
-	return api.keys
-}
-
-// SetKeys sets the given key slice to the set of private keys
-func (api *PublicEthereumAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
-	api.keys = keys
 }
 
 // ProtocolVersion returns the supported Ethereum protocol version.
