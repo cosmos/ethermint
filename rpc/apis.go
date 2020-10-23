@@ -1,11 +1,17 @@
-// Package rpc contains RPC handler methods and utilities to start
-// Ethermint's Web3-compatibly JSON-RPC server.
 package rpc
 
 import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+
+	"github.com/cosmos/ethermint/rpc/backend"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
+	"github.com/cosmos/ethermint/rpc/namespaces/net"
+	"github.com/cosmos/ethermint/rpc/namespaces/personal"
+	"github.com/cosmos/ethermint/rpc/namespaces/web3"
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 )
 
 // RPC namespaces and API version
@@ -18,17 +24,17 @@ const (
 	apiVersion = "1.0"
 )
 
-// GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext) []rpc.API {
-	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(cliCtx)
-	ethAPI := NewPublicEthAPI(cliCtx, backend, nonceLock)
+// GetAPIs returns the list of all APIs from the Ethereum namespaces
+func GetAPIs(clientCtx context.CLIContext) []rpc.API {
+	nonceLock := new(rpctypes.AddrLocker)
+	backend := backend.New(clientCtx)
+	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock)
 
 	return []rpc.API{
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
-			Service:   NewPublicWeb3API(),
+			Service:   web3.NewAPI(),
 			Public:    true,
 		},
 		{
@@ -38,21 +44,21 @@ func GetRPCAPIs(cliCtx context.CLIContext) []rpc.API {
 			Public:    true,
 		},
 		{
-			Namespace: PersonalNamespace,
-			Version:   apiVersion,
-			Service:   NewPersonalEthAPI(ethAPI),
-			Public:    false,
-		},
-		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicFilterAPI(cliCtx, backend),
+			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
+		},
+		{
+			Namespace: PersonalNamespace,
+			Version:   apiVersion,
+			Service:   personal.NewAPI(ethAPI),
+			Public:    false,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicNetAPI(cliCtx),
+			Service:   net.NewAPI(clientCtx),
 			Public:    true,
 		},
 	}
