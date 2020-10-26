@@ -248,22 +248,22 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	}
 
 	if pendingQuery {
-		pendingtx, err := api.backend.PendingTransactions()
+		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil, err
 		}
 
-		for i := range pendingtx {
-			if pendingtx[i] == nil {
+		for i := range pendingTxs {
+			if pendingTxs[i] == nil {
 				continue
 			}
-			if pendingtx[i].From == address {
+			if pendingTxs[i].From == address {
 				pendingBalance := big.NewInt(0)
-				pendingBalance = pendingBalance.Add(val, pendingtx[i].Value.ToInt())
+				pendingBalance = pendingBalance.Add(val, pendingTxs[i].Value.ToInt())
 				val = pendingBalance
-			} else if *pendingtx[i].To == address {
+			} else if *pendingTxs[i].To == address {
 				pendingBalance := big.NewInt(0)
-				pendingBalance = pendingBalance.Sub(val, pendingtx[i].Value.ToInt())
+				pendingBalance = pendingBalance.Sub(val, pendingTxs[i].Value.ToInt())
 				val = pendingBalance
 			}
 		}
@@ -1090,7 +1090,6 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	gasPrice := (*big.Int)(args.GasPrice)
 
 	if args.GasPrice == nil {
-
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
 		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
@@ -1109,6 +1108,26 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 		if err != nil {
 			return nil, err
 		}
+
+		pendingTxs, err := api.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("nonce before pending: ", nonce)
+		if len(pendingTxs) != 0 {
+			fmt.Println("pending transactions found!")
+			fmt.Println("accounting for pending tx into nonce")
+			for i := range pendingTxs {
+				if pendingTxs[i] == nil {
+					continue
+				}
+				if pendingTxs[i].From == args.From {
+					nonce++
+				}
+			}
+		}
+		fmt.Println("nonce after: ", nonce)
+
 	} else {
 		nonce = (uint64)(*args.Nonce)
 	}
