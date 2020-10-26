@@ -9,7 +9,7 @@ import (
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -21,17 +21,17 @@ import (
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
-func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz)
+func RawTxToEthTx(clientCtx client.Context, bz []byte) (*evmtypes.MsgEthereumTx, error) {
+	tx, err := clientCtx.TxConfig.TxDecoder()(bz)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	ethTx, ok := tx.(evmtypes.MsgEthereumTx)
+	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
 		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, &evmtypes.MsgEthereumTx{})
 	}
-	return &ethTx, nil
+	return ethTx, nil
 }
 
 // NewTransaction returns a transaction that will serialize to the RPC
@@ -46,15 +46,15 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	rpcTx := &Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
-		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		GasPrice: (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Price)),
 		Hash:     txHash,
 		Input:    hexutil.Bytes(tx.Data.Payload),
 		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
 		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Data.Amount),
-		V:        (*hexutil.Big)(tx.Data.V),
-		R:        (*hexutil.Big)(tx.Data.R),
-		S:        (*hexutil.Big)(tx.Data.S),
+		Value:    (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.Amount)),
+		V:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.V)),
+		R:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.R)),
+		S:        (*hexutil.Big)(new(big.Int).SetBytes(tx.Data.S)),
 	}
 
 	if blockHash != (common.Hash{}) {
@@ -67,7 +67,7 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (map[string]interface{}, error) {
+func EthBlockFromTendermint(clientCtx client.Context, queryClient QueryClient, block *tmtypes.Block) (map[string]interface{}, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -78,15 +78,14 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		return nil, err
 	}
 
-	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
+	req := &evmtypes.QueryBlockBloomRequest{}
+
+	res, err := queryClient.BlockBloom(ContextWithHeight(block.Height), req)
 	if err != nil {
 		return nil, err
 	}
 
-	var bloomRes evmtypes.QueryBloomFilter
-	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
-
-	bloom := bloomRes.Bloom
+	bloom := ethtypes.BytesToBloom(res.Bloom)
 
 	return formatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
 }
@@ -112,7 +111,7 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 
 // EthTransactionsFromTendermint returns a slice of ethereum transaction hashes and the total gas usage from a set of
 // tendermint block transactions.
-func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx) ([]common.Hash, *big.Int, error) {
+func EthTransactionsFromTendermint(clientCtx client.Context, txs []tmtypes.Tx) ([]common.Hash, *big.Int, error) {
 	transactionHashes := []common.Hash{}
 	gasUsed := big.NewInt(0)
 
@@ -131,8 +130,8 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 }
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
-func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.CLIContext) (int64, error) {
-	resConsParams, err := clientCtx.Client.ConsensusParams(nil)
+func BlockMaxGasFromConsensusParams(ctx context.Context, clientCtx client.Context) (int64, error) {
+	resConsParams, err := clientCtx.Client.ConsensusParams(ctx, nil)
 	if err != nil {
 		return 0, err
 	}

@@ -147,58 +147,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	}
 }
 
-func (suite *EvmTestSuite) TestMsgEthermint() {
-	var tx *types.MsgEthermint
-
-	testCases := []struct {
-		msg      string
-		malleate func()
-		expPass  bool
-	}{
-		{
-			"passed",
-			func() {
-				tx = types.NewMsgEthermint(0, suite.to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), suite.from.Bytes())
-				suite.app.EvmKeeper.SetBalance(suite.ctx, suite.from, big.NewInt(100))
-			},
-			true,
-		},
-		{
-			"invalid state transition",
-			func() {
-				tx = types.NewMsgEthermint(0, suite.to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), suite.from.Bytes())
-			},
-			false,
-		},
-		{
-			"invalid chain ID",
-			func() {
-				suite.ctx = suite.ctx.WithChainID("chainID")
-			},
-			false,
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run("", func() {
-			suite.SetupTest() // reset
-			//nolint
-			tc.malleate()
-
-			res, err := suite.handler(suite.ctx, tx)
-
-			//nolint
-			if tc.expPass {
-				suite.Require().NoError(err)
-				suite.Require().NotNil(res)
-			} else {
-				suite.Require().Error(err)
-				suite.Require().Nil(res)
-			}
-		})
-	}
-}
-
 func (suite *EvmTestSuite) TestHandlerLogs() {
 	// Test contract:
 

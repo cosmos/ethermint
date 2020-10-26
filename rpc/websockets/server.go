@@ -20,7 +20,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/rpc"
 
-	context "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // Server defines a server that handles Ethereum websockets.
@@ -32,7 +32,7 @@ type Server struct {
 }
 
 // NewServer creates a new websocket server instance.
-func NewServer(clientCtx context.CLIContext, wsAddr string) *Server {
+func NewServer(clientCtx client.Context, wsAddr string) *Server {
 	return &Server{
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,

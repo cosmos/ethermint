@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	context "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 
 	rpcfilters "github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
@@ -209,13 +209,13 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 
-				var resultData evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var resultData evmtypes.MsgEthereumTxResponse
+				resultData, err = evmtypes.DecodeTxResponse(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
 
-				logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+				logs := rpcfilters.FilterLogs(resultData.TxLogs.EthLogs(), crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
@@ -271,7 +271,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 			select {
 			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
-				txHash := common.BytesToHash(data.Tx.Hash())
+				txHash := common.BytesToHash(tmtypes.Tx(data.Tx).Hash())
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
