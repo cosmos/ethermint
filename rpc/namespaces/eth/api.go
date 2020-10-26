@@ -781,6 +781,22 @@ func convertTransactionsToRPC(cliCtx clientcontext.CLIContext, txs []tmtypes.Tx,
 // GetTransactionByHash returns the transaction identified by hash.
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
+	pendingTxs, err := api.PendingTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pendingTxs) != 0 {
+		for _, pendingTx := range pendingTxs {
+			if pendingTx == nil {
+				continue
+			}
+			if hash == pendingTx.Hash {
+				return pendingTx, nil
+			}
+		}
+	}
+
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found
