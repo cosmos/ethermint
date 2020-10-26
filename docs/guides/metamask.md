@@ -11,7 +11,7 @@ Connect your Metamask wallet with Ethermint on a localnet mode. {synopsis}
 Start the Ethermint node using your terminal:
 
 ```bash
-ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info"
+ethermintd start --pruning=nothing --rpc.unsafe
 ```
 
 ::: tip

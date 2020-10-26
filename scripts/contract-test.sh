@@ -48,7 +48,7 @@ $PWD/build/ethermintd collect-gentxs
 $PWD/build/ethermintd validate-genesis
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed) in background and log to file
-$PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace > ethermintd.log &
+$PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --trace > ethermintd.log &
 
 sleep 1
 

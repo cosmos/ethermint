@@ -102,7 +102,7 @@ func init() {
 		panic(err)
 	}
 
-	DefaultNodeHome = filepath.Join(userHomeDir, ".simapp")
+	DefaultNodeHome = filepath.Join(userHomeDir, ".ethermint")
 }
 
 func init() {

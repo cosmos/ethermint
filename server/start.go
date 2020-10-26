@@ -109,9 +109,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(flagGRPCEnable, true, "Define if the gRPC server should be enabled")
 	cmd.Flags().String(flagGRPCAddress, sdkconfig.DefaultGRPCAddress, "the gRPC server address to listen on")
 
-	cmd.Flags().Bool(flagGRPCEnable, true, "Define if the gRPC server should be enabled")
-	cmd.Flags().String(flagGRPCAddress, sdkconfig.DefaultGRPCAddress, "the gRPC server address to listen on")
-
 	cmd.Flags().Bool(flagEthereumJSONRPCEnable, true, "Define if the Ethereum JSON-RPC server should be enabled")
 	cmd.Flags().Bool(flagEthereumWebsocketEnable, true, "Define if the Ethereum Websocket server should be enabled")
 	cmd.Flags().String(flagEthereumWebsocketAddress, sdkconfig.DefaultGRPCAddress, "the gRPC server address to listen on")
