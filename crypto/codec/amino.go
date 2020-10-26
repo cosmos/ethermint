@@ -22,6 +22,7 @@ func RegisterCrypto(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&ethsecp256k1.PrivKey{},
 		ethsecp256k1.PrivKeyName, nil)
 
+	keyring.RegisterLegacyAminoCodec(cdc)
 	// update SDK's key codec to include the ethsecp256k1 keys.
 	keyring.CryptoCdc = cdc
 }

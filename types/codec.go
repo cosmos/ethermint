@@ -12,4 +12,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*authtypes.AccountI)(nil),
 		&EthAccount{},
 	)
+	registry.RegisterImplementations(
+		(*authtypes.GenesisAccount)(nil),
+		&EthAccount{},
+	)
 }

@@ -58,8 +58,8 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				inBuf := bufio.NewReader(cmd.InOrStdin())
 				keyringBackend, _ := cmd.Flags().GetString(flags.FlagKeyringBackend)
 
-				// attempt to lookup address from Keybase if no address was provided
-				kb, err := keyring.New(
+				// attempt to lookup address from Keyring if no address was provided
+				kr, err := keyring.New(
 					sdk.KeyringServiceName(),
 					keyringBackend,
 					clientCtx.HomeDir,
@@ -70,9 +70,10 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					return err
 				}
 
-				info, err := kb.Key(args[0])
+				// TODO: fix error, keyring.Info
+				info, err := kr.Key(args[0])
 				if err != nil {
-					return fmt.Errorf("failed to get address from Keybase: %w", err)
+					return fmt.Errorf("failed to get address from Keyring: %w", err)
 				}
 
 				addr = info.GetAddress()

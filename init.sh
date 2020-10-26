@@ -41,4 +41,4 @@ ethermintd collect-gentxs
 ethermintd validate-genesis
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-ethermintd start --pruning=nothing --rpc.unsafe --trace --chain-id $CHAINID
+ethermintd start --pruning=nothing --rpc.unsafe --trace

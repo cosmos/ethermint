@@ -9,6 +9,10 @@ import (
 // RegisterInterfaces registers the client interfaces to protobuf Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
+		(*sdk.Tx)(nil),
+		&MsgEthereumTx{},
+	)
+	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
 		&MsgEthereumTx{},
 	)
