@@ -42,7 +42,7 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI) *PrivateAccountAPI {
 		return api
 	}
 
-	api.keyInfos, err = api.ethAPI.ClientCtx().Keybase.List()
+	api.keyInfos, err = api.ethAPI.ClientCtx().Keyring.List()
 	if err != nil {
 		return api
 	}
@@ -188,7 +188,7 @@ func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Addre
 		return false, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
 	}
 
-	api.ethAPI.SetKeys(append(api.ethAPI.GetKeys(), ethermintPrivKey))
+	api.ethAPI.SetKeys(append(api.ethAPI.GetKeys(), *ethermintPrivKey))
 	api.logger.Debug("account unlocked", "address", addr.String())
 	return true, nil
 }

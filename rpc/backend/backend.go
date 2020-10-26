@@ -42,7 +42,7 @@ var _ Backend = (*EthermintBackend)(nil)
 type EthermintBackend struct {
 	ctx         context.Context
 	clientCtx   client.Context
-	queryClient *QueryClient // gRPC query client
+	queryClient *rpctypes.QueryClient // gRPC query client
 	logger      log.Logger
 	gasLimit    int64
 }
@@ -52,7 +52,7 @@ func New(clientCtx client.Context) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:         context.Background(),
 		clientCtx:   clientCtx,
-		queryClient: NewQueryClient(clientCtx),
+		queryClient: rpctypes.NewQueryClient(clientCtx),
 		logger:      log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
 		gasLimit:    int64(^uint32(0)),
 	}
@@ -122,7 +122,7 @@ func (b *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 		return nil, err
 	}
 
-	ethHeader := EthHeaderFromTendermint(resBlock.Block.Header)
+	ethHeader := rpctypes.EthHeaderFromTendermint(resBlock.Block.Header)
 	ethHeader.Bloom = ethtypes.BytesToBloom(res.Bloom)
 	return ethHeader, nil
 }

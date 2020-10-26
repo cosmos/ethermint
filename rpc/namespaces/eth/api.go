@@ -20,7 +20,6 @@ import (
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -139,7 +138,7 @@ func (api *PublicEthereumAPI) ChainId() (hexutil.Uint, error) { // nolint
 func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
 	api.logger.Debug("eth_syncing")
 
-	status, err := api.clientCtx.Client.Status()
+	status, err := api.clientCtx.Client.Status(api.ctx)
 	if err != nil {
 		return false, err
 	}
@@ -200,7 +199,7 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
-	infos, err := api.clientCtx.Keybase.List()
+	infos, err := api.clientCtx.Keyring.List()
 	if err != nil {
 		return addresses, err
 	}
@@ -256,7 +255,7 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 	}
 
 	value := common.HexToHash(res.Value)
-	return value.Value, nil
+	return value.Bytes(), nil
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -457,7 +456,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, globalGasCap *big.Int,
-) (*sdk.SimulationResponse, error) {
+) (*simulate.SimulateResponse, error) {
 	// Set sender address or use a default if none specified
 	var addr common.Address
 
@@ -764,7 +763,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 
 	// query storage proofs
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
-	for _, key := range storageKeys {
+	for i, key := range storageKeys {
 		hexKey := common.HexToHash(key)
 		valueBz, proof, err := api.queryClient.GetProof(clientCtx, evmtypes.StoreKey, evmtypes.StateKey(address, hexKey.Bytes()))
 		if err != nil {
@@ -894,5 +893,5 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
-	return &msg, nil
+	return msg, nil
 }

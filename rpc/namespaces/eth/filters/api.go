@@ -20,8 +20,6 @@ import (
 
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
-
-	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // Backend defines the methods requided by the PublicFilterAPI backend
