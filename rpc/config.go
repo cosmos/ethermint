@@ -5,11 +5,22 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/client/input"
+	"github.com/cosmos/cosmos-sdk/client/lcd"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
-	"github.com/cosmos/ethermint/server/config"
+	"github.com/cosmos/ethermint/app"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/crypto/hd"
+	"github.com/cosmos/ethermint/rpc/websockets"
+	"github.com/ethereum/go-ethereum/rpc"
+)
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -33,27 +44,6 @@ func RegisterEthereum(clientCtx client.Context, r *mux.Router, apiConfig config.
 
 // StartEthereumWebsocket starts the Filter api websocket
 func StartEthereumWebsocket(clientCtx client.Context, apiConfig server.APIConfig) {
-
-	ws := newWebsocketsServer(clientCtx, apiConfig.Address, apiConfig.WebsocketAddress)
-	ws.start()
-}
-
-func (s *websocketsServer) start() {
-	ws := mux.NewRouter()
-	ws.Handle("/", s)
-
-	errCh := make(chan error)
-	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
-		if err != nil {
-			errCh <- fmt.Errorf("failed to serve: %w", err)
-		}
-	}()
-
-	select {
-	case err := <-errCh:
-		return nil, err
-	case <-time.After(5 * time.Second): // assume server started successfully
-		return grpcSrv, nil
-	}
+	ws := websockets.NewServer(clientCtx, apiConfig.Address, apiConfig.WebsocketAddress)
+	ws.Start()
 }
