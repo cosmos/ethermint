@@ -39,6 +39,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -1095,28 +1096,24 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
 	}
 
+	// Get nonce (sequence) from account
+	from := sdk.AccAddress(args.From.Bytes())
+	accRet := authtypes.NewAccountRetriever(api.clientCtx)
+	if api.clientCtx.Keybase == nil {
+		return nil, fmt.Errorf("clientCtx.Keybase is nil")
+	}
+
+	_, nonce, err = accRet.GetAccountNumberSequence(from)
+	if err != nil {
+		return nil, err
+	}
+
 	if args.Nonce == nil {
-		// Get nonce (sequence) from account
-		from := sdk.AccAddress(args.From.Bytes())
-		accRet := authtypes.NewAccountRetriever(api.clientCtx)
-
-		if api.clientCtx.Keybase == nil {
-			return nil, fmt.Errorf("clientCtx.Keybase is nil")
-		}
-
-		_, nonce, err = accRet.GetAccountNumberSequence(from)
-		if err != nil {
-			return nil, err
-		}
-
 		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("nonce before pending: ", nonce)
 		if len(pendingTxs) != 0 {
-			fmt.Println("pending transactions found!")
-			fmt.Println("accounting for pending tx into nonce")
 			for i := range pendingTxs {
 				if pendingTxs[i] == nil {
 					continue
@@ -1126,9 +1123,11 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 				}
 			}
 		}
-		fmt.Println("nonce after: ", nonce)
-
 	} else {
+		if (uint64)(*args.Nonce) <= nonce {
+			return nil, sdkerrors.ErrInvalidSequence
+		}
+
 		nonce = (uint64)(*args.Nonce)
 	}
 
