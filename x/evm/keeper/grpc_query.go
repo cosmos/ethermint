@@ -179,18 +179,14 @@ func (q Keeper) BlockLogs(c context.Context, req *types.QueryBlockLogsRequest) (
 }
 
 // BlockBloom implements the Query/BlockBloom gRPC method
-func (q Keeper) BlockBloom(c context.Context, req *types.QueryBlockBloomRequest) (*types.QueryBlockBloomResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "empty request")
-	}
-
+func (q Keeper) BlockBloom(c context.Context, _ *types.QueryBlockBloomRequest) (*types.QueryBlockBloomResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 
 	// use block height provided through the gRPC header
 	bloom, found := q.GetBlockBloom(ctx, ctx.BlockHeight())
 	if !found {
-		return nil, status.Error(
-			codes.NotFound, types.ErrBloomNotFound.Error(),
+		return nil, status.Errorf(
+			codes.NotFound, "%s: height %d", types.ErrBloomNotFound.Error(), ctx.BlockHeight(),
 		)
 	}
 
@@ -200,11 +196,7 @@ func (q Keeper) BlockBloom(c context.Context, req *types.QueryBlockBloomRequest)
 }
 
 // Params implements the Query/Params gRPC method
-func (q Keeper) Params(c context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "empty request")
-	}
-
+func (q Keeper) Params(c context.Context, _ *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	params := q.GetParams(ctx)
 
