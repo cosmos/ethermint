@@ -560,11 +560,47 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
+
+	var blockNumber rpctypes.BlockNumber
+	var pending bool
+	switch blockNr {
+	case rpctypes.LatestBlockNumber:
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		height, err := strconv.ParseInt(bnCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		blockNumber = rpctypes.BlockNumber(height)
+	case rpctypes.PendingBlockNumber:
+		bn, err := api.backend.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
+		height, err := strconv.ParseInt(bnCleaned, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		blockNumber = rpctypes.BlockNumber(height)
+		pending = true
+	default:
+		blockNumber = blockNr
+	}
+
+	fmt.Println("blockNumber: ", blockNumber)
+	fmt.Println("pending:", pending)
+
+	fmt.Println("args: ", args)
+
 	// Set height for historical queries
 	clientCtx := api.clientCtx
 
-	if blockNr.Int64() != 0 {
-		clientCtx = api.clientCtx.WithHeight(blockNr.Int64())
+	if blockNumber.Int64() != 0 {
+		clientCtx = api.clientCtx.WithHeight(blockNumber.Int64())
 	}
 
 	// Set sender address or use a default if none specified
@@ -614,17 +650,81 @@ func (api *PublicEthereumAPI) doCall(
 		toAddr = sdk.AccAddress(args.To.Bytes())
 	}
 
+	var ethermintMsgs []sdk.Msg
 	// Create new call message
 	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
-
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}
 
+	ethermintMsgs = append(ethermintMsgs, msg)
+
+	fmt.Println("ethermintMsgs before pending: ", ethermintMsgs)
+
+	// convert the pending transactions into ethermint msgs
+	if pending {
+		fmt.Println("converting pending tx to emintmsg!")
+		pendingTxs, err := api.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("pendingTxs: ", pendingTxs)
+		if len(pendingTxs) > 0 {
+			for _, pendingTx := range pendingTxs {
+				if pendingTx == nil {
+					fmt.Println("nil pending tx found!")
+					continue
+				}
+
+				pendingTo, err := sdk.AccAddressFromHex(strings.Replace(pendingTx.To.Hex(), "0x", "", -1))
+				if err != nil {
+					fmt.Println("broke at pendingTo!")
+					return nil, err
+				}
+
+				pendingFrom, err := sdk.AccAddressFromHex(strings.Replace(pendingTx.From.Hex(), "0x", "", -1))
+				if err != nil {
+					fmt.Println("broke at pendingFrom!")
+					return nil, err
+				}
+
+				pendingGasCleaned := strings.Replace(pendingTx.Gas.String(), "0x", "", -1)
+				pendingGas, err := strconv.ParseUint(pendingGasCleaned, 16, 64)
+				if err != nil {
+					fmt.Println("broke at pendingGas!")
+					return nil, err
+				}
+
+				pendingVal := pendingTx.Value.ToInt()
+				pendingGasPrice := new(big.Int).SetUint64(ethermint.DefaultGasPrice)
+				if args.GasPrice != nil {
+					pendingGasPrice = pendingTx.GasPrice.ToInt()
+				}
+
+				pendingData := pendingTx.Input
+
+				msg := evmtypes.NewMsgEthermint(0, &pendingTo, sdk.NewIntFromBigInt(pendingVal), pendingGas,
+					sdk.NewIntFromBigInt(pendingGasPrice), pendingData, pendingFrom)
+				if err := msg.ValidateBasic(); err != nil {
+					fmt.Println("broke at converting to msgEthermint!")
+					return nil, err
+				}
+
+				ethermintMsgs = append(ethermintMsgs, msg)
+			}
+		}
+	}
+
+	fmt.Println("ethermintMsgs after pending: ", ethermintMsgs)
+
 	// Generate tx to be used to simulate (signature isn't needed)
 	var stdSig authtypes.StdSignature
-	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{stdSig}, "")
+	stdSigs := []authtypes.StdSignature{stdSig}
+	fmt.Println("stdSigs: ", stdSigs)
+	tx := authtypes.NewStdTx(ethermintMsgs, authtypes.StdFee{}, stdSigs, "")
+
+	fmt.Println()
 
 	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
