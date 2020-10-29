@@ -16,19 +16,10 @@ import (
 	"github.com/cosmos/ethermint/x/evm/types"
 )
 
-type msgServer struct {
-	Keeper
-}
+var _ types.MsgServer = Keeper{}
 
-// NewMsgServerImpl returns an implementation of the evm MsgServer interface
-// for the provided Keeper.
-func NewMsgServerImpl(keeper Keeper) types.MsgServer {
-	return &msgServer{Keeper: keeper}
-}
-
-var _ types.MsgServer = msgServer{}
-
-func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (*types.MsgEthereumTxResponse, error) {
+// EthereumTx implements the Msg/EthereumTx gRPC method.
+func (k Keeper) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (*types.MsgEthereumTxResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// parse the chainID from a string to a base-10 integer
