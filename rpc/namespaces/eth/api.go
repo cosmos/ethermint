@@ -729,20 +729,24 @@ func (api *PublicEthereumAPI) doCall(
 	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
+		fmt.Println("failed to encode")
 		return nil, err
 	}
 
 	// Transaction simulation through query
 	res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
+		fmt.Println("failed to query")
 		return nil, err
 	}
 
 	var simResponse sdk.SimulationResponse
 	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+		fmt.Println("failed to simulate")
 		return nil, err
 	}
 
+	fmt.Println(simResponse)
 	return &simResponse, nil
 }
 
