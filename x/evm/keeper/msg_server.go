@@ -50,8 +50,8 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 
 	labels := []metrics.Label{telemetry.NewLabel("operation", "create")}
 
-	if msg.Data.Recipient != "" {
-		addr := ethcmn.HexToAddress(msg.Data.Recipient)
+	if msg.Data.Recipient != nil {
+		addr := ethcmn.HexToAddress(msg.Data.Recipient.Address)
 		recipient = &addr
 		labels = []metrics.Label{telemetry.NewLabel("operation", "call")}
 	}
@@ -124,11 +124,11 @@ func (k msgServer) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (
 		),
 	})
 
-	if msg.Data.Recipient != "" {
+	if msg.Data.Recipient != nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeEthereumTx,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient),
+				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.Address),
 			),
 		)
 	}

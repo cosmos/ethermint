@@ -7,7 +7,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -62,7 +62,7 @@ func newMsgEthereumTx(
 
 	txData := &TxData{
 		AccountNonce: nonce,
-		Recipient:    toStr,
+		Recipient:    &Recipient{Address: toStr},
 		Payload:      payload,
 		GasLimit:     gasLimit,
 		Amount:       []byte{},
@@ -93,17 +93,17 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 func (msg MsgEthereumTx) ValidateBasic() error {
 	gasPrice := new(big.Int).SetBytes(msg.Data.Price)
 	if gasPrice.Sign() == 0 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
+		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "gas price cannot be 0")
 	}
 
 	if gasPrice.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be negative %s", gasPrice)
+		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "gas price cannot be negative %s", gasPrice)
 	}
 
 	// Amount can be 0
 	amount := new(big.Int).SetBytes(msg.Data.Amount)
 	if amount.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", amount)
+		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "amount cannot be negative %s", amount)
 	}
 
 	return nil
@@ -112,7 +112,11 @@ func (msg MsgEthereumTx) ValidateBasic() error {
 // To returns the recipient address of the transaction. It returns nil if the
 // transaction is a contract creation.
 func (msg MsgEthereumTx) To() *ethcmn.Address {
-	recipient := ethcmn.HexToAddress(msg.Data.Recipient)
+	if msg.Data.Recipient == nil {
+		return nil
+	}
+
+	recipient := ethcmn.HexToAddress(msg.Data.Recipient.Address)
 	return &recipient
 }
 
@@ -145,13 +149,19 @@ func (msg MsgEthereumTx) GetSignBytes() []byte {
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
 func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
+	var recipient *ethcmn.Address
+	if msg.Data.Recipient != nil {
+		to := ethcmn.HexToAddress(msg.Data.Recipient.Address)
+		recipient = &to
+	}
+
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
 		new(big.Int).SetBytes(msg.Data.Price),
 		msg.Data.GasLimit,
-		ethcmn.HexToAddress(msg.Data.Recipient),
+		recipient,
 		new(big.Int).SetBytes(msg.Data.Amount),
-		new(big.Int).SetBytes(msg.Data.Payload),
+		msg.Data.Payload,
 		chainID,
 		uint(0),
 		uint(0),

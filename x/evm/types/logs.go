@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -32,11 +31,14 @@ func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) Transa
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (tx TransactionLogs) Validate() error {
-	if bytes.Equal(ethcmn.Hex2Bytes(tx.Hash), ethcmn.Hash{}.Bytes()) {
+	if IsEmptyHash(tx.Hash) {
 		return fmt.Errorf("hash cannot be the empty %s", tx.Hash)
 	}
 
 	for i, log := range tx.Logs {
+		if log == nil {
+			return fmt.Errorf("log %d cannot be nil", i)
+		}
 		if err := log.Validate(); err != nil {
 			return fmt.Errorf("invalid log %d: %w", i, err)
 		}

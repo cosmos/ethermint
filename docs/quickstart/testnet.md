@@ -100,10 +100,10 @@ The ports for each node are found in this table:
 
 | Node ID          | P2P Port | Tendermint RPC Port | REST/ Ethereum JSON-RPC Port | WebSocket Port |
 |------------------|----------|---------------------|------------------------------|----------------|
-| `ethermintnode0` | `26656`  | `26657`             | `8545`                       | `8546`         |
-| `ethermintnode1` | `26659`  | `26660`             | `8547`                       | `8548`         |
-| `ethermintnode2` | `26661`  | `26662`             | `8549`                       | `8550`         |
-| `ethermintnode3` | `26663`  | `26664`             | `8551`                       | `8552`         |
+| `ethermintdnode0` | `26656`  | `26657`             | `8545`                       | `8546`         |
+| `ethermintdnode1` | `26659`  | `26660`             | `8547`                       | `8548`         |
+| `ethermintdnode2` | `26661`  | `26662`             | `8549`                       | `8550`         |
+| `ethermintdnode3` | `26663`  | `26664`             | `8551`                       | `8552`         |
 
 To update the binary, just rebuild it and restart the nodes
 
@@ -141,42 +141,36 @@ calling the `ethermintd testnet` command. This outputs a handful of files in the
 tree -L 3 build/
 
 build/
-├── ethermintd
-├── ethermintd
 ├── gentxs
 │   ├── node0.json
 │   ├── node1.json
 │   ├── node2.json
 │   └── node3.json
 ├── node0
-│   ├── ethermintd
-│   │   ├── key_seed.json
-│   │   └── keyring-test-cosmos
 │   └── ethermintd
+│       ├── key_seed.json
+│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 ├── node1
-│   ├── ethermintd
-│   │   ├── key_seed.json
-│   │   └── keyring-test-cosmos
 │   └── ethermintd
+│       ├── key_seed.json
+│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 ├── node2
-│   ├── ethermintd
-│   │   ├── key_seed.json
-│   │   └── keyring-test-cosmos
 │   └── ethermintd
+│       ├── key_seed.json
+│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 └── node3
-    ├── ethermintd
-    │   ├── key_seed.json
-    │   └── keyring-test-cosmos
     └── ethermintd
+        ├── key_seed.json
+        ├── keyring-test-cosmos
         ├── config
         ├── data
         └── ethermintd.log

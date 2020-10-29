@@ -1,12 +1,16 @@
 package types
 
-import "math/big"
+import (
+	"math/big"
+
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+)
 
 // MarshalBigInt marshals big int into text string for consistent encoding
 func MarshalBigInt(i *big.Int) (string, error) {
 	bz, err := i.MarshalText()
 	if err != nil {
-		return "", err
+		return "", sdkerrors.Wrap(ErrMarshalBigInt, err.Error())
 	}
 	return string(bz), nil
 }
@@ -16,7 +20,7 @@ func UnmarshalBigInt(s string) (*big.Int, error) {
 	ret := new(big.Int)
 	err := ret.UnmarshalText([]byte(s))
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrapf(ErrUnmarshalBigInt, "%s: %s", err.Error(), s)
 	}
 	return ret, nil
 }

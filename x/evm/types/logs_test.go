@@ -52,7 +52,7 @@ func TestTransactionLogsValidate(t *testing.T) {
 			"invalid log",
 			TransactionLogs{
 				Hash: ethcmn.BytesToHash([]byte("tx_hash")).String(),
-				Logs: []*Log{nil},
+				Logs: []*Log{{}},
 			},
 			false,
 		},

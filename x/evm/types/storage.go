@@ -34,7 +34,7 @@ func (s Storage) Validate() error {
 func (s Storage) String() string {
 	var str string
 	for _, state := range s {
-		str += fmt.Sprintf("%s\n", state)
+		str += fmt.Sprintf("%s\n", state.String())
 	}
 
 	return str

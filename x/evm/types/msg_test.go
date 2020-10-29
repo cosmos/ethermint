@@ -31,7 +31,7 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, msg.Data.Recipient, addr.String())
+	require.Equal(t, msg.Data.Recipient.Address, addr.String())
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())
@@ -41,8 +41,8 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg = NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Nil(t, msg.Data.Recipient)
-	require.Nil(t, msg.To())
+	require.Empty(t, msg.Data.Recipient)
+	require.Equal(t, ethcmn.Address{}.String(), msg.To().String())
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {
@@ -61,10 +61,11 @@ func TestMsgEthereumTxValidation(t *testing.T) {
 	for i, tc := range testCases {
 		msg := NewMsgEthereumTx(0, nil, tc.amount, 0, tc.gasPrice, nil)
 
+		err := msg.ValidateBasic()
 		if tc.expectPass {
-			require.Nil(t, msg.ValidateBasic(), "valid test %d failed: %s", i, tc.msg)
+			require.NoError(t, err, "valid test %d failed: %s", i, tc.msg)
 		} else {
-			require.NotNil(t, msg.ValidateBasic(), "invalid test %d passed: %s", i, tc.msg)
+			require.Error(t, err, "invalid test %d passed: %s", i, tc.msg)
 		}
 	}
 }
