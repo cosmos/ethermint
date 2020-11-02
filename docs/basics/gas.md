@@ -19,7 +19,7 @@ In the Cosmos SDK, gas is tracked in the `main gas meter` and the `block gas met
 The `main gas meter` keeps track of the gas consumed during executions that lead to state transitions.
 The `block gas meter` keeps track of the gas consumed in a block and enforces that the gas does not go over a predefined limit. 
 
-More information regarding gas in Cosmos SDK can be found [here](https://docs.cosmos.network/master/basics/gas-fees.html)
+More information regarding gas in Cosmos SDK can be found [here](https://docs.cosmos.network/master/basics/gas-fees.html).
 
 ## Matching EVM Gas consumption
 
