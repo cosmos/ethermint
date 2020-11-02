@@ -10,18 +10,17 @@ rm -rf $PWD/.ethermint*
 pkill -f "ethermint*"
 
 type "ethermintd" 2> /dev/null || make build-ethermint
-type "ethermintcli" 2> /dev/null || make build-ethermint
 
-$PWD/build/ethermintcli config keyring-backend test
+$PWD/build/ethermintd config keyring-backend test
 
 # Set up config for CLI
-$PWD/build/ethermintcli config chain-id $CHAINID
-$PWD/build/ethermintcli config output json
-$PWD/build/ethermintcli config indent true
-$PWD/build/ethermintcli config trust-node true
+$PWD/build/ethermintd config chain-id $CHAINID
+$PWD/build/ethermintd config output json
+$PWD/build/ethermintd config indent true
+$PWD/build/ethermintd config trust-node true
 
 # if $KEY exists it should be deleted
-$PWD/build/ethermintcli keys add $KEY
+$PWD/build/ethermintd keys add $KEY
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 $PWD/build/ethermintd init $MONIKER --chain-id $CHAINID
@@ -36,7 +35,7 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mi
 # cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-$PWD/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintcli keys show "$KEY$i" -a)" 100000000000000000000aphoton
+$PWD/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintd keys show "$KEY$i" -a)" 100000000000000000000aphoton
 
 # Sign genesis transaction
 $PWD/build/ethermintd gentx --name $KEY --amount=1000000000000000000aphoton --keyring-backend test
@@ -53,7 +52,7 @@ $PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --trace > ethermintd.
 sleep 1
 
 # Start the rest server with unlocked faucet key in background and log to file
-$PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
+$PWD/build/ethermintd rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintd.log &
 
 solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter
 mv $PWD/tests-solidity/suites/basic/counter/*.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi
@@ -65,7 +64,7 @@ echo $ACCT
 
 curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$ACCT'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-PRIVKEY="$("$PWD"/build/ethermintcli keys unsafe-export-eth-key $KEY)"
+PRIVKEY="$("$PWD"/build/ethermintd keys unsafe-export-eth-key $KEY)"
 
 echo $PRIVKEY
 
