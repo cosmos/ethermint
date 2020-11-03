@@ -12,11 +12,11 @@ Ethermint will make queries which will account for the unconfirmed transactions 
 
 ## RPC Calls on Pending Transactions
 
-- (eth_getBalance)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getbalance]
-- (eth_getTransactionCount)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactioncount]
-- (eth_getBlockTransactionCountByNumber)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblocktransactioncountbynumber]
-- (eth_getBlockByNumber)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblockbynumber]
-- (eth_getTransactionByHash)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactionbyhash]
-- eth_getTransactionByBlockNumberAndIndex
-- (eth_sendTransaction)[https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_sendtransaction]
+- [`eth_getBalance`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getbalance)
+- [`eth_getTransactionCount`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactioncount)
+- [`eth_getBlockTransactionCountByNumber`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblocktransactioncountbynumber)
+- [`eth_getBlockByNumber`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblockbynumber)
+- [`eth_getTransactionByHash`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactionbyhash)
+- `eth_getTransactionByBlockNumberAndIndex`
+- [`eth_sendTransaction`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_sendtransaction)
 
