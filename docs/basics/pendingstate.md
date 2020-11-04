@@ -4,7 +4,11 @@ order: 6
 
 # Pending State
 
-In Ethereum, pending blocks are generated as they are queued for production by miners. These pending blocks include pending transactions that are picked out by miners, based on the highest reward paid in gas. Ethermint is designed quite differently on this front as there is no "pending state" and blocks are produced by block producers, who include transactions into blocks in a first-in-first-out (FIFO) fashion. Transactions cannot be cherry picked out of the queue of confirmed transactions. For this reason, Etheremint does not require a pending state mechanism. However, this causes a few hiccups in terms of the queries that can be made to pending state.
+## Ethermint vs Ethereum
+
+In Ethereum, pending blocks are generated as they are queued for production by miners. These pending blocks include pending transactions that are picked out by miners, based on the highest reward paid in gas. This mechanism exists as block finality is not possible on the Ethereum network. Blocks are committed with probablistic finality, which means that transactions and blocks become less likely to become reverted as more time (and blocks) passes.
+
+Ethermint is designed quite differently on this front as there is no concept of a "pending state" and blocks are produced by block producers, who include transactions into blocks in a first-in-first-out (FIFO) fashion. Transactions cannot be cherry picked out of the queue of confirmed transactions. All of this can be achieved because Ethermint (using Cosmos-SDK) offers instant finality with its PoS based consensus algorithm. For this reason, Etheremint does not require a pending state mechanism. However, this causes a few hiccups in terms of the queries that can be made to pending state.
 
 ## Pending State Queries
 
