@@ -27,9 +27,17 @@ As Ethermint is intended to simulate the EVM, gas consumption must be equitable 
 
 <!-- need someone to read over -->
 
-## Gas refunds
+## Gas Refunds
 
-<!-- TODO: -->
+In Ethereum, gas can be specified prior to execution and the remaining gas will be refunded back to the user if any gas is left over - should fail with out of gas if not enough gas was provided. In Ethermint, the concept of gas refunds does not exist and the fees paid is not refunded in part back to the user. The fees exacted on a transaction will be collected by the validator and no refunds are issued. Thus, it is extremely important to use the correct gas. 
+
+To prevent overspending on fees, providing the `--gas-adjustment` flag for a cosmos transactions will determine the fees automatically. Also the `eth_estimateGas` rpc call can be used to manually get the correct gas costs for a transaction.
+
+## 0 Fee Transactions
+
+In Ethermint, it is possible to send transactions with 0 fees. The fees are determined by the validator of the network, and each validator can specify a different value for their fees. 
+
+EVM transactions cannot have 0 fees as gas is required inherently. Cosmos-SDK related transactions, such as staking, would be transactions that are eligible for 0 fee execution, given that the validator has specified 0 fees.
 
 ## AnteHandler
 
