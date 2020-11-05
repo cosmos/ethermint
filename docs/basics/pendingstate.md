@@ -12,7 +12,7 @@ Ethermint is designed quite differently on this front as there is no concept of 
 
 ## Pending State Queries
 
-Ethermint will make queries which will account for the unconfirmed transactions present in a node's transaction mempool. The pending state query made will be subjective and the query will be made on that node's mempool. Thus, the pending state will not be the same for the same query to two different nodes. 
+Ethermint will make queries which will account for any unconfirmed transactions present in a node's transaction mempool. A pending state query made will be subjective and the query will be made on the target node's mempool. Thus, the pending state will not be the same for the same query to two different nodes.
 
 ## RPC Calls on Pending Transactions
 
