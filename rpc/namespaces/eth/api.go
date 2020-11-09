@@ -30,7 +30,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/grpc/simulate"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -214,7 +213,7 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	return addresses, nil
 }
 
-// rpctypes.BlockNumber returns the current block number.
+// BlockNumber returns the current block number.
 func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	api.logger.Debug("eth_blockNumber")
 	return api.backend.BlockNumber()
@@ -308,12 +307,12 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 	return &n
 }
 
-// GetUncleCountByBlockHash returns the number of uncles in the block idenfied by hash. Always zero.
+// GetUncleCountByBlockHash returns the number of uncles in the block identified by hash. Always zero.
 func (api *PublicEthereumAPI) GetUncleCountByBlockHash(_ common.Hash) hexutil.Uint {
 	return 0
 }
 
-// GetUncleCountByBlockNumber returns the number of uncles in the block idenfied by number. Always zero.
+// GetUncleCountByBlockNumber returns the number of uncles in the block identified by number. Always zero.
 func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber) hexutil.Uint {
 	return 0
 }
@@ -456,7 +455,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, globalGasCap *big.Int,
-) (*simulate.SimulateResponse, error) {
+) (*txtypes.SimulateResponse, error) {
 	// Set sender address or use a default if none specified
 	var addr common.Address
 
@@ -553,7 +552,7 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, errors.New("cannot cast to tx")
 	}
 
-	req := &simulate.SimulateRequest{
+	req := &txtypes.SimulateRequest{
 		Tx: tx,
 	}
 

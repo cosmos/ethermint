@@ -83,8 +83,11 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 	return conf, nil
 }
 
-// add server commands
-func AddCommands(rootCmd *cobra.Command, defaultNodeHome string, appCreator AppCreator, appExport types.AppExporter) {
+// AddCommands adds the server commands
+func AddCommands(
+	rootCmd *cobra.Command, defaultNodeHome string,
+	appCreator AppCreator, appExport types.AppExporter, addStartFlags types.ModuleInitFlags,
+) {
 	tendermintCmd := &cobra.Command{
 		Use:   "tendermint",
 		Short: "Tendermint subcommands",
@@ -97,8 +100,11 @@ func AddCommands(rootCmd *cobra.Command, defaultNodeHome string, appCreator AppC
 		sdkserver.VersionCmd(),
 	)
 
+	startCmd := StartCmd(appCreator, defaultNodeHome)
+	addStartFlags(startCmd)
+
 	rootCmd.AddCommand(
-		StartCmd(appCreator, defaultNodeHome),
+		startCmd,
 		sdkserver.UnsafeResetAllCmd(),
 		flags.LineBreak,
 		tendermintCmd,

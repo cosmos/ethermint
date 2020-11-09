@@ -2,7 +2,7 @@ package app
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
@@ -34,7 +34,9 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 	height := app.LastBlockHeight() + 1
 	if forZeroHeight {
 		height = 0
-		app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs)
+		if err := app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs); err != nil {
+			return servertypes.ExportedApp{}, err
+		}
 	}
 
 	genState := app.mm.ExportGenesis(ctx, app.appCodec)
@@ -43,7 +45,11 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 		return servertypes.ExportedApp{}, err
 	}
 
-	validators := staking.WriteValidators(ctx, app.StakingKeeper)
+	validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+
 	return servertypes.ExportedApp{
 		AppState:        appState,
 		Validators:      validators,
@@ -55,7 +61,7 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 // prepare for fresh start at zero height
 // NOTE zero height genesis is a temporary feature which will be deprecated
 //      in favour of export at a block height
-func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
+func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) error {
 	applyAllowedAddrs := false
 
 	// check if there is a allowed address list
@@ -68,7 +74,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 	for _, addr := range jailAllowedAddrs {
 		_, err := sdk.ValAddressFromBech32(addr)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		allowedAddrsMap[addr] = true
 	}
@@ -89,12 +95,12 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 	for _, delegation := range dels {
 		valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		_, _ = app.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	}
@@ -125,11 +131,11 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 	for _, del := range dels {
 		valAddr, err := sdk.ValAddressFromBech32(del.ValidatorAddress)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		delAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		app.DistrKeeper.Hooks().BeforeDelegationCreated(ctx, delAddr, valAddr)
 		app.DistrKeeper.Hooks().AfterDelegationModified(ctx, delAddr, valAddr)
@@ -168,7 +174,7 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 		addr := sdk.ValAddress(iter.Key()[1:])
 		validator, found := app.StakingKeeper.GetValidator(ctx, addr)
 		if !found {
-			panic("expected validator, not found")
+			return fmt.Errorf("expected validator %s not found", addr)
 		}
 
 		validator.UnbondingHeight = 0
@@ -182,7 +188,9 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 
 	iter.Close()
 
-	_ = app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	if _, err := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx); err != nil {
+		return err
+	}
 
 	/* Handle slashing state. */
 
@@ -195,4 +203,5 @@ func (app *EthermintApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 			return false
 		},
 	)
+	return nil
 }

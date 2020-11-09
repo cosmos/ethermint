@@ -7,7 +7,7 @@ import (
 	"github.com/tendermint/tendermint/proto/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/grpc/simulate"
+	"github.com/cosmos/cosmos-sdk/types/tx"
 
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
@@ -16,15 +16,15 @@ import (
 //  - Transaction simulation
 //  - EVM module queries
 type QueryClient struct {
-	simulate.SimulateServiceClient
+	tx.ServiceClient
 	evmtypes.QueryClient
 }
 
 // NewQueryClient creates a new gRPC query client
 func NewQueryClient(clientCtx client.Context) *QueryClient { // nolint: interfacer
 	return &QueryClient{
-		SimulateServiceClient: simulate.NewSimulateServiceClient(clientCtx),
-		QueryClient:           evmtypes.NewQueryClient(clientCtx),
+		ServiceClient: tx.NewServiceClient(clientCtx),
+		QueryClient:   evmtypes.NewQueryClient(clientCtx),
 	}
 }
 
