@@ -66,7 +66,9 @@ will call this method for each necessary module.
 
 ## RLP
 
-<!-- TODO: -->
+RLP, or recursive length prefix, is an encoding/decoding algorithm that serializes a message and allows for quick reconstruction of encoded data. Ethermint uses RLP to encode/decode Ethereum messages within the RPC module to conform messages to the proper Ethereum format. This allows messages to be encoded and decoded in the exact format as Ethereum's.
+
+<!-- read over. -->
 
 ## Next {hide}
 
