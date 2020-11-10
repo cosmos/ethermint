@@ -68,6 +68,8 @@ will call this method for each necessary module.
 
 RLP, or recursive length prefix, is an encoding/decoding algorithm that serializes a message and allows for quick reconstruction of encoded data. Ethermint uses RLP to encode/decode Ethereum messages within the RPC module to conform messages to the proper Ethereum format. This allows messages to be encoded and decoded in the exact format as Ethereum's.
 
+In the `x/evm/msg` package, the `EncodeRLP` and `DecodeRLP` methods implements the rlp.Encoder and rlp.Decoder interfaces respectively. The RLP encode method is used to sign bytes and transactions in `RLPSignBytes` and `Sign`.
+
 <!-- read over. -->
 
 ## Next {hide}
