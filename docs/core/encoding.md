@@ -39,4 +39,4 @@ to sign bytes and transactions in `RLPSignBytes` and `Sign`.
 
 ## Next {hide}
 
-Learn how to deploy a Solidity smart contract on Ethermint using [Truffle](./../guides/truffle.md) {hide}
+Learn how [pending state](./pending_state.md) is handled on Ethermint. {hide}
