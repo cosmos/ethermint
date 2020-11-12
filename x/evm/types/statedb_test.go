@@ -113,8 +113,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 			}
 		} else {
 			// get logs bloom from the log
-			bloomInt := ethtypes.LogsBloom(logs)
-			bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+			bloomBytes := ethtypes.LogsBloom(logs)
+			bloomFilter := ethtypes.BytesToBloom(bloomBytes)
 			suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress), tc.name)
 			suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))), tc.name)
 		}

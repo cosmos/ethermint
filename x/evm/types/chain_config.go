@@ -40,7 +40,8 @@ type ChainConfig struct {
 	IstanbulBlock       sdk.Int `json:"istanbul_block" yaml:"istanbul_block"`             // Istanbul switch block (< 0 no fork, 0 = already on istanbul)
 	MuirGlacierBlock    sdk.Int `json:"muir_glacier_block" yaml:"muir_glacier_block"`     // Eip-2384 (bomb delay) switch block (< 0 no fork, 0 = already activated)
 
-	EWASMBlock sdk.Int `json:"ewasm_block" yaml:"ewasm_block"` // EWASM switch block (< 0 no fork, 0 = already activated)
+	YoloV2Block sdk.Int `json:"yoloV2_block" yaml:"yoloV2_block"` // YOLO v1: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
+	EWASMBlock  sdk.Int `json:"ewasm_block" yaml:"ewasm_block"`   // EWASM switch block (< 0 no fork, 0 = already activated)
 }
 
 // EthereumConfig returns an Ethereum ChainConfig for EVM state transitions.
@@ -60,6 +61,7 @@ func (cc ChainConfig) EthereumConfig(chainID *big.Int) *params.ChainConfig {
 		PetersburgBlock:     getBlockValue(cc.PetersburgBlock),
 		IstanbulBlock:       getBlockValue(cc.IstanbulBlock),
 		MuirGlacierBlock:    getBlockValue(cc.MuirGlacierBlock),
+		YoloV2Block:         getBlockValue(cc.YoloV2Block),
 		EWASMBlock:          getBlockValue(cc.EWASMBlock),
 	}
 }
@@ -85,6 +87,7 @@ func DefaultChainConfig() ChainConfig {
 		PetersburgBlock:     sdk.ZeroInt(),
 		IstanbulBlock:       sdk.NewInt(-1),
 		MuirGlacierBlock:    sdk.NewInt(-1),
+		YoloV2Block:         sdk.NewInt(-1),
 		EWASMBlock:          sdk.NewInt(-1),
 	}
 }
@@ -132,6 +135,9 @@ func (cc ChainConfig) Validate() error {
 	}
 	if err := validateBlock(cc.MuirGlacierBlock); err != nil {
 		return sdkerrors.Wrap(err, "muirGlacierBlock")
+	}
+	if err := validateBlock(cc.YoloV2Block); err != nil {
+		return sdkerrors.Wrap(err, "yoloV2Block")
 	}
 	if err := validateBlock(cc.EWASMBlock); err != nil {
 		return sdkerrors.Wrap(err, "eWASMBlock")
