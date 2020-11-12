@@ -21,7 +21,7 @@ Ecosystem through the Inter Blockchain Communication Protocol (IBC).
 
 ### Features
 
-Here’s a glance at some of the key features a of Ethermint:
+Here’s a glance at some of the key features of Ethermint:
 
 * Web3 compatibility
 * High throughput via [Tendermint Core](https://github.com/tendermint/tendermint)
@@ -29,7 +29,7 @@ Here’s a glance at some of the key features a of Ethermint:
 * Fast transaction finality
 * [Hard Spoon](./../basics/hard_spoon.md)
 
-Ethermint enables these key features through:
+Ethermint enables these key features by:
 
 * Implementing Tendermint Core's Application Blockchain Interface ([ABCI](https://docs.tendermint.com/master/spec/abci/)) to manage the blockchain
 * Leveraging [modules](https://docs.cosmos.network/master/building-modules/intro.html) and other mechanisms implemented by the [Cosmos SDK](https://docs.cosmos.network/).
