@@ -84,7 +84,10 @@ by the validators of the network, and each validator can specify a different val
 This potentially allows end users to submit 0 fee transactions if there is at least one single
 validator that is willing to include transactions with `0` gas price in their blocks proposed.
 
-For this same reason, in Ethermint it is possible to send transactions with `0` fees for transaction types other than the ones defined by the `evm` module. EVM module transactions cannot have `0` fees as gas is required inherently by Ethereum. This check is done by the evm transactions `ValidateBasic` function as well as on the custom `AnteHandler` defined by Ethermint.
+For this same reason, in Ethermint it is possible to send transactions with `0` fees for transaction
+types other than the ones defined by the `evm` module. EVM module transactions cannot have `0` fees
+as gas is required inherently by Ethereum. This check is done by the evm transactions
+`ValidateBasic` function as well as on the custom `AnteHandler` defined by Ethermint.
 
 ## Next {hide}
 
