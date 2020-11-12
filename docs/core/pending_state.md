@@ -37,12 +37,12 @@ different nodes.
 ### RPC Calls on Pending Transactions
 
 - [`eth_getBalance`](./../basics/json_rpc.md#eth_getbalance)
-- [`eth_getTransactionCount`](./../basics/json_rpc.md#eth_gettransactioncount)
-- [`eth_getBlockTransactionCountByNumber`](./../basics/json_rpc.md#eth_getblocktransactioncountbynumber)
-- [`eth_getBlockByNumber`](./../basics/json_rpc.md#eth_getblockbynumber)
-- [`eth_getTransactionByHash`](./../basics/json_rpc.md#eth_gettransactionbyhash)
-- `eth_getTransactionByBlockNumberAndIndex`
-- [`eth_sendTransaction`](./../basics/json_rpc.md#eth_sendtransaction)
+- [`eth_getTransactionCount`](./../basics/json_rpc.md#eth-gettransactioncount)
+- [`eth_getBlockTransactionCountByNumber`](./../basics/json_rpc.md#eth-getblocktransactioncountbynumber)
+- [`eth_getBlockByNumber`](./../basics/json_rpc.md#eth-getblockbynumber)
+- [`eth_getTransactionByHash`](./../basics/json_rpc.md#eth-gettransactionbyhash)
+- [`eth_getTransactionByBlockNumberAndIndex`](./../basics/json_rpc.html#eth-gettransactionbyblockhashandindex)
+- [`eth_sendTransaction`](./../basics/json_rpc.md#eth-sendtransaction)
 
 ## Next {hide}
 

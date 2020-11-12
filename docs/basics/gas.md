@@ -36,8 +36,8 @@ computational power to complete and as a way to deter bad-acting users from spam
 
 In the Cosmos SDK, gas is tracked in the main `GasMeter` and the `BlockGasMeter`:
 
-- `GasMeter`: keeps track of the gas consumed during executions that lead to state transitions. It is reset on every m
-- `BlockGasMeter` keeps track of the gas consumed in a block and enforces that the gas does not go over a predefined limit. This limit is defined in the Tendermint consensus parameters and can be changed via governance parameter change proposals.
+- `GasMeter`: keeps track of the gas consumed during executions that lead to state transitions. It is reset on every transaction  execution.
+- `BlockGasMeter`: keeps track of the gas consumed in a block and enforces that the gas does not go over a predefined limit. This limit is defined in the Tendermint consensus parameters and can be changed via governance parameter change proposals.
 
 More information regarding gas in Cosmos SDK can be found [here](https://docs.cosmos.network/master/basics/gas-fees.html).
 
