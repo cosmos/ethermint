@@ -29,10 +29,10 @@ different nodes.
 
 ## RPC Calls on Pending Transactions
 
-- [`eth_getBalance`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getbalance)
-- [`eth_getTransactionCount`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactioncount)
-- [`eth_getBlockTransactionCountByNumber`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblocktransactioncountbynumber)
-- [`eth_getBlockByNumber`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_getblockbynumber)
-- [`eth_getTransactionByHash`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_gettransactionbyhash)
+- [`eth_getBalance`](./../basics/json_rpc.md#eth_getbalance)
+- [`eth_getTransactionCount`](./../basics/json_rpc.md#eth_gettransactioncount)
+- [`eth_getBlockTransactionCountByNumber`](./../basics/json_rpc.md#eth_getblocktransactioncountbynumber)
+- [`eth_getBlockByNumber`](./../basics/json_rpc.md#eth_getblockbynumber)
+- [`eth_getTransactionByHash`](./../basics/json_rpc.md#eth_gettransactionbyhash)
 - `eth_getTransactionByBlockNumberAndIndex`
-- [`eth_sendTransaction`](https://github.com/cosmos/ethermint/blob/development/docs/basics/json_rpc.md#eth_sendtransaction)
+- [`eth_sendTransaction`](./../basics/json_rpc.md#eth_sendtransaction)
