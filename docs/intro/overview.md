@@ -4,6 +4,8 @@ order: 1
 
 # High-level Overview
 
+Learn about Ethermint and its primary features. {synopsis}
+
 ## What is Ethermint
 
 Ethermint is a scalable, high-throughput Proof-of-Stake blockchain that is fully compatible and
@@ -40,4 +42,4 @@ software to seamlessly deploy smart contracts which interact with the rest of th
 
 ## Next {hide}
 
-Learn about Ethermint's [architecture](./architectures.md) {hide}
+Learn about Ethermint's [architecture](./architecture.md) {hide}
