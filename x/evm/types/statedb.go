@@ -243,6 +243,22 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 	csdb.refund -= gas
 }
 
+// AddAddressToAccessList is currently unimplemented
+func (csdb *CommitStateDB) AddAddressToAccessList(_ ethcmn.Address) {}
+
+// AddSlotToAccessList is currently unimplemented
+func (csdb *CommitStateDB) AddSlotToAccessList(_ ethcmn.Address, _ ethcmn.Hash) {}
+
+// AddressInAccessList is currently unimplemented
+func (csdb *CommitStateDB) AddressInAccessList(_ ethcmn.Address) bool {
+	return false
+}
+
+// SlotInAccessList is currently unimplemented
+func (csdb *CommitStateDB) SlotInAccessList(_ ethcmn.Address, _ ethcmn.Hash) (bool, bool) {
+	return false, false
+}
+
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
