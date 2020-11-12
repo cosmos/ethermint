@@ -17,7 +17,7 @@ Ethermint defines its own custom `Account` type that uses Ethereum's ECDSA secp2
 satisfies the [EIP84](https://github.com/ethereum/EIPs/issues/84) for full [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki) paths.
 The root HD path for Ethermint-based accounts is `m/44'/60'/0'/0`.
 
-+++ https://github.com/ChainSafe/ethermint/blob/v0.1.0/types/account.go#L31-L36
++++ https://github.com/cosmos/ethermint/blob/v0.1.0/types/account.go#L31-L36
 
 ## Addresses and Public Keys
 
@@ -73,7 +73,7 @@ curl -X GET "<NODE_IP>/auth/accounts/eth1f8rqrfwut7ngkxwth0gt99h0lxnxsp09ngvzwl"
 The Cosmos SDK Keyring output (i.e `ethermintcli keys`) only supports addresses and public keys in Bech32 format.
 :::
 
-To retrieve the Ethereum hex address using Web3, use the JSON-RPC `eth_accounts` endpoint:
+To retrieve the Ethereum hex address using Web3, use the JSON-RPC [`eth_accounts`](./json_rpc.md#eth-accounts) endpoint:
 
 ```bash
 # query against a local node
