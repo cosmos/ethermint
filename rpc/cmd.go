@@ -1,10 +1,11 @@
 package rpc
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/spf13/cobra"
 )
 
 // ServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and

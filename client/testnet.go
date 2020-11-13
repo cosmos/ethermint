@@ -10,8 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	tmconfig "github.com/tendermint/tendermint/config"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmos "github.com/tendermint/tendermint/libs/os"

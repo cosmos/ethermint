@@ -10,6 +10,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.39.1
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.21
+	github.com/fjl/gencodec v0.0.0-20191126094850-e283372f291f // indirect
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2

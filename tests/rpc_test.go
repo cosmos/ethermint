@@ -366,7 +366,8 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	param[0]["to"] = "0x0000000000000000000000000000000012341234"
 	param[0]["value"] = "0x16345785d8a0000"
 	param[0]["gasLimit"] = "0x5208"
-	param[0]["gasPrice"] = "0x55ae82600"
+	// param[0]["gasPrice"] = "0x55ae82600"
+	param[0]["gasPrice"] = "0x0"
 
 	rpcRes := call(t, "eth_sendTransaction", param)
 

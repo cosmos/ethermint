@@ -20,6 +20,7 @@ import (
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 	"github.com/cosmos/ethermint/crypto/hd"
 	"github.com/cosmos/ethermint/rpc/websockets"
+
 	"github.com/ethereum/go-ethereum/rpc"
 )
 

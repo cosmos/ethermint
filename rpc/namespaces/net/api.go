@@ -3,8 +3,9 @@ package net
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
 	ethermint "github.com/cosmos/ethermint/types"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
