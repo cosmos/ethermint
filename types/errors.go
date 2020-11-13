@@ -22,8 +22,8 @@ var (
 	ErrVMExecution = sdkerrors.Register(RootCodespace, 4, "error while executing evm transaction")
 
 	// ErrMarshalBigInt returns an error resulting from marshaling a big.Int from a string.
-	ErrMarshalBigInt = sdkerrors.Register(RootCodespace, 4, "cannot unmarshal big.Int from string")
+	ErrMarshalBigInt = sdkerrors.Register(RootCodespace, 5, "cannot unmarshal big.Int from string")
 
 	// ErrUnmarshalBigInt returns an error resulting from unmarshaling a big.Int from a string.
-	ErrUnmarshalBigInt = sdkerrors.Register(RootCodespace, 4, "cannot unmarshal big.Int from string")
+	ErrUnmarshalBigInt = sdkerrors.Register(RootCodespace, 6, "cannot unmarshal big.Int from string")
 )
