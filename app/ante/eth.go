@@ -114,7 +114,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		hasEnoughFees = true
 	}
 
-	// reject transaction if minimum gas price is not positive and the transaction does not
+	// reject transaction if minimum gas price is not zero and the transaction does not
 	// meet the minimum fee
 	if !ctx.MinGasPrices().IsZero() && !hasEnoughFees {
 		return ctx, sdkerrors.Wrap(
