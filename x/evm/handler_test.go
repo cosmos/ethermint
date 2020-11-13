@@ -20,7 +20,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/app"
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -43,7 +44,7 @@ func (suite *EvmTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 	suite.codec = codec.New()
@@ -54,14 +55,11 @@ func TestEvmTestSuite(t *testing.T) {
 }
 
 func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
-	privkey, err := crypto.GenerateKey()
+	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var (
-		tx      types.MsgEthereumTx
-		chainID *big.Int
-	)
+	var tx types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -75,9 +73,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 0, big.NewInt(10000), nil)
 
 				// parse context chain ID to big.Int
-				var ok bool
-				chainID, ok = new(big.Int).SetString(suite.ctx.ChainID(), 10)
-				suite.Require().True(ok)
+				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
+				suite.Require().NoError(err)
 
 				// sign transaction
 				err = tx.Sign(chainID, privkey.ToECDSA())
@@ -91,9 +88,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 0, big.NewInt(10000), nil)
 
 				// parse context chain ID to big.Int
-				var ok bool
-				chainID, ok = new(big.Int).SetString(suite.ctx.ChainID(), 10)
-				suite.Require().True(ok)
+				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
+				suite.Require().NoError(err)
 
 				// sign transaction
 				err = tx.Sign(chainID, privkey.ToECDSA())
@@ -125,7 +121,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	}
 
 	for _, tc := range testCases {
-		suite.Run("", func() {
+		suite.Run(tc.msg, func() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
@@ -223,7 +219,7 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
 
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
 
 	bytecode := common.FromHex("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
@@ -254,7 +250,7 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
 
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
 
 	// send contract deployment transaction with an event in the constructor
@@ -353,7 +349,7 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
 
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
 
 	bytecode := common.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
@@ -404,7 +400,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	gasLimit := uint64(21000)
 	gasPrice := big.NewInt(0x55ae82600)
 
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
 	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
 

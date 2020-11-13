@@ -11,6 +11,7 @@ Learn how to deploy a local testnet or connect to an existing public one {synops
 - [Install Ethermint](./installation.md) {prereq}
 - [Install Docker](https://docs.docker.com/engine/installation/)  {prereq}
 - [Install docker-compose](https://docs.docker.com/compose/install/)  {prereq}
+
 <!-- - [Install `jq`](https://stedolan.github.io/jq/download/) {prereq} -->
 
 ## Single-node, Local, Manual Testnet
@@ -22,7 +23,7 @@ This guide helps you create a single validator node that runs a network locally 
 ```bash
 $MONIKER=testing
 $KEY=mykey
-$CHAINID=8
+$CHAINID="ethermint-1"
 
 ethermintd init $MONIKER --chain-id=$CHAINID
 ```

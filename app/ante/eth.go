@@ -10,7 +10,7 @@ import (
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -141,13 +141,13 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	chainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return ctx, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return ctx, err
 	}
 
 	// validate sender/signature and cache the address
-	_, err = msgEthTx.VerifySig(chainID)
+	_, err = msgEthTx.VerifySig(chainIDEpoch)
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
 	}
@@ -253,7 +253,10 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	seq := acc.GetSequence()
-	if msgEthTx.Data.AccountNonce != seq {
+	// if multiple transactions are submitted in succession with increasing nonces,
+	// all will be rejected except the first, since the first needs to be included in a block
+	// before the sequence increments
+	if msgEthTx.Data.AccountNonce < seq {
 		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidSequence,
 			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,

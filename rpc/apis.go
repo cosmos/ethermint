@@ -1,11 +1,18 @@
-// Package rpc contains RPC handler methods and utilities to start
-// Ethermint's Web3-compatibly JSON-RPC server.
 package rpc
 
 import (
-	"github.com/cosmos/cosmos-sdk/client/context"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/rpc/backend"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
+	"github.com/cosmos/ethermint/rpc/namespaces/net"
+	"github.com/cosmos/ethermint/rpc/namespaces/personal"
+	"github.com/cosmos/ethermint/rpc/namespaces/web3"
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 )
 
 // RPC namespaces and API version
@@ -18,17 +25,17 @@ const (
 	apiVersion = "1.0"
 )
 
-// GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, keys []emintcrypto.PrivKeySecp256k1) []rpc.API {
-	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(cliCtx)
-	ethAPI := NewPublicEthAPI(cliCtx, backend, nonceLock, keys)
+// GetAPIs returns the list of all APIs from the Ethereum namespaces
+func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
+	nonceLock := new(rpctypes.AddrLocker)
+	backend := backend.New(clientCtx)
+	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
 
 	return []rpc.API{
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
-			Service:   NewPublicWeb3API(),
+			Service:   web3.NewAPI(),
 			Public:    true,
 		},
 		{
@@ -38,21 +45,21 @@ func GetRPCAPIs(cliCtx context.CLIContext, keys []emintcrypto.PrivKeySecp256k1) 
 			Public:    true,
 		},
 		{
-			Namespace: PersonalNamespace,
-			Version:   apiVersion,
-			Service:   NewPersonalEthAPI(cliCtx, ethAPI, nonceLock, keys),
-			Public:    false,
-		},
-		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicFilterAPI(cliCtx, backend),
+			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
+		},
+		{
+			Namespace: PersonalNamespace,
+			Version:   apiVersion,
+			Service:   personal.NewAPI(ethAPI),
+			Public:    false,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
-			Service:   NewPublicNetAPI(cliCtx),
+			Service:   net.NewAPI(clientCtx),
 			Public:    true,
 		},
 	}
