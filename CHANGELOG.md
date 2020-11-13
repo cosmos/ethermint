@@ -42,9 +42,18 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (crypto) [\#559](https://github.com/cosmos/ethermint/pull/559) Refactored crypto package in preparation for the SDK's Stargate release:
   * `crypto.PubKeySecp256k1` and `crypto.PrivKeySecp256k1` are now `ethsecp256k1.PubKey` and `ethsecp256k1.PrivKey`, respectively
   * Moved SDK `SigningAlgo` implementation for Ethermint's Secp256k1 key to `crypto/hd` package.
+* (rpc) [\#588](https://github.com/cosmos/ethermint/pull/588) The `rpc` package has been refactored to account for the separation of each
+corresponding Ethereum API namespace:
+  * `rpc/namespaces/eth`: `eth` namespace. Exposes the `PublicEthereumAPI` and the `PublicFilterAPI`.
+  * `rpc/namespaces/personal`: `personal` namespace. Exposes the `PrivateAccountAPI`.
+  * `rpc/namespaces/net`: `net` namespace. Exposes the `PublicNetAPI`.
+  * `rpc/namespaces/web3`: `web3` namespace. Exposes the `PublicWeb3API`.
+
+* (evm) [\#588](https://github.com/cosmos/ethermint/pull/588) The EVM transaction CLI has been removed in favor of the JSON-RPC.
 
 ### Bug Fixes
 
+* (evm) [\#583](https://github.com/cosmos/ethermint/pull/583) Fixes incorrect resetting of tx count and block bloom during `BeginBlock`, as well as gas consumption.
 * (crypto) [\#577](https://github.com/cosmos/ethermint/pull/577) Fix `BIP44HDPath` that did not prepend `m/` to the path. This now uses the `DefaultBaseDerivationPath` variable from go-ethereum to ensure addresses are consistent.
 
 ## [v0.2.1] - 2020-09-30
