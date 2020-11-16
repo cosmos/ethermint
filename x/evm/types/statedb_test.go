@@ -695,3 +695,21 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 		storage = types.Storage{}
 	}
 }
+
+func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
+	addr := ethcmn.Address([20]byte{77})
+	hash := ethcmn.Hash([32]byte{99})
+
+	suite.Require().False(suite.stateDB.AddressInAccessList(addr))
+
+	suite.stateDB.AddAddressToAccessList(addr)
+	suite.Require().True(suite.stateDB.AddressInAccessList(addr))
+	addrIn, slotIn := suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().False(slotIn)
+
+	suite.stateDB.AddSlotToAccessList(addr, hash)
+	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().True(slotIn)
+}
