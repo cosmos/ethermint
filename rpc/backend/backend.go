@@ -22,6 +22,7 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
+	GetPendingBlock(blockNum rpctypes.BlockNumber) (*int64, bool, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
@@ -60,13 +61,12 @@ func New(clientCtx clientcontext.CLIContext) *EthermintBackend {
 
 // BlockNumber returns the current block number.
 func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
-	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	blockNumber, err := b.latestBlockNumber()
 	if err != nil {
 		return hexutil.Uint64(0), err
 	}
 
-	return hexutil.Uint64(info.LastHeight), nil
+	return hexutil.Uint64(blockNumber), nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -256,4 +256,43 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // by the chain indexer.
 func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
 	return 4096, 0
+}
+
+// GetPendingBlock returns the blocknumber and pending
+// if -1, returns latest blocknumber and pending is set to true
+// if 0, returns latest blocknumber and pending is set to false
+// if not 0 or -1, returns blocknumber and pending is set to false
+func (b *EthermintBackend) GetPendingBlock(blockNum rpctypes.BlockNumber) (*int64, bool, error) {
+	var (
+		blockNumber int64
+		pending     bool
+		err         error
+	)
+
+	switch blockNum {
+	case rpctypes.LatestBlockNumber:
+		blockNumber, err = b.latestBlockNumber()
+	case rpctypes.PendingBlockNumber:
+		pending = true
+		blockNumber, err = b.latestBlockNumber()
+	default:
+		blockNumber = blockNum.Int64()
+	}
+
+	if err != nil {
+		return nil, pending, err
+	}
+
+	return &blockNumber, pending, nil
+}
+
+// latestBlockNumber gets the latest block height in int64 format.
+func (b *EthermintBackend) latestBlockNumber() (int64, error) {
+	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
+	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.LastHeight, nil
 }

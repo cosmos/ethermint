@@ -227,7 +227,7 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -251,17 +251,18 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 			return nil, err
 		}
 
-		for i := range pendingTxs {
-			if pendingTxs[i] == nil {
+		for _, tx := range pendingTxs {
+			if tx == nil {
 				continue
 			}
-			if pendingTxs[i].From == address {
+
+			if tx.From == address {
 				pendingBalance := big.NewInt(0)
-				pendingBalance = pendingBalance.Sub(val, pendingTxs[i].Value.ToInt())
+				pendingBalance = pendingBalance.Sub(val, tx.Value.ToInt())
 				val = pendingBalance
-			} else if *pendingTxs[i].To == address {
+			} else if *tx.To == address {
 				pendingBalance := big.NewInt(0)
-				pendingBalance = pendingBalance.Add(val, pendingTxs[i].Value.ToInt())
+				pendingBalance = pendingBalance.Add(val, tx.Value.ToInt())
 				val = pendingBalance
 			}
 		}
@@ -287,7 +288,7 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -309,22 +310,21 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 		return nil, err
 	}
 
-	pendingNonce := uint64(0)
 	if pending {
-		pendingtx, err := api.backend.PendingTransactions()
+		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil, err
 		}
 
-		for i := range pendingtx {
-			if pendingtx[i] == nil {
+		for _, tx := range pendingTxs {
+			if tx == nil {
 				continue
 			}
-			if pendingtx[i].From == address {
-				pendingNonce++
+
+			if tx.From == address {
+				nonce++
 			}
 		}
-		nonce += pendingNonce
 	}
 
 	n := hexutil.Uint64(nonce)
@@ -356,7 +356,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
 
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
 	if err != nil {
 		return nil
 	}
@@ -374,11 +374,12 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 	}
 
 	if pending {
-		pendingtx, err := api.backend.PendingTransactions()
+		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil
 		}
-		pendingTxCount := len(pendingtx) / 2
+
+		pendingTxCount := len(pendingTxs) / 2
 		totalTxCount += uint64(pendingTxCount)
 	}
 
@@ -535,12 +536,10 @@ func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int,
 ) (*sdk.SimulationResponse, error) {
 
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
-
-	fmt.Println("blockNumber: ", blockNumber)
-	fmt.Println("pending:", pending)
-
-	fmt.Println("args: ", args)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set height for historical queries
 	clientCtx := api.clientCtx
@@ -600,10 +599,6 @@ func (api *PublicEthereumAPI) doCall(
 	// Create new call message
 	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
 	ethermintMsgs = append(ethermintMsgs, msg)
 
 	fmt.Println("ethermintMsgs before pending: ", ethermintMsgs)
@@ -616,49 +611,32 @@ func (api *PublicEthereumAPI) doCall(
 			return nil, err
 		}
 		fmt.Println("pendingTxs: ", pendingTxs)
-		if len(pendingTxs) > 0 {
-			for _, pendingTx := range pendingTxs {
-				if pendingTx == nil {
-					fmt.Println("nil pending tx found!")
-					continue
-				}
-
-				pendingTo, err := sdk.AccAddressFromHex(strings.Replace(pendingTx.To.Hex(), "0x", "", -1))
-				if err != nil {
-					fmt.Println("broke at pendingTo!")
-					return nil, err
-				}
-
-				pendingFrom, err := sdk.AccAddressFromHex(strings.Replace(pendingTx.From.Hex(), "0x", "", -1))
-				if err != nil {
-					fmt.Println("broke at pendingFrom!")
-					return nil, err
-				}
-
-				pendingGasCleaned := strings.Replace(pendingTx.Gas.String(), "0x", "", -1)
-				pendingGas, err := strconv.ParseUint(pendingGasCleaned, 16, 64)
-				if err != nil {
-					fmt.Println("broke at pendingGas!")
-					return nil, err
-				}
-
-				pendingVal := pendingTx.Value.ToInt()
-				pendingGasPrice := new(big.Int).SetUint64(ethermint.DefaultGasPrice)
-				if args.GasPrice != nil {
-					pendingGasPrice = pendingTx.GasPrice.ToInt()
-				}
-
-				pendingData := pendingTx.Input
-
-				msg := evmtypes.NewMsgEthermint(0, &pendingTo, sdk.NewIntFromBigInt(pendingVal), pendingGas,
-					sdk.NewIntFromBigInt(pendingGasPrice), pendingData, pendingFrom)
-				if err := msg.ValidateBasic(); err != nil {
-					fmt.Println("broke at converting to msgEthermint!")
-					return nil, err
-				}
-
-				ethermintMsgs = append(ethermintMsgs, msg)
+		for _, pendingTx := range pendingTxs {
+			if pendingTx == nil {
+				fmt.Println("nil pending tx found!")
+				continue
 			}
+
+			pendingTo := sdk.AccAddress(pendingTx.To.Bytes())
+			pendingFrom := sdk.AccAddress(pendingTx.From.Bytes())
+			pendingGas, err := hexutil.DecodeUint64(pendingTx.Gas.String())
+			if err != nil {
+				fmt.Println("broke at pendingGas!")
+				return nil, err
+			}
+
+			pendingValue := pendingTx.Value.ToInt()
+			pendingGasPrice := new(big.Int).SetUint64(ethermint.DefaultGasPrice)
+			if args.GasPrice != nil {
+				pendingGasPrice = pendingTx.GasPrice.ToInt()
+			}
+
+			pendingData := pendingTx.Input
+
+			msg := evmtypes.NewMsgEthermint(0, &pendingTo, sdk.NewIntFromBigInt(pendingValue), pendingGas,
+				sdk.NewIntFromBigInt(pendingGasPrice), pendingData, pendingFrom)
+
+			ethermintMsgs = append(ethermintMsgs, msg)
 		}
 	}
 
@@ -668,7 +646,11 @@ func (api *PublicEthereumAPI) doCall(
 	var stdSig authtypes.StdSignature
 	stdSigs := []authtypes.StdSignature{stdSig}
 	fmt.Println("stdSigs: ", stdSigs)
+
 	tx := authtypes.NewStdTx(ethermintMsgs, authtypes.StdFee{}, stdSigs, "")
+	if err := tx.ValidateBasic(); err != nil {
+		return nil, err
+	}
 
 	fmt.Println()
 
@@ -722,7 +704,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map
 // GetBlockByNumber returns the block identified by number.
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -733,6 +715,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		if err != nil {
 			return nil, err
 		}
+
 		header := latestBlock.Block.Header
 		unconfirmedTxs, err := api.clientCtx.Client.UnconfirmedTxs(100)
 		if err != nil {
@@ -869,7 +852,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
-	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	blockNumber, pending, err := api.backend.GetPendingBlock(blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -880,18 +863,21 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 	}
 
 	if pending {
-		pendingtx, err := api.backend.PendingTransactions()
+		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil, err
 		}
+
 		index := hexutil.Uint64(0)
-		for i := range pendingtx {
-			if pendingtx[i] == nil {
+		for _, tx := range pendingTxs {
+			if tx == nil {
 				continue
 			}
+
 			if index.String() == idx.String() {
-				return pendingtx[i], nil
+				return tx, nil
 			}
+
 			index++
 		}
 		return nil, nil
@@ -1171,39 +1157,4 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
 	return &msg, nil
-}
-
-// getPendingBlock returns the blocknumber and pending
-// if -1, returns latest blocknumber and pending is set to true
-// if 0, returns latest blocknumber and pending is set to false
-// if not 0 or -1, returns blocknumber and pendisng is set to false
-func (api *PublicEthereumAPI) getPendingBlock(blockNum rpctypes.BlockNumber) (*int64, bool, error) {
-	var blockNumber int64
-	pending := false
-	switch blockNum {
-	case rpctypes.LatestBlockNumber:
-		bn, err := api.backend.BlockNumber()
-		if err != nil {
-			return nil, pending, err
-		}
-		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
-		blockNumber, err = strconv.ParseInt(bnCleaned, 16, 64)
-		if err != nil {
-			return nil, pending, err
-		}
-	case rpctypes.PendingBlockNumber:
-		bn, err := api.backend.BlockNumber()
-		if err != nil {
-			return nil, pending, err
-		}
-		bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
-		blockNumber, err = strconv.ParseInt(bnCleaned, 16, 64)
-		if err != nil {
-			return nil, pending, err
-		}
-		pending = true
-	default:
-		blockNumber = blockNum.Int64()
-	}
-	return &blockNumber, pending, nil
 }
