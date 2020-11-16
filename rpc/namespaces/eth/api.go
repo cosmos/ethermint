@@ -682,14 +682,15 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		pendingTxs, gasUsed, err = convertTransactionsToRPC(
 			api.clientCtx, unconfirmedTxs.Txs, common.Hash{}, uint64(height+1),
 		)
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		pendingTxs = make([]common.Hash, len(unconfirmedTxs.Txs))
 		for i, tx := range unconfirmedTxs.Txs {
 			pendingTxs[i] = common.BytesToHash(tx.Hash())
 		}
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	return rpctypes.FormatBlock(
@@ -903,7 +904,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		"blockNumber":      hexutil.Uint64(tx.Height),
 		"transactionIndex": hexutil.Uint64(tx.Index),
 
-		// sender and receiver (contract or EOA) addreses
+		// sender and receiver (contract or EOA) addresses
 		"from": from,
 		"to":   ethTx.To(),
 	}
@@ -1098,6 +1099,7 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		return nil, err
 	}
 
+	// nolint: prealloc
 	var msgs []sdk.Msg
 
 	for _, pendingTx := range pendingTxs {
