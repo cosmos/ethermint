@@ -29,6 +29,12 @@ func (al *accessList) Contains(address common.Address, slot common.Hash) (addres
 		// address yes, but no slots
 		return true, false
 	}
+
+	if idx >= len(al.slots) {
+		// return in case of out-of-range
+		return true, false
+	}
+
 	_, slotPresent = al.slots[idx][slot]
 	return true, slotPresent
 }
@@ -81,6 +87,12 @@ func (al *accessList) AddSlot(address common.Address, slot common.Hash) (addrCha
 		al.slots = append(al.slots, slotmap)
 		return !addrPresent, true
 	}
+
+	if idx >= len(al.slots) {
+		// return in case of out-of-range
+		return false, false
+	}
+
 	// There is already an (address,slot) mapping
 	slotmap := al.slots[idx]
 	if _, ok := slotmap[slot]; !ok {
