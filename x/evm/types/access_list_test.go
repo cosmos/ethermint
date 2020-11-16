@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -80,6 +81,69 @@ func (suite *AccessListTestSuite) TestContains() {
 
 		suite.Require().Equal(tc.expAddrPresent, addrPresent, tc.name)
 		suite.Require().Equal(tc.expSlotPresent, slotPresent, tc.name)
+	}
+}
+
+func (suite *AccessListTestSuite) TestCopy() {
+	expAccessList := newAccessList()
+
+	testCases := []struct {
+		name     string
+		malleate func()
+	}{
+		{"empty", func() {
+			expAccessList.slots = make([]map[ethcmn.Hash]struct{}, 0)
+		}},
+		{
+			"single address", func() {
+				expAccessList = newAccessList()
+				expAccessList.slots = make([]map[ethcmn.Hash]struct{}, 0)
+				expAccessList.addresses[suite.address] = -1
+			},
+		},
+		{
+			"single address, single slot",
+			func() {
+				expAccessList = newAccessList()
+				expAccessList.addresses[suite.address] = 0
+				expAccessList.slots = make([]map[ethcmn.Hash]struct{}, 1)
+				expAccessList.slots[0] = make(map[ethcmn.Hash]struct{})
+				expAccessList.slots[0][ethcmn.Hash{}] = struct{}{}
+			},
+		},
+		{
+			"multiple addresses, single slot each",
+			func() {
+				expAccessList = newAccessList()
+				expAccessList.slots = make([]map[ethcmn.Hash]struct{}, 10)
+				for i := 0; i < 10; i++ {
+					expAccessList.addresses[ethcmn.BytesToAddress([]byte(fmt.Sprintf("%d", i)))] = i
+					expAccessList.slots[i] = make(map[ethcmn.Hash]struct{})
+					expAccessList.slots[i][ethcmn.BytesToHash([]byte(fmt.Sprintf("%d", i)))] = struct{}{}
+				}
+			},
+		},
+		{
+			"multiple addresses, multiple slots each",
+			func() {
+				expAccessList = newAccessList()
+				expAccessList.slots = make([]map[ethcmn.Hash]struct{}, 10)
+				for i := 0; i < 10; i++ {
+					expAccessList.addresses[ethcmn.BytesToAddress([]byte(fmt.Sprintf("%d", i)))] = i
+					expAccessList.slots[i] = make(map[ethcmn.Hash]struct{})
+					for j := 0; j < 10; j++ {
+						expAccessList.slots[i][ethcmn.BytesToHash([]byte(fmt.Sprintf("%d-%d", i, j)))] = struct{}{}
+					}
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc.malleate()
+
+		accessList := expAccessList.Copy()
+		suite.Require().EqualValues(expAccessList, accessList, tc.name)
 	}
 }
 
