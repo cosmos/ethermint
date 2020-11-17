@@ -29,7 +29,7 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 
 	ethTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, &evmtypes.MsgEthereumTx{})
+		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, evmtypes.MsgEthereumTx{})
 	}
 	return &ethTx, nil
 }
@@ -148,6 +148,8 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 	return gasLimit, nil
 }
 
+// FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted
+// transactions.
 func FormatBlock(
 	header tmtypes.Header, size int, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
