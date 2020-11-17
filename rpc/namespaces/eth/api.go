@@ -286,46 +286,16 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
+	pending := blockNum == rpctypes.PendingBlockNumber
 
 	// pass the given block height to the context if the height is not pending or latest
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	// Get nonce (sequence) from account
-	from := sdk.AccAddress(address.Bytes())
-	accRet := authtypes.NewAccountRetriever(clientCtx)
-
-	err := accRet.EnsureExists(from)
-	if err != nil {
-		// account doesn't exist yet, return 0
-		n := hexutil.Uint64(0)
-		return &n, nil
-	}
-
-	_, nonce, err := accRet.GetAccountNumberSequence(from)
+	nonce, err := api.accountNonce(clientCtx, address, pending)
 	if err != nil {
 		return nil, err
-	}
-
-	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
-	// manually add them
-	if blockNum == rpctypes.PendingBlockNumber {
-		pendingTxs, err := api.backend.PendingTransactions()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, tx := range pendingTxs {
-			if tx == nil {
-				continue
-			}
-
-			// update the nonce if the sender matches the given address
-			if tx.From == address {
-				nonce++
-			}
-		}
 	}
 
 	n := hexutil.Uint64(nonce)
@@ -452,7 +422,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	if tx.ValidateBasic(); err != nil {
+	if err := tx.ValidateBasic(); err != nil {
 		api.logger.Debug("tx failed basic validation", "error", err)
 		return common.Hash{}, err
 	}
@@ -986,7 +956,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 
 	if args.Nonce == nil {
 		// get the nonce from the account retriever and the pending transactions
-		nonce, err = api.pendingAccountNonce(args.From)
+		nonce, err = api.accountNonce(api.clientCtx, args.From, true)
 	} else {
 		nonce = (uint64)(*args.Nonce)
 	}
@@ -1034,19 +1004,23 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	return &msg, nil
 }
 
+// pendingMsgs constructs
 func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
+	// nolint: prealloc
+	var msgs []sdk.Msg
+
 	pendingTxs, err := api.PendingTransactions()
 	if err != nil {
 		return nil, err
 	}
 
-	// nolint: prealloc
-	var msgs []sdk.Msg
-
 	for _, pendingTx := range pendingTxs {
 		if pendingTx == nil {
 			continue
 		}
+
+		// NOTE: we have to construct the EVM transaction instead of just casting from the tendermint
+		// transactions because PendingTransactions only checks for MsgEthereumTx messages.
 
 		pendingTo := sdk.AccAddress(pendingTx.To.Bytes())
 		pendingFrom := sdk.AccAddress(pendingTx.From.Bytes())
@@ -1071,16 +1045,34 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 	return msgs, nil
 }
 
-func (api *PublicEthereumAPI) pendingAccountNonce(from common.Address) (uint64, error) {
+// accountNonce returns looks up the transaction nonce count for a given address. If the pending boolean
+// is set to true, it will add to the counter all the uncommitted EVM transactions sent from the address.
+// NOTE: The function returns no error if the account doesn't exist.
+func (api *PublicEthereumAPI) accountNonce(
+	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
+) (uint64, error) {
 	// Get nonce (sequence) from sender account
-	sender := sdk.AccAddress(from.Bytes())
-	accRet := authtypes.NewAccountRetriever(api.clientCtx)
+	from := sdk.AccAddress(address.Bytes())
 
-	_, nonce, err := accRet.GetAccountNumberSequence(sender)
+	// use a the given client context in case its wrapped with a custom height
+	accRet := authtypes.NewAccountRetriever(clientCtx)
+
+	if err := accRet.EnsureExists(from); err != nil {
+		// account doesn't exist yet, return 0
+		return 0, nil
+	}
+
+	_, nonce, err := accRet.GetAccountNumberSequence(from)
 	if err != nil {
 		return 0, err
 	}
 
+	if !pending {
+		return nonce, nil
+	}
+
+	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
+	// to manually add them.
 	pendingTxs, err := api.backend.PendingTransactions()
 	if err != nil {
 		return 0, err
@@ -1092,7 +1084,7 @@ func (api *PublicEthereumAPI) pendingAccountNonce(from common.Address) (uint64, 
 			if pendingTxs[i] == nil {
 				continue
 			}
-			if pendingTxs[i].From == from {
+			if pendingTxs[i].From == address {
 				nonce++
 			}
 		}
