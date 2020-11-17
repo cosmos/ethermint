@@ -536,6 +536,9 @@ func (api *PublicEthereumAPI) doCall(
 ) (*sdk.SimulationResponse, error) {
 
 	blockNumber, pending, err := api.getPendingBlock(blockNum)
+	if err != nil {
+		return nil, err
+	}
 
 	fmt.Println("blockNumber: ", blockNumber)
 	fmt.Println("pending:", pending)
