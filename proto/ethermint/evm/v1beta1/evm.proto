@@ -101,10 +101,10 @@ message ChainConfig {
     (gogoproto.moretags) = "yaml:\"muir_glacier_block\"",
     (gogoproto.nullable) = false
   ];
-  // YOLO v1: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
-  string yolo_v1_block = 13 [
+  // YOLO v2: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
+  string yolo_v2_block = 13 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
-    (gogoproto.moretags) = "yaml:\"yolo_v1_block\"",
+    (gogoproto.moretags) = "yaml:\"yolo_v2_block\"",
     (gogoproto.nullable) = false
   ];
   // EWASM switch block (< 0 no fork, 0 = already activated)

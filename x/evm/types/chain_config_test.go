@@ -33,7 +33,7 @@ func TestChainConfigValidate(t *testing.T) {
 				PetersburgBlock:     sdk.OneInt(),
 				IstanbulBlock:       sdk.OneInt(),
 				MuirGlacierBlock:    sdk.OneInt(),
-				YoloV1Block:         sdk.OneInt(),
+				YoloV2Block:         sdk.OneInt(),
 				EWASMBlock:          sdk.OneInt(),
 			},
 			false,
@@ -176,7 +176,7 @@ func TestChainConfigValidate(t *testing.T) {
 			true,
 		},
 		{
-			"invalid YoloV1Block",
+			"invalid YoloV2Block",
 			ChainConfig{
 				HomesteadBlock:      sdk.OneInt(),
 				DAOForkBlock:        sdk.OneInt(),
@@ -189,7 +189,7 @@ func TestChainConfigValidate(t *testing.T) {
 				PetersburgBlock:     sdk.OneInt(),
 				IstanbulBlock:       sdk.OneInt(),
 				MuirGlacierBlock:    sdk.OneInt(),
-				YoloV1Block:         sdk.Int{},
+				YoloV2Block:         sdk.Int{},
 			},
 			true,
 		},
@@ -207,7 +207,7 @@ func TestChainConfigValidate(t *testing.T) {
 				PetersburgBlock:     sdk.OneInt(),
 				IstanbulBlock:       sdk.OneInt(),
 				MuirGlacierBlock:    sdk.OneInt(),
-				YoloV1Block:         sdk.OneInt(),
+				YoloV2Block:         sdk.OneInt(),
 				EWASMBlock:          sdk.Int{},
 			},
 			true,
@@ -226,7 +226,7 @@ func TestChainConfigValidate(t *testing.T) {
 }
 
 func TestChainConfig_String(t *testing.T) {
-	configStr := `homestead_block:"0" dao_fork_block:"0" dao_fork_support:true eip150_block:"0" eip150_hash:"0x0000000000000000000000000000000000000000000000000000000000000000" eip155_block:"0" eip158_block:"0" byzantium_block:"0" constantinople_block:"0" petersburg_block:"0" istanbul_block:"-1" muir_glacier_block:"-1" yolo_v1_block:"-1" ewasm_block:"-1" `
+	configStr := `homestead_block:"0" dao_fork_block:"0" dao_fork_support:true eip150_block:"0" eip150_hash:"0x0000000000000000000000000000000000000000000000000000000000000000" eip155_block:"0" eip158_block:"0" byzantium_block:"0" constantinople_block:"0" petersburg_block:"0" istanbul_block:"-1" muir_glacier_block:"-1" yolo_v2_block:"-1" ewasm_block:"-1" `
 	config := DefaultChainConfig()
 	require.Equal(t, configStr, config.String())
 }

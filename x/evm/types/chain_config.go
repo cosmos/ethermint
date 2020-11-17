@@ -28,7 +28,7 @@ func (cc ChainConfig) EthereumConfig(chainID *big.Int) *params.ChainConfig {
 		PetersburgBlock:     getBlockValue(cc.PetersburgBlock),
 		IstanbulBlock:       getBlockValue(cc.IstanbulBlock),
 		MuirGlacierBlock:    getBlockValue(cc.MuirGlacierBlock),
-		YoloV1Block:         getBlockValue(cc.YoloV1Block),
+		YoloV2Block:         getBlockValue(cc.YoloV2Block),
 		EWASMBlock:          getBlockValue(cc.EWASMBlock),
 	}
 }
@@ -48,7 +48,7 @@ func DefaultChainConfig() ChainConfig {
 		PetersburgBlock:     sdk.ZeroInt(),
 		IstanbulBlock:       sdk.NewInt(-1),
 		MuirGlacierBlock:    sdk.NewInt(-1),
-		YoloV1Block:         sdk.NewInt(-1),
+		YoloV2Block:         sdk.NewInt(-1),
 		EWASMBlock:          sdk.NewInt(-1),
 	}
 }
@@ -97,8 +97,8 @@ func (cc ChainConfig) Validate() error {
 	if err := validateBlock(cc.MuirGlacierBlock); err != nil {
 		return sdkerrors.Wrap(err, "muirGlacierBlock")
 	}
-	if err := validateBlock(cc.YoloV1Block); err != nil {
-		return sdkerrors.Wrap(err, "yoloV1Block")
+	if err := validateBlock(cc.YoloV2Block); err != nil {
+		return sdkerrors.Wrap(err, "yoloV2Block")
 	}
 	if err := validateBlock(cc.EWASMBlock); err != nil {
 		return sdkerrors.Wrap(err, "eWASMBlock")
