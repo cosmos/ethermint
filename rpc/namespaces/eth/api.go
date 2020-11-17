@@ -37,7 +37,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -453,6 +452,11 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	if tx.ValidateBasic(); err != nil {
+		api.logger.Debug("tx failed basic validation", "error", err)
+		return common.Hash{}, err
+	}
+
 	// Sign transaction
 	if err := tx.Sign(api.chainIDEpoch, key.ToECDSA()); err != nil {
 		api.logger.Debug("failed to sign tx", "error", err)
@@ -581,26 +585,26 @@ func (api *PublicEthereumAPI) doCall(
 		toAddr = sdk.AccAddress(args.To.Bytes())
 	}
 
-	var ethermintMsgs []sdk.Msg
+	var msgs []sdk.Msg
 	// Create new call message
 	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
-	ethermintMsgs = append(ethermintMsgs, msg)
+	msgs = append(msgs, msg)
 
 	// convert the pending transactions into ethermint msgs
 	if blockNum == rpctypes.PendingBlockNumber {
-		msgs, err := api.pendingMsgs()
+		pendingMsgs, err := api.pendingMsgs()
 		if err != nil {
 			return nil, err
 		}
-		ethermintMsgs = append(ethermintMsgs, msgs...)
+		msgs = append(msgs, pendingMsgs...)
 	}
 
 	// Generate tx to be used to simulate (signature isn't needed)
 	var stdSig authtypes.StdSignature
 	stdSigs := []authtypes.StdSignature{stdSig}
 
-	tx := authtypes.NewStdTx(ethermintMsgs, authtypes.StdFee{}, stdSigs, "")
+	tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
 	if err := tx.ValidateBasic(); err != nil {
 		return nil, err
 	}
@@ -622,7 +626,6 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	fmt.Println(simResponse)
 	return &simResponse, nil
 }
 
@@ -673,22 +676,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		return nil, err
 	}
 
-	var (
-		pendingTxs []common.Hash
-		gasUsed    *big.Int
-	)
-
-	if fullTx {
-		pendingTxs, gasUsed, err = convertTransactionsToRPC(
-			api.clientCtx, unconfirmedTxs.Txs, common.Hash{}, uint64(height+1),
-		)
-	} else {
-		pendingTxs = make([]common.Hash, len(unconfirmedTxs.Txs))
-		for i, tx := range unconfirmedTxs.Txs {
-			pendingTxs[i] = common.BytesToHash(tx.Hash())
-		}
-	}
-
+	pendingTxs, gasUsed, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs)
 	if err != nil {
 		return nil, err
 	}
@@ -709,28 +697,6 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		ethtypes.Bloom{},
 	), nil
 
-}
-
-func convertTransactionsToRPC(cliCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, height uint64) ([]common.Hash, *big.Int, error) {
-	transactions := make([]common.Hash, len(txs))
-	gasUsed := big.NewInt(0)
-
-	for i, tx := range txs {
-		ethTx, err := rpctypes.RawTxToEthTx(cliCtx, tx)
-		if err != nil {
-			// continue to next transaction in case it's not a MsgEthereumTx
-			continue
-		}
-		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, ethTx.Fee())
-		tx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), blockHash, height, uint64(i))
-		if err != nil {
-			return nil, nil, err
-		}
-		transactions[i] = tx.Hash
-	}
-
-	return transactions, gasUsed, nil
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
@@ -1005,9 +971,8 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 // generateFromArgs populates tx message with args (used in RPC API)
 func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmtypes.MsgEthereumTx, error) {
 	var (
-		nonce    uint64
-		gasLimit uint64
-		err      error
+		nonce, gasLimit uint64
+		err             error
 	)
 
 	amount := (*big.Int)(args.Value)
@@ -1019,43 +984,19 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
 	}
 
-	// Get nonce (sequence) from account
-	from := sdk.AccAddress(args.From.Bytes())
-	accRet := authtypes.NewAccountRetriever(api.clientCtx)
-	if api.clientCtx.Keybase == nil {
-		return nil, fmt.Errorf("clientCtx.Keybase is nil")
+	if args.Nonce == nil {
+		// get the nonce from the account retriever and the pending transactions
+		nonce, err = api.pendingAccountNonce(args.From)
+	} else {
+		nonce = (uint64)(*args.Nonce)
 	}
 
-	_, nonce, err = accRet.GetAccountNumberSequence(from)
 	if err != nil {
 		return nil, err
 	}
 
-	if args.Nonce == nil {
-		pendingTxs, err := api.backend.PendingTransactions()
-		if err != nil {
-			return nil, err
-		}
-		if len(pendingTxs) != 0 {
-			for i := range pendingTxs {
-				if pendingTxs[i] == nil {
-					continue
-				}
-				if pendingTxs[i].From == args.From {
-					nonce++
-				}
-			}
-		}
-	} else {
-		if (uint64)(*args.Nonce) <= nonce {
-			return nil, sdkerrors.ErrInvalidSequence
-		}
-
-		nonce = (uint64)(*args.Nonce)
-	}
-
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
-		return nil, errors.New(`both "data" and "input" are set and not equal. Please use "input" to pass transaction call data`)
+		return nil, errors.New("both 'data' and 'input' are set and not equal. Please use 'input' to pass transaction call data")
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
@@ -1128,4 +1069,34 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
+}
+
+func (api *PublicEthereumAPI) pendingAccountNonce(from common.Address) (uint64, error) {
+	// Get nonce (sequence) from sender account
+	sender := sdk.AccAddress(from.Bytes())
+	accRet := authtypes.NewAccountRetriever(api.clientCtx)
+
+	_, nonce, err := accRet.GetAccountNumberSequence(sender)
+	if err != nil {
+		return 0, err
+	}
+
+	pendingTxs, err := api.backend.PendingTransactions()
+	if err != nil {
+		return 0, err
+	}
+
+	// add the uncommitted txs to the nonce counter
+	if len(pendingTxs) != 0 {
+		for i := range pendingTxs {
+			if pendingTxs[i] == nil {
+				continue
+			}
+			if pendingTxs[i].From == from {
+				nonce++
+			}
+		}
+	}
+
+	return nonce, nil
 }
