@@ -36,4 +36,7 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+replace (
+	github.com/cosmos/cosmos-sdk => github.com/chengwenxi/cosmos-sdk v0.23.2-0.20201117032715-800f0933bed1
+	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+)
