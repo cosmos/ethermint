@@ -57,8 +57,9 @@ func NewAnteHandler(
 				authante.NewRejectExtensionOptionsDecorator(),
 				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
-				authante.TxTimeoutHeightDecorator{},
-				authante.NewValidateMemoDecorator(ak),
+				// TODO: add timeout for MsgEthereumTx
+				// authante.TxTimeoutHeightDecorator{},
+				// authante.NewValidateMemoDecorator(ak),
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak, bankKeeper, evmKeeper),
 				NewNonceVerificationDecorator(ak),

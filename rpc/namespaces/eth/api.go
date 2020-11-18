@@ -66,6 +66,7 @@ func NewAPI(
 	api := &PublicEthereumAPI{
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
+		queryClient:  rpctypes.NewQueryClient(clientCtx),
 		chainIDEpoch: epoch,
 		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
 		backend:      backend,

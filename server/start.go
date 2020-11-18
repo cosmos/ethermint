@@ -165,6 +165,25 @@ func startStandAlone(ctx *sdkserver.Context, appCreator AppCreator) error {
 func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator AppCreator) error {
 	cfg := ctx.Config
 	home := cfg.RootDir
+	var cpuProfileCleanup func()
+
+	if cpuProfile := ctx.Viper.GetString(flagCPUProfile); cpuProfile != "" {
+		f, err := os.Create(cpuProfile)
+		if err != nil {
+			return err
+		}
+
+		ctx.Logger.Info("starting CPU profiler", "profile", cpuProfile)
+		if err := pprof.StartCPUProfile(f); err != nil {
+			return err
+		}
+
+		cpuProfileCleanup = func() {
+			ctx.Logger.Info("stopping CPU profiler", "profile", cpuProfile)
+			pprof.StopCPUProfile()
+			f.Close()
+		}
+	}
 
 	traceWriterFile := ctx.Viper.GetString(flagTraceStore)
 	db, err := openDB(home)
@@ -198,10 +217,15 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 	if err != nil {
 		return err
 	}
+	ctx.Logger.Debug("Initialization: tmNode created")
 
 	if err := tmNode.Start(); err != nil {
 		return err
 	}
+	ctx.Logger.Debug("Initialization: tmNode started")
+
+	// Add the tx service to the gRPC router.
+	app.RegisterTxService(clientCtx)
 
 	var apiSrv *api.Server
 
@@ -219,8 +243,6 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 
 		apiSrv = api.New(clientCtx, ctx.Logger.With("module", "api-server"))
 		app.RegisterAPIRoutes(apiSrv.Server, config.API)
-		// TODO: register Ethereum routes
-		app.RegisterEthereumServers(apiSrv, config.Ethereum)
 		errCh := make(chan error)
 
 		go func() {
@@ -244,31 +266,7 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 	}
 
-	if config.Ethereum.EnableWebsocket {
-
-	}
-
-	var cpuProfileCleanup func()
-
-	if cpuProfile := ctx.Viper.GetString(flagCPUProfile); cpuProfile != "" {
-		f, err := os.Create(cpuProfile)
-		if err != nil {
-			return err
-		}
-
-		ctx.Logger.Info("starting CPU profiler", "profile", cpuProfile)
-		if err := pprof.StartCPUProfile(f); err != nil {
-			return err
-		}
-
-		cpuProfileCleanup = func() {
-			ctx.Logger.Info("stopping CPU profiler", "profile", cpuProfile)
-			pprof.StopCPUProfile()
-			f.Close()
-		}
-	}
-
-	sdkserver.TrapSignal(func() {
+	defer func() {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
 		}
@@ -286,8 +284,8 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 
 		ctx.Logger.Info("exiting...")
-	})
+	}()
 
-	// run forever (the node will not be returned)
-	select {}
+	// Wait for SIGINT or SIGTERM signal
+	return sdkserver.WaitForQuitSignals()
 }

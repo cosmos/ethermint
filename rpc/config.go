@@ -11,7 +11,7 @@ import (
 
 // RegisterEthereum creates a new ethereum JSON-RPC server and recreates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
-func RegisterEthereum(clientCtx client.Context, r *mux.Router, _ config.EthereumConfig) {
+func RegisterEthereum(clientCtx client.Context, r *mux.Router) {
 	server := rpc.NewServer()
 	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 

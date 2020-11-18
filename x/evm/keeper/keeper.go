@@ -27,7 +27,7 @@ type Keeper struct {
 	// - storing Account's Code
 	// - storing transaction Logs
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
-	// - storing block hash -> block height map. Needed for the Web3 API. TODO: remove
+	// - storing block hash -> block height map. Needed for the Web3 API.
 	storeKey sdk.StoreKey
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
