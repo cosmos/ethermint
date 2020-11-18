@@ -36,16 +36,22 @@ ethermintd validate-genesis
 ```
 ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace
 ```
+(we recommend running the command in the background for convenience)
 
-6. Request funds from the faucet:
+6. Start the RPC server:
+```
+ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-1 --trace
+```
+where `$KEY` is the key name that was used in step 2.
+(we recommend running the command in the background for convenience)
+
+7. Request funds from the faucet:
 You will need to know the Ethereum hex address, and it can be found with the following command:
 
 ```
-curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" 54.210.246.165:8545
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 ```
 Using the output of the above command, you will then send the command with your valid Ethereum address:
 ```
 curl --header "Content-Type: application/json" --request POST --data '{"address":"0xYouEthereumHexAddress"}' 3.95.21.91:3000
 ```
-
-Then your node should start to sync with the network and blocks should be imported. After the node is caught up, it should be ready to interact with the Ethermint network!
