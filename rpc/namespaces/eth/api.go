@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -328,8 +330,18 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
 
+	var height int64
 	if blockNum != rpctypes.PendingBlockNumber {
-		height := blockNum.Int64()
+		if blockNum == rpctypes.LatestBlockNumber {
+			bn, err := api.backend.BlockNumber()
+			if err != nil {
+				return nil
+			}
+			bnCleaned := strings.Replace(bn.String(), "0x", "", -1)
+			height, err = strconv.ParseInt(bnCleaned, 16, 64)
+		} else {
+			height = blockNum.Int64()
+		}
 		resBlock, err := api.clientCtx.Client.Block(&height)
 		if err != nil {
 			return nil
@@ -344,7 +356,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		return nil
 	}
 
-	txCount := hexutil.Uint(len(pendingTxs))
+	txCount := hexutil.Uint(len(pendingTxs) / 2)
 	return &txCount
 }
 
