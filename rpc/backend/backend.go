@@ -196,7 +196,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		return nil, err
 	}
 
-	transactions := make([]*rpctypes.Transaction, pendingTxs.Count)
+	transactions := make([]*rpctypes.Transaction, 0)
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -209,10 +209,8 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		if err != nil {
 			return nil, err
 		}
-
 		transactions = append(transactions, rpcTx)
 	}
-
 	return transactions, nil
 }
 
