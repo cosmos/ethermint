@@ -31,32 +31,6 @@ const (
 	addrAStoreKey = 0
 )
 
-var (
-	MODE = os.Getenv("MODE")
-
-	zeroString = "0x0"
-	from       = []byte{}
-)
-
-type Request struct {
-	Version string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	ID      int         `json:"id"`
-}
-
-type RPCError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-type Response struct {
-	Error  *RPCError       `json:"error"`
-	ID     int             `json:"id"`
-	Result json.RawMessage `json:"result,omitempty"`
-}
-
 func TestMain(m *testing.M) {
 	if MODE != "rpc" {
 		_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")
