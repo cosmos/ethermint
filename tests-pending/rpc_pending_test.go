@@ -75,8 +75,15 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	rpcRes := util.Call(t, "eth_getBalance", []string{addrA, "latest"})
 	err := res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
-	preTxBalance := res.ToInt()
-	t.Logf("Got balance %s for %s before sending tx\n", preTxBalance, addrA)
+	preTxLatestBalance := res.ToInt()
+
+	rpcRes = util.Call(t, "eth_getBalance", []string{addrA, "pending"})
+	err = res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+	preTxPendingBalance := res.ToInt()
+
+	t.Logf("Got pending balance %s for %s pre tx\n", preTxPendingBalance, addrA)
+	t.Logf("Got latest balance %s for %s pre tx\n", preTxLatestBalance, addrA)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -91,18 +98,20 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	rpcRes = util.Call(t, "eth_getBalance", []string{addrA, "pending"})
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
-	t.Logf("Got pending balance %s for %s post tx\n", res.String(), addrA)
+	postTxPendingBalance := res.ToInt()
+	t.Logf("Got pending balance %s for %s post tx\n", postTxPendingBalance, addrA)
 
-	if res.ToInt().Cmp(preTxBalance.Add(preTxBalance, big.NewInt(10))) != 0 {
-		t.Errorf("expected balance: %d, got: %s", 10, res.String())
-	}
+	require.Equal(t, preTxPendingBalance.Add(preTxPendingBalance, big.NewInt(10)), postTxPendingBalance)
 
 	rpcRes = util.Call(t, "eth_getBalance", []string{addrA, "latest"})
 	err = res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
-	t.Logf("Got latest balance %s for %s post tx\n", res.String(), addrA)
+	postTxLatestBalance := res.ToInt()
+	t.Logf("Got latest balance %s for %s post tx\n", postTxLatestBalance, addrA)
 
-	if res.ToInt().Cmp(preTxBalance) != 0 {
+	require.Equal(t, preTxLatestBalance, postTxLatestBalance)
+	// 1 if x > y; where x is postTxPendingBalance, y is preTxPendingBalance
+	if postTxLatestBalance.Cmp(preTxPendingBalance) != 0 {
 		t.Errorf("expected balance: %d, got: %s", 0, res.String())
 	}
 }
@@ -132,6 +141,18 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 }
 
 func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
+	rpcRes := util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
+	var preTxPendingTxCount hexutil.Uint
+	err := json.Unmarshal(rpcRes.Result, &preTxPendingTxCount)
+	require.NoError(t, err)
+	t.Logf("Pre tx pending nonce is %d", preTxPendingTxCount)
+
+	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"latest"})
+	var preTxLatestTxCount hexutil.Uint
+	err = json.Unmarshal(rpcRes.Result, &preTxLatestTxCount)
+	require.NoError(t, err)
+	t.Logf("Pre tx latest nonce is %d", preTxLatestTxCount)
+
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
@@ -142,23 +163,35 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 
 	_ = util.Call(t, "eth_sendTransaction", param)
 
-	rpcRes := util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
-	var pendingTxCount hexutil.Uint
-	err := json.Unmarshal(rpcRes.Result, &pendingTxCount)
+	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
+	var postTxPendingTxCount hexutil.Uint
+	err = json.Unmarshal(rpcRes.Result, &postTxPendingTxCount)
 	require.NoError(t, err)
-	t.Logf("Pending nonce is %d", pendingTxCount)
+	t.Logf("Post tx pending nonce is %d", postTxPendingTxCount)
 
 	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"latest"})
-	var latestTxCount hexutil.Uint
-	err = json.Unmarshal(rpcRes.Result, &latestTxCount)
+	var postTxLatestTxCount hexutil.Uint
+	err = json.Unmarshal(rpcRes.Result, &postTxLatestTxCount)
 	require.NoError(t, err)
-	t.Logf("Latest nonce is %d", latestTxCount)
+	t.Logf("Post tx latest nonce is %d", postTxLatestTxCount)
 
-	require.NotEqual(t, uint64(pendingTxCount), uint64(latestTxCount))
-	require.Greater(t, uint64(pendingTxCount), uint64(latestTxCount))
+	require.Equal(t, uint64(preTxPendingTxCount)+uint64(1), uint64(postTxPendingTxCount))
+	require.NotEqual(t, uint64(postTxPendingTxCount)-uint64(preTxPendingTxCount), uint64(postTxLatestTxCount)-uint64(preTxLatestTxCount))
 }
 
 func TestEth_Pending_GetBlockByNumber(t *testing.T) {
+	rpcRes := util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
+	var preTxLatestBlock map[string]interface{}
+	err := json.Unmarshal(rpcRes.Result, &preTxLatestBlock)
+	require.NoError(t, err)
+	preTxLatestTxs := len(preTxLatestBlock["transactions"].([]interface{}))
+
+	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"pending", true})
+	var preTxPendingBlock map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &preTxPendingBlock)
+	require.NoError(t, err)
+	preTxPendingTxs := len(preTxPendingBlock["transactions"].([]interface{}))
+
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
@@ -169,22 +202,21 @@ func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 
 	_ = util.Call(t, "eth_sendTransaction", param)
 
-	rpcRes := util.Call(t, "eth_getBlockByNumber", []interface{}{"pending", true})
-	var pendingBlock map[string]interface{}
-	err := json.Unmarshal(rpcRes.Result, &pendingBlock)
+	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"pending", true})
+	var postTxPendingBlock map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &postTxPendingBlock)
 	require.NoError(t, err)
-	pendingBlockArr := len(pendingBlock["transactions"].([]interface{}))
-	// in case there are other tx's inside the pending queue from prev test
-	require.NotEqual(t, pendingBlockArr, 0)
+	postTxPendingTxs := len(postTxPendingBlock["transactions"].([]interface{}))
+	require.Greater(t, postTxPendingTxs, preTxPendingTxs)
 
 	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
-	var latestBlock map[string]interface{}
-	err = json.Unmarshal(rpcRes.Result, &latestBlock)
+	var postTxLatestBlock map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &postTxLatestBlock)
 	require.NoError(t, err)
-	latestBlockArr := len(latestBlock["transactions"].([]interface{}))
-	require.Equal(t, latestBlockArr, 0)
+	postTxLatestTxs := len(postTxLatestBlock["transactions"].([]interface{}))
+	require.Equal(t, preTxLatestTxs, postTxLatestTxs)
 
-	require.Greater(t, pendingBlockArr, latestBlockArr)
+	require.Greater(t, postTxPendingTxs, preTxPendingTxs)
 }
 
 func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
@@ -208,15 +240,12 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	require.Equal(t, pendingBlock["transactionIndex"], nil)
 	require.NotEmpty(t, pendingBlock["hash"])
 
-	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
+	rpcRes = util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"latest", "0x1"})
 	var latestBlock map[string]interface{}
 	err = json.Unmarshal(rpcRes.Result, &latestBlock)
-	fmt.Println("latestBlock: ", latestBlock)
 	require.NoError(t, err)
 
-	require.NotEmpty(t, latestBlock["timestamp"])
-	require.NotEmpty(t, latestBlock["gasUsed"])
-	require.Equal(t, latestBlock["logsBloom"], "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	require.Empty(t, latestBlock)
 }
 
 func TestEth_Pending_GetTransactionByHash(t *testing.T) {
@@ -239,9 +268,9 @@ func TestEth_Pending_GetTransactionByHash(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, pendingBlock)
-	require.Equal(t, pendingBlock["blockHash"], nil)
-	require.Equal(t, pendingBlock["blockNumber"], nil)
-	require.Equal(t, pendingBlock["transactionIndex"], nil)
+	require.Equal(t, nil, pendingBlock["blockHash"])
+	require.Equal(t, nil, pendingBlock["blockNumber"])
+	require.Equal(t, nil, pendingBlock["transactionIndex"])
 	require.NotEmpty(t, pendingBlock["hash"])
 	require.NotEmpty(t, pendingBlock["value"], "0xa")
 }
@@ -256,24 +285,22 @@ func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	t.Logf("currNonce: %d", currNonce)
-
 	// first transaction
 	_ = util.Call(t, "eth_sendTransaction", param)
 	pendingNonce1 := util.GetNonce(t, "pending")
-	require.Greater(t, pendingNonce1, currNonce)
+	require.Greater(t, uint64(pendingNonce1), uint64(currNonce))
 
 	// second transaction
 	param[0]["to"] = "0x7f0f463c4d57b1bd3e3b79051e6c5ab703e803d9"
 	_ = util.Call(t, "eth_sendTransaction", param)
 	pendingNonce2 := util.GetNonce(t, "pending")
-	require.Greater(t, pendingNonce2, currNonce)
-	require.Equal(t, pendingNonce1+hexutil.Uint64(1), pendingNonce2)
+	require.Greater(t, uint64(pendingNonce2), uint64(currNonce))
+	require.Greater(t, uint64(pendingNonce2), uint64(pendingNonce1))
 
 	// third transaction
 	param[0]["to"] = "0x7fb24493808b3f10527e3e0870afeb8a953052d2"
 	_ = util.Call(t, "eth_sendTransaction", param)
 	pendingNonce3 := util.GetNonce(t, "pending")
-	require.Greater(t, pendingNonce3, currNonce)
-	require.Equal(t, pendingNonce1+hexutil.Uint64(2), pendingNonce3)
+	require.Greater(t, uint64(pendingNonce3), uint64(currNonce))
+	require.Greater(t, uint64(pendingNonce3), uint64(pendingNonce2))
 }
