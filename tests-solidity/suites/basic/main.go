@@ -82,7 +82,7 @@ func call(method string, params interface{}) (*Response, error) {
 		HOST = "http://localhost:8545"
 	}
 
-	req, err := json.Marshal(CreateRequest(method, params))
+	req, err := json.Marshal(createRequest(method, params))
 	if err != nil {
 		return nil, err
 	}
