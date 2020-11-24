@@ -31,6 +31,11 @@ const (
 	addrAStoreKey = 0
 )
 
+var (
+	from       = []byte{}
+	zeroString = "0x0"
+)
+
 func TestMain(m *testing.M) {
 	if MODE != "rpc" {
 		_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")

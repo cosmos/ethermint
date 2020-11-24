@@ -37,9 +37,6 @@ type Response struct {
 var (
 	MODE = os.Getenv("MODE")
 	HOST = os.Getenv("HOST")
-
-	zeroString = "0x0"
-	from       = []byte{}
 )
 
 func GetAddress() ([]byte, error) {
@@ -77,7 +74,7 @@ func Call(t *testing.T, method string, params interface{}) *Response {
 	if HOST == "" {
 		HOST = "http://localhost:8545"
 	}
-	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
+	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req)) //nolint:gosec
 	require.NoError(t, err)
 
 	decoder := json.NewDecoder(res.Body)
@@ -105,7 +102,7 @@ func CallWithError(method string, params interface{}) (*Response, error) {
 	if HOST == "" {
 		HOST = "http://localhost:8545"
 	}
-	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
+	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req)) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}

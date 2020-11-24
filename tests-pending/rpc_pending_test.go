@@ -28,9 +28,7 @@ const (
 
 var (
 	MODE = os.Getenv("MODE")
-
-	zeroString = "0x0"
-	from       = []byte{}
+	from = []byte{}
 )
 
 type Request struct {
