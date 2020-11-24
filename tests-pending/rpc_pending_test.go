@@ -304,3 +304,31 @@ func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
 	require.Greater(t, uint64(pendingNonce3), uint64(currNonce))
 	require.Greater(t, uint64(pendingNonce3), uint64(pendingNonce2))
 }
+
+// func TestEth_Call_Pending(t *testing.T) {
+// 	param := make([]map[string]string, 1)
+// 	param[0] = make(map[string]string)
+// 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+// 	param[0]["to"] = "0x0000000000000000000000000000000012341234"
+// 	param[0]["value"] = "0xA"
+// 	param[0]["gasLimit"] = "0x5208"
+// 	param[0]["gasPrice"] = "0x1"
+
+// 	rpcRes := util.Call(t, "eth_sendTransaction", param)
+
+// 	var hash hexutil.Bytes
+// 	err := json.Unmarshal(rpcRes.Result, &hash)
+// 	require.NoError(t, err)
+
+// 	param = make([]map[string]string, 1)
+// 	param[0] = make(map[string]string)
+// 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+// 	param[0]["to"] = "0x0000000000000000000000000000000012341234"
+// 	param[0]["value"] = "0xA"
+// 	param[0]["gasLimit"] = "0x5208"
+// 	param[0]["gasPrice"] = "0x1"
+
+// 	rpcRes = util.Call(t, "eth_call", []interface{}{param[0], "pending"})
+// 	err = json.Unmarshal(rpcRes.Result, &hash)
+// 	require.NoError(t, err)
+// }
