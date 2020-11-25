@@ -35,6 +35,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+* (rpc) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
+
 ## [v0.3.1] - 2020-11-24
 
 ### Improvements
