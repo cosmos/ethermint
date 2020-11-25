@@ -47,11 +47,30 @@ type ExecutionResult struct {
 	GasInfo GasInfo
 }
 
+// GetHashFn implements vm.GetHashFunc for Ethermint. It casts the current
+// tendermint header hash to an ethereum Hash format. If the context block height
+// doesn't match the requested height, it will return an empty hash.
+func GetHashFn(ctx sdk.Context) vm.GetHashFunc {
+	return func(height uint64) common.Hash {
+		if ctx.BlockHeight() != int64(height) {
+			return common.Hash{}
+		}
+
+		// cast the ABCI header to tendermint Header type
+		tmHeader := AbciHeaderToTendermint(ctx.BlockHeader())
+
+		// get the Tendermint block hash from the current header
+		tmBlockHash := tmHeader.Hash()
+		return common.BytesToHash(tmBlockHash.Bytes())
+	}
+}
+
 func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int, config ChainConfig) *vm.EVM {
 	// Create context for evm
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
+		GetHash:     GetHashFn(ctx),
 		Origin:      st.Sender,
 		Coinbase:    common.Address{}, // there's no benefitiary since we're not mining
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
