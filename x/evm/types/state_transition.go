@@ -61,6 +61,13 @@ func GetHashFn(ctx sdk.Context) vm.GetHashFunc {
 
 		// get the Tendermint block hash from the current header
 		tmBlockHash := tmHeader.Hash()
+
+		// NOTE: if the validator set hash is missint the hash will be returned as nil
+		// so we need to check for this case to prevent a panic when calling Bytes()
+		if tmBlockHash == nil {
+			return common.Hash{}
+		}
+
 		return common.BytesToHash(tmBlockHash.Bytes())
 	}
 }
