@@ -62,7 +62,7 @@ func GetHashFn(ctx sdk.Context) vm.GetHashFunc {
 		// get the Tendermint block hash from the current header
 		tmBlockHash := tmHeader.Hash()
 
-		// NOTE: if the validator set hash is missint the hash will be returned as nil
+		// NOTE: if the validator set hash is missing the hash will be returned as nil,
 		// so we need to check for this case to prevent a panic when calling Bytes()
 		if tmBlockHash == nil {
 			return common.Hash{}
@@ -160,7 +160,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		if !params.EnableCall {
-			return nil, ErrCreateDisabled
+			return nil, ErrCallDisabled
 		}
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
