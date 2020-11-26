@@ -26,7 +26,7 @@ Follow this [link](https://gist.github.com/araskachoi/43f86f3edff23729b817e8b0bb
 4. Add peers:
 Edit the file located in ~/.ethermintd/config/config.toml and edit line 350 (persistent_peers) to the following;
 ```
-"6a93c60346eab9968c81036c261daedf7d2ca78f@54.210.246.165:26656,b1a0805e746ccf4c4b27c0cd4d180bdd6932525c@18.204.206.179:26656,7d4e24a6dce1b91add27adbd5e0ccd74a2bd53c2@3.86.104.251:26656"
+"7d4e24a6dce1b91add27adbd5e0ccd74a2bd53c2@3.86.104.251:26656,b1a0805e746ccf4c4b27c0cd4d180bdd6932525c@18.204.206.179:26656,6a93c60346eab9968c81036c261daedf7d2ca78f@54.210.246.165:26656"
 ```
 
 5. Validate genesis and start the Ethermint network:
