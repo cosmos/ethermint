@@ -53,15 +53,23 @@ type ExecutionResult struct {
 //  3. The requested height is from a previous chain epoch number (i.e previous chain version)
 func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHashFunc {
 	return func(height uint64) common.Hash {
-		if ctx.BlockHeight() == int64(height) {
+		var (
+			hash  common.Hash
+			found bool
+		)
+
+		switch {
+		case ctx.BlockHeight() == int64(height):
 			// Case 1: The requested height matches the one from the context so we can retrieve the header
 			// hash directly from the context.
 			return hashFromContext(ctx)
+
+		case ctx.BlockHeight() > int64(height):
+			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
+			// current chain epoch. This only applies if the current height is greater than the requested height.
+			hash, found = csdb.GetHeightHash(chainEpoch, height)
 		}
 
-		// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
-		// current chain epoch.
-		hash, found := csdb.GetHeightHash(chainEpoch, height)
 		if found {
 			return hash
 		}
