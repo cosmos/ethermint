@@ -51,7 +51,11 @@ You will need to know the Ethereum hex address, and it can be found with the fol
 ```
 curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 ```
-Using the output of the above command, you will then send the command with your valid Ethereum address:
+
+Using the output of the above command, you can use the [faucet UI](https://ethermint.chainsafe.io/) to request funds.
+
+Alternatively, you can request via command line by using the following command, using your valid Ethereum address:
 ```
 curl --header "Content-Type: application/json" --request POST --data '{"address":"0xYouEthereumHexAddress"}' 3.95.21.91:3000
 ```
+
