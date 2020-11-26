@@ -1,7 +1,11 @@
 package evm
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	emint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
@@ -10,13 +14,33 @@ import (
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorUpdate {
+func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate {
+	evmDenom := data.Params.EvmDenom
+
 	for _, account := range data.Accounts {
-		// FIXME: this will override bank InitGenesis balance!
-		k.SetBalance(ctx, account.Address, account.Balance)
-		k.SetCode(ctx, account.Address, account.Code)
+		address := ethcmn.HexToAddress(account.Address)
+		accAddress := sdk.AccAddress(address.Bytes())
+
+		// check that the EVM balance the matches the account balance
+		acc := accountKeeper.GetAccount(ctx, accAddress)
+		if acc == nil {
+			panic(fmt.Errorf("account not found for address %s", address))
+		}
+
+		evmBalance := acc.GetCoins().AmountOf(evmDenom)
+		if !evmBalance.Equal(account.Balance) {
+			panic(
+				fmt.Errorf(
+					"balance mismatch for account %s, expected %s %s, got %s %s",
+					address, evmBalance, evmDenom, account.Balance, evmDenom,
+				),
+			)
+		}
+
+		k.SetBalance(ctx, address, account.Balance.BigInt())
+		k.SetCode(ctx, address, account.Code)
 		for _, storage := range account.Storage {
-			k.SetState(ctx, account.Address, storage.Key, storage.Value)
+			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
 	}
 
@@ -54,7 +78,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	accounts := ak.GetAllAccounts(ctx)
 
 	for _, account := range accounts {
-
 		ethAccount, ok := account.(*emint.EthAccount)
 		if !ok {
 			continue
@@ -67,9 +90,12 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			panic(err)
 		}
 
+		balanceInt := k.GetBalance(ctx, addr)
+		balance := sdk.NewIntFromBigInt(balanceInt)
+
 		genAccount := types.GenesisAccount{
-			Address: addr,
-			Balance: k.GetBalance(ctx, addr),
+			Address: addr.String(),
+			Balance: balance,
 			Code:    k.GetCode(ctx, addr),
 			Storage: storage,
 		}
