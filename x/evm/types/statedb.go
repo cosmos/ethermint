@@ -340,8 +340,8 @@ func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 		return 0
 	}
 
-	if so.code != nil {
-		return len(so.code)
+	if !so.code.IsEmpty() {
+		return so.code.Size
 	}
 
 	return len(so.Code(nil))
@@ -466,7 +466,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 
 		case isDirty:
 			// write any contract code associated with the state object
-			if stateEntry.stateObject.code != nil && stateEntry.stateObject.dirtyCode {
+			if !stateEntry.stateObject.code.IsEmpty() && stateEntry.stateObject.dirtyCode {
 				stateEntry.stateObject.commitCode()
 				stateEntry.stateObject.dirtyCode = false
 			}

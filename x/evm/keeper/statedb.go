@@ -43,8 +43,8 @@ func (k *Keeper) SetState(ctx sdk.Context, addr ethcmn.Address, key, value ethcm
 }
 
 // SetCode calls CommitStateDB.SetCode using the passed in context
-func (k *Keeper) SetCode(ctx sdk.Context, addr ethcmn.Address, code []byte) {
-	k.CommitStateDB.WithContext(ctx).SetCode(addr, code)
+func (k *Keeper) SetCode(ctx sdk.Context, addr ethcmn.Address, code types.Code) {
+	k.CommitStateDB.WithContext(ctx).SetCode(addr, code.CompressedBytes)
 }
 
 // SetLogs calls CommitStateDB.SetLogs using the passed in context
@@ -102,8 +102,9 @@ func (k *Keeper) BlockHash(ctx sdk.Context) ethcmn.Hash {
 }
 
 // GetCode calls CommitStateDB.GetCode using the passed in context
-func (k *Keeper) GetCode(ctx sdk.Context, addr ethcmn.Address) []byte {
-	return k.CommitStateDB.WithContext(ctx).GetCode(addr)
+func (k *Keeper) GetCode(ctx sdk.Context, addr ethcmn.Address) types.Code {
+	codeBz := k.CommitStateDB.WithContext(ctx).GetCode(addr)
+	return types.NewCode(codeBz)
 }
 
 // GetCodeSize calls CommitStateDB.GetCodeSize using the passed in context

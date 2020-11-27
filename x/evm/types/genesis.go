@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type (
@@ -25,7 +24,7 @@ type (
 	GenesisAccount struct {
 		Address ethcmn.Address `json:"address"`
 		Balance *big.Int       `json:"balance"`
-		Code    hexutil.Bytes  `json:"code,omitempty"`
+		Code    Code           `json:"code,omitempty"`
 		Storage Storage        `json:"storage,omitempty"`
 	}
 )
@@ -41,10 +40,9 @@ func (ga GenesisAccount) Validate() error {
 	if ga.Balance.Sign() == -1 {
 		return errors.New("balance cannot be negative")
 	}
-	if ga.Code != nil && len(ga.Code) == 0 {
-		return errors.New("code bytes cannot be empty")
+	if err := ga.Code.Validate(); err != nil {
+		return err
 	}
-
 	return ga.Storage.Validate()
 }
 

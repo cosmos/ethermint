@@ -53,7 +53,8 @@ type StateObject interface {
 // Account values can be accessed and modified through the object.
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
-	code types.Code // contract bytecode, which gets set when code is loaded
+	// contract bytecode, which gets set when code is loaded
+	code Code
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
@@ -156,7 +157,8 @@ func (so *stateObject) SetCode(codeHash ethcmn.Hash, code []byte) {
 }
 
 func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
-	so.code = code
+	// compress the code bytes
+	so.code = NewCode(code)
 	so.account.CodeHash = codeHash.Bytes()
 	so.dirtyCode = true
 }
@@ -281,7 +283,9 @@ func (so *stateObject) commitState() {
 func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	store.Set(so.CodeHash(), so.code)
+	// use the compressed bytes to set the value to the store
+	// TODO: marshal bytes
+	store.Set(so.CodeHash(), so.code.CompressedBytes)
 }
 
 // ----------------------------------------------------------------------------
@@ -321,17 +325,19 @@ func (so *stateObject) Nonce() uint64 {
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(_ ethstate.Database) []byte {
-	if len(so.code) > 0 {
-		return so.code
+	if so.code.Size > 0 {
+		// return the original decompressed bytes
+		return so.code.Bytes()
 	}
 
-	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+	codeHash := so.CodeHash()
+	if bytes.Equal(codeHash, emptyCodeHash) {
 		return nil
 	}
 
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	code := store.Get(so.CodeHash())
+	code := store.Get(codeHash)
 
 	if len(code) == 0 {
 		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
