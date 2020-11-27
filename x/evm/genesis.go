@@ -14,7 +14,7 @@ import (
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate {
+func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
