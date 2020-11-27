@@ -39,7 +39,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Bug Fixes
 
-* (rpc) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
+* (evm) [\#621](https://github.com/cosmos/ethermint/issues/621) EVM `GenesisAccount` fields now share the same format as the auth module `Account`.
+* (app) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
 
 ## [v0.3.1] - 2020-11-24
 
