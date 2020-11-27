@@ -61,7 +61,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 					},
 				},
 			},
-			true,
+			false,
 		},
 		{
 			"account not found",
