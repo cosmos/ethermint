@@ -37,6 +37,11 @@ func (c Code) Bytes() []byte {
 	return bz
 }
 
+// String returns the compressed bytes in hex format.
+func (c Code) String() string {
+	return c.CompressedBytes.String()
+}
+
 // IsEmpty returns true if the code is uninitialized or contains empty values.
 func (c Code) IsEmpty() bool {
 	return c.Size == 0 && len(c.CompressedBytes) == 0
@@ -45,11 +50,10 @@ func (c Code) IsEmpty() bool {
 // Validate checks that the bytes are not empty and that the original size is greater
 // or equal than the compressed bytes length.
 func (c Code) Validate() error {
-	lenBz := len(c.CompressedBytes)
-	if lenBz == 0 {
-		return errors.New("compressed code bytes cannot be empty")
+	if c.IsEmpty() {
+		return errors.New("code bytes cannot be empty")
 	}
-	if c.Size < lenBz {
+	if c.Size < len(c.CompressedBytes) {
 		return fmt.Errorf("original code size should be ≥ compressed bytes size")
 	}
 	return nil
