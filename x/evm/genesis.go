@@ -7,7 +7,7 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -24,15 +24,24 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		// check that the EVM balance the matches the account balance
 		acc := accountKeeper.GetAccount(ctx, accAddress)
 		if acc == nil {
-			panic(fmt.Errorf("account not found for address %s", address))
+			panic(fmt.Errorf("account not found for address %s", account.Address))
+		}
+
+		_, ok := acc.(*ethermint.EthAccount)
+		if !ok {
+			panic(
+				fmt.Errorf("account %s must be an %T type, got %T",
+					account.Address, &ethermint.EthAccount{}, acc,
+				),
+			)
 		}
 
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		if !evmBalance.Equal(account.Balance) {
 			panic(
 				fmt.Errorf(
-					"balance mismatch for account %s, expected %s %s, got %s %s",
-					address, evmBalance, evmDenom, account.Balance, evmDenom,
+					"balance mismatch for account %s, expected %s%s, got %s%s",
+					account.Address, evmBalance, evmDenom, account.Balance, evmDenom,
 				),
 			)
 		}
@@ -46,8 +55,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	var err error
 	for _, txLog := range data.TxsLogs {
-		err = k.SetLogs(ctx, txLog.Hash, txLog.Logs)
-		if err != nil {
+		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
 			panic(err)
 		}
 	}
@@ -78,7 +86,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	accounts := ak.GetAllAccounts(ctx)
 
 	for _, account := range accounts {
-		ethAccount, ok := account.(*emint.EthAccount)
+		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
 			continue
 		}
