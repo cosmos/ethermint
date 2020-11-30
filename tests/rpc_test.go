@@ -32,6 +32,7 @@ const (
 )
 
 var (
+	MODE       = os.Getenv("MODE")
 	from       = []byte{}
 	zeroString = "0x0"
 )
@@ -55,7 +56,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestBlockBloom(t *testing.T) {
-	hash := DeployTestContractWithFunction(t)
+	hash := DeployTestContractWithFunction(t, from)
 	receipt := WaitForReceipt(t, hash)
 
 	number := receipt["blockNumber"].(string)
@@ -102,7 +103,7 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = res.String()
 
-	hash := DeployTestContractWithFunction(t)
+	hash := DeployTestContractWithFunction(t, from)
 	WaitForReceipt(t, hash)
 
 	rpcRes = Call(t, "eth_getLogs", param)
@@ -121,7 +122,7 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	}
 
 	prev := GetNonce(t, "latest")
-	SendTestTransaction(t)
+	SendTestTransaction(t, from)
 	post := GetNonce(t, "latest")
 	require.Equal(t, prev, post-1)
 }
@@ -132,7 +133,7 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 		t.Skip("skipping TestEth_GetTransactionLogs")
 	}
 
-	hash, _ := DeployTestContract(t)
+	hash, _ := DeployTestContract(t, from)
 
 	param := []string{hash.String()}
 	rpcRes := Call(t, "eth_getTransactionLogs", param)
@@ -351,7 +352,7 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 }
 
 func TestEth_GetTransactionReceipt(t *testing.T) {
-	hash := SendTestTransaction(t)
+	hash := SendTestTransaction(t, from)
 
 	time.Sleep(time.Second * 5)
 
@@ -368,7 +369,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 }
 
 func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
-	hash, _ := DeployTestContract(t)
+	hash, _ := DeployTestContract(t, from)
 
 	time.Sleep(time.Second * 5)
 
@@ -405,7 +406,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 	require.NoError(t, err)
 
 	// deploy contract, emitting some event
-	DeployTestContract(t)
+	DeployTestContract(t, from)
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
@@ -453,7 +454,7 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err, string(rpcRes.Result))
 
-	DeployTestContractWithFunction(t)
+	DeployTestContractWithFunction(t, from)
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
@@ -483,7 +484,7 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &ID)
 	require.NoError(t, err)
 
-	DeployTestContractWithFunction(t)
+	DeployTestContractWithFunction(t, from)
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
@@ -508,7 +509,7 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 5; i++ {
-		DeployTestContractWithFunction(t)
+		DeployTestContractWithFunction(t, from)
 	}
 
 	time.Sleep(10 * time.Second)
