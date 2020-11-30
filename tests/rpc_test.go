@@ -69,7 +69,7 @@ func TestBlockBloom(t *testing.T) {
 
 	lb := HexToBigInt(t, block["logsBloom"].(string))
 	require.NotEqual(t, big.NewInt(0), lb)
-	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
+	require.Equal(t, fmt.Stringer.String(hash), block["transactions"].([]interface{})[0])
 }
 
 func TestEth_GetLogs_NoLogs(t *testing.T) {
@@ -135,7 +135,7 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 
 	hash, _ := DeployTestContract(t, from)
 
-	param := []string{hash.String()}
+	param := []string{fmt.Stringer.String(hash)}
 	rpcRes := Call(t, "eth_getTransactionLogs", param)
 
 	logs := new([]*ethtypes.Log)
@@ -356,7 +356,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 
-	param := []string{hash.String()}
+	param := []string{fmt.Stringer.String(hash)}
 	rpcRes := Call(t, "eth_getTransactionReceipt", param)
 	require.Nil(t, rpcRes.Error)
 
@@ -373,7 +373,7 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 
-	param := []string{hash.String()}
+	param := []string{fmt.Stringer.String(hash)}
 	rpcRes := Call(t, "eth_getTransactionReceipt", param)
 
 	receipt := make(map[string]interface{})
