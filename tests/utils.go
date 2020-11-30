@@ -210,8 +210,9 @@ func DeployTestContractWithFunction(t *testing.T, addr []byte) hexutil.Bytes {
 	return hash
 }
 
+//nolint
 func GetTransactionReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
-	param := []string{fmt.Stringer.String(hash)}
+	param := []string{hash.String()}
 	rpcRes := Call(t, "eth_getTransactionReceipt", param)
 
 	receipt := make(map[string]interface{})
