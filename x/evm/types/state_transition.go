@@ -62,12 +62,12 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHa
 		case ctx.BlockHeight() == int64(height):
 			// Case 1: The requested height matches the one from the context so we can retrieve the header
 			// hash directly from the context.
-			return hashFromContext(ctx)
+			return HashFromContext(ctx)
 
 		case ctx.BlockHeight() > int64(height):
 			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
 			// current chain epoch. This only applies if the current height is greater than the requested height.
-			hash, found = csdb.GetHeightHash(chainEpoch, height)
+			hash, found = csdb.WithContext(ctx).GetHeightHash(chainEpoch, height)
 		}
 
 		if found {
@@ -77,7 +77,7 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHa
 		// Case 3: iterate over the past chain epochs and check if there was a previous epoch with the requested
 		// height. This case applies when a chain upgrades to a non-zero height.
 		// Eg: chainID ethermint-1, epoch number: 1, final height: 100 --> chainID ethermint-2, epoch number: 2, initial height: 101
-		hash, found = csdb.FindHeightHash(height)
+		hash, found = csdb.WithContext(ctx).FindHeightHash(height)
 		if !found {
 			// return an empty hash if the hash wasn't found
 			return common.Hash{}
@@ -271,9 +271,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	return executionResult, nil
 }
 
-// hashFromContext returns the Ethereum Header hash from the context's Tendermint
+// HashFromContext returns the Ethereum Header hash from the context's Tendermint
 // block header.
-func hashFromContext(ctx sdk.Context) common.Hash {
+func HashFromContext(ctx sdk.Context) common.Hash {
 	// cast the ABCI header to tendermint Header type
 	tmHeader := AbciHeaderToTendermint(ctx.BlockHeader())
 
