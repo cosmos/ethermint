@@ -940,7 +940,9 @@ func (csdb *CommitStateDB) RawDump() ethstate.Dump {
 	return ethstate.Dump{}
 }
 
-// FindHeightHash iterates
+// FindHeightHash iterates over all the hashes stored for a given height. The function will always
+// return the hash for the latest chain epoch at the requested height. If there's no hash stored for
+// the height, the function will return not found.
 func (csdb *CommitStateDB) FindHeightHash(height uint64) (ethcmn.Hash, bool) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	// use the height as the prefix iterator to iterate on all the epochs
