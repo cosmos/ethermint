@@ -951,15 +951,15 @@ func (csdb *CommitStateDB) FindHeightHash(height uint64) (ethcmn.Hash, bool) {
 	iterator := sdk.KVStoreReversePrefixIterator(store, prefix)
 	defer iterator.Close()
 
-	for ; iterator.Valid(); iterator.Next() {
-		// NOTE: if the store has a hash for the requested height, then we know that the first
-		// element will be the one from the latest epoch (due to the reverse/descending iteration).
-		// Thus it's safe to return the hash directly here.
-		return ethcmn.BytesToHash(iterator.Value()), true
+	if !iterator.Valid() {
+		// not found
+		return ethcmn.Hash{}, false
 	}
 
-	// not found
-	return ethcmn.Hash{}, false
+	// NOTE: if the store has a hash for the requested height, then we know that the first
+	// element will be the one from the latest epoch (due to the reverse/descending iteration).
+	// Thus it's safe to return the hash directly here.
+	return ethcmn.BytesToHash(iterator.Value()), true
 }
 
 type preimageEntry struct {
