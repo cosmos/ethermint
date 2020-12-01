@@ -274,6 +274,10 @@ test-contract:
 	@type "protoc" 2> /dev/null || (echo 'Failed to install protoc. Please reinstall protoc using make contract-tools.' && exit 1)
 	bash scripts/contract-test.sh
 
+test-benchmark:
+	@echo "Running benchmark with 5000 tx"
+	bash benchmarking/emint/testh.sh 5000
+
 test-sim-nondeterminism:
 	@echo "Running non-determinism test..."
 	@go test -mod=readonly $(SIMAPP) -run TestAppStateDeterminism -Enabled=true \
