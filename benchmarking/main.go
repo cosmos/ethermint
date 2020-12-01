@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cosmos/ethermint/docker/benchmarking/benchmark"
+	"github.com/cosmos/ethermint/benchmarking/benchmark"
 	"github.com/urfave/cli"
 )
 

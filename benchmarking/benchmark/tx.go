@@ -253,7 +253,7 @@ func sendTx(ctx *cli.Context) error {
 		return nil
 	}
 
-	//remove facuet from list of accts
+	//remove acct facuet from list of accts
 	accts = accts[1:]
 
 	var nonces = make([]int, len(accts))
@@ -480,16 +480,18 @@ func analyze(ctx *cli.Context) error {
 	scanner := bufio.NewScanner(resourcef)
 	re := regexp.MustCompile(`\s+`)
 
-	var currentTimeStamp int
-	var emintdCPUUsage []float64
-	var emintdRAMUsage []float64
-	var emintcliCPUUsage []float64
-	var emintcliRAMUsage []float64
-	var gethCPUUsage []float64
-	var gethRAMUsage []float64
-	var emintdTimestamps []int
-	var emintcliTimestamps []int
-	var gethTimestamps []int
+	var (
+		currentTimeStamp   int
+		emintdCPUUsage     []float64
+		emintdRAMUsage     []float64
+		emintcliCPUUsage   []float64
+		emintcliRAMUsage   []float64
+		gethCPUUsage       []float64
+		gethRAMUsage       []float64
+		emintdTimestamps   []int
+		emintcliTimestamps []int
+		gethTimestamps     []int
+	)
 
 	for scanner.Scan() {
 		s := re.ReplaceAllString(scanner.Text(), " ")
@@ -577,10 +579,10 @@ func analyze(ctx *cli.Context) error {
 	fmt.Println("-------------------------")
 	if ctx.Int("start") > 0 && ctx.Int("end") > 0 {
 		if ctx.String("protocol") == "emint" {
-			fmt.Println("Average CPU Usage [emintd]: ", average(emintdCPUUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
-			fmt.Println("Average RAM Usage [emintd]: ", average(emintdRAMUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
-			fmt.Println("Average CPU Usage [emintcli]: ", average(emintcliCPUUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
-			fmt.Println("Average RAM Usage [emintcli]: ", average(emintcliRAMUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+			fmt.Println("Average CPU Usage [ethermintd]: ", average(emintdCPUUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+			fmt.Println("Average RAM Usage [ethermintd]: ", average(emintdRAMUsage, emintdTimestamps, ctx.Int("start"), ctx.Int("end")))
+			fmt.Println("Average CPU Usage [ethermintcli]: ", average(emintcliCPUUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
+			fmt.Println("Average RAM Usage [ethermintcli]: ", average(emintcliRAMUsage, emintcliTimestamps, ctx.Int("start"), ctx.Int("end")))
 		} else {
 			fmt.Println("Average CPU Usage [geth]: ", average(gethCPUUsage, gethTimestamps, ctx.Int("start"), ctx.Int("end")))
 			fmt.Println("Average RAM Usage [geth]: ", average(gethRAMUsage, gethTimestamps, ctx.Int("start"), ctx.Int("end")))
