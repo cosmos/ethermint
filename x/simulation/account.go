@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 // RandomAccounts generates n random accounts
@@ -12,7 +12,7 @@ func RandomAccounts(n int) []simulation.Account {
 	accs := make([]simulation.Account, n)
 	for i := 0; i < n; i++ {
 		var err error
-		accs[i].PrivKey, err = crypto.GenerateKey()
+		accs[i].PrivKey, err = ethsecp256k1.GenerateKey()
 		if err != nil {
 			panic(err)
 		}
