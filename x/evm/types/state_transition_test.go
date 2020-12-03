@@ -24,19 +24,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 		expEmptyHash bool
 	}{
 		{
-			"height mismatch",
-			100,
-			func() {},
-			true,
-		},
-		{
-			"nil tendermint hash",
-			1,
-			func() {},
-			true,
-		},
-		{
-			"valid hash",
+			"valid hash, case 1",
 			1,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
@@ -49,18 +37,87 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			},
 			false,
 		},
+		{
+			"case 1, nil tendermint hash",
+			1,
+			func() {},
+			true,
+		},
+		{
+			"valid hash, case 2",
+			1,
+			func() {
+				suite.ctx = suite.ctx.WithBlockHeader(
+					abci.Header{
+						ChainID:        "ethermint-1",
+						Height:         100,
+						ValidatorsHash: []byte("val_hash"),
+					},
+				)
+				hash := types.HashFromContext(suite.ctx)
+				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, 1, hash)
+			},
+			false,
+		},
+		{
+			"height not found, case 2",
+			1,
+			func() {
+				suite.ctx = suite.ctx.WithBlockHeader(
+					abci.Header{
+						ChainID:        "ethermint-1",
+						Height:         100,
+						ValidatorsHash: []byte("val_hash"),
+					},
+				)
+			},
+			true,
+		},
+		{
+			"valid hash, case 3",
+			1,
+			func() {
+				suite.ctx = suite.ctx.WithBlockHeader(
+					abci.Header{
+						ChainID:        "ethermint-2",
+						Height:         100,
+						ValidatorsHash: []byte("val_hash"),
+					},
+				)
+				hash := types.HashFromContext(suite.ctx)
+				suite.stateDB.WithContext(suite.ctx).SetHeightHash(2, 1, hash)
+			},
+			false,
+		},
+		{
+			"empty hash, case 3",
+			1000,
+			func() {
+				suite.ctx = suite.ctx.WithBlockHeader(
+					abci.Header{
+						ChainID:        "ethermint-2",
+						Height:         100,
+						ValidatorsHash: []byte("val_hash"),
+					},
+				)
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCase {
-		tc.malleate()
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset
 
-		hash := types.GetHashFn(suite.ctx, suite.stateDB, suite.chainEpoch)(tc.height)
-		if tc.expEmptyHash {
-			suite.Require().Equal(common.Hash{}, hash)
-		} else {
-			suite.Require().Equal(int64(tc.height), suite.ctx.BlockHeight())
-			suite.Require().NotEqual(common.Hash{}, hash)
-		}
+			tc.malleate()
+
+			hash := types.GetHashFn(suite.ctx, suite.stateDB, suite.chainEpoch)(tc.height)
+			if tc.expEmptyHash {
+				suite.Require().Equal(common.Hash{}.String(), hash.String())
+			} else {
+				suite.Require().NotEqual(common.Hash{}.String(), hash.String())
+			}
+		})
 	}
 }
 
