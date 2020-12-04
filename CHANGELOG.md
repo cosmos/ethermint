@@ -37,6 +37,26 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## Unreleased
 
+### Bug Fixes
+
+* (evm) [\#621](https://github.com/cosmos/ethermint/issues/621) EVM `GenesisAccount` fields now share the same format as the auth module `Account`.
+* (app) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
+
+## [v0.3.1] - 2020-11-24
+
+### Improvements
+
+* (deps) [\#615](https://github.com/cosmos/ethermint/pull/615) Bump Cosmos SDK version to [v0.39.2](https://github.com/cosmos/cosmos-sdk/tag/v0.39.2)
+* (deps) [\#610](https://github.com/cosmos/ethermint/pull/610) Update Go dependency to 1.15+.
+* (evm) [#603](https://github.com/cosmos/ethermint/pull/603) Add state transition params that enable or disable the EVM `Call` and `Create` operations.
+* (deps) [\#602](https://github.com/cosmos/ethermint/pull/602) Bump tendermint version to [v0.33.9](https://github.com/tendermint/tendermint/releases/tag/v0.33.9)
+
+### Bug Fixes
+
+* (rpc) [\#613](https://github.com/cosmos/ethermint/issues/613) Fix potential deadlock caused if the keyring `List` returned an error.
+
+## [v0.3.0] - 2020-11-16
+
 ### API Breaking
 
 * (crypto) [\#559](https://github.com/cosmos/ethermint/pull/559) Refactored crypto package in preparation for the SDK's Stargate release:
@@ -48,7 +68,6 @@ corresponding Ethereum API namespace:
   * `rpc/namespaces/personal`: `personal` namespace. Exposes the `PrivateAccountAPI`.
   * `rpc/namespaces/net`: `net` namespace. Exposes the `PublicNetAPI`.
   * `rpc/namespaces/web3`: `web3` namespace. Exposes the `PublicWeb3API`.
-
 * (evm) [\#588](https://github.com/cosmos/ethermint/pull/588) The EVM transaction CLI has been removed in favor of the JSON-RPC.
 
 ### Improvements
