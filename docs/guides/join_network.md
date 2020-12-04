@@ -26,7 +26,7 @@ Follow this [link](https://gist.github.com/araskachoi/43f86f3edff23729b817e8b0bb
 4. Add peers:
 Edit the file located in ~/.ethermintd/config/config.toml and edit line 350 (persistent_peers) to the following;
 ```
-"6a93c60346eab9968c81036c261daedf7d2ca78f@54.210.246.165:26656,b1a0805e746ccf4c4b27c0cd4d180bdd6932525c@18.204.206.179:26656,7d4e24a6dce1b91add27adbd5e0ccd74a2bd53c2@3.86.104.251:26656"
+"aad1e55aa61b9142e57db756b398bb769ec4132a@54.210.246.165:26656,519613343d7d0773fb99da6fffca858d8df33cd4@18.204.206.179:26656,64ffe6743666b0e186638013117f164c5cf16d21@3.86.104.251:26656"
 ```
 
 5. Validate genesis and start the Ethermint network:
@@ -53,5 +53,16 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1
 ```
 Using the output of the above command, you will then send the command with your valid Ethereum address:
 ```
-curl --header "Content-Type: application/json" --request POST --data '{"address":"0xYouEthereumHexAddress"}' 3.95.21.91:3000
+curl --header "Content-Type: application/json" --request POST --data '{"address":"0xYourEthereumHexAddress"}' 3.95.21.91:3000
+```
+
+## Public Testnet Node RPC Endpoints
+
+Node0: `54.210.246.165:8545`
+Node1: `3.86.104.251:8545`
+Node2: `18.204.206.179:8545`
+
+example:
+```
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' -H "Content-Type: application/json" 54.210.246.165:8545
 ```
