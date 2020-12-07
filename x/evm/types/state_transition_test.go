@@ -74,28 +74,12 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			true,
 		},
 		{
-			"valid hash, case 3",
-			1,
-			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
-						ChainID:        "ethermint-2",
-						Height:         100,
-						ValidatorsHash: []byte("val_hash"),
-					},
-				)
-				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
-			},
-			false,
-		},
-		{
 			"empty hash, case 3",
 			1000,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
 					abci.Header{
-						ChainID:        "ethermint-2",
+						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
 					},
