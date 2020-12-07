@@ -95,7 +95,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 
 			tc.malleate()
 
-			hash := types.GetHashFn(suite.ctx, suite.stateDB, suite.chainEpoch)(tc.height)
+			hash := types.GetHashFn(suite.ctx, suite.stateDB)(tc.height)
 			if tc.expEmptyHash {
 				suite.Require().Equal(common.Hash{}.String(), hash.String())
 			} else {

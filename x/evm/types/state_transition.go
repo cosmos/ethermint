@@ -51,7 +51,7 @@ type ExecutionResult struct {
 //  1. The requested height matches the current height from context (and thus same epoch number)
 //  2. The requested height is from an previous height from the same chain epoch
 //  3. The requested height is from a height greater than the latest one
-func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHashFunc {
+func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	return func(height uint64) common.Hash {
 		switch {
 		case ctx.BlockHeight() == int64(height):
@@ -82,7 +82,7 @@ func (st StateTransition) newEVM(
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
-		GetHash:     GetHashFn(ctx, csdb, st.ChainID.Uint64()),
+		GetHash:     GetHashFn(ctx, csdb),
 		Origin:      st.Sender,
 		Coinbase:    common.Address{}, // there's no benefitiary since we're not mining
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
