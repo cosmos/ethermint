@@ -34,6 +34,7 @@ evm/
 │       ├── query.go      # CLI query commands for the module
 │       └── tx.go         # CLI transaction commands for the module
 ├── keeper
+│   ├── keeper.go         # ABCI BeginBlock and EndBlock logic
 │   ├── keeper.go         # Store keeper that handles the business logic of the module and has access to a specific subtree of the state tree.
 │   ├── params.go         # Parameter getter and setter
 │   ├── querier.go        # State query functions
@@ -53,7 +54,6 @@ evm/
 │   ├── statedb.go        # Implementation of the StateDb interface
 │   ├── storage.go        # Implementation of the Ethereum state storage map using arrays to prevent non-determinism
 │   └── tx_data.go        # Ethereum transaction data types
-├── abci.go               # ABCI BeginBlock and EndBlock logic
 ├── genesis.go            # ABCI InitGenesis and ExportGenesis functionality
 ├── handler.go            # Message routing
 └── module.go             # Module setup for the module manager
