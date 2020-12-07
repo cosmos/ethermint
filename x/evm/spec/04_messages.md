@@ -13,36 +13,9 @@ One remark about the `MsgEthereumTx` is that it implements both the [`sdk.Msg`](
 interfaces (generally SDK messages only implement the former, while the latter is a group of
 messages bundled together). The reason of this, is because the `MsgEthereumTx` must not be included in a [`auth.StdTx`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.1/x/auth/types/stdtx.go#L23-L30) (SDK's standard transaction type) as it performs gas and fee checks using the Ethereum logic from Geth instead of the Cosmos SDK checks done on the `auth` module `AnteHandler`.
 
-```go
-type MsgEthereumTx struct {
-  Data TxData
++++ https://github.com/cosmos/ethermint/blob/v0.3.1/x/evm/types/msg.go#L117-L124
 
-  // caches
-  size atomic.Value
-  from atomic.Value
-}
-```
-
-```go
-// TxData implements the Ethereum transaction data structure. It is used
-// solely as intended in Ethereum abiding by the protocol.
-type TxData struct {
-  AccountNonce uint64          `json:"nonce"`
-  Price        *big.Int        `json:"gasPrice"`
-  GasLimit     uint64          `json:"gas"`
-  Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
-  Amount       *big.Int        `json:"value"`
-  Payload      []byte          `json:"input"`
-
-  // signature values
-  V *big.Int `json:"v"`
-  R *big.Int `json:"r"`
-  S *big.Int `json:"s"`
-
-  // hash is only used when marshaling to JSON
-  Hash *ethcmn.Hash `json:"hash" rlp:"-"`
-}
-```
++++ https://github.com/cosmos/ethermint/blob/v0.3.1/x/evm/types/tx_data.go#L12-L29
 
 This message validation is expected to fail if:
 
