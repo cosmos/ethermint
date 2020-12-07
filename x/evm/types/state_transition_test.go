@@ -55,7 +55,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 					},
 				)
 				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, 1, hash)
+				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
 			},
 			false,
 		},
@@ -85,7 +85,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 					},
 				)
 				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(2, 1, hash)
+				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
 			},
 			false,
 		},

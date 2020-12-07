@@ -50,14 +50,9 @@ type ExecutionResult struct {
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
 //  1. The requested height matches the current height from context (and thus same epoch number)
 //  2. The requested height is from an previous height from the same chain epoch
-//  3. The requested height is from a previous chain epoch number (i.e previous chain version)
+//  3. The requested height is from a height greater than the latest one
 func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHashFunc {
 	return func(height uint64) common.Hash {
-		var (
-			hash  common.Hash
-			found bool
-		)
-
 		switch {
 		case ctx.BlockHeight() == int64(height):
 			// Case 1: The requested height matches the one from the context so we can retrieve the header
@@ -67,23 +62,12 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB, chainEpoch uint64) vm.GetHa
 		case ctx.BlockHeight() > int64(height):
 			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
 			// current chain epoch. This only applies if the current height is greater than the requested height.
-			hash, found = csdb.WithContext(ctx).GetHeightHash(chainEpoch, height)
-		}
+			return csdb.WithContext(ctx).GetHeightHash(height)
 
-		if found {
-			return hash
-		}
-
-		// Case 3: iterate over the past chain epochs and check if there was a previous epoch with the requested
-		// height. This case applies when a chain upgrades to a non-zero height.
-		// Eg: chainID ethermint-1, epoch number: 1, final height: 100 --> chainID ethermint-2, epoch number: 2, initial height: 101
-		hash, found = csdb.WithContext(ctx).FindHeightHash(height)
-		if !found {
-			// return an empty hash if the hash wasn't found
+		default:
+			// Case 3: heights greater than the current one returns an empty hash.
 			return common.Hash{}
 		}
-
-		return hash
 	}
 }
 
