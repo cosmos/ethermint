@@ -6,7 +6,17 @@ order: 5
 
 ## InitGenesis
 
+`InitGenesis` initializes the EVM module genesis state by setting the `GenesisState` fields to the
+store. In particular it sets the parameters, configuration, accounts and transaction logs.
+
+The function also performs the invariant that the EVM balance  from the `GenesisAccount` matches the
+balance amount from the `EthAccount` as defined on the `auth` module.
+
 ## ExportGenesis
+
+The `ExportGenesis` ABCI function exports the genesis state of the EVM module. In particular, it
+retrieves all the accounts with their bytecode, balance and storage, the transaction logs, and the
+EVM parameters and chain configuration.
 
 ## BeginBlock
 
