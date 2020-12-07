@@ -27,7 +27,6 @@ type StateDBTestSuite struct {
 
 	ctx         sdk.Context
 	app         *app.EthermintApp
-	chainEpoch  uint64
 	stateDB     *types.CommitStateDB
 	address     ethcmn.Address
 	stateObject types.StateObject
@@ -42,7 +41,6 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
-	suite.chainEpoch = 1
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
