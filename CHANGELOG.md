@@ -41,6 +41,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (evm) [\#621](https://github.com/cosmos/ethermint/issues/621) EVM `GenesisAccount` fields now share the same format as the auth module `Account`.
 * (app) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
+* (rpc) [\#574](https://github.com/cosmos/ethermint/issues/574) Fix outdated version from `eth_protocolVersion`.
 
 ## [v0.3.1] - 2020-11-24
 
@@ -73,10 +74,6 @@ corresponding Ethereum API namespace:
 ### Improvements
 
 * (deps) [\#594](https://github.com/cosmos/ethermint/pull/594) Bump go-ethereum version to [v1.9.24](https://github.com/ethereum/go-ethereum/releases/tag/v1.9.24)
-
-### Improvements
-
-* (rpc) [\#574](https://github.com/cosmos/ethermint/issues/574) `eth_protocolVersion` now always returns the latest protocol version from go-ethereum.
 
 ### Bug Fixes
 
