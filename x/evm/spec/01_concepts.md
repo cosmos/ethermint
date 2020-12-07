@@ -39,14 +39,14 @@ type GenesisState struct {
 The `GenesisAccount` type corresponds to an adaptation of the Ethereum `GenesisAccount` type. Its
 main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead of maps for the evm `State`,and that it doesn't contain the private key field.
 
-It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and balance state,  the `Address` must correspond to an `EthAccount` that is stored in the auth AccountKeeper and the balance must match the balance of the `EvmDenom` token denomination  defined on the `GenesisState`'s `Param`.
+It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and balance state,  the `Address` must correspond to an `EthAccount` that is stored in the `auth`'s module `AccountKeeper` and the balance must match the balance of the `EvmDenom` token denomination  defined on the `GenesisState`'s `Param`. The values for the address and the balance amount maintain the same format as the ones from the SDK to make manual inspections easier on the genesis.json.
 
 ```go
 type GenesisAccount struct {
-  Address ethcmn.Address `json:"address"`
-  Balance *big.Int       `json:"balance"`
-  Code    hexutil.Bytes  `json:"code,omitempty"`
-  Storage Storage        `json:"storage,omitempty"`
+  Address string        `json:"address"`
+  Balance sdk.Int       `json:"balance"`
+  Code    hexutil.Bytes `json:"code,omitempty"`
+  Storage Storage       `json:"storage,omitempty"`
 }
 ```
 
@@ -68,7 +68,7 @@ type TransactionLogs struct {
 
 ### Chain Config
 
-The `ChainConfig` is a custom type that contains the same fields as the go-ethereum ChainConfig
+The `ChainConfig` is a custom type that contains the same fields as the go-ethereum `ChainConfig`
 parameters, but using `sdk.Int` types instead of `*big.Int`. It also defines additional YAML tags
 for pretty printing.
 
@@ -100,7 +100,7 @@ type ChainConfig struct {
   IstanbulBlock       sdk.Int `json:"istanbul_block" yaml:"istanbul_block"`             // Istanbul switch block (< 0 no fork, 0 = already on istanbul)
   MuirGlacierBlock    sdk.Int `json:"muir_glacier_block" yaml:"muir_glacier_block"`     // Eip-2384 (bomb delay) switch block (< 0 no fork, 0 = already activated)
 
-  YoloV1Block sdk.Int `json:"yoloV1_block" yaml:"yoloV1_block"` // YOLO v1: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
+  YoloV2Block sdk.Int `json:"yoloV2_block" yaml:"yoloV2_block"` // YOLO v2: https://github.com/ethereum/EIPs/pull/2657 (Ephemeral testnet)
   EWASMBlock  sdk.Int `json:"ewasm_block" yaml:"ewasm_block"`   // EWASM switch block (< 0 no fork, 0 = already activated)
 }
 ```

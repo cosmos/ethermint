@@ -6,11 +6,13 @@ order: 7
 
 The evm module contains the following parameters:
 
-| Key        | Type   | Default Value |
-|------------|--------|---------------|
-| `EVMDenom` | string | `aphoton`     |
+| Key            | Type   | Default Value |
+|----------------|--------|---------------|
+| `EVMDenom`     | string | `aphoton`     |
+| `EnableCreate` | bool   | `true`        |
+| `EnableCall`   | bool   | `true`        |
 
-## EVMDenom
+## EVM denom
 
 The evm denomination parameter defines the token denomination used on the EVM state transitions and
 gas consumption for EVM messages.
@@ -27,3 +29,13 @@ For example, on Ethereum, the `evm_denom` would be `ETH`. In the case of Ethermi
 ::: danger
 SDK applications that want to import the EVM module as a dependency will need to set their own `evm_denom` (i.e not `"aphoton"`).
 :::
+
+## Enable Create
+
+The enable create parameter toggles state transitions that use the `vm.Create` function. When the
+parameter is disabled, it will prevent all contract creation functionality.
+
+## Enable Transfer
+
+The enable transfer toggles state transitions that use the `vm.Call` function. When the parameter is
+disabled, it will prevent transfers between accounts and executing a smart contract call.
