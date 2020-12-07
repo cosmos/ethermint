@@ -23,8 +23,9 @@ EVM parameters and chain configuration.
 The EVM module `BeginBlock` logic is executed prior to handling the state transitions from the
 transactions. The main objective of this function is to:
 
-* Set the block header hash to the module state. This workaround is due to the fact that until the
-  `v0.34.0` Tendermint version it wasn't possible to query and subscribe to a block by hash.
+* Set the block header hash mappings to the module state (`hash -> height` and `height -> hash`).
+  This workaround is due to the fact that until the `v0.34.0` Tendermint version it wasn't possible
+  to query and subscribe to a block by hash.
 
 * Reset bloom filter and block transaction count. These variables, which are fields of the EVM
   `Keeper`, are updated on every EVM transaction.
