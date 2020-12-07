@@ -10,15 +10,17 @@ EVM is the Ethereum Virtual Machine that the necessary tools to run or create a 
 
 ## State DB
 
-The `StateDB` interface from geth represents an EVM database for full state querying of both contracts and accounts. The concrete type that fulfills this interface on Ethermint is the `CommitStateDB`.
+The `StateDB` interface from geth represents an EVM database for full state querying of both
+contracts and accounts. The concrete type that fulfills this interface on Ethermint is the
+`CommitStateDB`.
 
 ## State Object
 
 `stateObject` represents an Ethereum account which is being modified.
 The usage pattern is as follows:
 
-First you need to obtain a state object.
-Account values can be accessed and modified through the object.
+* First you need to obtain a state object.
+* Account values can be accessed and modified through the object.
 
 ## Genesis State
 
@@ -37,9 +39,14 @@ type GenesisState struct {
 ### Genesis Accounts
 
 The `GenesisAccount` type corresponds to an adaptation of the Ethereum `GenesisAccount` type. Its
-main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead of maps for the evm `State`,and that it doesn't contain the private key field.
+main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead
+of maps for the evm `State`,and that it doesn't contain the private key field.
 
-It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and balance state,  the `Address` must correspond to an `EthAccount` that is stored in the `auth`'s module `AccountKeeper` and the balance must match the balance of the `EvmDenom` token denomination  defined on the `GenesisState`'s `Param`. The values for the address and the balance amount maintain the same format as the ones from the SDK to make manual inspections easier on the genesis.json.
+It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and
+balance state,  the `Address` must correspond to an `EthAccount` that is stored in the `auth`'s
+module `AccountKeeper` and the balance must match the balance of the `EvmDenom` token denomination
+defined on the `GenesisState`'s `Param`. The values for the address and the balance amount maintain
+the same format as the ones from the SDK to make manual inspections easier on the genesis.json.
 
 ```go
 type GenesisAccount struct {
@@ -57,7 +64,8 @@ execution that are used by the JSON-RPC Web3 server for for filter querying. Sin
 don't persist the transactions on the blockchain state, we need to persist the logs the EVM module
 state to prevent the queries from failing.
 
-`TxsLogs` is the field that contains all the transaction logs that need to be persisted after an upgrade. It uses an array instead of a map to ensure determinism on the iteration.
+`TxsLogs` is the field that contains all the transaction logs that need to be persisted after an
+upgrade. It uses an array instead of a map to ensure determinism on the iteration.
 
 ```go
 type TransactionLogs struct {
