@@ -1,4 +1,4 @@
-package rpc
+package web3
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 // PublicWeb3API is the web3_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicWeb3API struct{}
 
-// NewPublicWeb3API creates an instance of the Web3 API.
-func NewPublicWeb3API() *PublicWeb3API {
+// NewAPI creates an instance of the Web3 API.
+func NewAPI() *PublicWeb3API {
 	return &PublicWeb3API{}
 }
 
