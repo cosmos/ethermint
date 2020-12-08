@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -77,6 +77,9 @@ type CommitStateDB struct {
 	validRevisions []revision
 	nextRevisionID int
 
+	// Per-transaction access list
+	accessList *accessList
+
 	// mutex for state deep copying
 	lock sync.Mutex
 }
@@ -100,10 +103,11 @@ func NewCommitStateDB(
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
 		journal:              newJournal(),
+		accessList:           newAccessList(),
 	}
 }
 
-// WithContext returns a Database with an updated sdk context
+// WithContext returns a Database with an updated SDK context
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
 	return csdb
@@ -112,6 +116,13 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
+
+// SetHeightHash sets the block header hash associated with a given height.
+func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(height)
+	store.Set(key, hash.Bytes())
+}
 
 // SetParams sets the evm parameters to the param space.
 func (csdb *CommitStateDB) SetParams(params Params) {
@@ -243,9 +254,56 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 	csdb.refund -= gas
 }
 
+// AddAddressToAccessList adds the given address to the access list
+func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
+	if csdb.accessList.AddAddress(addr) {
+		csdb.journal.append(accessListAddAccountChange{&addr})
+	}
+}
+
+// AddSlotToAccessList adds the given (address, slot)-tuple to the access list
+func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.Hash) {
+	addrMod, slotMod := csdb.accessList.AddSlot(addr, slot)
+	if addrMod {
+		// In practice, this should not happen, since there is no way to enter the
+		// scope of 'address' without having the 'address' become already added
+		// to the access list (via call-variant, create, etc).
+		// Better safe than sorry, though
+		csdb.journal.append(accessListAddAccountChange{&addr})
+	}
+	if slotMod {
+		csdb.journal.append(accessListAddSlotChange{
+			address: &addr,
+			slot:    &slot,
+		})
+	}
+}
+
+// AddressInAccessList returns true if the given address is in the access list.
+func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
+	return csdb.accessList.ContainsAddress(addr)
+}
+
+// SlotInAccessList returns true if the given (address, slot)-tuple is in the access list.
+func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Hash) (bool, bool) {
+	return csdb.accessList.Contains(addr, slot)
+}
+
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
+
+// GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
+func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(height)
+	bz := store.Get(key)
+	if len(bz) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(bz)
+}
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() (params Params) {
@@ -641,7 +699,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
-		emintAcc, ok := currAcc.(*emint.EthAccount)
+		ethermintAcc, ok := currAcc.(*ethermint.EthAccount)
 		if !ok {
 			continue
 		}
@@ -649,12 +707,12 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 		evmDenom := csdb.GetParams().EvmDenom
 		balance := sdk.Coin{
 			Denom:  evmDenom,
-			Amount: emintAcc.GetCoins().AmountOf(evmDenom),
+			Amount: ethermintAcc.GetCoins().AmountOf(evmDenom),
 		}
 
 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
-			stateEntry.stateObject.Nonce() != emintAcc.GetSequence() {
-			stateEntry.stateObject.account = emintAcc
+			stateEntry.stateObject.Nonce() != ethermintAcc.GetSequence() {
+			stateEntry.stateObject.account = ethermintAcc
 		}
 	}
 }

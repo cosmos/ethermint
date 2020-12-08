@@ -40,7 +40,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
@@ -65,6 +65,17 @@ func (suite *StateDBTestSuite) TestParams() {
 	suite.stateDB.SetParams(params)
 	newParams := suite.stateDB.GetParams()
 	suite.Require().Equal(newParams, params)
+}
+
+func (suite *StateDBTestSuite) TestGetHeightHash() {
+	hash := suite.stateDB.GetHeightHash(0)
+	suite.Require().Equal(ethcmn.Hash{}.String(), hash.String())
+
+	expHash := ethcmn.BytesToHash([]byte("hash"))
+	suite.stateDB.SetHeightHash(10, expHash)
+
+	hash = suite.stateDB.GetHeightHash(10)
+	suite.Require().Equal(expHash.String(), hash.String())
 }
 
 func (suite *StateDBTestSuite) TestBloomFilter() {
@@ -113,8 +124,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 			}
 		} else {
 			// get logs bloom from the log
-			bloomInt := ethtypes.LogsBloom(logs)
-			bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+			bloomBytes := ethtypes.LogsBloom(logs)
+			bloomFilter := ethtypes.BytesToBloom(bloomBytes)
 			suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress), tc.name)
 			suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))), tc.name)
 		}
@@ -694,4 +705,22 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 		})
 		storage = types.Storage{}
 	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
+	addr := ethcmn.Address([20]byte{77})
+	hash := ethcmn.Hash([32]byte{99})
+
+	suite.Require().False(suite.stateDB.AddressInAccessList(addr))
+
+	suite.stateDB.AddAddressToAccessList(addr)
+	suite.Require().True(suite.stateDB.AddressInAccessList(addr))
+	addrIn, slotIn := suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().False(slotIn)
+
+	suite.stateDB.AddSlotToAccessList(addr, hash)
+	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().True(slotIn)
 }

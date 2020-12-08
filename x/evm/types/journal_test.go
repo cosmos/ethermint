@@ -124,7 +124,7 @@ func (suite *JournalTestSuite) setup() {
 	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
-	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "8"}, false, tmlog.NewNopLogger())
+	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
 	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
@@ -218,6 +218,12 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			"addLogChange - 2 logs",
 			addLogChange{
 				txhash: ethcmn.BytesToHash([]byte("txhash")),
+			},
+		},
+		{
+			"accessListAddAccountChange",
+			accessListAddAccountChange{
+				address: &suite.address,
 			},
 		},
 	}
