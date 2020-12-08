@@ -9,9 +9,9 @@ order: 4
 An EVM state transition can be achieved by using the `MsgEthereumTx`. This message encapsulates an
 Ethereum transaction as an SDK message and contains the necessary transaction data fields.
 
-One remark about the `MsgEthereumTx` is that it implements both the [`sdk.Msg`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.1/types/tx_msg.go#L7-L29) and [`sdk.Tx`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.1/types/tx_msg.go#L33-L41)
+One remark about the `MsgEthereumTx` is that it implements both the [`sdk.Msg`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.2/types/tx_msg.go#L7-L29) and [`sdk.Tx`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.2/types/tx_msg.go#L33-L41)
 interfaces (generally SDK messages only implement the former, while the latter is a group of
-messages bundled together). The reason of this, is because the `MsgEthereumTx` must not be included in a [`auth.StdTx`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.1/x/auth/types/stdtx.go#L23-L30) (SDK's standard transaction type) as it performs gas and fee checks using the Ethereum logic from Geth instead of the Cosmos SDK checks done on the `auth` module `AnteHandler`.
+messages bundled together). The reason of this, is because the `MsgEthereumTx` must not be included in a [`auth.StdTx`](https://github.com/cosmos/cosmos-sdk/blob/v0.39.2/x/auth/types/stdtx.go#L23-L30) (SDK's standard transaction type) as it performs gas and fee checks using the Ethereum logic from Geth instead of the Cosmos SDK checks done on the `auth` module `AnteHandler`.
 
 +++ https://github.com/cosmos/ethermint/blob/v0.3.1/x/evm/types/msg.go#L117-L124
 

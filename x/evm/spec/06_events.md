@@ -13,8 +13,8 @@ interface).
 
 | Type     | Attribute Key | Attribute Value |
 |----------|---------------|-----------------|
-| ethereum | amount        | {amount}        |
-| ethereum | recipient     | {eth_address}   |
-| message  | sender        | {eth_address}   |
-| message  | action        | ethereum        |
-| message  | module        | evm             |
+| ethereum | `"amount"`    | `{amount}`      |
+| ethereum | `"recipient"` | `{eth_address}` |
+| message  | `"sender"`    | `{eth_address}` |
+| message  | `"action"`    | `"ethereum"`    |
+| message  | `"module"`    | `"evm"`         |
