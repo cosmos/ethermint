@@ -9,6 +9,7 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
+	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -62,7 +63,7 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 
 	privKey := &ethsecp256k1.PrivKey{Key: crypto.FromECDSA(priv)}
 
-	armor := keyring.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
+	armor := sdkcrypto.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	// ignore error as we only care about the length of the list
 	list, _ := api.ethAPI.ClientCtx().Keyring.List()
@@ -173,7 +174,7 @@ func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Addre
 		return false, err
 	}
 
-	privKey, algo, err := keyring.UnarmorDecryptPrivKey(armor, password)
+	privKey, algo, err := sdkcrypto.UnarmorDecryptPrivKey(armor, password)
 	if err != nil {
 		return false, err
 	}

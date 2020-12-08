@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
+	"github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -66,7 +67,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				return err
 			}
 
-			privKey, algo, err := keyring.UnarmorDecryptPrivKey(armor, decryptPassword)
+			privKey, algo, err := crypto.UnarmorDecryptPrivKey(armor, decryptPassword)
 			if err != nil {
 				return err
 			}

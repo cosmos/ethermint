@@ -60,7 +60,7 @@ func (privKey *PrivKey) Bytes() []byte {
 }
 
 // PubKey returns the ECDSA private key's public key.
-func (privKey PrivKey) PubKey() tmcrypto.PubKey {
+func (privKey PrivKey) PubKey() cryptotypes.PubKey {
 	ecdsaPrivKey := privKey.ToECDSA()
 	return &PubKey{
 		Key: ethcrypto.CompressPubkey(&ecdsaPrivKey.PublicKey),
@@ -68,7 +68,7 @@ func (privKey PrivKey) PubKey() tmcrypto.PubKey {
 }
 
 // Equals returns true if two ECDSA private keys are equal and false otherwise.
-func (privKey *PrivKey) Equals(other tmcrypto.PrivKey) bool {
+func (privKey *PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
 	return privKey.Type() == other.Type() && subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
 }
 
@@ -156,7 +156,7 @@ func (pubKey *PubKey) Type() string {
 }
 
 // Equals returns true if the pubkey type is the same and their bytes are deeply equal.
-func (pubKey *PubKey) Equals(other tmcrypto.PubKey) bool {
+func (pubKey *PubKey) Equals(other cryptotypes.PubKey) bool {
 	return pubKey.Type() == other.Type() && bytes.Equal(pubKey.Bytes(), other.Bytes())
 }
 

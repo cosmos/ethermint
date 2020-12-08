@@ -2,6 +2,7 @@ package codec
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
@@ -26,5 +27,5 @@ func RegisterCrypto(cdc *codec.LegacyAmino) {
 		ethsecp256k1.PrivKeyName, nil)
 
 	// update SDK's key codec to include the ethsecp256k1 keys.
-	keyring.CryptoCdc = cdc
+	legacy.Cdc = cdc
 }

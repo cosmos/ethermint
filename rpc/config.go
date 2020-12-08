@@ -1,11 +1,13 @@
 package rpc
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/gorilla/mux"
+
+	"github.com/cosmos/cosmos-sdk/client"
 
 	"github.com/cosmos/ethermint/rpc/websockets"
 	"github.com/cosmos/ethermint/server/config"
+
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
