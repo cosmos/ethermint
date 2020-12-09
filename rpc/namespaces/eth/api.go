@@ -257,7 +257,8 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 		if tx.From == address {
 			val = new(big.Int).Sub(val, tx.Value.ToInt())
-		} else if *tx.To == address {
+		}
+		if *tx.To == address {
 			val = new(big.Int).Add(val, tx.Value.ToInt())
 		}
 	}
