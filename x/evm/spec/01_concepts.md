@@ -6,7 +6,8 @@ order: 1
 
 ## EVM
 
-EVM is the Ethereum Virtual Machine that the necessary tools to run or create a contract on a given state.
+The Ethereum Virtual Machine [EVM](https://ethereum.org/en/developers/docs/evm/)  is a state machine
+that provides the necessary tools to run or create a contract on a given state.
 
 ## State DB
 
@@ -16,7 +17,7 @@ contracts and accounts. The concrete type that fulfills this interface on Etherm
 
 ## State Object
 
-`stateObject` represents an Ethereum account which is being modified.
+A `stateObject` represents an Ethereum account which is being modified.
 The usage pattern is as follows:
 
 * First you need to obtain a state object.
@@ -32,7 +33,8 @@ The `x/evm` module `GenesisState` defines the state necessary for initializing t
 
 The `GenesisAccount` type corresponds to an adaptation of the Ethereum `GenesisAccount` type. Its
 main difference is that the one on Ethermint uses a custom `Storage` type that uses a slice instead
-of maps for the evm `State`,and that it doesn't contain the private key field.
+of maps for the evm `State` (due to non-determinism), and that it doesn't contain the private key
+field.
 
 It is also important to note that since the `auth` and `bank` SDK modules manage the accounts and
 balance state,  the `Address` must correspond to an `EthAccount` that is stored in the `auth`'s
