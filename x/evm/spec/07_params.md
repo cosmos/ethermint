@@ -25,7 +25,7 @@ The EVM Denom is used on the following cases:
 * `stateObject`: to track the `evm_denom` balance of the object account.
 * `CommitStateDB`: to update account balance from an existing state object.
 
-For example, on Ethereum, the `evm_denom` would be `ETH`. In the case of Ethermint, the default denomination is the atto photon.
+For example, on Ethereum, the `evm_denom` would be `ETH`. In the case of Ethermint, the default denomination is the atto photon. In terms of precision, the `PHOTON` and `ETH` share the same value, `1 PHOTON = 10^18 attophoton` and `1 ETH = 10^18 wei`.
 
 ::: danger
 SDK applications that want to import the EVM module as a dependency will need to set their own `evm_denom` (i.e not `"aphoton"`).
