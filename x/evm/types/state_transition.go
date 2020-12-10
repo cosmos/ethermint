@@ -4,6 +4,8 @@ import (
 	"errors"
 	"math/big"
 
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -76,7 +78,7 @@ func (st StateTransition) newEVM(
 	gasLimit uint64,
 	gasPrice *big.Int,
 	config ChainConfig,
-	extraEIPs []int,
+	extraEIPs []int64,
 ) *vm.EVM {
 	// Create context for evm
 	context := vm.Context{
@@ -92,8 +94,13 @@ func (st StateTransition) newEVM(
 		GasPrice:    gasPrice,
 	}
 
+	eips := make([]int, len(extraEIPs))
+	for i, eip := range extraEIPs {
+		eips[i] = int(eip)
+	}
+
 	vmConfig := vm.Config{
-		ExtraEips: extraEIPs,
+		ExtraEips: eips,
 	}
 
 	return vm.NewEVM(context, csdb, config.EthereumConfig(st.ChainID), vmConfig)
@@ -247,7 +254,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 // block header.
 func HashFromContext(ctx sdk.Context) common.Hash {
 	// cast the ABCI header to tendermint Header type
-	tmHeader := AbciHeaderToTendermint(ctx.BlockHeader())
+	protoHeader := ctx.BlockHeader()
+	tmHeader, err := tmtypes.HeaderFromProto(&protoHeader)
+	if err != nil {
+		return common.Hash{}
+	}
 
 	// get the Tendermint block hash from the current header
 	tmBlockHash := tmHeader.Hash()

@@ -29,7 +29,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int) Params {
+func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int64) Params {
 	return Params{
 		EvmDenom:     evmDenom,
 		EnableCreate: enableCreate,
@@ -44,7 +44,7 @@ func DefaultParams() Params {
 		EvmDenom:     ethermint.AttoPhoton,
 		EnableCreate: true,
 		EnableCall:   true,
-		ExtraEIPs:    []int(nil), // TODO: define default values
+		ExtraEIPs:    []int64(nil), // TODO: define default values
 	}
 }
 

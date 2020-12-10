@@ -33,7 +33,7 @@ func (cc ChainConfig) EthereumConfig(chainID *big.Int) *params.ChainConfig {
 	}
 }
 
-// DefaultChainConfig returns default evm parameters. Th
+// DefaultChainConfig returns default evm parameters.
 func DefaultChainConfig() ChainConfig {
 	return ChainConfig{
 		HomesteadBlock:      sdk.ZeroInt(),

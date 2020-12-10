@@ -34,7 +34,7 @@ func TestParamsValidate(t *testing.T) {
 			"invalid eip",
 			Params{
 				EvmDenom:  "stake",
-				ExtraEIPs: []int{1},
+				ExtraEIPs: []int64{1},
 			},
 			true,
 		},

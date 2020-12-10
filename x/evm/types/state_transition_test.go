@@ -3,7 +3,7 @@ package types_test
 import (
 	"math/big"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -28,7 +28,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			1,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
+					tmproto.Header{
 						ChainID:        "ethermint-1",
 						Height:         1,
 						ValidatorsHash: []byte("val_hash"),
@@ -48,7 +48,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			1,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
+					tmproto.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
@@ -64,7 +64,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			1,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
+					tmproto.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
@@ -78,7 +78,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			1000,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
+					tmproto.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),

@@ -19,7 +19,7 @@ func (suite *EvmTestSuite) TestExportImport() {
 		genState = evm.ExportGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper)
 	})
 
-	_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, *genState)
+	_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, suite.app.BankKeeper, *genState)
 }
 
 func (suite *EvmTestSuite) TestInitGenesis() {
@@ -31,7 +31,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 	testCases := []struct {
 		name     string
 		malleate func()
-		genState types.GenesisState
+		genState *types.GenesisState
 		expPanic bool
 	}{
 		{
@@ -45,18 +45,19 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			func() {
 				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
 				suite.Require().NotNil(acc)
-				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+
+				err := suite.app.BankKeeper.SetBalance(suite.ctx, address.Bytes(), ethermint.NewPhotonCoinInt64(1))
 				suite.Require().NoError(err)
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
-			types.GenesisState{
+			&types.GenesisState{
 				Params: types.DefaultParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
 						Balance: sdk.OneInt(),
 						Storage: types.Storage{
-							{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
+							{Key: common.BytesToHash([]byte("key")).String(), Value: common.BytesToHash([]byte("value")).String()},
 						},
 					},
 				},
@@ -66,7 +67,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 		{
 			"account not found",
 			func() {},
-			types.GenesisState{
+			&types.GenesisState{
 				Params: types.DefaultParams(),
 				Accounts: []types.GenesisAccount{
 					{
@@ -80,9 +81,9 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			"invalid account type",
 			func() {
 				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
-			types.GenesisState{
+			&types.GenesisState{
 				Params: types.DefaultParams(),
 				Accounts: []types.GenesisAccount{
 					{
@@ -100,7 +101,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotNil(acc)
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
-			types.GenesisState{
+			&types.GenesisState{
 				Params: types.DefaultParams(),
 				Accounts: []types.GenesisAccount{
 					{
@@ -122,13 +123,13 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			if tc.expPanic {
 				suite.Require().Panics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
+						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, suite.app.BankKeeper, *tc.genState)
 					},
 				)
 			} else {
 				suite.Require().NotPanics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
+						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, suite.app.BankKeeper, *tc.genState)
 					},
 				)
 			}
