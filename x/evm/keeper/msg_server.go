@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/armon/go-metrics"
+
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"

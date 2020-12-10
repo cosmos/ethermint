@@ -6,9 +6,10 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
+
+	"github.com/cosmos/cosmos-sdk/client"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"

@@ -5,7 +5,6 @@ import (
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/ethermint/rpc/backend"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
@@ -13,6 +12,8 @@ import (
 	"github.com/cosmos/ethermint/rpc/namespaces/personal"
 	"github.com/cosmos/ethermint/rpc/namespaces/web3"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
+
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // RPC namespaces and API version

@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	tmcfg "github.com/tendermint/tendermint/config"
 	dbm "github.com/tendermint/tm-db"
 

@@ -170,7 +170,43 @@ func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 
 // EncodeRLP implements the rlp.Encoder interface.
 func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &msg.Data)
+	var recipient *ethcmn.Address
+	if msg.Data.Recipient != nil {
+		to := ethcmn.HexToAddress(msg.Data.Recipient.Address)
+		recipient = &to
+	}
+	var hash ethcmn.Hash
+	if len(msg.Data.Hash) > 0 {
+		hash = ethcmn.HexToHash(msg.Data.Hash)
+	}
+	data := struct {
+		AccountNonce uint64
+		Price        *big.Int        `json:"gasPrice"`
+		GasLimit     uint64          `json:"gas"`
+		Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
+		Amount       *big.Int        `json:"value"`
+		Payload      []byte          `json:"input"`
+
+		// signature values
+		V *big.Int `json:"v"`
+		R *big.Int `json:"r"`
+		S *big.Int `json:"s"`
+
+		// hash is only used when marshaling to JSON
+		Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+	}{
+		AccountNonce: msg.Data.AccountNonce,
+		Price:        new(big.Int).SetBytes(msg.Data.Price),
+		GasLimit:     msg.Data.GasLimit,
+		Recipient:    recipient,
+		Amount:       new(big.Int).SetBytes(msg.Data.Amount),
+		Payload:      msg.Data.Payload,
+		V:            new(big.Int).SetBytes(msg.Data.V),
+		R:            new(big.Int).SetBytes(msg.Data.R),
+		S:            new(big.Int).SetBytes(msg.Data.S),
+		Hash:         &hash,
+	}
+	return rlp.Encode(w, data)
 }
 
 // DecodeRLP implements the rlp.Decoder interface.
@@ -181,8 +217,43 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	if err := s.Decode(&msg.Data); err != nil {
+	var data struct {
+		AccountNonce uint64
+		Price        *big.Int        `json:"gasPrice"`
+		GasLimit     uint64          `json:"gas"`
+		Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
+		Amount       *big.Int        `json:"value"`
+		Payload      []byte          `json:"input"`
+
+		// signature values
+		V *big.Int `json:"v"`
+		R *big.Int `json:"r"`
+		S *big.Int `json:"s"`
+
+		// hash is only used when marshaling to JSON
+		Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+	}
+
+	if err := s.Decode(&data); err != nil {
 		return err
+	}
+
+	var hash string
+	if data.Hash != nil {
+		hash = data.Hash.String()
+	}
+
+	msg.Data = &TxData{
+		AccountNonce: data.AccountNonce,
+		Price:        data.Price.Bytes(),
+		GasLimit:     data.GasLimit,
+		Recipient:    &Recipient{Address: data.Recipient.String()},
+		Amount:       data.Amount.Bytes(),
+		Payload:      data.Payload,
+		V:            data.V.Bytes(),
+		R:            data.R.Bytes(),
+		S:            data.S.Bytes(),
+		Hash:         hash,
 	}
 
 	msg.Size_ = float64(ethcmn.StorageSize(rlp.ListSize(size)))
@@ -304,12 +375,7 @@ func (msg *MsgEthereumTx) GetFrom() sdk.AccAddress {
 		return nil
 	}
 
-	address, err := sdk.AccAddressFromBech32(msg.From.Address)
-	if err != nil {
-		return nil
-	}
-
-	return address
+	return sdk.AccAddress(ethcmn.HexToAddress(msg.From.Address).Bytes())
 }
 
 // deriveChainID derives the chain id from the given v parameter

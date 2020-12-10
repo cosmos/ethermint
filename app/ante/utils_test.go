@@ -18,9 +18,10 @@ import (
 	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -66,7 +67,7 @@ func newTestStdFee() legacytx.StdFee {
 }
 
 // GenerateAddress generates an Ethereum address.
-func newTestAddrKey() (sdk.AccAddress, tmcrypto.PrivKey) {
+func newTestAddrKey() (sdk.AccAddress, cryptotypes.PrivKey) {
 	privkey, _ := ethsecp256k1.GenerateKey()
 	addr := ethcrypto.PubkeyToAddress(privkey.ToECDSA().PublicKey)
 
@@ -74,7 +75,7 @@ func newTestAddrKey() (sdk.AccAddress, tmcrypto.PrivKey) {
 }
 
 func newTestSDKTx(
-	ctx sdk.Context, msgs []sdk.Msg, privs []tmcrypto.PrivKey,
+	ctx sdk.Context, msgs []sdk.Msg, privs []cryptotypes.PrivKey,
 	accNums []uint64, seqs []uint64, fee legacytx.StdFee,
 ) sdk.Tx {
 
@@ -96,7 +97,7 @@ func newTestSDKTx(
 	return legacytx.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv cryptotypes.PrivKey) (sdk.Tx, error) {
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
