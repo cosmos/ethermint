@@ -15,7 +15,13 @@ import (
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+func InitGenesis(
+	ctx sdk.Context,
+	k Keeper,
+	accountKeeper types.AccountKeeper,
+	bankKeeper types.BankKeeper,
+	data GenesisState,
+) []abci.ValidatorUpdate { // nolint: interfacer
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
@@ -37,8 +43,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		if !evmBalance.Equal(account.Balance) {
+		evmBalance := bankKeeper.GetBalance(ctx, accAddress, evmDenom)
+		if !evmBalance.Amount.Equal(account.Balance) {
 			panic(
 				fmt.Errorf(
 					"balance mismatch for account %s, expected %s%s, got %s%s",

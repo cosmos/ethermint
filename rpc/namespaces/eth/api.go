@@ -16,7 +16,6 @@ import (
 	"github.com/cosmos/ethermint/rpc/backend"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/utils"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/tendermint/tendermint/libs/log"

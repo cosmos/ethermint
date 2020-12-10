@@ -703,7 +703,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
 		address := sdk.AccAddress(stateEntry.address.Bytes())
 		currAccount := csdb.accountKeeper.GetAccount(csdb.ctx, address)
-		ethermintAcc, ok := currAcc.(*ethermint.EthAccount)
+		ethermintAcc, ok := currAccount.(*ethermint.EthAccount)
 		if !ok {
 			continue
 		}

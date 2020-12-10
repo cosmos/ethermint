@@ -230,14 +230,15 @@ func createAppAndExport(
 	encCfg := app.MakeEncodingConfig() // Ideally, we would reuse the one created by NewRootCmd.
 	encCfg.Marshaler = codec.NewProtoCodec(encCfg.InterfaceRegistry)
 	var ethermintApp *app.EthermintApp
+
 	if height != -1 {
-		ethermintApp = app.NewEthermintApp(logger, db, traceStore, false, map[int64]bool{}, "", uint(1), encCfg, appOpts)
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, false, map[int64]bool{}, "", 0, encCfg, appOpts)
 
 		if err := ethermintApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		ethermintApp = app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, "", uint(1), encCfg, appOpts)
+		ethermintApp = app.NewEthermintApp(logger, db, traceStore, true, map[int64]bool{}, "", 0, encCfg, appOpts)
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
