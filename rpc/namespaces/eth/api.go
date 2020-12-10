@@ -16,7 +16,7 @@ import (
 	"github.com/cosmos/ethermint/rpc/backend"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/version"
+	"github.com/cosmos/ethermint/utils"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -123,7 +123,7 @@ func (api *PublicEthereumAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (api *PublicEthereumAPI) ProtocolVersion() hexutil.Uint {
 	api.logger.Debug("eth_protocolVersion")
-	return hexutil.Uint(version.ProtocolVersion)
+	return hexutil.Uint(ethermint.ProtocolVersion)
 }
 
 // ChainId returns the chain's identifier in hex format
@@ -195,6 +195,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	api.logger.Debug("eth_accounts")
 	api.keyringLock.Lock()
+	defer api.keyringLock.Unlock()
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
@@ -202,8 +203,6 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	if err != nil {
 		return addresses, err
 	}
-
-	api.keyringLock.Unlock()
 
 	for _, info := range infos {
 		addressBytes := info.GetPubKey().Address().Bytes()

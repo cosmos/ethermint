@@ -146,8 +146,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data j
 	var genesisState types.GenesisState
 
 	cdc.MustUnmarshalJSON(data, &genesisState)
-	InitGenesis(ctx, am.keeper, genesisState)
-	return []abci.ValidatorUpdate{}
+	return InitGenesis(ctx, am.keeper, am.ak, genesisState)
 }
 
 // ExportGenesis returns the exported genesis state as raw bytes for the evm

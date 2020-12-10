@@ -1,6 +1,6 @@
 module github.com/cosmos/ethermint
 
-go 1.14
+go 1.15
 
 require (
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
@@ -33,7 +33,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
 	google.golang.org/genproto v0.0.0-20201015140912-32ed001d685c
 	google.golang.org/grpc v1.33.0
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4

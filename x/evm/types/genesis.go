@@ -4,8 +4,31 @@ import (
 	"errors"
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
+
+// type (
+// 	// GenesisState defines the evm module genesis state
+// 	GenesisState struct {
+// 		Accounts    []GenesisAccount  `json:"accounts"`
+// 		TxsLogs     []TransactionLogs `json:"txs_logs"`
+// 		ChainConfig ChainConfig       `json:"chain_config"`
+// 		Params      Params            `json:"params"`
+// 	}
+
+// 	// GenesisAccount defines an account to be initialized in the genesis state.
+// 	// Its main difference between with Geth's GenesisAccount is that it uses a custom
+// 	// storage type and that it doesn't contain the private key field.
+// 	GenesisAccount struct {
+// 		Address string        `json:"address"`
+// 		Balance sdk.Int       `json:"balance"`
+// 		Code    hexutil.Bytes `json:"code,omitempty"`
+// 		Storage Storage       `json:"storage,omitempty"`
+// 	}
+// )
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (ga GenesisAccount) Validate() error {
@@ -13,7 +36,7 @@ func (ga GenesisAccount) Validate() error {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
 	if ga.Balance.IsNil() {
-		return errors.New("balance cannot be empty")
+		return errors.New("balance cannot be nil")
 	}
 	if ga.Balance.IsNegative() {
 		return errors.New("balance cannot be negative")
@@ -50,6 +73,7 @@ func (gs GenesisState) Validate() error {
 		}
 		seenAccounts[acc.Address] = true
 	}
+
 	for _, tx := range gs.TxsLogs {
 		if seenTxs[tx.Hash] {
 			return fmt.Errorf("duplicated logs from transaction %s", tx.Hash)

@@ -8,6 +8,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
+	"github.com/ethereum/go-ethereum/core/vm"
+
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
@@ -15,7 +17,10 @@ var _ paramtypes.ParamSet = &Params{}
 
 // Parameter keys
 var (
-	ParamStoreKeyEVMDenom = []byte("EVMDenom")
+	ParamStoreKeyEVMDenom     = []byte("EVMDenom")
+	ParamStoreKeyEnableCreate = []byte("EnableCreate")
+	ParamStoreKeyEnableCall   = []byte("EnableCall")
+	ParamStoreKeyExtraEIPs    = []byte("EnableExtraEIPs")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -24,16 +29,22 @@ func ParamKeyTable() paramtypes.KeyTable {
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string) Params {
+func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int) Params {
 	return Params{
-		EvmDenom: evmDenom,
+		EvmDenom:     evmDenom,
+		EnableCreate: enableCreate,
+		EnableCall:   enableCall,
+		ExtraEIPs:    extraEIPs,
 	}
 }
 
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EvmDenom: ethermint.AttoPhoton,
+		EvmDenom:     ethermint.AttoPhoton,
+		EnableCreate: true,
+		EnableCall:   true,
+		ExtraEIPs:    []int(nil), // TODO: define default values
 	}
 }
 
@@ -47,19 +58,49 @@ func (p Params) String() string {
 func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
 		paramtypes.NewParamSetPair(ParamStoreKeyEVMDenom, &p.EvmDenom, validateEVMDenom),
+		paramtypes.NewParamSetPair(ParamStoreKeyEnableCreate, &p.EnableCreate, validateBool),
+		paramtypes.NewParamSetPair(ParamStoreKeyEnableCall, &p.EnableCall, validateBool),
+		paramtypes.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
 	}
 }
 
 // Validate performs basic validation on evm parameters.
 func (p Params) Validate() error {
-	return sdk.ValidateDenom(p.EvmDenom)
+	if err := sdk.ValidateDenom(p.EvmDenom); err != nil {
+		return err
+	}
+
+	return validateEIPs(p.ExtraEIPs)
 }
 
 func validateEVMDenom(i interface{}) error {
 	denom, ok := i.(string)
 	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+		return fmt.Errorf("invalid parameter EVM denom type: %T", i)
 	}
 
 	return sdk.ValidateDenom(denom)
+}
+
+func validateBool(i interface{}) error {
+	_, ok := i.(bool)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+	return nil
+}
+
+func validateEIPs(i interface{}) error {
+	eips, ok := i.([]int)
+	if !ok {
+		return fmt.Errorf("invalid EIP slice type: %T", i)
+	}
+
+	for _, eip := range eips {
+		if !vm.ValidEip(eip) {
+			return fmt.Errorf("EIP %d is not activateable", eip)
+		}
+	}
+
+	return nil
 }
