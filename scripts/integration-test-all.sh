@@ -157,7 +157,7 @@ if [[ -z $TEST || $TEST == "rpc" || $TEST == "pending" ]]; then
         echo "going to test ethermint node $HOST_RPC ..."
         if [[ $MODE == "pending" ]]; then
             sleep 150
-            MODE=$MODE HOST=$HOST_RPC go test -v ./tests-pending/rpc_pending_test.go
+            MODE=$MODE HOST=$HOST_RPC go test -v ./tests/tests-pending/rpc_pending_test.go
         else
             MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
         fi
