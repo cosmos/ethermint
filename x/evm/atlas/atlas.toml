@@ -1,5 +1,5 @@
 [module]
-description = "The auth module is responsible for specifying the base transaction and account types for an application, as well as AnteHandler and authentication logic."
+description = "The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) state transitions."
 homepage = "https://github.com/cosmos/ethermint"
 keywords = [
   "evm",
