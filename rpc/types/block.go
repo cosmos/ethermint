@@ -19,7 +19,7 @@ const (
 	// EarliestBlockNumber mapping from "earliest" to 1 for tm query (earliest query not supported)
 	EarliestBlockNumber = BlockNumber(1)
 
-	// PendingBlockNumber mapping from "pending" to 1 for tm query -- repeating 1 for now, TDB
+	// PendingBlockNumber mapping from "pending" to -1 for tm query
 	PendingBlockNumber = BlockNumber(-1)
 )
 
