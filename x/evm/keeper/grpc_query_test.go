@@ -11,9 +11,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 )
 
 func (suite *KeeperTestSuite) TestQueryAccount() {

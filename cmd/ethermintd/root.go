@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rs/zerolog"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/snapshots"
@@ -13,6 +15,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
+	tmcfg "github.com/tendermint/tendermint/config"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -82,9 +85,10 @@ func Execute(rootCmd *cobra.Command) error {
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, client.ClientContextKey, &client.Context{})
-	ctx = context.WithValue(ctx, sdkserver.ServerContextKey, sdkserver.NewDefaultContext())
+	ctx = context.WithValue(ctx, sdkserver.ServerContextKey, srvCtx)
 
-	rootCmd.PersistentFlags().String("log_level", srvCtx.Config.LogLevel, "The logging level in the format of <module>:<level>,...")
+	rootCmd.PersistentFlags().String(flags.FlagLogLevel, zerolog.InfoLevel.String(), "The logging level (trace|debug|info|warn|error|fatal|panic)")
+	rootCmd.PersistentFlags().String(flags.FlagLogFormat, tmcfg.LogFormatJSON, "The logging format (json|plain)")
 
 	executor := tmcli.PrepareBaseCmd(rootCmd, "", app.DefaultNodeHome)
 	return executor.ExecuteContext(ctx)

@@ -16,6 +16,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
@@ -86,6 +87,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 
 	"github.com/cosmos/ethermint/app/ante"
+	ethermintrpc "github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/server"
 	"github.com/cosmos/ethermint/server/api"
 	"github.com/cosmos/ethermint/server/config"
@@ -314,7 +316,7 @@ func NewEthermintApp(
 
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
-		appCodec, keys[ibchost.StoreKey], app.StakingKeeper, scopedIBCKeeper,
+		appCodec, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), app.StakingKeeper, scopedIBCKeeper,
 	)
 
 	// register the proposal types
@@ -601,10 +603,10 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkc
 	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
 
 	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
-	ModuleBasics.RegisterGRPCGatewayRoutes(apiSvr.ClientCtx, apiSvr.GRPCRouter)
+	ModuleBasics.RegisterGRPCGatewayRoutes(apiSvr.ClientCtx, apiSvr.GRPCGatewayRouter)
 
 	// Register Ethereum namespaces
-	// ethermintrpc.RegisterRoutes(clientCtx, apiSvr.Router)
+	ethermintrpc.RegisterEthereum(clientCtx, apiSvr.Router)
 
 	// register swagger API from root so that other applications can override easily
 	if apiConfig.Swagger {
@@ -615,6 +617,11 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkc
 // RegisterTxService implements the Application.RegisterTxService method.
 func (app *EthermintApp) RegisterTxService(clientCtx client.Context) {
 	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
+}
+
+// RegisterTendermintService implements the Application.RegisterTendermintService method.
+func (app *EthermintApp) RegisterTendermintService(clientCtx client.Context) {
+	tmservice.RegisterTendermintService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.interfaceRegistry)
 }
 
 // RegisterEthereumServers registers all application ethereum routes with the provided
@@ -661,6 +668,7 @@ func initParamsKeeper(
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
+	paramsKeeper.Subspace(ibchost.ModuleName)
 	// ethermint subspaces
 	paramsKeeper.Subspace(evmtypes.ModuleName)
 
