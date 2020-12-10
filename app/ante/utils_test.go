@@ -67,7 +67,7 @@ func newTestStdFee() legacytx.StdFee {
 }
 
 // GenerateAddress generates an Ethereum address.
-func newTestAddrKey() (sdk.AccAddress, cryptotypes.LedgerPrivKey) {
+func newTestAddrKey() (sdk.AccAddress, cryptotypes.PrivKey) {
 	privkey, _ := ethsecp256k1.GenerateKey()
 	addr := ethcrypto.PubkeyToAddress(privkey.ToECDSA().PublicKey)
 
@@ -75,7 +75,7 @@ func newTestAddrKey() (sdk.AccAddress, cryptotypes.LedgerPrivKey) {
 }
 
 func newTestSDKTx(
-	ctx sdk.Context, msgs []sdk.Msg, privs []cryptotypes.LedgerPrivKey,
+	ctx sdk.Context, msgs []sdk.Msg, privs []cryptotypes.PrivKey,
 	accNums []uint64, seqs []uint64, fee legacytx.StdFee,
 ) sdk.Tx {
 
@@ -97,7 +97,7 @@ func newTestSDKTx(
 	return legacytx.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv cryptotypes.LedgerPrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv cryptotypes.PrivKey) (sdk.Tx, error) {
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err

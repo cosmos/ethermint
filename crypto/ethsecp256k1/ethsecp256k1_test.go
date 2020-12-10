@@ -11,7 +11,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
-	tmcrypto "github.com/tendermint/tendermint/crypto"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 )
 
 func TestPrivKey(t *testing.T) {
@@ -19,7 +19,7 @@ func TestPrivKey(t *testing.T) {
 	privKey, err := GenerateKey()
 	require.NoError(t, err)
 	require.True(t, privKey.Equals(privKey))
-	require.Implements(t, (*tmcrypto.PrivKey)(nil), privKey)
+	require.Implements(t, (*cryptotypes.PrivKey)(nil), privKey)
 
 	// validate inequality
 	privKey2, err := GenerateKey()
@@ -50,7 +50,7 @@ func TestPrivKey_PubKey(t *testing.T) {
 	pubKey := &PubKey{
 		Key: privKey.PubKey().Bytes(),
 	}
-	require.Implements(t, (*tmcrypto.PubKey)(nil), pubKey)
+	require.Implements(t, (*cryptotypes.PubKey)(nil), pubKey)
 
 	// validate inequality
 	privKey2, err := GenerateKey()
