@@ -257,7 +257,8 @@ func HashFromContext(ctx sdk.Context) common.Hash {
 	protoHeader := ctx.BlockHeader()
 	tmHeader, err := tmtypes.HeaderFromProto(&protoHeader)
 	if err != nil {
-		return common.Hash{}
+		panic(err)
+		// return common.Hash{}
 	}
 
 	// get the Tendermint block hash from the current header

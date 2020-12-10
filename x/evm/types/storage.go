@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -50,7 +49,7 @@ func (s Storage) Copy() Storage {
 
 // Validate performs a basic validation of the State fields.
 func (s State) Validate() error {
-	if bytes.Equal(ethcmn.Hex2Bytes(s.Key), ethcmn.Hash{}.Bytes()) {
+	if IsEmptyHash(s.Key) {
 		return sdkerrors.Wrap(ErrInvalidState, "state key hash cannot be empty")
 	}
 	// NOTE: state value can be empty

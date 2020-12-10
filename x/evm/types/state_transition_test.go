@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/tendermint/tendermint/proto/tendermint/version"
+	tmversion "github.com/tendermint/tendermint/version"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -32,6 +34,9 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 						ChainID:        "ethermint-1",
 						Height:         1,
 						ValidatorsHash: []byte("val_hash"),
+						Version: version.Consensus{
+							Block: tmversion.BlockProtocol,
+						},
 					},
 				)
 			},
@@ -52,6 +57,9 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
+						Version: version.Consensus{
+							Block: tmversion.BlockProtocol,
+						},
 					},
 				)
 				hash := types.HashFromContext(suite.ctx)
@@ -68,6 +76,9 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
+						Version: version.Consensus{
+							Block: tmversion.BlockProtocol,
+						},
 					},
 				)
 			},
@@ -82,6 +93,9 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
+						Version: version.Consensus{
+							Block: tmversion.BlockProtocol,
+						},
 					},
 				)
 			},

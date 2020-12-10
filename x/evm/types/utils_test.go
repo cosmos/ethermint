@@ -34,7 +34,7 @@ func TestEvmDataEncoding(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, addr, res.ContractAddress)
-	require.Equal(t, bloom, res.Bloom)
+	require.Equal(t, bloom.Bytes(), res.Bloom)
 	require.Equal(t, data.TxLogs, res.TxLogs)
 	require.Equal(t, ret, res.Ret)
 }

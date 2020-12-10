@@ -91,13 +91,13 @@ func validateBool(i interface{}) error {
 }
 
 func validateEIPs(i interface{}) error {
-	eips, ok := i.([]int)
+	eips, ok := i.([]int64)
 	if !ok {
 		return fmt.Errorf("invalid EIP slice type: %T", i)
 	}
 
 	for _, eip := range eips {
-		if !vm.ValidEip(eip) {
+		if !vm.ValidEip(int(eip)) {
 			return fmt.Errorf("EIP %d is not activateable", eip)
 		}
 	}

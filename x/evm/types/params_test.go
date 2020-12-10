@@ -57,7 +57,7 @@ func TestParamsValidatePriv(t *testing.T) {
 	require.Error(t, validateBool(""))
 	require.NoError(t, validateBool(true))
 	require.Error(t, validateEIPs(""))
-	require.NoError(t, validateEIPs([]int{1884}))
+	require.NoError(t, validateEIPs([]int64{1884}))
 }
 
 func TestParams_String(t *testing.T) {
