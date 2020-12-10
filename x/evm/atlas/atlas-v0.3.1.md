@@ -93,7 +93,7 @@ The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) s
     ```
 
 9. Set the Ethermint `AnteHandler` to support EVM transactions. Note,
-the default `AnteHandler` provided by the `x/evm` module depends on the `x/auth` and x/supply`
+the default `AnteHandler` provided by the `x/evm` module depends on the `x/auth` and `x/supply`
 modules.
 
    ```go
