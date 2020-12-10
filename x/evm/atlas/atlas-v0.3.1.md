@@ -66,7 +66,7 @@ The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) s
      // ...
      app.mm = module.NewManager(
        // ...
-       evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),,
+       evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
        // ...
      )
    }
@@ -83,7 +83,7 @@ The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) s
       )
     ```
 
-8. Set the `x/evm` module genesis order. The module must go after the `auth` and `bank` module.
+8. Set the `x/evm` module genesis order. The module must go after the `auth` and `bank` modules.
 
     ```go
     func NewApp(...) *App {
@@ -93,8 +93,8 @@ The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) s
     ```
 
 9. Set the Ethermint `AnteHandler` to support EVM transactions. Note,
-the default `AnteHandler` provided by the `x/evm` module depends on the `x/supply`
-module.
+the default `AnteHandler` provided by the `x/evm` module depends on the `x/auth` and x/supply`
+modules.
 
    ```go
    func NewApp(...) *App {
@@ -175,3 +175,7 @@ type Params struct {
 ### JSON-RPC
 
 See the Ethermint [JSON-RPC docs](https://docs.ethermint.zone/basics/json_rpc.html) for reference.
+
+## Documentation and Specification
+
+* Ethermint documentation: [https://docs.ethermint.zone](https://docs.ethermint.zone)
