@@ -24,7 +24,7 @@ The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) s
       ModuleBasics = module.NewBasicManager(
         // ...
         evm.AppModuleBasic{},
-      }
+      )
     )
     ```
 
