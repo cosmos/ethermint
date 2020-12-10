@@ -1,5 +1,5 @@
 [module]
-description = "The `x/evm` module is responsible for executing Ethereum Virtual Machine (EVM) state transitions."
+description = "The evm module executes Ethereum Virtual Machine (EVM) state transitions."
 homepage = "https://github.com/cosmos/ethermint"
 keywords = [
   "evm",
