@@ -40,7 +40,7 @@ ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:inf
 
 6. Start the RPC server:
 ```
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-1 --trace
+ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-777 --trace
 ```
 where `$KEY` is the key name that was used in step 2.
 (we recommend running the command in the background for convenience)
