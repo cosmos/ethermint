@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -76,13 +77,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	accounts := ak.GetAllAccounts(ctx)
-
-	for _, account := range accounts {
+	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
 			// ignore non EthAccounts
-			continue
+			return false
 		}
 
 		addr := ethAccount.EthAddress()
@@ -99,7 +98,8 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
-	}
+		return false
+	})
 
 	config, _ := k.GetChainConfig(ctx)
 
