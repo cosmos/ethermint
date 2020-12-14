@@ -13,7 +13,7 @@ func (ga GenesisAccount) Validate() error {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
 	if ga.Balance.IsNil() {
-		return errors.New("balance cannot be empty")
+		return errors.New("balance cannot be nil")
 	}
 	if ga.Balance.IsNegative() {
 		return errors.New("balance cannot be negative")
@@ -50,6 +50,7 @@ func (gs GenesisState) Validate() error {
 		}
 		seenAccounts[acc.Address] = true
 	}
+
 	for _, tx := range gs.TxsLogs {
 		if seenTxs[tx.Hash] {
 			return fmt.Errorf("duplicated logs from transaction %s", tx.Hash)

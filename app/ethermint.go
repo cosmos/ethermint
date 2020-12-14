@@ -389,7 +389,7 @@ func NewEthermintApp(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		// Ethermint app modules
-		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
+		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper, app.BankKeeper),
 		// faucet.NewAppModule(app.FaucetKeeper),
 	)
 

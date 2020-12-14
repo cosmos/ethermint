@@ -24,4 +24,10 @@ var (
 
 	// ErrBloomNotFound returns an error if the block bloom cannot be found on the store.
 	ErrBloomNotFound = sdkerrors.Register(ModuleName, 7, "block bloom not found")
+
+	// ErrCreateDisabled returns an error if the EnableCreate parameter is false.
+	ErrCreateDisabled = sdkerrors.Register(ModuleName, 8, "EVM Create operation is disabled")
+
+	// ErrCallDisabled returns an error if the EnableCall parameter is false.
+	ErrCallDisabled = sdkerrors.Register(ModuleName, 9, "EVM Call operation is disabled")
 )

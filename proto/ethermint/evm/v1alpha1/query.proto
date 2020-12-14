@@ -1,9 +1,9 @@
 syntax = "proto3";
-package ethermint.evm.v1beta1;
+package ethermint.evm.v1alpha1;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
-import "ethermint/evm/v1beta1/evm.proto";
+import "ethermint/evm/v1alpha1/evm.proto";
 
 option go_package = "github.com/cosmos/ethermint/x/evm/types";
 
@@ -11,44 +11,44 @@ option go_package = "github.com/cosmos/ethermint/x/evm/types";
 service Query {
   // Account queries an Ethereum account.
   rpc Account(QueryAccountRequest) returns (QueryAccountResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/account/{address}";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/account/{address}";
   }
 
   // Balance queries the balance of a the EVM denomination for a single
   // EthAccount.
   rpc Balance(QueryBalanceRequest) returns (QueryBalanceResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/balances/{address}";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/balances/{address}";
   }
 
   // Storage queries the balance of all coins for a single account.
   rpc Storage(QueryStorageRequest) returns (QueryStorageResponse) {
     option (google.api.http).get =
-        "/ethermint/evm/v1beta1/storage/{address}/{key}";
+        "/ethermint/evm/v1alpha1/storage/{address}/{key}";
   }
 
   // Code queries the balance of all coins for a single account.
   rpc Code(QueryCodeRequest) returns (QueryCodeResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/codes/{address}";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/codes/{address}";
   }
 
   // TxLogs queries ethereum logs from a transaction.
   rpc TxLogs(QueryTxLogsRequest) returns (QueryTxLogsResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/tx_logs/{hash}";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/tx_logs/{hash}";
   }
 
   // BlockLogs queries all the ethereum logs for a given block hash.
   rpc BlockLogs(QueryBlockLogsRequest) returns (QueryBlockLogsResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/block_logs/{hash}";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/block_logs/{hash}";
   }
 
   // BlockBloom queries the block bloom filter bytes at a given height.
   rpc BlockBloom(QueryBlockBloomRequest) returns (QueryBlockBloomResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/block_bloom";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/block_bloom";
   }
 
   // Params queries the parameters of x/evm module.
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
-    option (google.api.http).get = "/ethermint/evm/v1beta1/params";
+    option (google.api.http).get = "/ethermint/evm/v1alpha1/params";
   }
 }
 

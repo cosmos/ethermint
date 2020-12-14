@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -32,7 +32,7 @@ type revision struct {
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
 // a trie and database for querying and persistence, the Keeper uses KVStores
-// and an account mapper is used to facilitate state transitions.
+// and an AccountKeeper to facilitate state transitions.
 //
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
@@ -110,7 +110,7 @@ func NewCommitStateDB(
 	}
 }
 
-// WithContext returns a Database with an updated sdk context
+// WithContext returns a Database with an updated SDK context
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
 	return csdb
@@ -119,6 +119,13 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
+
+// SetHeightHash sets the block header hash associated with a given height.
+func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(height)
+	store.Set(key, hash.Bytes())
+}
 
 // SetParams sets the evm parameters to the param space.
 func (csdb *CommitStateDB) SetParams(params Params) {
@@ -290,6 +297,18 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
+
+// GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
+func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(height)
+	bz := store.Get(key)
+	if len(bz) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(bz)
+}
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() (params Params) {
@@ -684,7 +703,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
 		address := sdk.AccAddress(stateEntry.address.Bytes())
 		currAccount := csdb.accountKeeper.GetAccount(csdb.ctx, address)
-		ethAccount, ok := currAccount.(*emint.EthAccount)
+		ethermintAcc, ok := currAccount.(*ethermint.EthAccount)
 		if !ok {
 			continue
 		}
@@ -696,8 +715,8 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			stateEntry.stateObject.balance = balance.Amount
 		}
 
-		if stateEntry.stateObject.Nonce() != ethAccount.GetSequence() {
-			stateEntry.stateObject.account = ethAccount
+		if stateEntry.stateObject.Nonce() != ethermintAcc.GetSequence() {
+			stateEntry.stateObject.account = ethermintAcc
 		}
 	}
 }

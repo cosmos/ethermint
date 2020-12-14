@@ -1,5 +1,5 @@
 syntax = "proto3";
-package ethermint.evm.v1beta1;
+package ethermint.evm.v1alpha1;
 
 import "gogoproto/gogo.proto";
 
@@ -11,7 +11,16 @@ message Params {
 
   // evm_denom represents the token denomination used to run the EVM state
   // transitions.
-  string evm_denom = 1 [ (gogoproto.moretags) = "yaml:\"evm_denom\"" ];
+  string evm_denom = 1 [ (gogoproto.moretags) = "yaml:\"evm_denom\""];
+  // enable_create toggles state transitions that use the vm.Create function
+  bool enable_create = 2 [ (gogoproto.moretags) = "yaml:\"enable_create\""];
+  // enable_call toggles state transitions that use the vm.Call function
+  bool enable_call = 3 [ (gogoproto.moretags) = "yaml:\"enable_call\""];
+  // extra_eips defines the additional EIPs for the vm.Config
+  repeated int64 extra_eips = 4 [
+    (gogoproto.customname) = "ExtraEIPs",
+    (gogoproto.moretags) = "yaml:\"extra_eips\""
+  ];
 }
 
 // ChainConfig defines the Ethereum ChainConfig parameters using sdk.Int values

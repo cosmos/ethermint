@@ -123,6 +123,7 @@ all: tools verify install
 ###############################################################################
 
 build: go.sum
+
 ifeq ($(OS), Windows_NT)
 	go build $(BUILD_FLAGS) -o build/$(ETHERMINT_BINARY).exe ./cmd/$(ETHERMINT_BINARY)
 else

@@ -40,7 +40,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1, ChainID: "ethermint-1"})
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
@@ -70,12 +70,26 @@ func (suite *StateDBTestSuite) TestParams() {
 	suite.Require().Equal(newParams, params)
 }
 
+func (suite *StateDBTestSuite) TestGetHeightHash() {
+	hash := suite.stateDB.GetHeightHash(0)
+	suite.Require().Equal(ethcmn.Hash{}.String(), hash.String())
+
+	expHash := ethcmn.BytesToHash([]byte("hash"))
+	suite.stateDB.SetHeightHash(10, expHash)
+
+	hash = suite.stateDB.GetHeightHash(10)
+	suite.Require().Equal(expHash.String(), hash.String())
+}
+
 func (suite *StateDBTestSuite) TestBloomFilter() {
 	// Prepare db for logs
 	tHash := ethcmn.BytesToHash([]byte{0x1})
 	suite.stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
-	log := ethtypes.Log{Address: contractAddress}
+	log := ethtypes.Log{
+		Address: contractAddress,
+		Topics:  []ethcmn.Hash{},
+	}
 
 	testCase := []struct {
 		name     string
@@ -292,6 +306,7 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
+		tc.log.Index = 0 // reset index
 		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
 
 		//resets state but checking to see if storekey still persists.
@@ -659,7 +674,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 		name      string
 		malleate  func()
 		callback  func(key, value ethcmn.Hash) (stop bool)
-		expValues []ethcmn.Hash
+		expValues []string
 	}{
 		{
 			"aggregate state",
@@ -672,12 +687,12 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 				storage = append(storage, types.NewState(key, value))
 				return false
 			},
-			[]ethcmn.Hash{
-				ethcmn.BytesToHash([]byte("value0")),
-				ethcmn.BytesToHash([]byte("value1")),
-				ethcmn.BytesToHash([]byte("value2")),
-				ethcmn.BytesToHash([]byte("value3")),
-				ethcmn.BytesToHash([]byte("value4")),
+			[]string{
+				ethcmn.BytesToHash([]byte("value0")).String(),
+				ethcmn.BytesToHash([]byte("value1")).String(),
+				ethcmn.BytesToHash([]byte("value2")).String(),
+				ethcmn.BytesToHash([]byte("value3")).String(),
+				ethcmn.BytesToHash([]byte("value4")).String(),
 			},
 		},
 		{
@@ -693,8 +708,8 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 				}
 				return false
 			},
-			[]ethcmn.Hash{
-				ethcmn.BytesToHash([]byte("filtervalue")),
+			[]string{
+				ethcmn.BytesToHash([]byte("filtervalue")).String(),
 			},
 		},
 	}
