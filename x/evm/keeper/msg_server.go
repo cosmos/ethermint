@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/armon/go-metrics"
 
@@ -50,10 +49,10 @@ func (k Keeper) EthereumTx(goCtx context.Context, msg *types.MsgEthereumTx) (*ty
 
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,
-		Price:        new(big.Int).SetBytes(msg.Data.Price),
+		Price:        msg.Data.Price.BigInt(),
 		GasLimit:     msg.Data.GasLimit,
 		Recipient:    recipient,
-		Amount:       new(big.Int).SetBytes(msg.Data.Amount),
+		Amount:       msg.Data.Amount.BigInt(),
 		Payload:      msg.Data.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
 		ChainID:      chainIDEpoch,

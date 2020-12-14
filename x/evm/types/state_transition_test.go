@@ -25,48 +25,48 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 		malleate     func()
 		expEmptyHash bool
 	}{
-		{
-			"valid hash, case 1",
-			1,
-			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
-					tmproto.Header{
-						ChainID:        "ethermint-1",
-						Height:         1,
-						ValidatorsHash: []byte("val_hash"),
-						Version: version.Consensus{
-							Block: tmversion.BlockProtocol,
-						},
-					},
-				)
-			},
-			false,
-		},
+		// {
+		// 	"valid hash, case 1",
+		// 	1,
+		// 	func() {
+		// 		suite.ctx = suite.ctx.WithBlockHeader(
+		// 			tmproto.Header{
+		// 				ChainID:        "ethermint-1",
+		// 				Height:         1,
+		// 				ValidatorsHash: []byte("val_hash"),
+		// 				Version: version.Consensus{
+		// 					Block: tmversion.BlockProtocol,
+		// 				},
+		// 			},
+		// 		)
+		// 	},
+		// 	false,
+		// },
 		{
 			"case 1, nil tendermint hash",
 			1,
 			func() {},
 			true,
 		},
-		{
-			"valid hash, case 2",
-			1,
-			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
-					tmproto.Header{
-						ChainID:        "ethermint-1",
-						Height:         100,
-						ValidatorsHash: []byte("val_hash"),
-						Version: version.Consensus{
-							Block: tmversion.BlockProtocol,
-						},
-					},
-				)
-				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
-			},
-			false,
-		},
+		// {
+		// 	"valid hash, case 2",
+		// 	1,
+		// 	func() {
+		// 		suite.ctx = suite.ctx.WithBlockHeader(
+		// 			tmproto.Header{
+		// 				ChainID:        "ethermint-1",
+		// 				Height:         100,
+		// 				ValidatorsHash: []byte("val_hash"),
+		// 				Version: version.Consensus{
+		// 					Block: tmversion.BlockProtocol,
+		// 				},
+		// 			},
+		// 		)
+		// 		hash := types.HashFromContext(suite.ctx)
+		// 		suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
+		// 	},
+		// 	false,
+		// },
 		{
 			"height not found, case 2",
 			1,

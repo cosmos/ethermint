@@ -65,18 +65,18 @@ func newMsgEthereumTx(
 		Recipient:    &Recipient{Address: toStr},
 		Payload:      payload,
 		GasLimit:     gasLimit,
-		Amount:       []byte{},
-		Price:        []byte{},
+		Amount:       sdk.ZeroInt(),
+		Price:        sdk.ZeroInt(),
 		V:            []byte{},
 		R:            []byte{},
 		S:            []byte{},
 	}
 
 	if amount != nil {
-		txData.Amount = amount.Bytes()
+		txData.Amount = sdk.NewIntFromBigInt(amount)
 	}
 	if gasPrice != nil {
-		txData.Price = gasPrice.Bytes()
+		txData.Price = sdk.NewIntFromBigInt(gasPrice)
 	}
 
 	return &MsgEthereumTx{Data: txData}
@@ -91,19 +91,17 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
-	gasPrice := new(big.Int).SetBytes(msg.Data.Price)
-	if gasPrice.Sign() == 0 {
+	if msg.Data.Price.IsZero() {
 		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "gas price cannot be 0")
 	}
 
-	if gasPrice.Sign() == -1 {
-		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "gas price cannot be negative %s", gasPrice)
+	if msg.Data.Price.IsNegative() {
+		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "gas price cannot be negative %s", msg.Data.Price)
 	}
 
 	// Amount can be 0
-	amount := new(big.Int).SetBytes(msg.Data.Amount)
-	if amount.Sign() == -1 {
-		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "amount cannot be negative %s", amount)
+	if msg.Data.Amount.IsNegative() {
+		return sdkerrors.Wrapf(ethermint.ErrInvalidValue, "amount cannot be negative %s", msg.Data.Amount)
 	}
 
 	return nil
@@ -157,10 +155,10 @@ func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
-		new(big.Int).SetBytes(msg.Data.Price),
+		msg.Data.Price.BigInt(),
 		msg.Data.GasLimit,
 		recipient,
-		new(big.Int).SetBytes(msg.Data.Amount),
+		msg.Data.Amount.BigInt(),
 		msg.Data.Payload,
 		chainID,
 		uint(0),
@@ -196,10 +194,10 @@ func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 		Hash *ethcmn.Hash `json:"hash" rlp:"-"`
 	}{
 		AccountNonce: msg.Data.AccountNonce,
-		Price:        new(big.Int).SetBytes(msg.Data.Price),
+		Price:        msg.Data.Price.BigInt(),
 		GasLimit:     msg.Data.GasLimit,
 		Recipient:    recipient,
-		Amount:       new(big.Int).SetBytes(msg.Data.Amount),
+		Amount:       msg.Data.Amount.BigInt(),
 		Payload:      msg.Data.Payload,
 		V:            new(big.Int).SetBytes(msg.Data.V),
 		R:            new(big.Int).SetBytes(msg.Data.R),
@@ -245,10 +243,10 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 
 	msg.Data = &TxData{
 		AccountNonce: data.AccountNonce,
-		Price:        data.Price.Bytes(),
+		Price:        sdk.NewIntFromBigInt(data.Price),
 		GasLimit:     data.GasLimit,
 		Recipient:    &Recipient{Address: data.Recipient.String()},
-		Amount:       data.Amount.Bytes(),
+		Amount:       sdk.NewIntFromBigInt(data.Amount),
 		Payload:      data.Payload,
 		V:            data.V.Bytes(),
 		R:            data.R.Bytes(),
@@ -343,7 +341,7 @@ func (msg MsgEthereumTx) GetGas() uint64 {
 
 // Fee returns gasprice * gaslimit.
 func (msg MsgEthereumTx) Fee() *big.Int {
-	gasPrice := new(big.Int).SetBytes(msg.Data.Price)
+	gasPrice := msg.Data.Price.BigInt()
 	gasLimit := new(big.Int).SetUint64(msg.Data.GasLimit)
 	return new(big.Int).Mul(gasPrice, gasLimit)
 }
@@ -356,7 +354,7 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 // Cost returns amount + gasprice * gaslimit.
 func (msg MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
-	total.Add(total, new(big.Int).SetBytes(msg.Data.Amount))
+	total.Add(total, msg.Data.Amount.BigInt())
 	return total
 }
 

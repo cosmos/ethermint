@@ -50,7 +50,11 @@ message TxData {
   // nonce corresponds to the account nonce (transaction sequence).
   uint64 nonce = 1 [(gogoproto.customname) = "AccountNonce"];
   // price defines the unsigned integer value of the gas price in bytes.
-  bytes price = 2 [(gogoproto.jsontag) = "gasPrice"];
+  string price = 2 [
+    (gogoproto.jsontag) = "gasPrice",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable) = false
+  ];
   // gas defines the gas limit defined for the transaction.
   uint64 gas = 3 [(gogoproto.customname) = "GasLimit"];
   Recipient to = 4 [
@@ -58,8 +62,12 @@ message TxData {
     (gogoproto.moretags) = "rlp:\"nil\""
   ];
   // value defines the unsigned integer value of the transaction amount.
-  bytes value = 5 [(gogoproto.customname) = "Amount"];
-  // imput defines the data payload bytes of the transaction.
+  string value = 5 [
+    (gogoproto.customname) = "Amount",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable) = false
+  ];
+  // input defines the data payload bytes of the transaction.
   bytes input = 6 [(gogoproto.customname) = "Payload"];
   // v defines the signature value
   bytes v = 7;
