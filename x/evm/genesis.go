@@ -20,7 +20,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
-
 		// check that the EVM balance the matches the account balance
 		acc := accountKeeper.GetAccount(ctx, accAddress)
 		if acc == nil {
@@ -37,17 +36,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		if !evmBalance.Equal(account.Balance) {
-			panic(
-				fmt.Errorf(
-					"balance mismatch for account %s, expected %s%s, got %s%s",
-					account.Address, evmBalance, evmDenom, account.Balance, evmDenom,
-				),
-			)
-		}
 
-		k.SetBalance(ctx, address, account.Balance.BigInt())
+		k.SetNonce(ctx, address, acc.GetSequence())
+		k.SetBalance(ctx, address, evmBalance.BigInt())
 		k.SetCode(ctx, address, account.Code)
+
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
@@ -88,6 +81,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	for _, account := range accounts {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
+			// ignore non EthAccounts
 			continue
 		}
 
@@ -98,12 +92,8 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			panic(err)
 		}
 
-		balanceInt := k.GetBalance(ctx, addr)
-		balance := sdk.NewIntFromBigInt(balanceInt)
-
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Balance: balance,
 			Code:    k.GetCode(ctx, addr),
 			Storage: storage,
 		}

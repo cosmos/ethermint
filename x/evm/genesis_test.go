@@ -54,7 +54,6 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
 						Storage: types.Storage{
 							{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
 						},
@@ -87,7 +86,6 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
 					},
 				},
 			},
@@ -105,7 +103,6 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
 					},
 				},
 			},
