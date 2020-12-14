@@ -72,30 +72,6 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	}
 }
 
-// GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
-//  1. The requested height matches the current height from context (and thus same epoch number)
-//  2. The requested height is from an previous height from the same chain epoch
-//  3. The requested height is from a height greater than the latest one
-func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
-	return func(height uint64) common.Hash {
-		switch {
-		case ctx.BlockHeight() == int64(height):
-			// Case 1: The requested height matches the one from the context so we can retrieve the header
-			// hash directly from the context.
-			return HashFromContext(ctx)
-
-		case ctx.BlockHeight() > int64(height):
-			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
-			// current chain epoch. This only applies if the current height is greater than the requested height.
-			return csdb.WithContext(ctx).GetHeightHash(height)
-
-		default:
-			// Case 3: heights greater than the current one returns an empty hash.
-			return common.Hash{}
-		}
-	}
-}
-
 func (st StateTransition) newEVM(
 	ctx sdk.Context,
 	csdb *CommitStateDB,
@@ -110,7 +86,6 @@ func (st StateTransition) newEVM(
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     GetHashFn(ctx, csdb),
-		Origin:      st.Sender,
 		Coinbase:    common.Address{}, // there's no benefitiary since we're not mining
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
@@ -129,9 +104,9 @@ func (st StateTransition) newEVM(
 	}
 
 	vmConfig := vm.Config{
-		ExtraEips: extraEIPs,
+		ExtraEips: eips,
 	}
-	return vm.NewEVM(context, csdb, config.EthereumConfig(st.ChainID), vmConfig)
+	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
 // TransitionDb will transition the state by applying the current transaction and
@@ -285,8 +260,7 @@ func HashFromContext(ctx sdk.Context) common.Hash {
 	protoHeader := ctx.BlockHeader()
 	tmHeader, err := tmtypes.HeaderFromProto(&protoHeader)
 	if err != nil {
-		panic(err)
-		// return common.Hash{}
+		return common.Hash{}
 	}
 
 	// get the Tendermint block hash from the current header

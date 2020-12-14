@@ -230,6 +230,7 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.app.EvmKeeper.AddLog(suite.ctx, tc.log)
+		tc.log.Index = 0 // reset index
 		suite.Require().Equal(logs, suite.app.EvmKeeper.AllLogs(suite.ctx), tc.name)
 
 		//resets state but checking to see if storekey still persists.

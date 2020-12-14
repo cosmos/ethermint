@@ -86,7 +86,10 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 	tHash := ethcmn.BytesToHash([]byte{0x1})
 	suite.stateDB.Prepare(tHash, ethcmn.Hash{}, 0)
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
-	log := ethtypes.Log{Address: contractAddress}
+	log := ethtypes.Log{
+		Address: contractAddress,
+		Topics:  []ethcmn.Hash{},
+	}
 
 	testCase := []struct {
 		name     string
@@ -303,6 +306,7 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
+		tc.log.Index = 0 // reset index
 		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
 
 		//resets state but checking to see if storekey still persists.
