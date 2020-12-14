@@ -74,3 +74,66 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 		})
 	}
 }
+
+func (suite *KeeperTestSuite) TestNonceInvariant() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+
+	testCases := []struct {
+		name      string
+		malleate  func()
+		expBroken bool
+	}{
+		{
+			"nonce mismatch",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetSequence(1)
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+
+				suite.app.EvmKeeper.SetNonce(suite.ctx, address, 100)
+			},
+			true,
+		},
+		{
+			"nonce ok",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetSequence(1)
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+
+				suite.app.EvmKeeper.SetNonce(suite.ctx, address, 1)
+			},
+			false,
+		},
+		{
+			"invalid account type",
+			func() {
+				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
+				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset values
+
+			tc.malleate()
+
+			_, broken := suite.app.EvmKeeper.NonceInvariant()(suite.ctx)
+			if tc.expBroken {
+				suite.Require().True(broken)
+			} else {
+				suite.Require().False(broken)
+			}
+		})
+	}
+}
