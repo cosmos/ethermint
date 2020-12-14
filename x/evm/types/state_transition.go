@@ -72,6 +72,30 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	}
 }
 
+// GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
+//  1. The requested height matches the current height from context (and thus same epoch number)
+//  2. The requested height is from an previous height from the same chain epoch
+//  3. The requested height is from a height greater than the latest one
+func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
+	return func(height uint64) common.Hash {
+		switch {
+		case ctx.BlockHeight() == int64(height):
+			// Case 1: The requested height matches the one from the context so we can retrieve the header
+			// hash directly from the context.
+			return HashFromContext(ctx)
+
+		case ctx.BlockHeight() > int64(height):
+			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
+			// current chain epoch. This only applies if the current height is greater than the requested height.
+			return csdb.WithContext(ctx).GetHeightHash(height)
+
+		default:
+			// Case 3: heights greater than the current one returns an empty hash.
+			return common.Hash{}
+		}
+	}
+}
+
 func (st StateTransition) newEVM(
 	ctx sdk.Context,
 	csdb *CommitStateDB,
@@ -81,7 +105,8 @@ func (st StateTransition) newEVM(
 	extraEIPs []int64,
 ) *vm.EVM {
 	// Create context for evm
-	context := vm.Context{
+
+	blockCtx := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     GetHashFn(ctx, csdb),
@@ -91,7 +116,11 @@ func (st StateTransition) newEVM(
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    gasPrice,
+	}
+
+	txCtx := vm.TxContext{
+		Origin:   st.Sender,
+		GasPrice: gasPrice,
 	}
 
 	eips := make([]int, len(extraEIPs))
@@ -100,9 +129,8 @@ func (st StateTransition) newEVM(
 	}
 
 	vmConfig := vm.Config{
-		ExtraEips: eips,
+		ExtraEips: extraEIPs,
 	}
-
 	return vm.NewEVM(context, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 

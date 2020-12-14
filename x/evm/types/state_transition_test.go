@@ -229,6 +229,48 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			false,
 		},
 		{
+			"call disabled",
+			func() {
+				params := types.NewParams(ethermint.AttoPhoton, true, false)
+				suite.stateDB.SetParams(params)
+			},
+			types.StateTransition{
+				AccountNonce: 123,
+				Price:        big.NewInt(10),
+				GasLimit:     11,
+				Recipient:    &recipient,
+				Amount:       big.NewInt(50),
+				Payload:      []byte("data"),
+				ChainID:      big.NewInt(1),
+				Csdb:         suite.stateDB,
+				TxHash:       &ethcmn.Hash{},
+				Sender:       suite.address,
+				Simulate:     suite.ctx.IsCheckTx(),
+			},
+			false,
+		},
+		{
+			"create disabled",
+			func() {
+				params := types.NewParams(ethermint.AttoPhoton, false, true)
+				suite.stateDB.SetParams(params)
+			},
+			types.StateTransition{
+				AccountNonce: 123,
+				Price:        big.NewInt(10),
+				GasLimit:     11,
+				Recipient:    nil,
+				Amount:       big.NewInt(50),
+				Payload:      []byte("data"),
+				ChainID:      big.NewInt(1),
+				Csdb:         suite.stateDB,
+				TxHash:       &ethcmn.Hash{},
+				Sender:       suite.address,
+				Simulate:     suite.ctx.IsCheckTx(),
+			},
+			false,
+		},
+		{
 			"nil gas price",
 			func() {
 				suite.stateDB.SetParams(types.DefaultParams())

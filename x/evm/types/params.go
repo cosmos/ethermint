@@ -10,6 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/vm"
 
+	"github.com/ethereum/go-ethereum/core/vm"
+
 	ethermint "github.com/cosmos/ethermint/types"
 )
 
