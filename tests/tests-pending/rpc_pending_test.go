@@ -110,10 +110,6 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	t.Logf("Got latest balance %s for %s post tx\n", postTxLatestBalance, addrA)
 
 	require.Equal(t, preTxLatestBalance, postTxLatestBalance)
-	// 1 if x > y; where x is postTxPendingBalance, y is preTxPendingBalance
-	if postTxLatestBalance.Cmp(preTxPendingBalance) != 0 {
-		t.Errorf("expected balance: %d, got: %s", 0, res.String())
-	}
 }
 
 func TestEth_Pending_GetTransactionCount(t *testing.T) {
