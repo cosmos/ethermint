@@ -30,6 +30,8 @@ type Keeper struct {
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
 	storeKey sdk.StoreKey
+	// Account Keeper for fetching accounts
+	accountKeeper types.AccountKeeper
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
 	// Transaction counter in a block. Used on StateSB's Prepare function.
@@ -52,6 +54,7 @@ func NewKeeper(
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
+		accountKeeper: ak,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
@@ -86,6 +89,21 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
+}
+
+// ----------------------------------------------------------------------------
+// Epoch Height -> hash mapping functions
+// Required by EVM context's GetHashFunc
+// ----------------------------------------------------------------------------
+
+// GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
+func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) common.Hash {
+	return k.CommitStateDB.WithContext(ctx).GetHeightHash(height)
+}
+
+// SetHeightHash sets the block header hash associated with a given height.
+func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) {
+	k.CommitStateDB.WithContext(ctx).SetHeightHash(height, hash)
 }
 
 // ----------------------------------------------------------------------------

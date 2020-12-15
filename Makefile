@@ -123,6 +123,7 @@ all: tools verify install
 ###############################################################################
 
 build: go.sum
+
 ifeq ($(OS), Windows_NT)
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY).exe ./cmd/$(ETHERMINT_DAEMON_BINARY)
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY).exe ./cmd/$(ETHERMINT_CLI_BINARY)
@@ -130,7 +131,6 @@ else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_DAEMON_BINARY) ./cmd/$(ETHERMINT_DAEMON_BINARY)
 	go build -mod=readonly $(BUILD_FLAGS) -o build/$(ETHERMINT_CLI_BINARY) ./cmd/$(ETHERMINT_CLI_BINARY)
 endif
-	go build -mod=readonly ./...
 
 build-ethermint: go.sum
 	mkdir -p $(BUILDDIR)
@@ -266,7 +266,10 @@ test-import:
 	rm -rf importer/tmp
 
 test-rpc:
-	./scripts/integration-test-all.sh -q 1 -z 1 -s 2
+	./scripts/integration-test-all.sh -t "rpc" -q 1 -z 1 -s 2 -m "rpc"
+
+test-rpc-pending:
+	./scripts/integration-test-all.sh -t "pending" -q 1 -z 1 -s 2 -m "pending"
 
 test-contract:
 	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
