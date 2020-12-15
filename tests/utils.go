@@ -251,7 +251,7 @@ func GetNonce(t *testing.T, block string) hexutil.Uint64 {
 	return nonce
 }
 
-func UnlockAllAccounts(t *testing.T) bool {
+func UnlockAllAccounts(t *testing.T) {
 	var accts []common.Address
 	rpcRes := Call(t, "eth_accounts", []map[string]string{})
 	err := json.Unmarshal(rpcRes.Result, &accts)
