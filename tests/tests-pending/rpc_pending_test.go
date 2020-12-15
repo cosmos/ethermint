@@ -130,7 +130,9 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	fmt.Println("txRes: ", txRes)
+	fmt.Println("txRes.err: ", txRes.Error)
 
 	pendingNonce := util.GetNonce(t, "pending")
 	latestNonce := util.GetNonce(t, "latest")
@@ -242,14 +244,14 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	_ = util.Call(t, "eth_sendTransaction", param)
 
 	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
-	var pendingBlock map[string]interface{}
-	err = json.Unmarshal(rpcRes.Result, &pendingBlock)
+	var pendingBlockTx map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &pendingBlockTx)
 	require.NoError(t, err)
 
 	// verify the pending tx has all the correct fields from the tx sent.
-	require.NotEmpty(t, pendingBlock["hash"])
-	require.Equal(t, pendingBlock["value"], "0xa")
-	require.Equal(t, data, pendingBlock["input"])
+	require.NotEmpty(t, pendingBlockTx["hash"])
+	require.Equal(t, pendingBlockTx["value"], "0xa")
+	require.Equal(t, data, pendingBlockTx["input"])
 
 	rpcRes = util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"latest", "0x" + fmt.Sprintf("%X", pendingTxCount)})
 	var latestBlock map[string]interface{}
@@ -277,15 +279,15 @@ func TestEth_Pending_GetTransactionByHash(t *testing.T) {
 	require.NoError(t, err)
 
 	rpcRes := util.Call(t, "eth_getTransactionByHash", []interface{}{txHash})
-	var pendingBlock map[string]interface{}
-	err = json.Unmarshal(rpcRes.Result, &pendingBlock)
+	var pendingBlockTx map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &pendingBlockTx)
 	require.NoError(t, err)
 
 	// verify the pending tx has all the correct fields from the tx sent.
-	require.NotEmpty(t, pendingBlock)
-	require.NotEmpty(t, pendingBlock["hash"])
-	require.Equal(t, pendingBlock["value"], "0xa")
-	require.Equal(t, pendingBlock["input"], data)
+	require.NotEmpty(t, pendingBlockTx)
+	require.NotEmpty(t, pendingBlockTx["hash"])
+	require.Equal(t, pendingBlockTx["value"], "0xa")
+	require.Equal(t, pendingBlockTx["input"], data)
 }
 
 func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
