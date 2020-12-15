@@ -237,10 +237,7 @@ func WaitForReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
 
 func GetNonce(t *testing.T, block string) hexutil.Uint64 {
 	from, err := GetAddress()
-	if err != nil {
-		fmt.Printf("failed to get account: %s\n", err)
-		os.Exit(1)
-	}
+	require.NoError(t, err)
 
 	param := []interface{}{hexutil.Bytes(from), block}
 	rpcRes := Call(t, "eth_getTransactionCount", param)
