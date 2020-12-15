@@ -169,6 +169,15 @@ corresponding Ethereum API namespace:
   * `eth_getLogs` and `eth_getFilterChanges` for log filters use the same underlying method as `eth_getFilterLogs`
   * update `HandleMsgEthereumTx` to store logs using the ethereum hash
 * (app) [\#187](https://github.com/cosmos/ethermint/issues/187) Add support for simulations.
+* (rpc) [\#571](https://github.com/cosmos/ethermint/pull/571) Add pending queries to rpc calls. This allows for the querying of pending transactions and other relevant information that pertains to the pending state.
+  * `eth_getBalance`
+  * `eth_getTransactionCount`
+  * `eth_getBlockTransactionCountByNumber`
+  * `eth_getBlockByNumber`
+  * `eth_getTransactionByHash`
+  * `eth_getTransactionByBlockNumberAndIndex`
+  * `eth_sendTransaction` - the nonce will automatically update to its pending nonce (when none is explicitly provided)
+
 
 ### Bug Fixes
 
