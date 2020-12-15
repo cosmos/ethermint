@@ -255,9 +255,8 @@ func UnlockAllAccounts(t *testing.T) {
 	var accts []common.Address
 	rpcRes := Call(t, "eth_accounts", []map[string]string{})
 	err := json.Unmarshal(rpcRes.Result, &accts)
-	if err != nil {
-		return false
-	}
+	require.NoError(t, err)
+
 	for _, acct := range accts {
 		fmt.Println("account: ", acct)
 		rpcRes = Call(t, "personal_unlockAccount", []interface{}{acct, ""})
