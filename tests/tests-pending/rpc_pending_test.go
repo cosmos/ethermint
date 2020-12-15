@@ -131,8 +131,7 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 
 	txRes := util.Call(t, "eth_sendTransaction", param)
-	fmt.Println("txRes: ", txRes)
-	fmt.Println("txRes.err: ", txRes.Error)
+	require.Nil(t, txRes.Error)
 
 	pendingNonce := util.GetNonce(t, "pending")
 	latestNonce := util.GetNonce(t, "latest")
@@ -166,7 +165,8 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
 
 	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
 	var postTxPendingTxCount hexutil.Uint
@@ -205,7 +205,8 @@ func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
 
 	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"pending", true})
 	var postTxPendingBlock map[string]interface{}
@@ -241,7 +242,8 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 	param[0]["data"] = data
 
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
 
 	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
 	var pendingBlockTx map[string]interface{}
@@ -301,20 +303,23 @@ func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 
 	// first transaction
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes1 := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes1.Error)
 	pendingNonce1 := util.GetNonce(t, "pending")
 	require.Greater(t, uint64(pendingNonce1), uint64(currNonce))
 
 	// second transaction
 	param[0]["to"] = "0x7f0f463c4d57b1bd3e3b79051e6c5ab703e803d9"
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes2 := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes2.Error)
 	pendingNonce2 := util.GetNonce(t, "pending")
 	require.Greater(t, uint64(pendingNonce2), uint64(currNonce))
 	require.Greater(t, uint64(pendingNonce2), uint64(pendingNonce1))
 
 	// third transaction
 	param[0]["to"] = "0x7fb24493808b3f10527e3e0870afeb8a953052d2"
-	_ = util.Call(t, "eth_sendTransaction", param)
+	txRes3 := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes3.Error)
 	pendingNonce3 := util.GetNonce(t, "pending")
 	require.Greater(t, uint64(pendingNonce3), uint64(currNonce))
 	require.Greater(t, uint64(pendingNonce3), uint64(pendingNonce2))
