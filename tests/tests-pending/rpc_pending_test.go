@@ -92,7 +92,8 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	_ = util.Call(t, "eth_sendTransaction", param)
+	rpcRes = util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, rpcRes.Error)
 
 	rpcRes = util.Call(t, "eth_getBalance", []string{addrA, "pending"})
 	err = res.UnmarshalJSON(rpcRes.Result)

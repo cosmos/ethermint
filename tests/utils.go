@@ -255,7 +255,7 @@ func UnlockAllAccounts(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, acct := range accts {
-		fmt.Println("account: ", acct)
+		t.Logf("account: %v", acct)
 		rpcRes = Call(t, "personal_unlockAccount", []interface{}{acct, ""})
 		var unlocked bool
 		err = json.Unmarshal(rpcRes.Result, &unlocked)
