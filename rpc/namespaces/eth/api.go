@@ -29,12 +29,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
-	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -518,37 +515,9 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, fmt.Errorf("account with address %s does not exist in keyring", addr.String())
 	}
 
-	fees := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.NewIntFromBigInt(msg.Fee())))
-	signMode := api.clientCtx.TxConfig.SignModeHandler().DefaultMode()
-	signerData := authsigning.SignerData{ChainID: api.clientCtx.ChainID, AccountNumber: accNum, Sequence: seq}
-
-	// Create a TxBuilder
-	txBuilder := api.clientCtx.TxConfig.NewTxBuilder()
-	if err := txBuilder.SetMsgs(msg); err != nil {
-		return nil, err
-	}
-	txBuilder.SetFeeAmount(fees)
-	txBuilder.SetGasLimit(gas)
-
-	// TODO: use tx.Factory
-
-	// sign with the private key
-	sigV2, err := tx.SignWithPrivKey(
-		signMode, signerData,
-		txBuilder, privKey, api.clientCtx.TxConfig, seq,
-	)
-
+	tx, err := rpctypes.BuildEthereumTx(api.clientCtx, msg, accNum, seq, privKey)
 	if err != nil {
 		return nil, err
-	}
-
-	if err := txBuilder.SetSignatures(sigV2); err != nil {
-		return nil, err
-	}
-
-	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
-	if !ok {
-		return nil, errors.New("cannot cast to tx")
 	}
 
 	req := &txtypes.SimulateRequest{

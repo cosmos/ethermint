@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -10,9 +11,16 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/tx"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -187,4 +195,46 @@ func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *
 		}
 	}
 	return nil, false
+}
+
+// BuildEthereumTx builds and signs a Cosmos transaction from a MsgEthereumTx
+func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accNumber, seq uint64, privKey cryptotypes.PrivKey) (*txtypes.Tx, error) {
+	// TODO: user defined evm coin
+	fees := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.NewIntFromBigInt(msg.Fee())))
+	signMode := clientCtx.TxConfig.SignModeHandler().DefaultMode()
+	signerData := authsigning.SignerData{
+		ChainID:       clientCtx.ChainID,
+		AccountNumber: accNumber,
+		Sequence:      seq,
+	}
+
+	// Create a TxBuilder
+	txBuilder := clientCtx.TxConfig.NewTxBuilder()
+	if err := txBuilder.SetMsgs(msg); err != nil {
+		return nil, err
+
+	}
+	txBuilder.SetFeeAmount(fees)
+	txBuilder.SetGasLimit(msg.GetGas())
+
+	// sign with the private key
+	sigV2, err := tx.SignWithPrivKey(
+		signMode, signerData,
+		txBuilder, privKey, clientCtx.TxConfig, seq,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := txBuilder.SetSignatures(sigV2); err != nil {
+		return nil, err
+	}
+
+	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
+	if !ok {
+		return nil, errors.New("cannot cast to tx")
+	}
+
+	return tx, nil
 }
