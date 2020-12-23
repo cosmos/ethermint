@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -30,7 +30,7 @@ type (
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (ga GenesisAccount) Validate() error {
-	if ga.Address == (ethcmn.Address{}.String()) {
+	if ethermint.IsZeroAddress(ga.Address) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
 	if ga.Code != nil && len(ga.Code) == 0 {
@@ -67,15 +67,15 @@ func (gs GenesisState) Validate() error {
 	}
 
 	for _, tx := range gs.TxsLogs {
-		if seenTxs[tx.Hash.String()] {
-			return fmt.Errorf("duplicated logs from transaction %s", tx.Hash.String())
+		if seenTxs[tx.Hash] {
+			return fmt.Errorf("duplicated logs from transaction %s", tx.Hash)
 		}
 
 		if err := tx.Validate(); err != nil {
-			return fmt.Errorf("invalid logs from transaction %s: %w", tx.Hash.String(), err)
+			return fmt.Errorf("invalid logs from transaction %s: %w", tx.Hash, err)
 		}
 
-		seenTxs[tx.Hash.String()] = true
+		seenTxs[tx.Hash] = true
 	}
 
 	if err := gs.ChainConfig.Validate(); err != nil {
