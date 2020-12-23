@@ -11,6 +11,7 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/ethermint/types"
+	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -132,7 +133,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 func (so *stateObject) setState(key, value ethcmn.Hash) {
 	idx, ok := so.keyToDirtyStorageIndex[key]
 	if ok {
-		so.dirtyStorage[idx].Value = value
+		so.dirtyStorage[idx].Value = value.String()
 		return
 	}
 
@@ -249,7 +250,7 @@ func (so *stateObject) commitState() {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
 
 		// delete empty values from the store
-		if (state.Value == ethcmn.Hash{}) {
+		if ethermint.IsEmptyHash(state.Value) {
 			store.Delete(state.Key.Bytes())
 		}
 

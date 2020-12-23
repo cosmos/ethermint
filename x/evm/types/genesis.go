@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 type (
@@ -22,9 +23,9 @@ type (
 	// storage type and that it doesn't contain the private key field.
 	// NOTE: balance is omitted as it is imported from the auth account balance.
 	GenesisAccount struct {
-		Address string        `json:"address"`
-		Code    hexutil.Bytes `json:"code,omitempty"`
-		Storage Storage       `json:"storage,omitempty"`
+		Address string  `json:"address"`
+		Code    string  `json:"code,omitempty"`
+		Storage Storage `json:"storage,omitempty"`
 	}
 )
 
@@ -33,8 +34,8 @@ func (ga GenesisAccount) Validate() error {
 	if ethermint.IsZeroAddress(ga.Address) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
-	if ga.Code != nil && len(ga.Code) == 0 {
-		return errors.New("code bytes cannot be empty")
+	if ga.Code == "" || len(ethcmn.Hex2Bytes(ga.Code)) == 0 {
+		return errors.New("code cannot be empty")
 	}
 
 	return ga.Storage.Validate()
