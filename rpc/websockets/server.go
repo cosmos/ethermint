@@ -9,12 +9,11 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -23,8 +22,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 )
 
+var _ http.Handler = &Server{}
+
 // Server defines a server that handles Ethereum websockets.
 type Server struct {
+	rtr     *mux.Router
 	rpcAddr string // listen address of rest-server
 	wsAddr  string // listen address of ws server
 	api     *PubSubAPI
@@ -32,26 +34,40 @@ type Server struct {
 }
 
 // NewServer creates a new websocket server instance.
-func NewServer(clientCtx client.Context, wsAddr string) *Server {
+func NewServer(clientCtx client.Context, logger log.Logger, rtr *mux.Router, rpcAddr, wsAddr string) *Server {
 	return &Server{
-		rpcAddr: viper.GetString("laddr"),
+		rtr:     rtr,
+		rpcAddr: rpcAddr,
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx),
-		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
+		logger:  logger.With("module", "websocket-server"),
 	}
 }
 
+// RegisterRoutes register the
+func (s *Server) RegisterRoutes() {
+	s.rtr.Handle("/", s)
+}
+
 // Start runs the websocket server
-func (s *Server) Start() {
-	ws := mux.NewRouter()
-	ws.Handle("/", s)
+func (s *Server) Start() error {
+	// Route registered by application
+	errCh := make(chan error)
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
+		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), s.rtr)
 		if err != nil {
-			s.logger.Error("http error:", err)
+			errCh <- err
 		}
 	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-time.After(5 * time.Second): // assume server started successfully
+	}
+
+	return nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

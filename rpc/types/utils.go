@@ -12,7 +12,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -231,9 +230,9 @@ func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accN
 		return nil, err
 	}
 
-	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
+	tx, ok := txBuilder.GetTx().(*txtypes.Tx)
 	if !ok {
-		return nil, errors.New("cannot cast to tx")
+		return nil, errors.New("cannot cast to protobuf tx")
 	}
 
 	return tx, nil

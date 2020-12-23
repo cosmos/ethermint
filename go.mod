@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
-	github.com/armon/go-metrics v0.3.4
+	github.com/armon/go-metrics v0.3.5
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v1.1.1 // indirect
@@ -31,10 +31,12 @@ require (
 	github.com/tendermint/tendermint v0.34.0
 	github.com/tendermint/tm-db v0.6.3
 	github.com/tyler-smith/go-bip39 v1.0.2
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-	google.golang.org/genproto v0.0.0-20201111145450-ac7456db90a6
+	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9
+	google.golang.org/genproto v0.0.0-20201119123407-9b1e624d6bc4
 	google.golang.org/grpc v1.33.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+
+replace github.com/cosmos/cosmos-sdk => ./../cosmos-sdk

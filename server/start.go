@@ -266,6 +266,11 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 	}
 
+	var ethereumSrv *api.Server
+	if config.Ethereum.EnableJSONRPC {
+		ethereumSrv.Start(config)
+	}
+
 	defer func() {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
@@ -281,6 +286,10 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 
 		if grpcSrv != nil {
 			grpcSrv.Stop()
+		}
+
+		if ethereumSrv != nil {
+			_ = ethereumSrv.Close()
 		}
 
 		ctx.Logger.Info("exiting...")

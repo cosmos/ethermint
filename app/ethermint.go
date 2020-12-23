@@ -89,8 +89,6 @@ import (
 	"github.com/cosmos/ethermint/app/ante"
 	ethermintrpc "github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/server"
-	"github.com/cosmos/ethermint/server/api"
-	"github.com/cosmos/ethermint/server/config"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 	evmkeeper "github.com/cosmos/ethermint/x/evm/keeper"
@@ -597,7 +595,7 @@ func (app *EthermintApp) SimulationManager() *module.SimulationManager {
 
 // RegisterAPIRoutes registers all application module routes with the provided
 // API server.
-func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkconfig.APIConfig) {
+func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.BaseServer, apiConfig sdkconfig.APIConfig) {
 	clientCtx := apiSvr.ClientCtx
 	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
 	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
@@ -610,7 +608,7 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkc
 
 	// register swagger API from root so that other applications can override easily
 	if apiConfig.Swagger {
-		simapp.RegisterSwaggerAPI(clientCtx, apiSvr.Router)
+		simapp.RegisterSwaggerAPI(apiSvr.Router)
 	}
 }
 
@@ -626,21 +624,8 @@ func (app *EthermintApp) RegisterTendermintService(clientCtx client.Context) {
 
 // RegisterEthereumServers registers all application ethereum routes with the provided
 // API server.
-func (app *EthermintApp) RegisterEthereumServers(apiSvr *api.Server, apiConfig config.EthereumConfig) {
-	// clientCtx := apiSvr.ClientCtx
-	// rpc.RegisterRoutes(clientCtx, apiSvr.Router)
-	// authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
+func (app *EthermintApp) RegisterExternalServices(sdkapi.Server, sdkconfig.ServerConfig) {
 
-	// ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
-	// ModuleBasics.RegisterGRPCRoutes(apiSvr.ClientCtx, apiSvr.GRPCRouter)
-
-	// // Register Ethereum namespaces
-	// // ethermintrpc.RegisterRoutes(clientCtx, apiSvr.Router)
-
-	// // register swagger API from root so that other applications can override easily
-	// if apiConfig.Swagger {
-	// 	simapp.RegisterSwaggerAPI(clientCtx, apiSvr.Router)
-	// }
 }
 
 // GetMaccPerms returns a copy of the module account permissions

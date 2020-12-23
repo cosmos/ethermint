@@ -1,23 +1,24 @@
-package rpc
+package api
 
 import (
 	"github.com/gorilla/mux"
 
 	"github.com/cosmos/cosmos-sdk/client"
 
+	"github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/rpc/websockets"
 	"github.com/cosmos/ethermint/server/config"
 
-	"github.com/ethereum/go-ethereum/rpc"
+	gethrpc "github.com/ethereum/go-ethereum/rpc"
 )
 
 // RegisterEthereum creates a new ethereum JSON-RPC server and recreates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
 func RegisterEthereum(clientCtx client.Context, r *mux.Router) {
-	server := rpc.NewServer()
+	server := gethrpc.NewServer()
 	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
-	apis := GetAPIs(clientCtx)
+	apis := rpc.GetAPIs(clientCtx)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
