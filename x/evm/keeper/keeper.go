@@ -164,9 +164,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := ctx.KVStore(k.storeKey)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
-	bz := store.Get([]byte{})
+	bz := store.Get(types.KeyPrefixChainConfig)
 	if len(bz) == 0 {
 		return types.ChainConfig{}, false
 	}
@@ -178,8 +178,8 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
-	store.Set([]byte{}, bz)
+	store.Set(types.KeyPrefixChainConfig, bz)
 }
