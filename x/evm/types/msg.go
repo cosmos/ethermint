@@ -155,14 +155,14 @@ func newMsgEthereumTx(
 		payload = ethcmn.CopyBytes(payload)
 	}
 
-	var toStr string
+	var recipient *Recipient
 	if to != nil {
-		toStr = to.String()
+		recipient = &Recipient{Address: to.String()}
 	}
 
 	txData := TxData{
 		AccountNonce: nonce,
-		Recipient:    &Recipient{Address: toStr},
+		Recipient:    recipient,
 		Payload:      payload,
 		GasLimit:     gasLimit,
 		Amount:       sdk.ZeroInt(),
@@ -254,10 +254,10 @@ func (msg MsgEthereumTx) GetSignBytes() []byte {
 func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
-		msg.Data.Price,
+		msg.Data.Price.BigInt(),
 		msg.Data.GasLimit,
-		msg.Data.Recipient,
-		msg.Data.Amount,
+		msg.To(),
+		msg.Data.Amount.BigInt(),
 		msg.Data.Payload,
 		chainID, uint(0), uint(0),
 	})
@@ -334,11 +334,16 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 		hash = data.Hash.String()
 	}
 
+	var recipient *Recipient
+	if data.Recipient != nil {
+		recipient = &Recipient{Address: data.Recipient.String()}
+	}
+
 	msg.Data = TxData{
 		AccountNonce: data.AccountNonce,
 		Price:        sdk.NewIntFromBigInt(data.Price),
 		GasLimit:     data.GasLimit,
-		Recipient:    &Recipient{Address: data.Recipient.String()},
+		Recipient:    recipient,
 		Amount:       sdk.NewIntFromBigInt(data.Amount),
 		Payload:      data.Payload,
 		V:            data.V.Bytes(),

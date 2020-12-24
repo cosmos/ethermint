@@ -8,7 +8,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	ethermint "github.com/cosmos/ethermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
@@ -150,10 +149,6 @@ func (cc ChainConfig) Validate() error {
 func validateHash(hex string) error {
 	if hex != "" && strings.TrimSpace(hex) == "" {
 		return sdkerrors.Wrapf(ErrInvalidChainConfig, "hash cannot be blank")
-	}
-
-	if ethermint.IsEmptyHash(hex) {
-		return sdkerrors.Wrapf(ErrInvalidChainConfig, "hash cannot be empty %s", hex)
 	}
 
 	return nil
