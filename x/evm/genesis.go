@@ -10,12 +10,18 @@ import (
 
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+	"github.com/cosmos/ethermint/x/evm/keeper"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+func InitGenesis(
+	ctx sdk.Context,
+	k keeper.Keeper,
+	accountKeeper types.AccountKeeper, 
+	data GenesisState,
+) []abci.ValidatorUpdate { // nolint: interfacer
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
@@ -40,16 +46,16 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		k.SetCode(ctx, address, account.Code)
+		k.SetCode(ctx, address, ethcmn.Hex2Bytes(account.Code))
 
 		for _, storage := range account.Storage {
-			k.SetState(ctx, address, storage.Key, storage.Value)
+			k.SetState(ctx, address, ethcmn.HexToHash(storage.Key), ethcmn.HexToHash(storage.Value))
 		}
 	}
 
 	var err error
 	for _, txLog := range data.TxsLogs {
-		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
+		if err = k.SetLogs(ctx, ethcmn.HexToHash(txLog.Hash), txLog.Logs); err != nil {
 			panic(err)
 		}
 	}
@@ -74,7 +80,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 }
 
 // ExportGenesis exports genesis state of the EVM module
-func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
@@ -93,7 +99,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    k.GetCode(ctx, addr),
+			Code:    ethcmn.Bytes2Hex(k.GetCode(ctx, addr)),
 			Storage: storage,
 		}
 
