@@ -18,7 +18,7 @@ func NewHandler(k Keeper) sdk.Handler {
 		snapshotStateDB := k.CommitStateDB.Copy()
 		defer func() {
 			if r := recover(); r != nil {
-				k.CommitStateDB = snapshotStateDB
+				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
 				panic(r)
 			}
 		}()
@@ -32,7 +32,7 @@ func NewHandler(k Keeper) sdk.Handler {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 		if err != nil {
-			k.CommitStateDB = snapshotStateDB
+			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
 		}
 		return result, err
 	}
