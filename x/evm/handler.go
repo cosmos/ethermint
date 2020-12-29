@@ -14,16 +14,27 @@ import (
 
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
+		snapshotStateDB := k.CommitStateDB.Copy()
+		defer func() {
+			if r := recover(); r != nil {
+				k.CommitStateDB = snapshotStateDB
+				panic(r)
+			}
+		}()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return handleMsgEthereumTx(ctx, k, msg)
+			result, err = handleMsgEthereumTx(ctx, k, msg)
 		case types.MsgEthermint:
-			return handleMsgEthermint(ctx, k, msg)
+			result, err = handleMsgEthermint(ctx, k, msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
+		if err != nil {
+			k.CommitStateDB = snapshotStateDB
+		}
+		return result, err
 	}
 }
 
