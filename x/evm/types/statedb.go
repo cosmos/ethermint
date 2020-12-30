@@ -609,6 +609,14 @@ func (csdb *CommitStateDB) Snapshot() int {
 	return id
 }
 
+func (csdb CommitStateDB) GetRevisionId() int {
+	return csdb.nextRevisionID
+}
+
+func (csdb *CommitStateDB) SetRevisionId(id int) {
+	csdb.nextRevisionID = id
+}
+
 // RevertToSnapshot reverts all state changes made since the given revision.
 func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
 	// find the snapshot in the stack of valid snapshots
