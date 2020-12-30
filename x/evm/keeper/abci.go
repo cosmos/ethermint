@@ -51,8 +51,10 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		panic(err)
 	}
 
-	// Clear accounts cache after account data has been committed
-	k.Reset(ctx, root)
+	// reset all cache after account data has been committed, that make sure node state consistent
+	if err = k.Reset(ctx, root); err != nil {
+		panic(err)
+	}
 
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
