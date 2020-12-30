@@ -141,9 +141,9 @@ func (k Keeper) GetRevisionID(ctx sdk.Context) (int, error) {
 	return int(revision), nil
 }
 
-func (k Keeper) SetRevisionID(ctx sdk.Context, revisionId int) {
+func (k Keeper) SetRevisionID(ctx sdk.Context, revisionID int) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixRevisionID)
-	store.Set(types.RevisionKey(), sdk.Uint64ToBigEndian(uint64(revisionId)))
+	store.Set(types.RevisionKey(), sdk.Uint64ToBigEndian(uint64(revisionID)))
 }
 
 // GetAllTxLogs return all the transaction logs from the store.
