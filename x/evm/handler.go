@@ -16,6 +16,15 @@ import (
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		snapshotStateDB := k.CommitStateDB.Copy()
+		// If the gas is insufficient during the execution of the "handler",
+		// panic will be thrown from the function "ConsumeGas" and finally
+		// caught by the function "runTx" from Cosmos. The function "runTx"
+		// will think that the execution of Msg has failed and the modified
+		// data in the Store will not take effect.
+		// The fault is that the modified data in CommitStateDB has not been
+		// rolled back, resulting in bad data.
+		// Therefore, the code here specifically deals with this situation.
+		// See https://github.com/cosmos/ethermint/issues/668 for more information.
 		defer func() {
 			if r := recover(); r != nil {
 				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
