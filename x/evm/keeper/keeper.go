@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/tendermint/tendermint/libs/log"
 	"math/big"
+
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -129,7 +130,7 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 	store.Set(types.BloomKey(height), bloom.Bytes())
 }
 
-func (k Keeper) GetRevisionId(ctx sdk.Context) (int, error) {
+func (k Keeper) GetRevisionID(ctx sdk.Context) (int, error) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixRevisionID)
 	bz := store.Get(types.RevisionKey())
 	if len(bz) == 0 {

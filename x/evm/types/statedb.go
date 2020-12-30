@@ -609,11 +609,11 @@ func (csdb *CommitStateDB) Snapshot() int {
 	return id
 }
 
-func (csdb CommitStateDB) GetRevisionId() int {
+func (csdb CommitStateDB) GetRevisionID() int {
 	return csdb.nextRevisionID
 }
 
-func (csdb *CommitStateDB) SetRevisionId(id int) {
+func (csdb *CommitStateDB) SetRevisionID(id int) {
 	csdb.nextRevisionID = id
 }
 
