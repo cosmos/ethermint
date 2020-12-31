@@ -11,17 +11,23 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
+	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/transaction/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET") // default from auth
+	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST") // default from auth
+	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
+	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -75,22 +81,8 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 	}
 
 	ethTx, ok := tx.(evmtypes.MsgEthereumTx)
-
 	if ok {
-		// eth Tx
-
-		// Can either cache or just leave this out if not necessary
-		block, err := node.Block(&resTx.Height)
-		if err != nil {
-			return nil, err
-		}
-		blockHash := common.BytesToHash(block.Block.Header.Hash())
-		height := uint64(resTx.Height)
-		res, err := rpctypes.NewTransaction(&ethTx, common.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
-		if err != nil {
-			return nil, err
-		}
-		return json.Marshal(res)
+		return getEthTxResponse(node, resTx, ethTx)
 	}
 	// not eth Tx
 	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
@@ -105,6 +97,21 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 
 	return out, nil
 
+}
+
+func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes.MsgEthereumTx) (interface{}, error) {
+	// Can either cache or just leave this out if not necessary
+	block, err := node.Block(&resTx.Height)
+	if err != nil {
+		return nil, err
+	}
+	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	height := uint64(resTx.Height)
+	res, err := rpctypes.NewTransaction(&ethTx, common.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(res)
 }
 
 // ValidateTxResult performs transaction verification.
