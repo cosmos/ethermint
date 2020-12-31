@@ -417,7 +417,6 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	suite.Require().NotNil(result)
 }
 
-
 func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 	// Test contract:
 	//http://remix.ethereum.org/#optimize=false&evmVersion=istanbul&version=soljson-v0.5.15+commit.6a57276f.js
@@ -494,7 +493,7 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 			currentCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
 			suite.Require().Nil(err)
 			suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
-		}else {
+		} else {
 			suite.Require().Fail("panic did not happen")
 		}
 	}()
@@ -502,7 +501,6 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 	suite.handler(suite.ctx, tx)
 	suite.Require().Fail("panic did not happen")
 }
-
 
 func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	gasLimit := uint64(1000000)
