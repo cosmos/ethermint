@@ -72,6 +72,9 @@ func getEthTransactionByHash(cliCtx context.CLIContext, hashHex string) ([]byte,
 		return nil, err
 	}
 	tx, err := node.Tx(hash, false)
+	if err != nil {
+		return nil, err
+	}
 
 	// Can either cache or just leave this out if not necessary
 	block, err := node.Block(&tx.Height)
