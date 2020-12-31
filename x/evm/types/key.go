@@ -30,7 +30,7 @@ var (
 	KeyPrefixStorage     = []byte{0x05}
 	KeyPrefixChainConfig = []byte{0x06}
 	KeyPrefixHeightHash  = []byte{0x07}
-	KeyPrefixRevisionID  = []byte{0x07}
+	KeyPrefixRevisionID  = []byte{0x08}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
