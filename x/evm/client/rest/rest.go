@@ -21,7 +21,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")         // default from auth
 	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
 	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
-	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
+	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -35,29 +35,30 @@ func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		ethHashPrefix := "0x"
-
-		var output interface{}
-		var err error
 		if strings.HasPrefix(hashHexStr, ethHashPrefix) {
+			// eth Tx
 			ethHashPrefixLength := len(ethHashPrefix)
-			output, err = getEthTransactionByHash(cliCtx, hashHexStr[ethHashPrefixLength:])
+			output, err := getEthTransactionByHash(cliCtx, hashHexStr[ethHashPrefixLength:])
 			if err != nil {
 				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
-		} else {
-			output, err = utils.QueryTx(cliCtx, hashHexStr)
-			if err != nil {
-				if strings.Contains(err.Error(), hashHexStr) {
-					rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
-					return
-				}
-				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			rest.PostProcessResponseBare(w, cliCtx, output)
+			return
+		}
+
+		output, err := utils.QueryTx(cliCtx, hashHexStr)
+		if err != nil {
+			if strings.Contains(err.Error(), hashHexStr) {
+				rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
 				return
 			}
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
 		}
 		rest.PostProcessResponseBare(w, cliCtx, output)
 	}
+
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
