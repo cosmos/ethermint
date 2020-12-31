@@ -91,20 +91,19 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 			return nil, err
 		}
 		return json.Marshal(res)
-	} else {
-		// not eth Tx
-		resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
-		if err != nil {
-			return sdk.TxResponse{}, err
-		}
-
-		out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
-		if err != nil {
-			return out, err
-		}
-
-		return out, nil
 	}
+	// not eth Tx
+	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
 
 }
 
