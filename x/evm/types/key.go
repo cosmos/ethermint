@@ -17,8 +17,6 @@ const (
 
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
-
-	RevisionIDKey = ModuleName + "_RevisionID"
 )
 
 // KVStore key prefixes
@@ -48,7 +46,7 @@ func BloomKey(height int64) []byte {
 }
 
 func RevisionKey() []byte {
-	return []byte(RevisionIDKey)
+	return []byte(ModuleName + "_RevisionID")
 }
 
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
