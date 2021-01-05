@@ -151,6 +151,7 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
+
 	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
 		storage = append(storage, types.NewState(key, value))
 		return false
@@ -165,7 +166,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	store := ctx.KVStore(k.storeKey)
-	// get from an empty key that's already prefixed by KeyPrefixChainConfig
+
 	bz := store.Get(types.KeyPrefixChainConfig)
 	if len(bz) == 0 {
 		return types.ChainConfig{}, false
@@ -180,6 +181,5 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(config)
-	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set(types.KeyPrefixChainConfig, bz)
 }
