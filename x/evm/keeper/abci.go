@@ -31,13 +31,6 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
-
-	//loading revision id from store in every block, make sure the `csdb.nextRevisionId` consistent in every node
-	id, err := k.GetRevisionID(ctx)
-	if err != nil {
-		panic(err)
-	}
-	k.CommitStateDB.SetRevisionID(id)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -65,7 +58,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	//set the `next revision id` to store
-	k.SetRevisionID(ctx, k.CommitStateDB.GetRevisionID())
+	k.CommitStateDB.SetRevisionID()
 
 	return []abci.ValidatorUpdate{}
 }
