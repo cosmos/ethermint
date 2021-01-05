@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
-	"github.com/cosmos/ethermint/types"
 	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -54,7 +53,7 @@ type StateObject interface {
 // Account values can be accessed and modified through the object.
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
-	code types.Code // contract bytecode, which gets set when code is loaded
+	code ethermint.Code // contract bytecode, which gets set when code is loaded
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
@@ -65,7 +64,7 @@ type stateObject struct {
 	// DB error
 	dbErr   error
 	stateDB *CommitStateDB
-	account *types.EthAccount
+	account *ethermint.EthAccount
 
 	keyToOriginStorageIndex map[ethcmn.Hash]int
 	keyToDirtyStorageIndex  map[ethcmn.Hash]int
@@ -83,7 +82,7 @@ type stateObject struct {
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
-	ethermintAccount, ok := accProto.(*types.EthAccount)
+	ethermintAccount, ok := accProto.(*ethermint.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}

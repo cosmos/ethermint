@@ -18,7 +18,7 @@ type TransactionLogs struct {
 }
 
 // NewTransactionLogs creates a new NewTransactionLogs instance.
-func NewTransactionLogs(hash ethcmn.Hash, logs []*ethtypes.Log) TransactionLogs {
+func NewTransactionLogs(hash ethcmn.Hash, logs []*ethtypes.Log) TransactionLogs { // nolint: interfacer
 	return TransactionLogs{
 		Hash: hash.String(),
 		Logs: logs,
