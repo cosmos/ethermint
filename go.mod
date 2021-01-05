@@ -4,11 +4,11 @@ go 1.15
 
 require (
 	github.com/aristanetworks/goarista v0.0.0-20201012165903-2cb20defcd66 // indirect
-	github.com/armon/go-metrics v0.3.4
+	github.com/armon/go-metrics v0.3.5
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/cosmos/cosmos-sdk v0.40.0-rc3.0.20201207213327-da6b7f775596
+	github.com/cosmos/cosmos-sdk v0.40.0-rc6
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.25
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
@@ -31,8 +31,8 @@ require (
 	github.com/tendermint/tendermint v0.34.0
 	github.com/tendermint/tm-db v0.6.3
 	github.com/tyler-smith/go-bip39 v1.0.2
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-	google.golang.org/genproto v0.0.0-20201111145450-ac7456db90a6
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d
 	google.golang.org/grpc v1.33.2
 	gopkg.in/yaml.v2 v2.4.0
 )
