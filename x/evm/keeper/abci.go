@@ -51,6 +51,9 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		panic(err)
 	}
 
+	//set the `next revision id` to store
+	k.CommitStateDB.SetRevisionID()
+
 	// reset all cache after account data has been committed, that make sure node state consistent
 	if err = k.Reset(ctx, root); err != nil {
 		panic(err)
@@ -59,9 +62,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
-
-	//set the `next revision id` to store
-	k.CommitStateDB.SetRevisionID()
 
 	return []abci.ValidatorUpdate{}
 }
