@@ -21,7 +21,6 @@ func (suite *KeeperTestSuite) TestBeginBlock() {
 	suite.app.EvmKeeper.Bloom.SetInt64(10)
 	suite.app.EvmKeeper.TxCount = 10
 
-	suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{})
 	suite.app.EvmKeeper.BeginBlock(suite.ctx, abci.RequestBeginBlock{})
 	suite.Require().NotZero(suite.app.EvmKeeper.Bloom.Int64())
 	suite.Require().NotZero(suite.app.EvmKeeper.TxCount)
