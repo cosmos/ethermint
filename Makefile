@@ -356,10 +356,6 @@ proto-format:
 	--workdir /workspace tendermintdev/docker-build-proto \
 	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
 
-# This generates the SDK's custom wrapper for google.protobuf.Any. It should only be run manually when needed
-proto-gen-any:
-	$(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace tendermintdev/sdk-proto-gen sh ./scripts/protocgen-any.sh
-
 proto-swagger-gen:
 	@./scripts/protoc-swagger-gen.sh
 
