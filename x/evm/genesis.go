@@ -9,8 +9,8 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/types"
 	"github.com/cosmos/ethermint/x/evm/keeper"
+	"github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -19,9 +19,11 @@ import (
 func InitGenesis(
 	ctx sdk.Context,
 	k keeper.Keeper,
-	accountKeeper types.AccountKeeper, 
+	accountKeeper types.AccountKeeper,
 	data GenesisState,
 ) []abci.ValidatorUpdate { // nolint: interfacer
+
+	k.SetParams(ctx, data.Params)
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
@@ -61,7 +63,6 @@ func InitGenesis(
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-	k.SetParams(ctx, data.Params)
 
 	// set state objects and code to store
 	_, err = k.Commit(ctx, false)
