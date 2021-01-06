@@ -34,7 +34,7 @@ func (ga GenesisAccount) Validate() error {
 	if ethermint.IsZeroAddress(ga.Address) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
-	if ga.Code == "" || len(ethcmn.Hex2Bytes(ga.Code)) == 0 {
+	if len(ethcmn.Hex2Bytes(ga.Code)) == 0 {
 		return errors.New("code cannot be empty")
 	}
 
