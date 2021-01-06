@@ -19,9 +19,9 @@ import (
 func InitGenesis(
 	ctx sdk.Context,
 	k keeper.Keeper,
-	accountKeeper types.AccountKeeper,
+	accountKeeper types.AccountKeeper, // nolint: interfacer
 	data GenesisState,
-) []abci.ValidatorUpdate { // nolint: interfacer
+) []abci.ValidatorUpdate {
 
 	k.SetParams(ctx, data.Params)
 	evmDenom := data.Params.EvmDenom
