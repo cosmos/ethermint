@@ -25,7 +25,10 @@ GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
 LEDGER_ENABLED ?= true
-HTTPS_GIT := https://github.com/ChainSafe/ethermint.git
+HTTPS_GIT := https://github.com/cosmos/ethermint.git
+DOCKER := $(shell which docker)
+DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf
+
 
 ifeq ($(OS),Windows_NT)
   DETECTED_OS := windows
@@ -335,10 +338,20 @@ format:
 ###                                Protobuf                                 ###
 ###############################################################################
 
-proto-all: proto-tools proto-gen proto-lint proto-check-breaking proto-swagger-gen proto-format
+proto-all: proto-format proto-lint proto-gen
 
 proto-gen:
-	@./scripts/protocgen.sh
+	@echo "Generating Protobuf files"
+	$(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace tendermintdev/sdk-proto-gen sh ./scripts/protocgen.sh
+
+proto-format:
+	@echo "Formatting Protobuf files"
+	$(DOCKER) run --rm -v $(CURDIR):/workspace \
+	--workdir /workspace tendermintdev/docker-build-proto \
+	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
+
+proto-swagger-gen:
+	@./scripts/protoc-swagger-gen.sh
 
 proto-format:
 	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
@@ -347,36 +360,23 @@ proto-swagger-gen:
 	@./scripts/protoc-swagger-gen.sh
 
 proto-lint:
-	@buf check lint --error-format=json
+	@$(DOCKER_BUF) check lint --error-format=json
 
 proto-check-breaking:
-	@buf check breaking --against-input '.git#branch=development'
-
-proto-lint-docker:
-	@$(DOCKER_BUF) check lint --error-format=json
-.PHONY: proto-lint
-
-proto-check-breaking-docker:
 	@$(DOCKER_BUF) check breaking --against-input $(HTTPS_GIT)#branch=development
-.PHONY: proto-check-breaking-ci
 
-TM_URL           = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.0-rc4/proto/tendermint
-GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
-COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
-COSMOS_SDK_URL = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
-CONFIO_URL 		 = https://raw.githubusercontent.com/confio/ics23/v0.6.2
+TM_URL              = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.1/proto/tendermint
+GOGO_PROTO_URL      = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
+COSMOS_SDK_URL      = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master
+COSMOS_PROTO_URL    = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 
 TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
 TM_ABCI_TYPES       = third_party/proto/tendermint/abci
-TM_TYPES     			  = third_party/proto/tendermint/types
-TM_VERSION 					= third_party/proto/tendermint/version
-TM_LIBS							= third_party/proto/tendermint/libs/bits
+TM_TYPES            = third_party/proto/tendermint/types
 
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
+COSMOS_SDK_PROTO    = third_party/proto/cosmos-sdk
 COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
-CONFIO_TYPES        = third_party/proto/confio
-
-COSMOS_SDK_PROTO  = third_party/proto/cosmos-sdk
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
@@ -392,27 +392,15 @@ proto-update-deps:
 	@mkdir -p $(TM_ABCI_TYPES)
 	@curl -sSL $(TM_URL)/abci/types.proto > $(TM_ABCI_TYPES)/types.proto
 
-	@mkdir -p $(TM_VERSION)
-	@curl -sSL $(TM_URL)/version/types.proto > $(TM_VERSION)/types.proto
-
 	@mkdir -p $(TM_TYPES)
 	@curl -sSL $(TM_URL)/types/types.proto > $(TM_TYPES)/types.proto
-	@curl -sSL $(TM_URL)/types/evidence.proto > $(TM_TYPES)/evidence.proto
-	@curl -sSL $(TM_URL)/types/params.proto > $(TM_TYPES)/params.proto
-	@curl -sSL $(TM_URL)/types/validator.proto > $(TM_TYPES)/validator.proto
 
 	@mkdir -p $(TM_CRYPTO_TYPES)
 	@curl -sSL $(TM_URL)/crypto/proof.proto > $(TM_CRYPTO_TYPES)/proof.proto
 	@curl -sSL $(TM_URL)/crypto/keys.proto > $(TM_CRYPTO_TYPES)/keys.proto
 
-	@mkdir -p $(TM_LIBS)
-	@curl -sSL $(TM_URL)/libs/bits/types.proto > $(TM_LIBS)/types.proto
+.PHONY: proto-all proto-gen proto-gen-any proto-swagger-gen proto-format proto-lint proto-check-breaking proto-update-deps
 
-	@mkdir -p $(CONFIO_TYPES)
-	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
-
-
-.PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-update-deps
 
 
 ###############################################################################

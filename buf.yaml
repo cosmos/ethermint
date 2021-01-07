@@ -19,8 +19,6 @@ lint:
     - tendermint
     - gogoproto
     - cosmos_proto
-    - cosmos
-    - ibc
     - google
     - confio
 breaking:
@@ -30,7 +28,4 @@ breaking:
     - tendermint
     - gogoproto
     - cosmos_proto
-    - cosmos
-    - ibc
     - google
-    - confio
