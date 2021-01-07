@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -23,7 +23,7 @@ func InitGenesis(
 	bankKeeper types.BankKeeper,
 	data GenesisState,
 ) []abci.ValidatorUpdate {
-	k.SetParams(data.Params)
+	k.SetParams(ctx, data.Params)
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
@@ -44,10 +44,9 @@ func InitGenesis(
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-
+		evmBalance := bankKeeper.GetBalance(ctx, accAddress, evmDenom)
+		k.SetBalance(ctx, address, evmBalance.Amount.BigInt())
 		k.SetNonce(ctx, address, acc.GetSequence())
-		k.SetBalance(ctx, address, evmBalance.BigInt())
 		k.SetCode(ctx, address, ethcmn.Hex2Bytes(account.Code))
 
 		for _, storage := range account.Storage {
@@ -85,7 +84,7 @@ func InitGenesis(
 func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *types.GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
+	ak.IterateAccounts(ctx, func(account authtypes.AccountI) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
 			// ignore non EthAccounts

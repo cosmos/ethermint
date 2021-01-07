@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -19,6 +21,7 @@ import (
 	ethermint "github.com/cosmos/ethermint/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -32,7 +35,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -520,12 +522,12 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int,
-) (*txtypes.SimulateResponse, error) {
+) (*sdk.SimulationResponse, error) {
 
-	clientCtx := api.clientCtx
+	var height int64
 	// pass the given block height to the context if the height is not pending or latest
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
-		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
+		height = blockNum.Int64()
 	}
 	// Set sender address or use a default if none specified
 	var addr common.Address
@@ -601,21 +603,30 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, fmt.Errorf("account with address %s does not exist in keyring", addr.String())
 	}
 
-	tx, err := rpctypes.BuildEthereumTx(api.clientCtx, msg, accNum, seq, privKey)
+	txBytes, err := rpctypes.BuildEthereumTx(api.clientCtx, msg, accNum, seq, privKey)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &txtypes.SimulateRequest{
-		Tx: tx,
+	// simulate by calling ABCI Query
+	query := abci.RequestQuery{
+		Path:   "/app/simulate",
+		Data:   txBytes,
+		Height: height,
 	}
 
-	simResponse, err := api.queryClient.Simulate(rpctypes.ContextWithHeight(blockNum.Int64()), req)
+	queryResult, err := api.clientCtx.QueryABCI(query)
 	if err != nil {
 		return nil, err
 	}
 
-	return simResponse, nil
+	var simResponse sdk.SimulationResponse
+	err = jsonpb.Unmarshal(strings.NewReader(string(queryResult.Value)), &simResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
@@ -831,7 +842,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 
 	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 	if tx.Index != 0 {
-		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
+		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx, block.Block, int(tx.Index))
 	}
 
 	// Set status codes based on tx result
@@ -1033,7 +1044,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 }
 
 // pendingMsgs constructs an array of sdk.Msg. This method will check pending transactions and convert
-// those transactions into ethermint messages.
+// those transactions into ethereum messages.
 func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 	// nolint: prealloc
 	var msgs []sdk.Msg
@@ -1047,8 +1058,6 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		// NOTE: we have to construct the EVM transaction instead of just casting from the tendermint
 		// transactions because PendingTransactions only checks for MsgEthereumTx messages.
 
-		pendingTo := sdk.AccAddress(pendingTx.To.Bytes())
-		pendingFrom := sdk.AccAddress(pendingTx.From.Bytes())
 		pendingGas, err := hexutil.DecodeUint64(pendingTx.Gas.String())
 		if err != nil {
 			return nil, err
@@ -1064,12 +1073,11 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 
 		msg := evmtypes.NewMsgEthereumTx(
 			0,
-			&pendingTo,
+			pendingTx.To,
 			pendingValue,
 			pendingGas,
 			pendingGasPrice,
 			pendingData,
-			pendingFrom,
 		)
 
 		msgs = append(msgs, msg)
@@ -1087,17 +1095,13 @@ func (api *PublicEthereumAPI) accountNonce(
 	from := sdk.AccAddress(address.Bytes())
 
 	// use a the given client context in case its wrapped with a custom height
-	accRet := authtypes.NewAccountRetriever(clientCtx)
-
-	if err := accRet.EnsureExists(from); err != nil {
+	account, err := clientCtx.AccountRetriever.GetAccount(clientCtx, from)
+	if err != nil || account == nil {
 		// account doesn't exist yet, return 0
 		return 0, nil
 	}
 
-	_, nonce, err := accRet.GetAccountNumberSequence(from)
-	if err != nil {
-		return 0, err
-	}
+	nonce := account.GetSequence()
 
 	if !pending {
 		return nonce, nil

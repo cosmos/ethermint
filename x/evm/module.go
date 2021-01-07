@@ -120,7 +120,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 
 // Route returns the message routing key for the evm module.
 func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
+	return sdk.NewRoute(types.RouterKey, NewHandler(*am.keeper))
 }
 
 // QuerierRoute returns the evm module's querier route name.

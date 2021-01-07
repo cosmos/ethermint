@@ -3,21 +3,17 @@ package types
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/gogo/protobuf/codec"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -200,8 +196,8 @@ func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *
 	return nil, false
 }
 
-// BuildEthereumTx builds and signs a Cosmos transaction from a MsgEthereumTx
-func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accNumber, seq uint64, privKey cryptotypes.PrivKey) (*txtypes.Tx, error) {
+// BuildEthereumTx builds and signs a Cosmos transaction from a MsgEthereumTx and returns the tx
+func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accNumber, seq uint64, privKey cryptotypes.PrivKey) ([]byte, error) {
 	// TODO: user defined evm coin
 	fees := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.NewIntFromBigInt(msg.Fee())))
 	signMode := clientCtx.TxConfig.SignModeHandler().DefaultMode()
@@ -234,20 +230,20 @@ func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accN
 		return nil, err
 	}
 
-	tx, ok := txBuilder.(codectypes.IntoAny).AsAny().GetCachedValue().(*txtypes.Tx)
-	if !ok {
-		return nil, errors.New("cannot cast to tx")
+	txBytes, err := clientCtx.TxConfig.TxEncoder()(txBuilder.GetTx())
+	if err != nil {
+		return nil, err
 	}
 
-	return tx, nil
+	return txBytes, nil
 }
 
 // GetBlockCumulativeGas returns the cumulative gas used on a block up to a given
 // transaction index. The returned gas used includes the gas from both the SDK and
 // EVM module transactions.
-func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint64 {
+func GetBlockCumulativeGas(clientCtx client.Context, block *tmtypes.Block, idx int) uint64 {
 	var gasUsed uint64
-	txDecoder := evmtypes.TxDecoder(cdc)
+	txDecoder := clientCtx.TxConfig.TxDecoder()
 
 	for i := 0; i < idx && i < len(block.Txs); i++ {
 		txi, err := txDecoder(block.Txs[i])
@@ -256,10 +252,11 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 		}
 
 		switch tx := txi.(type) {
-		case authtypes.StdTx:
+		case *evmtypes.MsgEthereumTx:
 			gasUsed += tx.GetGas()
-		case evmtypes.MsgEthereumTx:
-			gasUsed += tx.GetGas()
+			// case authtypes.:
+			// 	gasUsed += tx.GetGas()
+
 		}
 	}
 	return gasUsed
