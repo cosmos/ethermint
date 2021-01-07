@@ -37,13 +37,42 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## Unreleased
 
+### API Breaking
+
+* (evm) [\#670](https://github.com/cosmos/ethermint/pull/670) Migrate types to the ones defined by the protobuf messages, which are required for the stargate release.
+
+### Bug Fixes
+
+* (evm) [\#672](https://github.com/cosmos/ethermint/issues/672) Fix panic of `wrong Block.Header.AppHash` when restart a node with snapshot
+* (evm) [\#674](https://github.com/cosmos/ethermint/issues/674) Reset all cache after account data has been committed in `EndBlock` to make sure every node state consistent
+
+## [v0.4.0] - 2020-12-15
+
+### API Breaking
+
+* (evm) [\#661](https://github.com/cosmos/ethermint/pull/661) `Balance` field has been removed from the evm module's `GenesisState`.
+
+### Features
+
+* (rpc) [\#571](https://github.com/cosmos/ethermint/pull/571) Add pending queries to JSON-RPC calls. This allows for the querying of pending transactions and other relevant information that pertains to the pending state:
+  * `eth_getBalance`
+  * `eth_getTransactionCount`
+  * `eth_getBlockTransactionCountByNumber`
+  * `eth_getBlockByNumber`
+  * `eth_getTransactionByHash`
+  * `eth_getTransactionByBlockNumberAndIndex`
+  * `eth_sendTransaction` - the nonce will automatically update to its pending nonce (when none is explicitly provided)
+
 ### Improvements
 
+* (evm) [\#661](https://github.com/cosmos/ethermint/pull/661) Add invariant check for account balance and account nonce.
 * (deps) [\#654](https://github.com/cosmos/ethermint/pull/654) Bump go-ethereum version to [v1.9.25](https://github.com/ethereum/go-ethereum/releases/tag/v1.9.25)
 * (evm) [\#627](https://github.com/cosmos/ethermint/issues/627) Add extra EIPs parameter to apply custom EVM jump tables.
 
 ### Bug Fixes
 
+* (evm) [\#661](https://github.com/cosmos/ethermint/pull/661) Set nonce to the EVM account on genesis initialization.
+* (rpc) [\#648](https://github.com/cosmos/ethermint/issues/648) Fix block cumulative gas used value.
 * (evm) [\#621](https://github.com/cosmos/ethermint/issues/621) EVM `GenesisAccount` fields now share the same format as the auth module `Account`.
 * (evm) [\#618](https://github.com/cosmos/ethermint/issues/618) Add missing EVM `Context` `GetHash` field that retrieves a the header hash from a given block height.
 * (app) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.

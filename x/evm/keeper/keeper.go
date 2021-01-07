@@ -29,6 +29,8 @@ type Keeper struct {
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
 	storeKey sdk.StoreKey
+	// Account Keeper for fetching accounts
+	accountKeeper types.AccountKeeper
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
 	// Transaction counter in a block. Used on StateSB's Prepare function.
@@ -42,14 +44,14 @@ type Keeper struct {
 func NewKeeper(
 	cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace,
 	ak types.AccountKeeper, bankKeeper types.BankKeeper,
-) Keeper {
+) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
-	return Keeper{
+	return &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, bankKeeper),
@@ -121,6 +123,7 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
+
 	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
 		storage = append(storage, types.NewState(key, value))
 		return false
@@ -135,7 +138,6 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	store := ctx.KVStore(k.storeKey)
-	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get(types.KeyPrefixChainConfig)
 	if len(bz) == 0 {
 		return types.ChainConfig{}, false

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -17,17 +18,17 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(
 	ctx sdk.Context,
-	k Keeper,
-	accountKeeper types.AccountKeeper,
+	k keeper.Keeper,
+	accountKeeper types.AccountKeeper, // nolint: interfacer
 	bankKeeper types.BankKeeper,
 	data GenesisState,
-) []abci.ValidatorUpdate { // nolint: interfacer
+) []abci.ValidatorUpdate {
+	k.SetParams(data.Params)
 	evmDenom := data.Params.EvmDenom
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
-
 		// check that the EVM balance the matches the account balance
 		acc := accountKeeper.GetAccount(ctx, accAddress)
 		if acc == nil {
@@ -43,18 +44,12 @@ func InitGenesis(
 			)
 		}
 
-		evmBalance := bankKeeper.GetBalance(ctx, accAddress, evmDenom)
-		if !evmBalance.Amount.Equal(account.Balance) {
-			panic(
-				fmt.Errorf(
-					"balance mismatch for account %s, expected %s%s, got %s%s",
-					account.Address, evmBalance, evmDenom, account.Balance, evmDenom,
-				),
-			)
-		}
+		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 
-		k.SetBalance(ctx, address, account.Balance.BigInt())
+		k.SetNonce(ctx, address, acc.GetSequence())
+		k.SetBalance(ctx, address, evmBalance.BigInt())
 		k.SetCode(ctx, address, ethcmn.Hex2Bytes(account.Code))
+
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, ethcmn.HexToHash(storage.Key), ethcmn.HexToHash(storage.Value))
 		}
@@ -69,7 +64,6 @@ func InitGenesis(
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-	k.SetParams(ctx, data.Params)
 
 	// set state objects and code to store
 	_, err = k.Commit(ctx, false)
@@ -91,12 +85,11 @@ func InitGenesis(
 func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *types.GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	accounts := ak.GetAllAccounts(ctx)
-
-	for _, account := range accounts {
+	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
-			continue
+			// ignore non EthAccounts
+			return false
 		}
 
 		addr := ethAccount.EthAddress()
@@ -106,18 +99,15 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) *ty
 			panic(err)
 		}
 
-		balanceInt := k.GetBalance(ctx, addr)
-		balance := sdk.NewIntFromBigInt(balanceInt)
-
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Balance: balance,
 			Code:    ethcmn.Bytes2Hex(k.GetCode(ctx, addr)),
 			Storage: storage,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
-	}
+		return false
+	})
 
 	config, _ := k.GetChainConfig(ctx)
 

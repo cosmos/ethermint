@@ -207,8 +207,7 @@ type EthermintApp struct {
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// ethermint keepers
-	EvmKeeper evmkeeper.Keeper
-	// FaucetKeeper faucet.Keeper
+	EvmKeeper *evmkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -421,7 +420,6 @@ func NewEthermintApp(
 		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName,
 		// Ethermint modules
 		evmtypes.ModuleName,
-		// faucet.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

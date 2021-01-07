@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/gogo/protobuf/codec"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -37,7 +38,7 @@ func RawTxToEthTx(clientCtx client.Context, bz []byte) (*evmtypes.MsgEthereumTx,
 
 	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, &evmtypes.MsgEthereumTx{})
+		return nil, fmt.Errorf("invalid transaction type %T, expected %T", tx, evmtypes.MsgEthereumTx{})
 	}
 	return ethTx, nil
 }
@@ -95,7 +96,7 @@ func EthBlockFromTendermint(clientCtx client.Context, queryClient *QueryClient, 
 
 	bloom := ethtypes.BytesToBloom(res.Bloom)
 
-	return formatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
+	return FormatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -155,7 +156,9 @@ func BlockMaxGasFromConsensusParams(ctx context.Context, clientCtx client.Contex
 	return gasLimit, nil
 }
 
-func formatBlock(
+// FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted
+// transactions.
+func FormatBlock(
 	header tmtypes.Header, size int, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
@@ -237,4 +240,27 @@ func BuildEthereumTx(clientCtx client.Context, msg *evmtypes.MsgEthereumTx, accN
 	}
 
 	return tx, nil
+}
+
+// GetBlockCumulativeGas returns the cumulative gas used on a block up to a given
+// transaction index. The returned gas used includes the gas from both the SDK and
+// EVM module transactions.
+func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint64 {
+	var gasUsed uint64
+	txDecoder := evmtypes.TxDecoder(cdc)
+
+	for i := 0; i < idx && i < len(block.Txs); i++ {
+		txi, err := txDecoder(block.Txs[i])
+		if err != nil {
+			continue
+		}
+
+		switch tx := txi.(type) {
+		case authtypes.StdTx:
+			gasUsed += tx.GetGas()
+		case evmtypes.MsgEthereumTx:
+			gasUsed += tx.GetGas()
+		}
+	}
+	return gasUsed
 }

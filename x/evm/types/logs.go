@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	ethermint "github.com/cosmos/ethermint/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -31,7 +32,7 @@ func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) Transa
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (tx TransactionLogs) Validate() error {
-	if IsEmptyHash(tx.Hash) {
+	if ethermint.IsEmptyHash(tx.Hash) {
 		return fmt.Errorf("hash cannot be the empty %s", tx.Hash)
 	}
 
@@ -56,7 +57,7 @@ func (tx TransactionLogs) EthLogs() []*ethtypes.Log {
 
 // Validate performs a basic validation of an ethereum Log fields.
 func (log *Log) Validate() error {
-	if IsZeroAddress(log.Address) {
+	if ethermint.IsZeroAddress(log.Address) {
 		return fmt.Errorf("log address cannot be empty %s", log.Address)
 	}
 	if IsEmptyHash(log.BlockHash) {
@@ -65,7 +66,7 @@ func (log *Log) Validate() error {
 	if log.BlockNumber == 0 {
 		return errors.New("block number cannot be zero")
 	}
-	if IsEmptyHash(log.TxHash) {
+	if ethermint.IsEmptyHash(log.TxHash) {
 		return fmt.Errorf("tx hash cannot be the empty %s", log.TxHash)
 	}
 	return nil

@@ -9,6 +9,7 @@ import (
 type AccountKeeper interface {
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
 	GetAllAccounts(ctx sdk.Context) (accounts []authtypes.AccountI)
+	IterateAccounts(ctx sdk.Context, cb func(account authtypes.AccountI) bool)
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
 	SetAccount(ctx sdk.Context, account authtypes.AccountI)
 	RemoveAccount(ctx sdk.Context, account authtypes.AccountI)

@@ -87,13 +87,13 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // AppModule implements an application module for the evm module.
 type AppModule struct {
 	AppModuleBasic
-	keeper keeper.Keeper
+	keeper *keeper.Keeper
 	ak     types.AccountKeeper
 	bk     types.BankKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) AppModule {
+func NewAppModule(k *keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
@@ -107,9 +107,10 @@ func (AppModule) Name() string {
 	return types.ModuleName
 }
 
-// RegisterInvariants interface for registering invariants. Performs a no-op
-// as the evm module doesn't expose invariants.
-func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
+// RegisterInvariants interface for registering invariants
+func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
+	keeper.RegisterInvariants(ir, *am.keeper)
+}
 
 // RegisterServices registers the evm module Msg and gRPC services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
@@ -148,12 +149,12 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data j
 	var genesisState types.GenesisState
 
 	cdc.MustUnmarshalJSON(data, &genesisState)
-	return InitGenesis(ctx, am.keeper, am.ak, am.bk, genesisState)
+	return InitGenesis(ctx, *am.keeper, am.ak, am.bk, genesisState)
 }
 
 // ExportGenesis returns the exported genesis state as raw bytes for the evm
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
-	gs := ExportGenesis(ctx, am.keeper, am.ak)
+	gs := ExportGenesis(ctx, *am.keeper, am.ak)
 	return cdc.MustMarshalJSON(gs)
 }

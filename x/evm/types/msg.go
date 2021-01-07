@@ -55,14 +55,14 @@ func newMsgEthereumTx(
 		payload = ethcmn.CopyBytes(payload)
 	}
 
-	var toStr string
+	var recipient *Recipient
 	if to != nil {
-		toStr = to.String()
+		recipient = &Recipient{Address: to.String()}
 	}
 
 	txData := &TxData{
 		AccountNonce: nonce,
-		Recipient:    &Recipient{Address: toStr},
+		Recipient:    recipient,
 		Payload:      payload,
 		GasLimit:     gasLimit,
 		Amount:       sdk.ZeroInt(),
@@ -147,17 +147,11 @@ func (msg MsgEthereumTx) GetSignBytes() []byte {
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
 func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
-	var recipient *ethcmn.Address
-	if msg.Data.Recipient != nil {
-		to := ethcmn.HexToAddress(msg.Data.Recipient.Address)
-		recipient = &to
-	}
-
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
 		msg.Data.Price.BigInt(),
 		msg.Data.GasLimit,
-		recipient,
+		msg.To(),
 		msg.Data.Amount.BigInt(),
 		msg.Data.Payload,
 		chainID,
@@ -168,15 +162,11 @@ func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 
 // EncodeRLP implements the rlp.Encoder interface.
 func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
-	var recipient *ethcmn.Address
-	if msg.Data.Recipient != nil {
-		to := ethcmn.HexToAddress(msg.Data.Recipient.Address)
-		recipient = &to
-	}
 	var hash ethcmn.Hash
 	if len(msg.Data.Hash) > 0 {
 		hash = ethcmn.HexToHash(msg.Data.Hash)
 	}
+
 	data := struct {
 		AccountNonce uint64
 		Price        *big.Int        `json:"gasPrice"`
@@ -196,7 +186,7 @@ func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 		AccountNonce: msg.Data.AccountNonce,
 		Price:        msg.Data.Price.BigInt(),
 		GasLimit:     msg.Data.GasLimit,
-		Recipient:    recipient,
+		Recipient:    msg.To(),
 		Amount:       msg.Data.Amount.BigInt(),
 		Payload:      msg.Data.Payload,
 		V:            new(big.Int).SetBytes(msg.Data.V),
@@ -241,11 +231,16 @@ func (msg *MsgEthereumTx) DecodeRLP(s *rlp.Stream) error {
 		hash = data.Hash.String()
 	}
 
+	var recipient *Recipient
+	if data.Recipient != nil {
+		recipient = &Recipient{Address: data.Recipient.String()}
+	}
+
 	msg.Data = &TxData{
 		AccountNonce: data.AccountNonce,
 		Price:        sdk.NewIntFromBigInt(data.Price),
 		GasLimit:     data.GasLimit,
-		Recipient:    &Recipient{Address: data.Recipient.String()},
+		Recipient:    recipient,
 		Amount:       sdk.NewIntFromBigInt(data.Amount),
 		Payload:      data.Payload,
 		V:            data.V.Bytes(),
@@ -348,7 +343,8 @@ func (msg MsgEthereumTx) Fee() *big.Int {
 
 // ChainID returns which chain id this transaction was signed for (if at all)
 func (msg *MsgEthereumTx) ChainID() *big.Int {
-	return deriveChainID(new(big.Int).SetBytes(msg.Data.V))
+	v := new(big.Int).SetBytes(msg.Data.V)
+	return deriveChainID(v)
 }
 
 // Cost returns amount + gasprice * gaslimit.

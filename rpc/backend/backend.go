@@ -21,6 +21,7 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
+	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
@@ -153,7 +154,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		return nil, err
 	}
 
-	transactions := make([]*rpctypes.Transaction, pendingTxs.Count)
+	transactions := make([]*rpctypes.Transaction, 0)
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -166,10 +167,8 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		if err != nil {
 			return nil, err
 		}
-
 		transactions = append(transactions, rpcTx)
 	}
-
 	return transactions, nil
 }
 
@@ -197,4 +196,15 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // by the chain indexer.
 func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
 	return 4096, 0
+}
+
+// LatestBlockNumber gets the latest block height in int64 format.
+func (b *EthermintBackend) LatestBlockNumber() (int64, error) {
+	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
+	info, err := b.clientCtx.Client.BlockchainInfo(context.Background(), 0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.LastHeight, nil
 }
