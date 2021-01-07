@@ -99,7 +99,7 @@ func (am AppModule) Route() string {
 
 // NewHandler sets up a new handler for module
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(*am.keeper)
+	return NewHandler(am.keeper)
 }
 
 // QuerierRoute sets up path for queries
