@@ -1007,7 +1007,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 	if args.Nonce != nil {
 		if nonce != (uint64)(*args.Nonce) {
-			return nil, errors.New(fmt.Sprintf("invalid nonce; got %d, expected %d", (uint64)(*args.Nonce), nonce))
+			return nil, fmt.Errorf(fmt.Sprintf("invalid nonce; got %d, expected %d", (uint64)(*args.Nonce), nonce))
 		}
 	}
 
