@@ -30,10 +30,10 @@ func (vmhd ValidateMsgHandlerDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 		for _, msg := range msgs {
 			switch msg.(type) {
-				case evmtypes.MsgEthereumTx:
-					return ctx, wrongMsgErr
-				case evmtypes.MsgEthermint:
-					return ctx, wrongMsgErr
+			case evmtypes.MsgEthereumTx:
+				return ctx, wrongMsgErr
+			case evmtypes.MsgEthermint:
+				return ctx, wrongMsgErr
 			}
 		}
 	}
