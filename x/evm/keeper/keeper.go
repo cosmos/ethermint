@@ -44,14 +44,14 @@ type Keeper struct {
 // NewKeeper generates new evm module keeper
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper,
-) Keeper {
+) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
-	return Keeper{
+	return &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
@@ -151,6 +151,7 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
+
 	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
 		storage = append(storage, types.NewState(key, value))
 		return false
@@ -164,9 +165,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
-	// get from an empty key that's already prefixed by KeyPrefixChainConfig
-	bz := store.Get([]byte{})
+	store := ctx.KVStore(k.storeKey)
+
+	bz := store.Get(types.KeyPrefixChainConfig)
 	if len(bz) == 0 {
 		return types.ChainConfig{}, false
 	}
@@ -178,8 +179,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(config)
-	// get to an empty key that's already prefixed by KeyPrefixChainConfig
-	store.Set([]byte{}, bz)
+	store.Set(types.KeyPrefixChainConfig, bz)
 }
