@@ -43,7 +43,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
-	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
+	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
 	suite.address = ethcmn.HexToAddress(addrHex)
 
 	balance := sdk.NewCoins(ethermint.NewPhotonCoin(sdk.ZeroInt()))
@@ -98,10 +98,10 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	txLogs := suite.app.EvmKeeper.GetAllTxLogs(suite.ctx)
 	suite.Require().Equal(2, len(txLogs))
 
-	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash.String())
+	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash)
 	suite.Require().Equal([]*ethtypes.Log{log2, log3}, txLogs[0].Logs)
 
-	suite.Require().Equal(ethHash.String(), txLogs[1].Hash.String())
+	suite.Require().Equal(ethHash.String(), txLogs[1].Hash)
 	suite.Require().Equal([]*ethtypes.Log{log}, txLogs[1].Logs)
 }
 
