@@ -49,6 +49,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				NewValidateMsgHandlerDecorator(),
 			)
 
 		case evmtypes.MsgEthereumTx:
