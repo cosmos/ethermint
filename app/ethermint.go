@@ -95,7 +95,6 @@ import (
 	"github.com/cosmos/ethermint/x/evm"
 	evmkeeper "github.com/cosmos/ethermint/x/evm/keeper"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
-	// "github.com/cosmos/ethermint/x/faucet"
 )
 
 func init() {
@@ -145,7 +144,6 @@ var (
 		transfer.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		evm.AppModuleBasic{},
-		// faucet.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -254,7 +252,6 @@ func NewEthermintApp(
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		// ethermint keys
 		evmtypes.StoreKey,
-		// faucet.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -354,9 +351,6 @@ func NewEthermintApp(
 	app.EvmKeeper = evmkeeper.NewKeeper(
 		appCodec, keys[evmtypes.StoreKey], app.GetSubspace(evmtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
 	)
-	// app.FaucetKeeper = faucet.NewKeeper(
-	// 	app.cdc, keys[faucet.StoreKey], app.BankKeeper,
-	// )
 
 	/****  Module Options ****/
 
@@ -389,7 +383,6 @@ func NewEthermintApp(
 		transferModule,
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper, app.BankKeeper),
-		// faucet.NewAppModule(app.FaucetKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

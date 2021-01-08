@@ -31,9 +31,6 @@ cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["crisis"]["constant_f
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="aphoton"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
-# Enable faucet
-# cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
-
 # Allocate genesis accounts (cosmos formatted addresses)
 $PWD/build/ethermintd add-genesis-account "$("$PWD"/build/ethermintd keys show "$KEY$i" -a)" 100000000000000000000aphoton
 
@@ -51,7 +48,7 @@ $PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --trace > ethermintd.
 
 sleep 1
 
-# Start the rest server with unlocked faucet key in background and log to file
+# Start the rest server with unlocked key in background and log to file
 $PWD/build/ethermintd rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintd.log &
 
 solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter

@@ -20,9 +20,6 @@ cat $HOME/.ethermint/config/genesis.json | jq '.app_state["crisis"]["constant_fe
 cat $HOME/.ethermint/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="aphoton"' > $HOME/.ethermint/config/tmp_genesis.json && mv $HOME/.ethermint/config/tmp_genesis.json $HOME/.ethermint/config/genesis.json
 cat $HOME/.ethermint/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="aphoton"' > $HOME/.ethermint/config/tmp_genesis.json && mv $HOME/.ethermint/config/tmp_genesis.json $HOME/.ethermint/config/genesis.json
 
-# Enable faucet
-# cat $HOME/.ethermintd/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
-
 # increase block time (?)
 cat $HOME/.ethermintd/config/genesis.json | jq '.consensus_params["block"]["time_iota_ms"]="30000"' > $HOME/.ethermintd/config/tmp_genesis.json && mv $HOME/.ethermintd/config/tmp_genesis.json $HOME/.ethermintd/config/genesis.json
 
@@ -46,11 +43,6 @@ ethermintd gentx $KEY --amount=1000000000000000000aphoton --keyring-backend test
 
 # Collect genesis tx
 ethermintd collect-gentxs
-
-# echo -e '\n\ntestnet faucet enabled'
-# echo -e 'to transfer tokens to your account address use:'
-# echo -e "ethermintd tx faucet request 100aphoton --from $KEY\n"
-
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
 ethermintd validate-genesis

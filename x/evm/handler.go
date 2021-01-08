@@ -18,6 +18,36 @@ func NewHandler(k Keeper) sdk.Handler {
 	defer telemetry.MeasureSince(time.Now(), "evm", "state_transition")
 
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+		snapshotStateDB := k.CommitStateDB.Copy()
+
+		// The "recover" code here is used to solve the problem of dirty data
+		// in CommitStateDB due to insufficient gas.
+
+		// The following is a detailed description:
+		// If the gas is insufficient during the execution of the "handler",
+		// panic will be thrown from the function "ConsumeGas" and finally
+		// caught by the function "runTx" from Cosmos. The function "runTx"
+		// will think that the execution of Msg has failed and the modified
+		// data in the Store will not take effect.
+
+		// Stacktrace：runTx->runMsgs->handler->...->gaskv.Store.Set->ConsumeGas
+
+		// The problem is that when the modified data in the Store does not take
+		// effect, the data in the modified CommitStateDB is not rolled back,
+		// they take effect, and dirty data is generated.
+		// Therefore, the code here specifically deals with this situation.
+		// See https://github.com/cosmos/ethermint/issues/668 for more information.
+		defer func() {
+			if r := recover(); r != nil {
+				// We first used "k.CommitStateDB = snapshotStateDB" to roll back
+				// CommitStateDB, but this can only change the CommitStateDB in the
+				// current Keeper object, but the Keeper object will be destroyed
+				// soon, it is not a global variable, so the content pointed to by
+				// the CommitStateDB pointer can be modified to take effect.
+				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				panic(r)
+			}
+		}()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
