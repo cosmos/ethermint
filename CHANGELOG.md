@@ -48,6 +48,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (api) [\#687](https://github.com/cosmos/ethermint/issues/687) Returns error for a transaction with an incorrect nonce. 
 * (evm) [\#674](https://github.com/cosmos/ethermint/issues/674) Reset all cache after account data has been committed in `EndBlock` to make sure every node state consistent.
 * (evm) [\#672](https://github.com/cosmos/ethermint/issues/672) Fix panic of `wrong Block.Header.AppHash` when restart a node with snapshot.
+* (evm) [\#667](https://github.com/cosmos/ethermint/issues/667) There may be bad data points in CommitStateDB when exec evm transaction with multi msgs.
+* (evm) [\#668](https://github.com/cosmos/ethermint/issues/668) Bad data may be generated due to insufficient gas during the execution of evm transactions.
+* (evm) [\#669](https://github.com/cosmos/ethermint/issues/669) Bad data may be generated due to error returned during the execution of evm transaction.
 
 ## [v0.4.0] - 2020-12-15
 
