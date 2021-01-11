@@ -58,12 +58,12 @@ minimum-gas-prices = ""
 
 ```bash
 # Create a key to hold your account
-ethermintd keys add $KEY
+ethermintcli keys add $KEY
 
 # Add that key into the genesis.app_state.accounts array in the genesis file
 # NOTE: this command lets you set the number of coins. Make sure this account has some coins
 # with the genesis.app_state.staking.params.bond_denom denom, the default is staking
-ethermintd add-genesis-account $(ethermintd keys show validator -a) 1000000000stake,10000000000aphoton
+ethermintd add-genesis-account $(ethermintcli keys show validator -a) 1000000000stake,10000000000aphoton
 
 # Generate the transaction that creates your validator
 ethermintd gentx --name $KEY
@@ -100,10 +100,10 @@ The ports for each node are found in this table:
 
 | Node ID          | P2P Port | Tendermint RPC Port | REST/ Ethereum JSON-RPC Port | WebSocket Port |
 |------------------|----------|---------------------|------------------------------|----------------|
-| `ethermintdnode0` | `26656`  | `26657`             | `8545`                       | `8546`         |
-| `ethermintdnode1` | `26659`  | `26660`             | `8547`                       | `8548`         |
-| `ethermintdnode2` | `26661`  | `26662`             | `8549`                       | `8550`         |
-| `ethermintdnode3` | `26663`  | `26664`             | `8551`                       | `8552`         |
+| `ethermintnode0` | `26656`  | `26657`             | `8545`                       | `8546`         |
+| `ethermintnode1` | `26659`  | `26660`             | `8547`                       | `8548`         |
+| `ethermintnode2` | `26661`  | `26662`             | `8549`                       | `8550`         |
+| `ethermintnode3` | `26663`  | `26664`             | `8551`                       | `8552`         |
 
 To update the binary, just rebuild it and restart the nodes
 
@@ -141,36 +141,42 @@ calling the `ethermintd testnet` command. This outputs a handful of files in the
 tree -L 3 build/
 
 build/
+├── ethermintcli
+├── ethermintd
 ├── gentxs
 │   ├── node0.json
 │   ├── node1.json
 │   ├── node2.json
 │   └── node3.json
 ├── node0
+│   ├── ethermintcli
+│   │   ├── key_seed.json
+│   │   └── keyring-test-cosmos
 │   └── ethermintd
-│       ├── key_seed.json
-│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 ├── node1
+│   ├── ethermintcli
+│   │   ├── key_seed.json
+│   │   └── keyring-test-cosmos
 │   └── ethermintd
-│       ├── key_seed.json
-│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 ├── node2
+│   ├── ethermintcli
+│   │   ├── key_seed.json
+│   │   └── keyring-test-cosmos
 │   └── ethermintd
-│       ├── key_seed.json
-│       ├── keyring-test-cosmos
 │       ├── config
 │       ├── data
 │       └── ethermintd.log
 └── node3
+    ├── ethermintcli
+    │   ├── key_seed.json
+    │   └── keyring-test-cosmos
     └── ethermintd
-        ├── key_seed.json
-        ├── keyring-test-cosmos
         ├── config
         ├── data
         └── ethermintd.log
@@ -187,7 +193,7 @@ In order to see the logs of a particular node you can use the following command:
 docker exec ethermintdnode0 tail ethermintd.log
 
 # node 0: REST & RPC logs
-docker exec ethermintdnode0 tail ethermintd.log
+docker exec ethermintdnode0 tail ethermintcli.log
 ```
 
 The logs for the daemon will look like:
@@ -252,18 +258,18 @@ Additional instructions on how to interact with the WebSocket can be found on th
 
 ### Keys & Accounts
 
-To interact with `ethermintd` and start querying state or creating txs, you use the
-`ethermintd` directory of any given node as your `home`, for example:
+To interact with `ethermintcli` and start querying state or creating txs, you use the
+`ethermintcli` directory of any given node as your `home`, for example:
 
 ```bash
-ethermintd keys list --home ./build/node0/ethermintd
+ethermintcli keys list --home ./build/node0/ethermintcli
 ```
 
 Now that accounts exists, you may create new accounts and send those accounts
 funds!
 
 ::: tip
-**Note**: Each node's seed is located at `./build/nodeN/ethermintd/key_seed.json` and can be restored to the CLI using the `ethermintd keys add --restore` command
+**Note**: Each node's seed is located at `./build/nodeN/ethermintcli/key_seed.json` and can be restored to the CLI using the `ethermintcli keys add --restore` command
 :::
 
 ### Special Binaries
