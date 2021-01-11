@@ -9,8 +9,8 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
+	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,7 +27,7 @@ import (
 type PrivateAccountAPI struct {
 	ethAPI   *eth.PublicEthereumAPI
 	logger   log.Logger
-	keyInfos []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	keyInfos []keyring.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
@@ -42,7 +42,7 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI) *PrivateAccountAPI {
 		return api
 	}
 
-	api.keyInfos, err = api.ethAPI.ClientCtx().Keybase.List()
+	api.keyInfos, err = api.ethAPI.ClientCtx().Keyring.List()
 	if err != nil {
 		return api
 	}
@@ -61,21 +61,21 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 		return common.Address{}, err
 	}
 
-	privKey := ethsecp256k1.PrivKey(crypto.FromECDSA(priv))
+	privKey := &ethsecp256k1.PrivKey{Key: crypto.FromECDSA(priv)}
 
-	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
+	armor := sdkcrypto.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	// ignore error as we only care about the length of the list
-	list, _ := api.ethAPI.ClientCtx().Keybase.List()
+	list, _ := api.ethAPI.ClientCtx().Keyring.List()
 	privKeyName := fmt.Sprintf("personal_%d", len(list))
 
-	if err := api.ethAPI.ClientCtx().Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
+	if err := api.ethAPI.ClientCtx().Keyring.ImportPrivKey(privKeyName, armor, password); err != nil {
 		return common.Address{}, err
 	}
 
 	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
 
-	info, err := api.ethAPI.ClientCtx().Keybase.Get(privKeyName)
+	info, err := api.ethAPI.ClientCtx().Keyring.Key(privKeyName)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -128,7 +128,7 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	api.logger.Debug("personal_newAccount")
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	info, _, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
+	info, _, err := api.ethAPI.ClientCtx().Keyring.NewMnemonic(name, keyring.English, password, hd.EthSecp256k1)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -150,7 +150,7 @@ func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Addre
 	api.logger.Debug("personal_unlockAccount", "address", addr.String())
 	// TODO: use duration
 
-	var keyInfo keys.Info
+	var keyInfo keyring.Info
 
 	for _, info := range api.keyInfos {
 		addressBytes := info.GetPubKey().Address().Bytes()
@@ -164,17 +164,31 @@ func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Addre
 		return false, fmt.Errorf("cannot find key with given address %s", addr.String())
 	}
 
-	privKey, err := api.ethAPI.ClientCtx().Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
+	// exporting private key only works on local keys
+	if keyInfo.GetType() != keyring.TypeLocal {
+		return false, fmt.Errorf("key type must be %s, got %s", keyring.TypeLedger.String(), keyInfo.GetType().String())
+	}
+
+	armor, err := api.ethAPI.ClientCtx().Keyring.ExportPrivKeyArmor(keyInfo.GetName(), password)
 	if err != nil {
 		return false, err
 	}
 
-	ethermintPrivKey, ok := privKey.(ethsecp256k1.PrivKey)
+	privKey, algo, err := sdkcrypto.UnarmorDecryptPrivKey(armor, password)
+	if err != nil {
+		return false, err
+	}
+
+	if algo != ethsecp256k1.KeyType {
+		return false, fmt.Errorf("invalid key algorithm, got %s, expected %s", algo, ethsecp256k1.KeyType)
+	}
+
+	ethermintPrivKey, ok := privKey.(*ethsecp256k1.PrivKey)
 	if !ok {
 		return false, fmt.Errorf("invalid private key type %T, expected %T", privKey, &ethsecp256k1.PrivKey{})
 	}
 
-	api.ethAPI.SetKeys(append(api.ethAPI.GetKeys(), ethermintPrivKey))
+	api.ethAPI.SetKeys(append(api.ethAPI.GetKeys(), *ethermintPrivKey))
 	api.logger.Debug("account unlocked", "address", addr.String())
 	return true, nil
 }

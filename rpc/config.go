@@ -1,6 +1,14 @@
 package rpc
 
 import (
+<<<<<<< HEAD
+	"github.com/gorilla/mux"
+
+	"github.com/cosmos/cosmos-sdk/client"
+
+	"github.com/cosmos/ethermint/rpc/websockets"
+	"github.com/cosmos/ethermint/server/config"
+=======
 	"bufio"
 	"fmt"
 	"os"
@@ -20,45 +28,18 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
 )
+>>>>>>> 9ecd264ae0e8c6ace10abe3bc45ab8d3c29dc10f
 
-const (
-	flagUnlockKey = "unlock-key"
-	flagWebsocket = "wsport"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// RegisterRoutes creates a new server and registers the `/rpc` endpoint.
-// Rpc calls are enabled based on their associated module (eg. "eth").
-func RegisterRoutes(rs *lcd.RestServer) {
+// RegisterEthereum creates a new ethereum JSON-RPC server and recreates a CLI command to start Cosmos REST server with web3 RPC API and
+// Cosmos rest-server endpoints
+func RegisterEthereum(clientCtx client.Context, r *mux.Router) {
 	server := rpc.NewServer()
-	accountName := viper.GetString(flagUnlockKey)
-	accountNames := strings.Split(accountName, ",")
+	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
-	var privkeys []ethsecp256k1.PrivKey
-	if len(accountName) > 0 {
-		var err error
-		inBuf := bufio.NewReader(os.Stdin)
-
-		keyringBackend := viper.GetString(flags.FlagKeyringBackend)
-		passphrase := ""
-		switch keyringBackend {
-		case keys.BackendOS:
-			break
-		case keys.BackendFile:
-			passphrase, err = input.GetPassword(
-				"Enter password to unlock key for RPC API: ",
-				inBuf)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	apis := GetAPIs(rs.CliCtx, privkeys...)
+	apis := GetAPIs(clientCtx)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
@@ -67,6 +48,8 @@ func RegisterRoutes(rs *lcd.RestServer) {
 			panic(err)
 		}
 	}
+<<<<<<< HEAD
+=======
 
 	// Web3 RPC API route
 	rs.Mux.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
@@ -80,37 +63,11 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	websocketAddr := viper.GetString(flagWebsocket)
 	ws := websockets.NewServer(rs.CliCtx, websocketAddr)
 	ws.Start()
+>>>>>>> 9ecd264ae0e8c6ace10abe3bc45ab8d3c29dc10f
 }
 
-func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {
-	keybase, err := keys.NewKeyring(
-		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
-		os.Stdin,
-		hd.EthSecp256k1Options()...,
-	)
-	if err != nil {
-		return []ethsecp256k1.PrivKey{}, err
-	}
-
-	// try the for loop with array []string accountNames
-	// run through the bottom code inside the for loop
-
-	keys := make([]ethsecp256k1.PrivKey, len(accountNames))
-	for i, acc := range accountNames {
-		// With keyring keybase, password is not required as it is pulled from the OS prompt
-		privKey, err := keybase.ExportPrivateKeyObject(acc, passphrase)
-		if err != nil {
-			return []ethsecp256k1.PrivKey{}, err
-		}
-
-		var ok bool
-		keys[i], ok = privKey.(ethsecp256k1.PrivKey)
-		if !ok {
-			panic(fmt.Sprintf("invalid private key type %T at index %d", privKey, i))
-		}
-	}
-
-	return keys, nil
+// StartEthereumWebsocket starts the Filter api websocket
+func StartEthereumWebsocket(clientCtx client.Context, apiConfig config.EthereumConfig) {
+	ws := websockets.NewServer(clientCtx, apiConfig.WebsocketAddress)
+	ws.Start()
 }

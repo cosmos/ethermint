@@ -3,9 +3,8 @@ package rpc
 import (
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+
 	"github.com/cosmos/ethermint/rpc/backend"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
@@ -13,6 +12,8 @@ import (
 	"github.com/cosmos/ethermint/rpc/namespaces/personal"
 	"github.com/cosmos/ethermint/rpc/namespaces/web3"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
+
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // RPC namespaces and API version
@@ -26,7 +27,7 @@ const (
 )
 
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
-func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
+func GetAPIs(clientCtx client.Context, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
 	backend := backend.New(clientCtx)
 	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
