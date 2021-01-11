@@ -3,10 +3,8 @@
 export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
 go build -o ./build/ethermintd ./cmd/ethermintd
-go build -o ./build/ethermintcli ./cmd/ethermintcli
 mkdir $GOPATH/bin
 cp ./build/ethermintd $GOPATH/bin
-cp ./build/ethermintcli $GOPATH/bin
 
 CHAINID="ethermint-1337"
 
@@ -22,9 +20,7 @@ else
 fi
 
 chmod +x ./init-test-node.sh
-./init-test-node.sh > ethermintd.log &
-sleep 5
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key localkey,user1,user2 --chain-id $CHAINID --trace --wsport 8546 > ethermintcli.log &
+./init-test-node.sh > ethermintd.log
 
 cd suites/initializable
 yarn test-ethermint
@@ -35,7 +31,6 @@ if (( $? != 0 )); then
     echo "initializable test failed: exit code $?"
 fi
 
-killall ethermintcli
 killall ethermintd
 
 echo "Script exited with code $ok"
@@ -43,10 +38,7 @@ exit $ok
 
 # initializable-buidler fails on CI, re-add later
 
-./../../init-test-node.sh > ethermintd.log &
-sleep 5
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key localkey,user1,user2 --chain-id $CHAINID --trace --wsport 8546 > ethermintcli.log &
-
+./../../init-test-node.sh > ethermintd.log
 cd ../initializable-buidler
 yarn test-ethermint
 
@@ -56,7 +48,6 @@ if (( $? != 0 )); then
     echo "initializable-buidler test failed: exit code $?"
 fi
 
-killall ethermintcli
 killall ethermintd
 
 echo "Script exited with code $ok"
