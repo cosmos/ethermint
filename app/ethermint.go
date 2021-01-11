@@ -87,12 +87,13 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 
 	"github.com/cosmos/ethermint/app/ante"
-	ethermintrpc "github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/server"
 	"github.com/cosmos/ethermint/server/api"
 	"github.com/cosmos/ethermint/server/config"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
+
+	evmrest "github.com/cosmos/ethermint/x/evm/client/rest"
 	evmkeeper "github.com/cosmos/ethermint/x/evm/keeper"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 )
@@ -591,13 +592,14 @@ func (app *EthermintApp) SimulationManager() *module.SimulationManager {
 func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkconfig.APIConfig) {
 	clientCtx := apiSvr.ClientCtx
 	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
+	evmrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
 	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
 
 	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
 	ModuleBasics.RegisterGRPCGatewayRoutes(apiSvr.ClientCtx, apiSvr.GRPCGatewayRouter)
 
-	// Register Ethereum namespaces
-	ethermintrpc.RegisterEthereum(clientCtx, apiSvr.Router)
+	// // Register Ethereum namespaces
+	// ethermintrpc.RegisterEthereum(clientCtx, apiSvr.Router)
 
 	// register swagger API from root so that other applications can override easily
 	if apiConfig.Swagger {
