@@ -6,7 +6,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
@@ -14,7 +15,7 @@ import (
 type GenesisTestSuite struct {
 	suite.Suite
 
-	address ethcmn.Address
+	address string
 	hash    ethcmn.Hash
 	code    string
 }
@@ -23,7 +24,7 @@ func (suite *GenesisTestSuite) SetupTest() {
 	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
-	suite.address = ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	suite.address = ethcmn.BytesToAddress(priv.PubKey().Address().Bytes()).String()
 	suite.hash = ethcmn.BytesToHash([]byte("hash"))
 	suite.code = ethcmn.Bytes2Hex([]byte{1, 2, 3})
 }
@@ -33,6 +34,7 @@ func TestGenesisTestSuite(t *testing.T) {
 }
 
 func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
+
 	testCases := []struct {
 		name           string
 		genesisAccount GenesisAccount
@@ -41,7 +43,8 @@ func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
 		{
 			"valid genesis account",
 			GenesisAccount{
-				Address: suite.address.String(),
+				Address: suite.address,
+				Balance: sdk.OneInt(),
 				Code:    suite.code,
 				Storage: Storage{
 					NewState(suite.hash, suite.hash),
@@ -59,7 +62,7 @@ func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
 		{
 			"empty code bytes",
 			GenesisAccount{
-				Address: suite.address.String(),
+				Address: suite.address,
 				Code:    "",
 			},
 			false,
@@ -80,7 +83,7 @@ func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
 func (suite *GenesisTestSuite) TestValidateGenesis() {
 	testCases := []struct {
 		name     string
-		genState GenesisState
+		genState *GenesisState
 		expPass  bool
 	}{
 		{
@@ -90,10 +93,10 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "valid genesis",
-			genState: GenesisState{
+			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: suite.address.String(),
+						Address: suite.address,
 						Code:    suite.code,
 						Storage: Storage{
 							{Key: suite.hash.String()},
@@ -103,15 +106,15 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				TxsLogs: []TransactionLogs{
 					{
 						Hash: suite.hash.String(),
-						Logs: []*ethtypes.Log{
+						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []ethcmn.Hash{suite.hash},
+								Topics:      []string{suite.hash.String()},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash,
+								TxHash:      suite.hash.String(),
 								TxIndex:     1,
-								BlockHash:   suite.hash,
+								BlockHash:   suite.hash.String(),
 								Index:       1,
 								Removed:     false,
 							},
@@ -125,12 +128,12 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name:     "empty genesis",
-			genState: GenesisState{},
+			genState: &GenesisState{},
 			expPass:  false,
 		},
 		{
 			name: "invalid genesis",
-			genState: GenesisState{
+			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
 						Address: ethcmn.Address{}.String(),
@@ -141,17 +144,17 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "duplicated genesis account",
-			genState: GenesisState{
+			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: suite.address.String(),
+						Address: suite.address,
 						Code:    suite.code,
 						Storage: Storage{
 							NewState(suite.hash, suite.hash),
 						},
 					},
 					{
-						Address: suite.address.String(),
+						Address: suite.address,
 						Code:    suite.code,
 						Storage: Storage{
 							NewState(suite.hash, suite.hash),
@@ -163,10 +166,10 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "duplicated tx log",
-			genState: GenesisState{
+			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: suite.address.String(),
+						Address: suite.address,
 						Code:    suite.code,
 						Storage: Storage{
 							{Key: suite.hash.String()},
@@ -176,15 +179,15 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				TxsLogs: []TransactionLogs{
 					{
 						Hash: suite.hash.String(),
-						Logs: []*ethtypes.Log{
+						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []ethcmn.Hash{suite.hash},
+								Topics:      []string{suite.hash.String()},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash,
+								TxHash:      suite.hash.String(),
 								TxIndex:     1,
-								BlockHash:   suite.hash,
+								BlockHash:   suite.hash.String(),
 								Index:       1,
 								Removed:     false,
 							},
@@ -192,15 +195,15 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 					},
 					{
 						Hash: suite.hash.String(),
-						Logs: []*ethtypes.Log{
+						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []ethcmn.Hash{suite.hash},
+								Topics:      []string{suite.hash.String()},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash,
+								TxHash:      suite.hash.String(),
 								TxIndex:     1,
-								BlockHash:   suite.hash,
+								BlockHash:   suite.hash.String(),
 								Index:       1,
 								Removed:     false,
 							},
@@ -212,10 +215,10 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "invalid tx log",
-			genState: GenesisState{
+			genState: &GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: suite.address.String(),
+						Address: suite.address,
 						Code:    suite.code,
 						Storage: Storage{
 							{Key: suite.hash.String()},
@@ -228,7 +231,7 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "invalid params",
-			genState: GenesisState{
+			genState: &GenesisState{
 				ChainConfig: DefaultChainConfig(),
 				Params:      Params{},
 			},
@@ -236,7 +239,7 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 		},
 		{
 			name: "invalid chain config",
-			genState: GenesisState{
+			genState: &GenesisState{
 				ChainConfig: ChainConfig{},
 				Params:      DefaultParams(),
 			},
