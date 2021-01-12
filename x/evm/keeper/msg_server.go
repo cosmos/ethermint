@@ -12,7 +12,6 @@ import (
 
 // EthereumTx implements the Msg/EthereumTx gRPC method.
 func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Result, error) {
-
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -87,7 +86,6 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
-
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
 		),
@@ -105,4 +103,3 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 	executionResult.Result.Events = ctx.EventManager().Events()
 	return executionResult.Result, nil
 }
-

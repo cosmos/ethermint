@@ -220,6 +220,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	if !st.Simulate {
+
+		// refund gas
+		if err = st.refundGas(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), gasConsumed, leftOverGas); err != nil {
+			return nil, err
+		}
+
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
 		if err := csdb.Finalise(true); err != nil {
@@ -247,13 +253,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	resultLog := fmt.Sprintf(
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
-
-	gasInfo := GasInfo{
-		GasConsumed: gasConsumed,
-		GasLimit:    gasLimit,
-		GasRefunded: leftOverGas,
-	}
-
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -261,34 +260,33 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			Data: resBz,
 			Log:  resultLog,
 		},
-		GasInfo: gasInfo,
+		GasInfo: GasInfo{
+			GasConsumed: gasConsumed,
+			GasLimit:    gasLimit,
+			GasRefunded: leftOverGas,
+		},
 	}
 
 	// TODO: Refund unused gas here, if intended in future
 
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
-
-	if !st.Simulate {
-		if err = st.refundGas(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), gasInfo); err != nil {
-			return nil, err
-		}
-	}
-
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
 }
 
-func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) error {
+func (st StateTransition) refundGas(ctx sdk.Context, gasConsumed uint64, gasLeft uint64) error {
 
-	refund := gasInfo.GasConsumed / 2
-	if refund > st.Csdb.GetRefund() {
-		refund = st.Csdb.GetRefund()
+	gasRefund := gasConsumed / 2
+	if gasRefund > st.Csdb.GetRefund() {
+		gasRefund = st.Csdb.GetRefund()
 	}
 
-	remaining := refund + gasInfo.GasRefunded
-	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(remaining))
+	fmt.Println("gas refund: ", gasRefund)
+	fmt.Println("gas left  : ", gasLeft)
+
+	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRefund + gasLeft))
 
 	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
 	if err != nil {
@@ -303,6 +301,8 @@ func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) error {
 	); err != nil {
 		return err
 	}
+
+	fmt.Println("finally consumed: ", st.GasLimit - (gasRefund + gasLeft))
 
 	return nil
 }
