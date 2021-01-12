@@ -97,6 +97,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
 	}
 
 	if msg.Recipient != nil {
@@ -127,6 +128,11 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
+
+		err = st.RefundGas(ctx, executionResult.GasInfo)
 		if err != nil {
 			panic(err)
 		}

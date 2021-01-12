@@ -40,6 +40,7 @@ type GasInfo struct {
 	GasLimit    uint64
 	GasConsumed uint64
 	GasRefunded uint64
+	GasRefund   uint64
 }
 
 // ExecutionResult represents what's returned from a transition
@@ -220,13 +221,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
+	gasRefund := csdb.refund
+
 	if !st.Simulate {
-
-		// refund gas
-		if err = st.refundGas(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), gasConsumed, leftOverGas); err != nil {
-			return nil, err
-		}
-
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
 		if err := csdb.Finalise(true); err != nil {
@@ -265,6 +262,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,
 			GasRefunded: leftOverGas,
+			GasRefund:   gasRefund,
 		},
 	}
 
@@ -277,14 +275,16 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	return executionResult, nil
 }
 
-func (st StateTransition) refundGas(ctx sdk.Context, gasConsumed uint64, gasLeft uint64) error {
+func (st StateTransition) RefundGas(ctx sdk.Context, gasInfo GasInfo) error {
 
-	gasRefund := gasConsumed / 2
-	if gasRefund > st.Csdb.GetRefund() {
-		gasRefund = st.Csdb.GetRefund()
+	gasRefund := gasInfo.GasConsumed / 2
+	if gasRefund > gasInfo.GasRefund {
+		gasRefund = gasInfo.GasRefund
 	}
 
-	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRefund+gasLeft))
+	gasRemaining := st.GasLimit - ctx.GasMeter().GasConsumed() + gasRefund
+
+	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRemaining))
 
 	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
 	if err != nil {
@@ -292,7 +292,7 @@ func (st StateTransition) refundGas(ctx sdk.Context, gasConsumed uint64, gasLeft
 	}
 
 	if err = st.Csdb.supplyKeeper.SendCoinsFromModuleToAccount(
-		ctx,
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter()),
 		types.FeeCollectorName,
 		senderAddress,
 		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(gasReturn))),

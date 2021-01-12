@@ -73,7 +73,12 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
+
+		err = st.RefundGas(ctx, executionResult.GasInfo)
 		if err != nil {
 			panic(err)
 		}
