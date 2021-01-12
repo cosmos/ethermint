@@ -3,15 +3,15 @@ package types
 import (
 	"errors"
 	"fmt"
-	"math/big"
-
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"math/big"
+	"strings"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -29,6 +29,8 @@ type StateTransition struct {
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
+
+	CoinDenom string
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -246,6 +248,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
+	gasInfo := GasInfo{
+		GasConsumed: gasConsumed,
+		GasLimit:    gasLimit,
+		GasRefunded: leftOverGas,
+	}
+
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -253,20 +261,50 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			Data: resBz,
 			Log:  resultLog,
 		},
-		GasInfo: GasInfo{
-			GasConsumed: gasConsumed,
-			GasLimit:    gasLimit,
-			GasRefunded: leftOverGas,
-		},
+		GasInfo: gasInfo,
 	}
 
 	// TODO: Refund unused gas here, if intended in future
 
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
+
+	if !st.Simulate {
+		if err = st.refundGas(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), gasInfo); err != nil {
+			return nil, err
+		}
+	}
+
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
+}
+
+func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) error {
+
+	refund := gasInfo.GasConsumed / 2
+	if refund > st.Csdb.GetRefund() {
+		refund = st.Csdb.GetRefund()
+	}
+
+	remaining := refund + gasInfo.GasRefunded
+	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(remaining))
+
+	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
+	if err != nil {
+		return err
+	}
+
+	if err = st.Csdb.supplyKeeper.SendCoinsFromModuleToAccount(
+		ctx,
+		types.FeeCollectorName,
+		senderAddress,
+		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(gasReturn))),
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // HashFromContext returns the Ethereum Header hash from the context's Tendermint
