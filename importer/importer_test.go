@@ -3,6 +3,7 @@ package importer
 import (
 	"flag"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"io"
 	"math/big"
 	"os"
@@ -71,6 +72,7 @@ func newTestCodec() *sdkcodec.Codec {
 	types.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
+	supply.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	cryptocodec.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
@@ -177,6 +179,7 @@ func TestImportBlocks(t *testing.T) {
 	cms := store.NewCommitMultiStore(db)
 
 	authStoreKey := sdk.NewKVStoreKey(auth.StoreKey)
+	supplyStoreKey := sdk.NewKVStoreKey(supply.StoreKey)
 	evmStoreKey := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	paramsStoreKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTransientStoreKey := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -190,12 +193,23 @@ func TestImportBlocks(t *testing.T) {
 	cms.MountStoreWithDB(paramsTransientStoreKey, sdk.StoreTypeTransient, nil)
 
 	paramsKeeper := params.NewKeeper(cdc, paramsStoreKey, paramsTransientStoreKey)
+	//maccPerms := map[string][]string{
+	//	auth.FeeCollectorName:     nil,
+	//	distr.ModuleName:          nil,
+	//	mint.ModuleName:           {supply.Minter},
+	//	staking.BondedPoolName:    {supply.Burner, supply.Staking},
+	//	staking.NotBondedPoolName: {supply.Burner, supply.Staking},
+	//	gov.ModuleName:            {supply.Burner},
+	//}
 
 	// Set specific subspaces
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(evmtypes.DefaultParamspace).WithKeyTable(evmtypes.ParamKeyTable())
 	ak := auth.NewAccountKeeper(cdc, authStoreKey, authSubspace, types.ProtoAccount)
-	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak)
+	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
+	sk := supply.NewKeeper(cdc, supplyStoreKey, ak, bk, make(map[string][]string))
+	evmKeeper := evm.NewKeeper(cdc, evmStoreKey, evmSubspace, ak, sk)
 
 	cms.SetPruning(sdkstore.PruneNothing)
 

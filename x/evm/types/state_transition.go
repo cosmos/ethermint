@@ -286,7 +286,7 @@ func (st StateTransition) refundGas(ctx sdk.Context, gasConsumed uint64, gasLeft
 	fmt.Println("gas refund: ", gasRefund)
 	fmt.Println("gas left  : ", gasLeft)
 
-	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRefund + gasLeft))
+	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRefund+gasLeft))
 
 	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
 	if err != nil {
@@ -302,7 +302,7 @@ func (st StateTransition) refundGas(ctx sdk.Context, gasConsumed uint64, gasLeft
 		return err
 	}
 
-	fmt.Println("finally consumed: ", st.GasLimit - (gasRefund + gasLeft))
+	fmt.Println("finally consumed: ", st.GasLimit-(gasRefund+gasLeft))
 
 	return nil
 }

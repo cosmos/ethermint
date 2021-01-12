@@ -45,7 +45,7 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:	  k.GetParams(ctx).EvmDenom,
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,

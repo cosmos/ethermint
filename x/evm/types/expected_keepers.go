@@ -16,5 +16,5 @@ type AccountKeeper interface {
 }
 
 type SupplyKeeper interface {
-	SendCoinsFromModuleToAccount (ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 }
