@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 KEY="mykey"
 TESTKEY="test"
