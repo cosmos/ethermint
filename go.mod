@@ -35,7 +35,7 @@ require (
 	github.com/pseudomuto/protoc-gen-doc v1.3.2 // indirect
 	github.com/regen-network/cosmos-proto v0.3.0
 	github.com/rs/zerolog v1.20.0 // indirect
-	github.com/spf13/cast v1.3.1 // indirect
+	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20200402102358-957c09536969

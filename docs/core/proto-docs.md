@@ -254,7 +254,6 @@ custom storage type and that it doesn't contain the private key field.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `address` | [string](#string) |  | address defines an ethereum hex formated address of an account |
-| `balance` | [string](#string) |  | balance defines the available evm tokens for the account |
 | `code` | [string](#string) |  | code defines the hex bytes of the account code. |
 | `storage` | [State](#ethermint.evm.v1alpha1.State) | repeated | storage defines the set of state key values for the account. |
 
