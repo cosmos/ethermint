@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/x/supply"
+
 	"github.com/status-im/keycard-go/hexutils"
 
 	"github.com/stretchr/testify/suite"
@@ -19,6 +21,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/cosmos/ethermint/app"
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
@@ -59,6 +62,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
 
 	var tx types.MsgEthereumTx
 
@@ -71,7 +76,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"passed",
 			func() {
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
-				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 0, big.NewInt(10000), nil)
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(10000), nil)
 
 				// parse context chain ID to big.Int
 				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
@@ -86,7 +92,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"insufficient balance",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 0, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
 
 				// parse context chain ID to big.Int
 				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
@@ -101,7 +107,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"tx encoding failed",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 0, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
 			},
 			false,
 		},
@@ -115,7 +121,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"VerifySig failed",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 0, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
 			},
 			false,
 		},
@@ -148,6 +154,9 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
 
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+
 	testCases := []struct {
 		msg      string
 		malleate func()
@@ -156,6 +165,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"passed",
 			func() {
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
@@ -217,6 +227,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	// 	"sourceMap": "25:119:0:-;;;90:52;8:9:-1;5:2;;;30:1;27;20:12;5:2;90:52:0;132:2;126:9;;;;;;;;;;25:119;;;;;;"
 	// }
 
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
 
@@ -248,6 +262,11 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 }
 
 func (suite *EvmTestSuite) TestQueryTxLogs() {
+
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
 
@@ -346,6 +365,10 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	//}
 	//}
 
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
 	// Deploy contract - Owner.sol
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
@@ -398,8 +421,13 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 }
 
 func (suite *EvmTestSuite) TestSendTransaction() {
-	gasLimit := uint64(21000)
-	gasPrice := big.NewInt(0x55ae82600)
+
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	gasLimit := uint64(100000)
+	gasPrice := big.NewInt(10000)
 
 	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err, "failed to create key")
@@ -407,7 +435,6 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 
 	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
 
-	// send simple value transfer with gasLimit=21000
 	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(1), gasLimit, gasPrice, nil)
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
@@ -524,4 +551,41 @@ func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	currentCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
 	suite.Require().Nil(err)
 	suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
+}
+
+func (suite *EvmTestSuite) TestRefundGas() {
+
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	priv, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err, "failed to create key")
+	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
+
+	gasLimit := uint64(100000)
+	gasPrice := big.NewInt(10000)
+	userBalance := big.NewInt(10000000000)
+	sendValue := big.NewInt(1000000000)
+
+	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), userBalance)
+
+	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, sendValue, gasLimit, gasPrice, nil)
+	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
+	suite.Require().NoError(err)
+
+	result, err := suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(result)
+
+	gasRemaining := big.NewInt(1).SetUint64(gasLimit - suite.ctx.GasMeter().GasConsumed())
+	gasRefund := big.NewInt(1).Mul(gasPrice, gasRemaining)
+
+	suite.app.EvmKeeper.UpdateAccounts(suite.ctx)
+
+	exceptBalanceAfter := big.NewInt(1).Sub(userBalance, sendValue)
+	actualBalanceAfter := suite.app.EvmKeeper.GetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub))
+
+	suite.Require().Equal(gasRefund, big.NewInt(1).Sub(actualBalanceAfter, exceptBalanceAfter))
+
 }
