@@ -55,7 +55,7 @@ func GenerateKey() (*PrivKey, error) {
 }
 
 // Bytes returns the byte representation of the ECDSA Private Key.
-func (privKey *PrivKey) Bytes() []byte {
+func (privKey PrivKey) Bytes() []byte {
 	return privKey.Key
 }
 
@@ -68,12 +68,12 @@ func (privKey PrivKey) PubKey() cryptotypes.PubKey {
 }
 
 // Equals returns true if two ECDSA private keys are equal and false otherwise.
-func (privKey *PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
+func (privKey PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
 	return privKey.Type() == other.Type() && subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
 }
 
 // Type returns eth_secp256k1
-func (privKey *PrivKey) Type() string {
+func (privKey PrivKey) Type() string {
 	return KeyType
 }
 
@@ -146,17 +146,17 @@ func (pubKey PubKey) Bytes() []byte {
 }
 
 // String implements the fmt.Stringer interface.
-func (pubKey *PubKey) String() string {
+func (pubKey PubKey) String() string {
 	return fmt.Sprintf("EthPubKeySecp256k1{%X}", pubKey.Key)
 }
 
 // Type returns eth_secp256k1
-func (pubKey *PubKey) Type() string {
+func (pubKey PubKey) Type() string {
 	return KeyType
 }
 
 // Equals returns true if the pubkey type is the same and their bytes are deeply equal.
-func (pubKey *PubKey) Equals(other cryptotypes.PubKey) bool {
+func (pubKey PubKey) Equals(other cryptotypes.PubKey) bool {
 	return pubKey.Type() == other.Type() && bytes.Equal(pubKey.Bytes(), other.Bytes())
 }
 
