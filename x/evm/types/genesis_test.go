@@ -7,8 +7,6 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
@@ -44,7 +42,6 @@ func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
 			"valid genesis account",
 			GenesisAccount{
 				Address: suite.address,
-				Balance: sdk.OneInt(),
 				Code:    suite.code,
 				Storage: Storage{
 					NewState(suite.hash, suite.hash),
