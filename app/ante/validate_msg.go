@@ -32,6 +32,8 @@ func (vmhd ValidateMsgHandlerDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 			switch msg.(type) {
 			case evmtypes.MsgEthermint:
 				return ctx, wrongMsgErr
+			default:
+				continue
 			}
 		}
 	}
