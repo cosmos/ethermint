@@ -28,8 +28,6 @@ const (
 type AccountKeeper interface {
 	authante.AccountKeeper
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
-	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
-	SetAccount(ctx sdk.Context, account authtypes.AccountI)
 }
 
 // BankKeeper defines an expected keeper interface for the bank module's Keeper
