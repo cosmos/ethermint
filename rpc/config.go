@@ -5,9 +5,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 
-	"github.com/cosmos/ethermint/rpc/websockets"
-	"github.com/cosmos/ethermint/server/config"
-
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -26,10 +23,4 @@ func RegisterEthereum(clientCtx client.Context, r *mux.Router) {
 			panic(err)
 		}
 	}
-}
-
-// StartEthereumWebsocket starts the Filter api websocket
-func StartEthereumWebsocket(clientCtx client.Context, apiConfig config.EthereumConfig) {
-	ws := websockets.NewServer(clientCtx, apiConfig.WebsocketAddress)
-	ws.Start()
 }
