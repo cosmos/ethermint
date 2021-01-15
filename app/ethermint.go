@@ -112,10 +112,6 @@ func init() {
 	DefaultNodeHome = filepath.Join(userHomeDir, ".ethermint")
 }
 
-func init() {
-
-}
-
 const appName = "Ethermint"
 
 var (
