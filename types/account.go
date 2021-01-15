@@ -79,7 +79,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	var ethAddress = ""
 
-	if acc.BaseAccount != nil && acc.Address == "" {
+	if acc.BaseAccount != nil && acc.Address != "" {
 		ethAddress = acc.EthAddress().String()
 	}
 

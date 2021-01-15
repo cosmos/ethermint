@@ -10,7 +10,7 @@ SLEEP_TIMEOUT=5
 TEST_QTD=1
 
 #PORT AND RPC_PORT 3 initial digits, to be concat with a suffix later when node is initialized
-RPC_PORT="854"
+RPC_PORT="8545"
 IP_ADDR="0.0.0.0"
 MODE="rpc"
 
