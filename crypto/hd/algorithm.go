@@ -32,6 +32,7 @@ var (
 )
 
 // EthSecp256k1Option defines a function keys options for the ethereum Secp256k1 curve.
+// It supports eth_secp256k1 and secp256k1 keys for accounts.
 func EthSecp256k1Option() keyring.Option {
 	return func(options *keyring.Options) {
 		options.SupportedAlgos = SupportedAlgorithms
@@ -93,7 +94,7 @@ func (s ethSecp256k1Algo) Derive() hd.DeriveFn {
 	}
 }
 
-// Generate generates a secp256k1 private key from the given bytes.
+// Generate generates a eth_secp256k1 private key from the given bytes.
 func (s ethSecp256k1Algo) Generate() hd.GenerateFn {
 	return func(bz []byte) cryptotypes.PrivKey {
 		var bzArr = make([]byte, ethsecp256k1.PrivKeySize)
