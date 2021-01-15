@@ -34,9 +34,9 @@ func NewBlockNumber(n *big.Int) BlockNumber {
 }
 
 // ContextWithHeight wraps a context with the a gRPC block height header. If the provided height is
-// 0, it will return an empty context and the gRPC query will use the latest block height for querying.
+// 0 or -1, it will return an empty context and the gRPC query will use the latest block height for querying.
 func ContextWithHeight(height int64) context.Context {
-	if height == LatestBlockNumber.Int64() {
+	if height == LatestBlockNumber.Int64() || height == PendingBlockNumber.Int64() {
 		return context.Background()
 	}
 

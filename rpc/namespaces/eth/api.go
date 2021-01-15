@@ -327,7 +327,6 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 
 	var (
 		height  int64
-		err     error
 		txCount hexutil.Uint
 		txs     int
 	)
