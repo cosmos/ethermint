@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	// DefaultJSONRPCAddress is the default address the JSON-RPC server binds to.
+	DefaultJSONRPCAddress = "tcp://0.0.0.0:8545"
 	// DefaultEthereumWebsocketAddress is the default address the Ethereum websocket server binds to.
 	DefaultEthereumWebsocketAddress = "tcp://0.0.0.0:8546"
 )
@@ -44,12 +46,12 @@ func DefaultConfig() *Config {
 		Config: config.DefaultConfig(),
 		JSONRPC: JSONRPCConfig{
 			Enable:  false,
-			Address: "", // TODO: define
+			Address: DefaultJSONRPCAddress,
 		},
 		EthereumWebsocket: WebsocketConfig{
 			Enable:     false,
 			Address:    DefaultEthereumWebsocketAddress,
-			RPCAddress: "", // TODO: define
+			RPCAddress: DefaultJSONRPCAddress,
 		},
 	}
 }

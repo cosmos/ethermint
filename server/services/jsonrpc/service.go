@@ -41,12 +41,12 @@ func (s *Service) RegisterRoutes() error {
 }
 
 // Start starts the JSON-RPC server on the address defined on the configuration.
-func (s *Service) Start(cfg config.JSONRPCConfig) error {
-	if !cfg.Enable {
+func (s *Service) Start(cfg config.Config) error {
+	if !cfg.JSONRPC.Enable {
 		return nil
 	}
 
-	listener, err := net.Listen("tcp", cfg.Address)
+	listener, err := net.Listen("tcp", cfg.JSONRPC.Address)
 	if err != nil {
 		return err
 	}

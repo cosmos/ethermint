@@ -17,7 +17,8 @@ const (
 
 // Ethereum-related flags.
 const (
-	flagEthereumJSONRPCEnable    = "ethereum.enable-json-rpc"
-	flagEthereumWebsocketEnable  = "ethereum.enable-ethereum-websocket"
-	flagEthereumWebsocketAddress = "ethereum.websocket-address"
+	flagJSONRPCEnable            = "json-rpc.enable"
+	flagJSONRPCAddress           = "json-rpc.address"
+	flagEthereumWebsocketEnable  = "ethereum-websocket.enable"
+	flagEthereumWebsocketAddress = "ethereum-websocket.address"
 )

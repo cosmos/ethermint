@@ -79,6 +79,19 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	return true
 }
 
+// unsubscribeAll unsubscribes all the current subscriptions
+func (api *PubSubAPI) unsubscribeAll() bool {
+	api.filtersMu.Lock()
+	defer api.filtersMu.Unlock()
+
+	for id, filter := range api.filters {
+		close(filter.unsubscribed)
+		delete(api.filters, id)
+	}
+
+	return true
+}
+
 func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribeNewHeads()
 	if err != nil {

@@ -27,8 +27,11 @@ import (
 	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
+	"github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/server/api"
 	"github.com/cosmos/ethermint/server/config"
+	"github.com/cosmos/ethermint/server/services/jsonrpc"
+	"github.com/cosmos/ethermint/server/services/websocket"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -109,9 +112,10 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(flagGRPCEnable, true, "Define if the gRPC server should be enabled")
 	cmd.Flags().String(flagGRPCAddress, sdkconfig.DefaultGRPCAddress, "the gRPC server address to listen on")
 
-	cmd.Flags().Bool(flagEthereumJSONRPCEnable, true, "Define if the Ethereum JSON-RPC server should be enabled")
+	cmd.Flags().Bool(flagJSONRPCEnable, true, "Define if the Ethereum JSON-RPC server should be enabled")
+	cmd.Flags().String(flagJSONRPCAddress, config.DefaultJSONRPCAddress, "the JSON-RPC server address to listen on")
 	cmd.Flags().Bool(flagEthereumWebsocketEnable, true, "Define if the Ethereum Websocket server should be enabled")
-	cmd.Flags().String(flagEthereumWebsocketAddress, sdkconfig.DefaultGRPCAddress, "the gRPC server address to listen on")
+	cmd.Flags().String(flagEthereumWebsocketAddress, config.DefaultEthereumWebsocketAddress, "the Ethereum websocket server address to listen on")
 
 	cmd.Flags().Uint64(sdkserver.FlagStateSyncSnapshotInterval, 0, "State sync snapshot interval")
 	cmd.Flags().Uint32(sdkserver.FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
@@ -266,6 +270,24 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 	}
 
+	jsonRPCSrv := jsonrpc.NewService(rpc.GetAPIs(clientCtx))
+
+	if err := jsonRPCSrv.RegisterRoutes(); err != nil {
+		return err
+	}
+
+	// Start service if enabled
+	if err := jsonRPCSrv.Start(config); err != nil {
+		return err
+	}
+
+	websocketSrv := websocket.NewService(clientCtx)
+
+	// Start service if enabled
+	if err := websocketSrv.Start(config); err != nil {
+		return err
+	}
+
 	defer func() {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
@@ -282,6 +304,8 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		if grpcSrv != nil {
 			grpcSrv.Stop()
 		}
+
+		_ = jsonRPCSrv.Stop()
 
 		ctx.Logger.Info("exiting...")
 	}()

@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -29,19 +28,19 @@ func (Service) Name() string {
 }
 
 // Start runs the websocket server
-func (s Service) Start(cfg config.WebsocketConfig) error {
-	if !cfg.Enable {
+func (s Service) Start(cfg config.Config) error {
+	if !cfg.EthereumWebsocket.Enable {
 		return nil
 	}
 
-	s.websocketServer.Address = cfg.RPCAddress
+	s.websocketServer.Address = cfg.JSONRPC.Address
 
 	ws := mux.NewRouter()
 	ws.Handle("/", s.websocketServer)
 
 	errCh := make(chan error)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Address), ws)
+		err := http.ListenAndServe(cfg.EthereumWebsocket.Address, ws)
 		if err != nil {
 			errCh <- err
 		}

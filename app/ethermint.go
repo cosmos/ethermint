@@ -29,7 +29,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
@@ -88,8 +87,6 @@ import (
 
 	"github.com/cosmos/ethermint/app/ante"
 	"github.com/cosmos/ethermint/server"
-	"github.com/cosmos/ethermint/server/api"
-	"github.com/cosmos/ethermint/server/config"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
@@ -589,13 +586,9 @@ func (app *EthermintApp) RegisterAPIRoutes(apiSvr *sdkapi.Server, apiConfig sdkc
 	clientCtx := apiSvr.ClientCtx
 	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
 	evmrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
-	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
 
 	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
 	ModuleBasics.RegisterGRPCGatewayRoutes(apiSvr.ClientCtx, apiSvr.GRPCGatewayRouter)
-
-	// // Register Ethereum namespaces
-	// ethermintrpc.RegisterEthereum(clientCtx, apiSvr.Router)
 
 	// register swagger API from root so that other applications can override easily
 	if apiConfig.Swagger {
@@ -611,25 +604,6 @@ func (app *EthermintApp) RegisterTxService(clientCtx client.Context) {
 // RegisterTendermintService implements the Application.RegisterTendermintService method.
 func (app *EthermintApp) RegisterTendermintService(clientCtx client.Context) {
 	tmservice.RegisterTendermintService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.interfaceRegistry)
-}
-
-// RegisterEthereumServers registers all application ethereum routes with the provided
-// API server.
-func (app *EthermintApp) RegisterEthereumServers(apiSvr *api.Server, apiConfig config.EthereumConfig) {
-	// clientCtx := apiSvr.ClientCtx
-	// rpc.RegisterRoutes(clientCtx, apiSvr.Router)
-	// authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
-
-	// ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
-	// ModuleBasics.RegisterGRPCRoutes(apiSvr.ClientCtx, apiSvr.GRPCRouter)
-
-	// // Register Ethereum namespaces
-	// // ethermintrpc.RegisterRoutes(clientCtx, apiSvr.Router)
-
-	// // register swagger API from root so that other applications can override easily
-	// if apiConfig.Swagger {
-	// 	simapp.RegisterSwaggerAPI(clientCtx, apiSvr.Router)
-	// }
 }
 
 // GetMaccPerms returns a copy of the module account permissions
