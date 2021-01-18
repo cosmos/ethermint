@@ -23,12 +23,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkserver "github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/server/api"
 	sdkconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	"github.com/cosmos/ethermint/rpc"
-	"github.com/cosmos/ethermint/server/api"
 	"github.com/cosmos/ethermint/server/config"
 	"github.com/cosmos/ethermint/server/services/jsonrpc"
 	"github.com/cosmos/ethermint/server/services/websocket"
@@ -246,11 +246,11 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 			WithClient(local.New(tmNode))
 
 		apiSrv = api.New(clientCtx, ctx.Logger.With("module", "api-server"))
-		app.RegisterAPIRoutes(apiSrv.Server, config.API)
+		app.RegisterAPIRoutes(apiSrv, config.API)
 		errCh := make(chan error)
 
 		go func() {
-			if err := apiSrv.Start(config); err != nil {
+			if err := apiSrv.Start(*config.Config); err != nil {
 				errCh <- err
 			}
 		}()

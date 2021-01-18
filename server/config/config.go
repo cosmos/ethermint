@@ -36,8 +36,6 @@ type WebsocketConfig struct {
 
 	// Address defines the Websocket server address to listen on
 	Address string `mapstructure:"address"`
-
-	RPCAddress string `mapstructure:"rpc-address"`
 }
 
 // DefaultConfig returns server's default configuration.
@@ -49,9 +47,8 @@ func DefaultConfig() *Config {
 			Address: DefaultJSONRPCAddress,
 		},
 		EthereumWebsocket: WebsocketConfig{
-			Enable:     false,
-			Address:    DefaultEthereumWebsocketAddress,
-			RPCAddress: DefaultJSONRPCAddress,
+			Enable:  false,
+			Address: DefaultEthereumWebsocketAddress,
 		},
 	}
 }
@@ -66,9 +63,8 @@ func GetConfig(v *viper.Viper) Config {
 			Address: v.GetString("json-rpc.address"),
 		},
 		EthereumWebsocket: WebsocketConfig{
-			Enable:     v.GetBool("ethereum-websocket.enable"),
-			Address:    v.GetString("ethereum-websocket.address"),
-			RPCAddress: v.GetString("ethereum-websocket.rpc-address"),
+			Enable:  v.GetBool("ethereum-websocket.enable"),
+			Address: v.GetString("ethereum-websocket.address"),
 		},
 	}
 }
