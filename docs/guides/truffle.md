@@ -15,10 +15,10 @@ Set up a Truffle Ethermint local development environment. {synopsis}
 
 ## Install dependencies
 
-First, install the latest Truffle version on your machine globally.
+First, install the latest Truffle version on your machine globally. Either `npm` or `yarn` works.
 
 ```bash
-yarn install truffle -g
+yarn global add truffle
 ```
 
 You will also need to install Ethermint. Check this [document](./../quickstart/installation.md) for the full instructions.
@@ -27,7 +27,7 @@ You will also need to install Ethermint. Check this [document](./../quickstart/i
 
 In this step we will create a simple counter contract. Feel free to skip this step if you already have your own compiled contract.
 
-Create a new directory to host the contracts and initialize it
+Create a new directory to host the contracts and initialize it.
 
 ```bash
 mkdir ethermint-truffle
@@ -105,7 +105,7 @@ This will allow your contract to connect to your Ethermint local node.
 
 ## Start Node and REST server
 
-Start your local node using the following command on the Terminal
+Start your local node using the following command on the Terminal, make sure you have [jq](https://stedolan.github.io/jq/) CLI installed.
 
 ```bash
 # on the ~/ethermint/ directory
@@ -119,10 +119,21 @@ For further information on how to run a node, please refer to [this](./../quicks
 In another Terminal wintdow/tab, start the [REST and JSON-RPC server](./../quickstart/clients.md#rest-and-tendermint-rpc.md):
 
 ```bash
-ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key mykey--chain-id 8 --trace
+ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key mykey --chain-id ethermint-1 --trace
 ```
 
 ## Deploy contract
+
+Create `migrations/2_deploy_contracts.js`. This is the migration file for your contracts.
+
+```javascript
+var counter = artifacts.require("Counter");
+
+module.exports = function(deployer) {
+    // your contracts deployment steps and contructor params
+    deployer.deploy(counter);
+};
+```
 
 Back in the Truffle terminal, migrate the contract using
 
