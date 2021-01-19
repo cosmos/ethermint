@@ -19,6 +19,8 @@ First, install the latest Truffle version on your machine globally. Either `npm`
 
 ```bash
 yarn global add truffle
+or
+npm i truffle -g
 ```
 
 You will also need to install Ethermint. Check this [document](./../quickstart/installation.md) for the full instructions.
@@ -84,7 +86,7 @@ contract('Counter', accounts => {
   it('should add', async() => {
     await counter.add()
     let count = await counter.getCounter()
-    assert(count == 1, `count was ${count}`)
+    assert(count == 1, "count was " + count)
   })
 })
 ```
