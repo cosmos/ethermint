@@ -6,22 +6,22 @@ order: 3
 
 Learn about the store and database concept on Ethermint. {synopsis}
 
-Since Ethermint is using Cosmos-sdk as ABCI application, when starting an Ethermint node,
+Since Ethermint uses the Cosmos-SDK as an ABCI application, when starting an Ethermint node,
 a Key-Value database will be initialized and all Ethermint blockchain data will be persisted into the node machine.
 
 
 ## Store
 
-Store is the abstract data structure in Ethermint to organize and persist blockchain data into physical disk.
+Store is the abstract data structure in Ethermint to organize and persist blockchain data into a physical disk.
 
 There are two kinds of store in Ethermint:  
 
 1. Cosmos SDK MultiStore.
 2. Ethermint CommitStateDB.
 
-Cosmos SDK MultiStore is used in most of Ethermint modules such as bank, governance and staking. The synchronization of this store among network is taken care by [Tendermint](https://github.com/tendermint/tendermint).
+Cosmos SDK MultiStore is used in most Ethermint modules such as bank, governance and staking. The synchronization of this store on the network is taken care of by [Tendermint](https://github.com/tendermint/tendermint).
 
-Different store prefix(store key) will be assigned to each Ethermint module since they all implement cosmos-sdk MultiStore interface. Cosmos MultiStore can be accessed by `sdk.Context` expect `ethermint/evm` module.
+Different store prefix(store key) will be assigned to each Ethermint module since they all implement the cosmos-sdk MultiStore interface. Cosmos MultiStore can be accessed by `sdk.Context` expect `ethermint/evm` module.
 
 For `evm` module, Ethermint creates a type called `CommitStateDB` which implements `ethvm.StateDB` from go-ethereum lib, and it aims to be compatible with ethereum EVM transactions.
 
@@ -31,7 +31,7 @@ Database is the actual Key-Value database dependency that is running on the back
 
 Currently, Ethermint supports the [databases](https://github.com/tendermint/tm-db) that Tendermint supports.
 
-Developers can modify the database config in `~/.ethermintd/config.toml -> db_backend` to enable other supported database.
+Developers can modify the database config in `~/.ethermintd/config.toml -> db_backend` to enable another supported database.
 
 ## Next {hide}
 
