@@ -46,4 +46,4 @@ different nodes.
 
 ## Next {hide}
 
-Learn how to deploy a Solidity smart contract on Ethermint using [Truffle](./../guides/truffle.md) {hide}
+Learn the store and database concept on Ethermint using [Store and Database](./store.md) {hide}

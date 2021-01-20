@@ -33,4 +33,7 @@ Currently, Ethermint supports the [databases](https://github.com/tendermint/tm-d
 
 Developers can modify the database config in `~/.ethermintd/config.toml -> db_backend` to enable other supported database.
 
+## Next {hide}
+
+Learn how to deploy a Solidity smart contract on Ethermint using [Truffle](./../guides/truffle.md) {hide}
 
