@@ -7,7 +7,7 @@ order: 3
 Learn about the store and database concept on Ethermint. {synopsis}
 
 Since Ethermint uses the Cosmos-SDK as an ABCI application, when starting an Ethermint node,
-a Key-Value database will be initialized and all Ethermint blockchain data will be persisted into the node machine.
+a Key-Value database will be initialized and all Ethermint blockchain data will be persisted into the node host machine.
 
 
 ## Store
@@ -21,9 +21,9 @@ There are two kinds of store in Ethermint:
 
 Cosmos SDK MultiStore is used in most Ethermint modules such as bank, governance and staking. The synchronization of this store on the network is taken care of by [Tendermint](https://github.com/tendermint/tendermint).
 
-Different store prefix(store key) will be assigned to each Ethermint module since they all implement the cosmos-sdk MultiStore interface. Cosmos MultiStore can be accessed by `sdk.Context` expect `ethermint/evm` module.
+A unique store prefix(also referred to as the store key) will be assigned to each Ethermint module since they all implement the cosmos-sdk MultiStore interface. Cosmos MultiStore can be accessed by `sdk.Context` expect `ethermint/evm` module.
 
-For `evm` module, Ethermint creates a type called `CommitStateDB` which implements `ethvm.StateDB` from go-ethereum lib, and it aims to be compatible with ethereum EVM transactions.
+For `evm` module, Ethermint creates a type called `CommitStateDB` which implements `ethvm.StateDB` interface from go-ethereum, and it aims to be compatible with ethereum EVM transactions.
 
 ## Database
 
