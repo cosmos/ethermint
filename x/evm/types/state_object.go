@@ -400,7 +400,16 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	newStateObj := newStateObject(db, so.account)
+	newAccount := ethermint.ProtoAccount().(*ethermint.EthAccount)
+	jsonAccount, err := so.account.MarshalJSON()
+	if err != nil {
+		return nil
+	}
+	err = newAccount.UnmarshalJSON(jsonAccount)
+	if err != nil {
+		return nil
+	}
+	newStateObj := newStateObject(db, newAccount)
 
 	newStateObj.code = so.code
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
