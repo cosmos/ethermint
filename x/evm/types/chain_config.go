@@ -71,7 +71,7 @@ func (cc ChainConfig) IsIstanbul() bool {
 	return getBlockValue(cc.IstanbulBlock) != nil
 }
 
-// IsIstanbul returns whether the Istanbul version enabled.
+// IsHomestead returns whether the Homestead version is enabled.
 func (cc ChainConfig) IsHomestead() bool {
 	return getBlockValue(cc.HomesteadBlock) != nil
 }
