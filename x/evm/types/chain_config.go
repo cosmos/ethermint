@@ -66,7 +66,7 @@ func (cc ChainConfig) EthereumConfig(chainID *big.Int) *params.ChainConfig {
 	}
 }
 
-// IsIstanbul returns whether the Istanbul version enabled.
+// IsIstanbul returns whether the Istanbul version is enabled.
 func (cc ChainConfig) IsIstanbul() bool {
 	return getBlockValue(cc.IstanbulBlock) != nil
 }
