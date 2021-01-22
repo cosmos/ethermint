@@ -63,7 +63,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
 
 	var tx types.MsgEthereumTx
 
@@ -77,7 +77,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			func() {
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(10000), nil)
+
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 
 				// parse context chain ID to big.Int
 				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
@@ -92,7 +93,10 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"insufficient balance",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(1))
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(1), nil)
 
 				// parse context chain ID to big.Int
 				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
@@ -107,7 +111,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"tx encoding failed",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
 			false,
 		},
@@ -121,7 +125,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"VerifySig failed",
 			func() {
-				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
 			false,
 		},
@@ -155,7 +159,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 	)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
 
 	testCases := []struct {
 		msg      string
@@ -174,6 +178,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"invalid state transition",
 			func() {
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 			},
 			false,
@@ -264,7 +269,7 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 func (suite *EvmTestSuite) TestQueryTxLogs() {
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
@@ -554,38 +559,78 @@ func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 }
 
 func (suite *EvmTestSuite) TestRefundGas() {
-
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000)))
 
-	priv, err := ethsecp256k1.GenerateKey()
-	suite.Require().NoError(err, "failed to create key")
-	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
+	var tx types.MsgEthereumTx
 
-	gasLimit := uint64(100000)
-	gasPrice := big.NewInt(10000)
-	userBalance := big.NewInt(10000000000)
-	sendValue := big.NewInt(1000000000)
+	gasLimit := uint64(10000000)
+	gasPrice := big.NewInt(1)
+	userBalance := big.NewInt(100)
 
-	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), userBalance)
+	testCases := []struct {
+		msg      string
+		malleate func()
+		consumed *big.Int
+	}{
+		{
+			"Refund on successful transaction",
+			func() {
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, userBalance)
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
-	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, sendValue, gasLimit, gasPrice, nil)
-	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
-	suite.Require().NoError(err)
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), gasLimit, gasPrice, nil)
 
-	result, err := suite.handler(suite.ctx, tx)
-	suite.Require().NoError(err)
-	suite.Require().NotNil(result)
+				// parse context chain ID to big.Int
+				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
+				suite.Require().NoError(err)
 
-	gasRemaining := big.NewInt(1).SetUint64(gasLimit - suite.ctx.GasMeter().GasConsumed())
-	gasRefund := big.NewInt(1).Mul(gasPrice, gasRemaining)
+				// sign transaction
+				err = tx.Sign(chainID, privkey.ToECDSA())
+				suite.Require().NoError(err)
+			},
+			big.NewInt(0),
+		},
+		{
+			"Refund on failure of transactionDB execution",
+			func() {
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, userBalance)
+				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
-	suite.app.EvmKeeper.UpdateAccounts(suite.ctx)
+				bytecode := common.FromHex("0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424")
+				tx = types.NewMsgEthereumTx(0, nil, big.NewInt(100), gasLimit, gasPrice, bytecode)
 
-	exceptBalanceAfter := big.NewInt(1).Sub(userBalance, sendValue)
-	actualBalanceAfter := suite.app.EvmKeeper.GetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub))
+				// parse context chain ID to big.Int
+				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
+				suite.Require().NoError(err)
 
-	suite.Require().Equal(gasRefund, big.NewInt(1).Sub(actualBalanceAfter, exceptBalanceAfter))
+				err = tx.Sign(chainID, privkey.ToECDSA())
+				suite.Require().NoError(err)
+			},
+			big.NewInt(0),
+		},
+	}
 
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			suite.SetupTest() // reset
+			//nolint
+			tc.malleate()
+
+			suite.handler(suite.ctx, tx)
+
+			gasLeft := big.NewInt(1).SetUint64(gasLimit - suite.ctx.GasMeter().GasConsumed())
+			gasRefund := big.NewInt(1).Mul(gasPrice, gasLeft)
+
+			suite.app.EvmKeeper.UpdateAccounts(suite.ctx)
+
+			balanceAfterHandler := big.NewInt(1).Sub(userBalance, tc.consumed)
+			balanceAfterRefund := suite.app.EvmKeeper.GetBalance(suite.ctx, sender)
+
+			suite.Require().Equal(gasRefund, big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
+		})
+	}
 }

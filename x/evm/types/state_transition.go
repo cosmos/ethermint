@@ -32,6 +32,7 @@ type StateTransition struct {
 	Simulate bool // i.e CheckTx execution
 
 	CoinDenom string
+	GasReturn uint64
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -40,7 +41,6 @@ type GasInfo struct {
 	GasLimit    uint64
 	GasConsumed uint64
 	GasRefunded uint64
-	GasRefund   uint64
 }
 
 // ExecutionResult represents what's returned from a transition
@@ -194,6 +194,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	gasConsumed := gasLimit - leftOverGas
 
+	gasReturn := gasConsumed / 2
+	if gasReturn > csdb.refund {
+		gasReturn = csdb.refund
+	}
+	st.GasReturn = gasReturn
+
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
@@ -220,8 +226,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
-
-	gasRefund := csdb.refund
 
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
@@ -262,7 +266,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,
 			GasRefunded: leftOverGas,
-			GasRefund:   gasRefund,
 		},
 	}
 
@@ -273,18 +276,17 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
+
 }
 
-func (st StateTransition) RefundGas(ctx sdk.Context, gasInfo GasInfo) error {
+func (st StateTransition) RefundGas(ctx sdk.Context) error {
 
-	gasRefund := gasInfo.GasConsumed / 2
-	if gasRefund > gasInfo.GasRefund {
-		gasRefund = gasInfo.GasRefund
+	gasRemaining := st.GasLimit - ctx.GasMeter().GasConsumed() + st.GasReturn
+	feeReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRemaining))
+
+	if feeReturn.Cmp(big.NewInt(0)) == 0 {
+		return nil
 	}
-
-	gasRemaining := st.GasLimit - ctx.GasMeter().GasConsumed() + gasRefund
-
-	gasReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRemaining))
 
 	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
 	if err != nil {
@@ -295,7 +297,7 @@ func (st StateTransition) RefundGas(ctx sdk.Context, gasInfo GasInfo) error {
 		ctx.WithGasMeter(sdk.NewInfiniteGasMeter()),
 		types.FeeCollectorName,
 		senderAddress,
-		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(gasReturn))),
+		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(feeReturn))),
 	); err != nil {
 		return err
 	}

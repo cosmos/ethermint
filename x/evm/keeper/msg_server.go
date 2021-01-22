@@ -46,6 +46,7 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
 		CoinDenom:    k.GetParams(ctx).EvmDenom,
+		GasReturn:    uint64(0),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -60,11 +61,23 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 
 	config, found := k.GetChainConfig(ctx)
 	if !found {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, types.ErrChainConfigNotFound
 	}
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, err
 	}
 
@@ -74,11 +87,12 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-		if err != nil {
-			panic(err)
+
+		refundErr := st.RefundGas(ctx)
+		if refundErr != nil {
+			panic(refundErr)
 		}
 
-		err = st.RefundGas(ctx, executionResult.GasInfo)
 		if err != nil {
 			panic(err)
 		}
