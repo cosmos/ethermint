@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
