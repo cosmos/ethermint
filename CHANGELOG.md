@@ -44,6 +44,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Bug Fixes
 
+* (api) [\#721](https://github.com/cosmos/ethermint/issues/721) Fix block hash generated in rpc response when use `eth.getBlock`.
 * (evm) [\#687](https://github.com/cosmos/ethermint/issues/687) Fix nonce check to explicitly check for the correct nonce, rather than a simple 'greater than' comparison. 
 * (api) [\#687](https://github.com/cosmos/ethermint/issues/687) Returns error for a transaction with an incorrect nonce. 
 * (evm) [\#674](https://github.com/cosmos/ethermint/issues/674) Reset all cache after account data has been committed in `EndBlock` to make sure every node state consistent.
