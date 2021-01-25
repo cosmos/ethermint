@@ -43,7 +43,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (evm) [\#670](https://github.com/cosmos/ethermint/pull/670) Migrate types to the ones defined by the protobuf messages, which are required for the stargate release.
 
 ### Bug Fixes
-
+* (evm) [\#125](https://github.com/cosmos/ethermint/issues/125) Fix to support refund of unused gas.
 * (evm) [\#687](https://github.com/cosmos/ethermint/issues/687) Fix nonce check to explicitly check for the correct nonce, rather than a simple 'greater than' comparison. 
 * (api) [\#687](https://github.com/cosmos/ethermint/issues/687) Returns error for a transaction with an incorrect nonce. 
 * (evm) [\#674](https://github.com/cosmos/ethermint/issues/674) Reset all cache after account data has been committed in `EndBlock` to make sure every node state consistent.
