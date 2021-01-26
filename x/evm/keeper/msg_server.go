@@ -55,6 +55,7 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 			if refundErr != nil {
 				panic(refundErr)
 			}
+			st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).UpdateAccounts()
 		}
 	}()
 
