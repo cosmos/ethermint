@@ -254,9 +254,8 @@ func GetBlockCumulativeGas(clientCtx client.Context, block *tmtypes.Block, idx i
 		switch tx := txi.(type) {
 		case *evmtypes.MsgEthereumTx:
 			gasUsed += tx.GetGas()
-			// case authtypes.:
-			// 	gasUsed += tx.GetGas()
-
+		case sdk.FeeTx:
+			gasUsed += tx.GetGas()
 		}
 	}
 	return gasUsed

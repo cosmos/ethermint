@@ -228,18 +228,6 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, txResponse.TxLogs.EthLogs())
-
-	// query tx logs
-	// path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
-	// res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
-	// suite.Require().NoError(err, "failed to query txLogs")
-
-	// var txLogs types.QueryETHLogs
-	// suite.codec.MustUnmarshalJSON(res, &txLogs)
-
-	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
-	// txResponse.TxLogs.Logs[0].Data = []byte{}
-	// suite.Require().Equal(txLogs.Logs[0], txResponse.TxLogs.Logs[0])
 }
 
 func (suite *EvmTestSuite) TestDeployAndCallContract() {

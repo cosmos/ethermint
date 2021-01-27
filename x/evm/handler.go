@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -14,7 +15,7 @@ import (
 )
 
 // NewHandler returns a handler for Ethermint type messages.
-func NewHandler(k Keeper) sdk.Handler {
+func NewHandler(k keeper.Keeper) sdk.Handler {
 	defer telemetry.MeasureSince(time.Now(), "evm", "state_transition")
 
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
@@ -54,6 +55,10 @@ func NewHandler(k Keeper) sdk.Handler {
 		case *types.MsgEthereumTx:
 			// execute state transition
 			res, err := k.EthereumTx(sdk.WrapSDKContext(ctx), msg)
+			if err != nil {
+				return nil, err
+			}
+
 			result, err := sdk.WrapServiceResult(ctx, res, err)
 			if err != nil {
 				return nil, err
@@ -79,7 +84,7 @@ func NewHandler(k Keeper) sdk.Handler {
 			return result, nil
 
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", types.ModuleName, msg)
 		}
 	}
 }

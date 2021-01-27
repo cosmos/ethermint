@@ -529,9 +529,13 @@ func (api *PublicEthereumAPI) doCall(
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		height = blockNum.Int64()
 	}
-	// Set sender address or use a default if none specified
-	var addr common.Address
 
+	var (
+		addr common.Address
+		err  error
+	)
+
+	// Set sender address or use a default if none specified
 	if args.From == nil {
 		addrs, err := api.Accounts()
 		if err == nil && len(addrs) > 0 {
@@ -570,15 +574,16 @@ func (api *PublicEthereumAPI) doCall(
 		data = []byte(*args.Data)
 	}
 
+	var accNum, seq uint64
+
 	// Set destination address for call
 	var fromAddr sdk.AccAddress
 	if args.From != nil {
 		fromAddr = sdk.AccAddress(args.From.Bytes())
-	}
-
-	accNum, seq, err := api.clientCtx.AccountRetriever.GetAccountNumberSequence(api.clientCtx, fromAddr)
-	if err != nil {
-		return nil, err
+		accNum, seq, err = api.clientCtx.AccountRetriever.GetAccountNumberSequence(api.clientCtx, fromAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var msgs []sdk.Msg

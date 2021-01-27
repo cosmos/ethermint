@@ -55,9 +55,6 @@ func NewAnteHandler(
 				authante.NewRejectExtensionOptionsDecorator(),
 				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
-				// TODO: add timeout for MsgEthereumTx
-				// authante.TxTimeoutHeightDecorator{},
-				// authante.NewValidateMemoDecorator(ak),
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak, bankKeeper, evmKeeper),
 				NewNonceVerificationDecorator(ak),
@@ -102,7 +99,7 @@ func DefaultSigVerificationGasConsumer(
 	switch pubkey := pubkey.(type) {
 	case *ed25519.PubKey:
 		meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: ed25519")
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "ED25519 public keys are unsupported")
+		return nil
 
 	case *secp256k1.PubKey:
 		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: secp256k1")
@@ -123,7 +120,6 @@ func DefaultSigVerificationGasConsumer(
 			return err
 		}
 		return nil
-
 	default:
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
 	}

@@ -21,7 +21,7 @@ func InitGenesis(
 	k keeper.Keeper,
 	accountKeeper types.AccountKeeper, // nolint: interfacer
 	bankKeeper types.BankKeeper,
-	data GenesisState,
+	data types.GenesisState,
 ) []abci.ValidatorUpdate {
 	k.SetParams(ctx, data.Params)
 	evmDenom := data.Params.EvmDenom
