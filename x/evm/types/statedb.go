@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"math/big"
 	"sort"
 	"sync"
@@ -45,6 +46,7 @@ type CommitStateDB struct {
 	storeKey      sdk.StoreKey
 	paramSpace    params.Subspace
 	accountKeeper AccountKeeper
+	bankKeeper    bank.Keeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -90,13 +92,14 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, bk bank.Keeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
 		paramSpace:           paramSpace,
 		accountKeeper:        ak,
+		bankKeeper:           bk,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -566,6 +569,11 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewIntFromBigInt(so.Balance())}
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
+	}
+
+	//checking and reject tx if address in blacklist
+	if csdb.bankKeeper.BlacklistedAddr(so.account.GetAddress()) {
+		return fmt.Errorf("invalid address %s", so.account.GetAddress().String())
 	}
 
 	coins := so.account.GetCoins()
