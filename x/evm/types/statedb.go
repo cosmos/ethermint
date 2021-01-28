@@ -2,17 +2,15 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	"math/big"
 	"sort"
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
-
 	ethermint "github.com/cosmos/ethermint/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
