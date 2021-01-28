@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"math/big"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -43,7 +44,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, bk bank.Keeper,
 ) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -55,7 +56,7 @@ func NewKeeper(
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, bk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
