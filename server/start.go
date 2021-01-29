@@ -19,6 +19,7 @@ import (
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/rpc/client/local"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -76,6 +77,21 @@ which accepts a path for the resulting pprof file.
 			serverCtx := sdkserver.GetServerContextFromCmd(cmd)
 			clientCtx := client.GetClientContextFromCmd(cmd)
 
+			// validate genesis file before running start
+			var genesisf string
+
+			clientCtx.ChainID, _ = cmd.Flags().GetString(flags.FlagChainID)
+			if clientCtx.ChainID == "" {
+				genesisf = serverCtx.Config.GenesisFile()
+				genDoc, err := tmtypes.GenesisDocFromFile(genesisf)
+				if err != nil {
+					return fmt.Errorf("%s - chainID could not be found",
+						err.Error(),
+					)
+				}
+				clientCtx.ChainID = genDoc.ChainID
+			}
+
 			withTM, _ := cmd.Flags().GetBool(flagWithTendermint)
 			if !withTM {
 				serverCtx.Logger.Info("starting ABCI without Tendermint")
@@ -119,6 +135,8 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Uint64(sdkserver.FlagStateSyncSnapshotInterval, 0, "State sync snapshot interval")
 	cmd.Flags().Uint32(sdkserver.FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
+
+	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
