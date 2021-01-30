@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/ethermint/rpc/backend"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	ethermint "github.com/cosmos/ethermint/types"
+	"github.com/cosmos/ethermint/x/evm/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -594,12 +595,15 @@ func (api *PublicEthereumAPI) doCall(
 	}
 	msgs = append(msgs, msg)
 
+	feeAmount := big.NewInt(0)
+
 	// convert the pending transactions into ethermint msgs
 	if blockNum == rpctypes.PendingBlockNumber {
-		pendingMsgs, err := api.pendingMsgs()
+		pendingMsgs, fee, err := api.pendingMsgs()
 		if err != nil {
 			return nil, err
 		}
+		feeAmount = new(big.Int).Add(feeAmount, fee)
 		msgs = append(msgs, pendingMsgs...)
 	}
 
@@ -608,7 +612,17 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, fmt.Errorf("account with address %s does not exist in keyring", addr.String())
 	}
 
-	txBytes, err := rpctypes.BuildEthereumTx(api.clientCtx, msg, accNum, seq, privKey)
+	// NOTE: we query the EVM denomination to allow other chains to use their custom denomination as
+	// the fee token
+	paramsRes, err := api.queryClient.Params(api.ctx, &types.QueryParamsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	// create the fee coins with the amount equal to the sum of all msg fees
+	fees := sdk.NewCoins(sdk.NewCoin(paramsRes.Params.EvmDenom, sdk.NewIntFromBigInt(feeAmount)))
+
+	txBytes, err := rpctypes.BuildEthereumTx(api.clientCtx, msgs, accNum, seq, gas, fees, privKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1044,14 +1058,16 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 }
 
 // pendingMsgs constructs an array of sdk.Msg. This method will check pending transactions and convert
-// those transactions into ethereum messages.
-func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
+// those transactions into ethereum messages. Alonside with the msgs it returns the total fees for all the
+// pending txs.
+func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, *big.Int, error) {
 	// nolint: prealloc
 	var msgs []sdk.Msg
+	feeAmount := big.NewInt(0)
 
 	pendingTxs, err := api.PendingTransactions()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, pendingTx := range pendingTxs {
@@ -1060,7 +1076,7 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 
 		pendingGas, err := hexutil.DecodeUint64(pendingTx.Gas.String())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		pendingValue := pendingTx.Value.ToInt()
@@ -1080,9 +1096,10 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 			pendingData,
 		)
 
+		feeAmount = new(big.Int).Add(feeAmount, msg.Fee())
 		msgs = append(msgs, msg)
 	}
-	return msgs, nil
+	return msgs, feeAmount, nil
 }
 
 // accountNonce returns looks up the transaction nonce count for a given address. If the pending boolean
