@@ -547,7 +547,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// Set default gas & gas price if none were set
-	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
+	// TODO: Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
 	gas := uint64(ethermint.DefaultRPCGasLimit)
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
@@ -1131,15 +1131,17 @@ func (api *PublicEthereumAPI) accountNonce(
 		return 0, err
 	}
 
+	if len(pendingTxs) == 0 {
+		return nonce, nil
+	}
+
 	// add the uncommitted txs to the nonce counter
-	if len(pendingTxs) != 0 {
-		for i := range pendingTxs {
-			if pendingTxs[i] == nil {
-				continue
-			}
-			if pendingTxs[i].From == address {
-				nonce++
-			}
+	for i := range pendingTxs {
+		if pendingTxs[i] == nil {
+			continue
+		}
+		if pendingTxs[i].From == address {
+			nonce++
 		}
 	}
 

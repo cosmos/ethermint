@@ -46,7 +46,6 @@ type EthermintBackend struct {
 	clientCtx   client.Context
 	queryClient *rpctypes.QueryClient // gRPC query client
 	logger      log.Logger
-	gasLimit    int64
 }
 
 // New creates a new EthermintBackend instance
@@ -56,7 +55,6 @@ func New(clientCtx client.Context) *EthermintBackend {
 		clientCtx:   clientCtx,
 		queryClient: rpctypes.NewQueryClient(clientCtx),
 		logger:      log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		gasLimit:    int64(^uint32(0)),
 	}
 }
 
