@@ -7,8 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	"github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 
+	"github.com/cosmos/ethermint/app"
 	ethermintd "github.com/cosmos/ethermint/cmd/ethermintd"
 )
 
@@ -21,6 +23,6 @@ func TestInitCmd(t *testing.T) {
 		fmt.Sprintf("--%s=%s", flags.FlagChainID, "ethermint-1"),
 	})
 
-	err := ethermintd.Execute(rootCmd)
+	err := svrcmd.Execute(rootCmd, app.DefaultNodeHome)
 	require.NoError(t, err)
 }
