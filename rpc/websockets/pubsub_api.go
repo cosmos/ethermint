@@ -80,7 +80,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 }
 
 // unsubscribeAll unsubscribes all the current subscriptions
-func (api *PubSubAPI) unsubscribeAll() bool {
+func (api *PubSubAPI) unsubscribeAll() bool { // nolint: unused
 	api.filtersMu.Lock()
 	defer api.filtersMu.Unlock()
 

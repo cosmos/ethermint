@@ -26,6 +26,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	sdkconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	"github.com/cosmos/ethermint/rpc"
@@ -36,7 +37,7 @@ import (
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
-func StartCmd(appCreator AppCreator, defaultNodeHome string) *cobra.Command {
+func StartCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -67,7 +68,9 @@ which accepts a path for the resulting pprof file.
 
 			// Bind flags to the Context's Viper so the app construction can set
 			// options accordingly.
-			serverCtx.Viper.BindPFlags(cmd.Flags())
+			if err := serverCtx.Viper.BindPFlags(cmd.Flags()); err != nil {
+				return err
+			}
 
 			_, err := sdkserver.GetPruningOptionsFromFlags(serverCtx.Viper)
 			return err
@@ -125,7 +128,7 @@ which accepts a path for the resulting pprof file.
 	return cmd
 }
 
-func startStandAlone(ctx *sdkserver.Context, appCreator AppCreator) error {
+func startStandAlone(ctx *sdkserver.Context, appCreator servertypes.AppCreator) error {
 	addr := ctx.Viper.GetString(flagAddress)
 	transport := ctx.Viper.GetString(flagTransport)
 	home := ctx.Viper.GetString(flags.FlagHome)
@@ -166,7 +169,7 @@ func startStandAlone(ctx *sdkserver.Context, appCreator AppCreator) error {
 }
 
 // legacyAminoCdc is used for the legacy REST API
-func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator AppCreator) error {
+func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator servertypes.AppCreator) error {
 	cfg := ctx.Config
 	home := cfg.RootDir
 	var cpuProfileCleanup func()

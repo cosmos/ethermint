@@ -86,7 +86,6 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 
 	"github.com/cosmos/ethermint/app/ante"
-	"github.com/cosmos/ethermint/server"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/cosmos/ethermint/x/evm"
 
@@ -158,8 +157,8 @@ var (
 )
 
 var (
-	_ simapp.App         = (*EthermintApp)(nil)
-	_ server.Application = (*EthermintApp)(nil)
+	_ simapp.App              = (*EthermintApp)(nil)
+	_ servertypes.Application = (*EthermintApp)(nil)
 )
 
 // EthermintApp implements an extended ABCI application. It is an application

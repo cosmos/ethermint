@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/types"
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 
@@ -46,8 +47,12 @@ func InterceptConfigsPreRunHandler(cmd *cobra.Command) error {
 	basename := path.Base(executableName)
 
 	// Configure the viper instance
-	serverCtx.Viper.BindPFlags(cmd.Flags())
-	serverCtx.Viper.BindPFlags(cmd.PersistentFlags())
+	if err := serverCtx.Viper.BindPFlags(cmd.Flags()); err != nil {
+		return err
+	}
+	if err := serverCtx.Viper.BindPFlags(cmd.PersistentFlags()); err != nil {
+		return err
+	}
 	serverCtx.Viper.SetEnvPrefix(basename)
 	serverCtx.Viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	serverCtx.Viper.AutomaticEnv()
@@ -150,7 +155,7 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 // AddCommands adds the server commands
 func AddCommands(
 	rootCmd *cobra.Command, defaultNodeHome string,
-	appCreator AppCreator, appExport types.AppExporter, addStartFlags types.ModuleInitFlags,
+	appCreator servertypes.AppCreator, appExport types.AppExporter, addStartFlags types.ModuleInitFlags,
 ) {
 	tendermintCmd := &cobra.Command{
 		Use:   "tendermint",
