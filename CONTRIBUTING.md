@@ -37,18 +37,18 @@ a smooth workflow for all contributors, the following general procedure for cont
        community of your intentions to begin work. Ideally, wait for confirmation that no one has started it. However,
        if you are eager and do not get a prompt response, feel free to dive on in!
     4. Follow standard Github best practices:
-        1. fork the repo
-        2. branch from the HEAD of `development`(For core developers working within the cosmos-sdk repo, to ensure a
+        1. Fork the repo
+        2. Branch from the HEAD of `development`(For core developers working within the cosmos-sdk repo, to ensure a
            clear ownership of branches, branches must be named with the convention `{moniker}/{issue#}-branch-name`).
-        3. make commits
-        4. submit a PR to `development`
+        3. Make commits
+        4. Submit a PR to `development`
     5. Be sure to submit the PR in `Draft` mode. Submit your PR early, even if it's incomplete as this indicates to the
        community you're working on something and allows them to provide comments early in the development process.
     6. When the code is complete it can be marked `Ready for Review`.
     7. Be sure to include a relevant change log entry in the `Unreleased` section of `CHANGELOG.md` (see file for log
        format).
     8. Please make sure to run `make format` before every commit - the easiest way to do this is having your editor run
-       it for you upon saving a file. Additionally please ensure that your code is lint compliant by running `make lint`
+       it for you upon saving a file. Additionally, please ensure that your code is lint compliant by running `make lint`
        . There are CI tests built into the Ethermint repository and all PR’s will require that these tests pass before
        they are able to be merged.
 
