@@ -93,10 +93,10 @@ Please **NO DOT** make Pull Requests from `development`.
 
 ## <span id="dependencies">Dependencies</span>
 
-We use [Go 1.15](https://github.com/golang/go/wiki/Modules) Modules to manage dependency versions.   
+We use [Go 1.15](https://github.com/golang/go/wiki/Modules) Modules to manage dependency versions.
 
-The master branch of every Cosmos repository should just build with `go get`, which means they should be kept up-to-date with their
-dependencies, so we can get away with telling people they can just `go get` our software.
+The master branch of every Cosmos repository should just build with `go get`, which means they should be kept up-to-date
+with their dependencies, so we can get away with telling people they can just `go get` our software.
 
 Since some dependencies are not under our control, a third party may break our build, in which case we can fall back
 on `go mod tidy -v`.
@@ -193,27 +193,27 @@ All PRs require two Reviews before merge. When reviewing PRs, please use the fol
 
 ### <span id="pull_merge_procedure">Pull Merge Procedure</span>
 
-* Ensure pull branch is rebased on `development`.
-* Run `make test` to ensure that all tests pass.
-* Squash merge pull request.
+1. Ensure pull branch is rebased on `development`.
+2. Run `make test` to ensure that all tests pass.
+3. Squash merge pull request.
 
 ### <span id="release_procedure">Release Procedure</span>
 
-* Start on `development`.
-* Create the release candidate branch `rc/v*` (going forward known as `RC`) and ensure it's protected against pushing
-  from anyone except the release manager/coordinator. No PRs targeting this branch should be merged unless exceptional
-  circumstances arise.
-* On the `RC` branch, prepare a new version section in the `CHANGELOG.md`. All links must be link-ified:   
-  `$ python ./scripts/linkify_changelog.py CHANGELOG.md`.   
-  Copy the entries into a `RELEASE_CHANGELOG.md`. This is needed so the bot knows which entries to add to the release
-  page on github.
-* Kick off a large round of simulation testing (e.g. 400 seeds for 2k blocks).
-* If errors are found during the simulation testing, commit the fixes to `development` and create a new `RC` branch (
-  making sure to increment the `rcN`).
-* After simulation has successfully completed, create the release branch (`release/vX.XX.X`) from the `RC` branch.
-* Create a PR to `development` to incorporate the `CHANGELOG.md` updates.
-* Tag the release (use `git tag -a`) and create a release in Github.
-* Delete the `RC` branches.
+1. Start on `development`.
+2. Create the release candidate branch `rc/v*` (going forward known as `RC`) and ensure it's protected against pushing
+   from anyone except the release manager/coordinator. No PRs targeting this branch should be merged unless exceptional
+   circumstances arise.
+3. On the `RC` branch, prepare a new version section in the `CHANGELOG.md`. All links must be link-ified:   
+   `$ python ./scripts/linkify_changelog.py CHANGELOG.md`.   
+   Copy the entries into a `RELEASE_CHANGELOG.md`. This is needed so the bot knows which entries to add to the release
+   page on github.
+4. Kick off a large round of simulation testing (e.g. 400 seeds for 2k blocks).
+5. If errors are found during the simulation testing, commit the fixes to `development` and create a new `RC` branch (
+   making sure to increment the `rcN`).
+6. After simulation has successfully completed, create the release branch (`release/vX.XX.X`) from the `RC` branch.
+7. Create a PR to `development` to incorporate the `CHANGELOG.md` updates.
+8. Tag the release (use `git tag -a`) and create a release in Github.
+9. Delete the `RC` branches.
 
 **Note**: ChainSafe’s Ethermint team currently cuts releases on a need to have basis. We will announce a more
 standardized release schedule as we near production readiness.
