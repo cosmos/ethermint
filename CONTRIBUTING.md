@@ -1,7 +1,5 @@
 # Ethermint Contributor Guidelines
 
-*---
-
 * [General Procedure](#general_procedure)
 * [Architecture Decision Records (ADR)](#adr)
 * [Pull Requests](#pull_requests)
@@ -19,7 +17,6 @@
 
 ## <span id="general_procedure">General Procedure</span>
 
----
 Thank you for considering making contributions to Ethermint and related repositories!
 
 Ethermint uses [Tendermint’s coding repo](https://github.com/tendermint/coding) for overall information on repository
@@ -64,7 +61,6 @@ some [good first issues](https://github.com/cosmos/ethermint/issues?q=label%3A%2
 
 ## <span id="adr">Architecture Decision Records (ADR)</span>
 
----
 When proposing an architecture decision for the SDK, please create
 an [ADR](https://github.com/cosmos/ethermint/blob/development/docs/architecture/README.md) so further discussions can be
 made. We are following this process so all involved parties are in agreement before any party begins coding the proposed
@@ -73,14 +69,12 @@ to [Tendermint ADRs](https://github.com/tendermint/tendermint/tree/master/docs/a
 
 ## <span id="pull_requests">Pull Requests</span>
 
----
 To accommodate the review process, we suggest that PRs are categorically broken up. Ideally each PR addresses only a
 single issue. Additionally, as much as possible code refactoring and cleanup should be submitted as separate PRs from
 bug fixes/feature-additions.
 
 ## <span id="reviewing_prs">Process for reviewing PRs</span>
 
----
 All PRs require two Reviews before merge. When reviewing PRs, please use the following review explanations:
 
 1. `LGTM` without an explicit approval means that the changes look good, but you haven't pulled down the code, run tests
@@ -97,14 +91,12 @@ All PRs require two Reviews before merge. When reviewing PRs, please use the fol
 
 ## <span id="updating_doc">Updating Documentation</span>
 
----
 If you open a PR on the Ethermint repo, it is mandatory to update the relevant documentation in `/docs`. Please refer to
 the docs subdirectory and make changes accordingly. Prior to approval, the Code owners/approvers may request some
 updates to specific docs.
 
 ## <span id="forking">Forking</span>
 
----
 Please note that Go requires code to live under absolute paths, which complicates forking. While my fork lives
 at `https://github.com/chainsafe/cosmos-sdk`, the code should never exist
 at `$GOPATH/src/github.com/chainsafe/cosmos-sdk`. Instead, we use `git remote` to add the fork as a new remote for the
@@ -129,7 +121,6 @@ Please **NO DOT** make Pull Requests from `development`.
 
 ## <span id="dependencies">Dependencies</span>
 
----
 We use [Go 1.15](https://github.com/golang/go/wiki/Modules) Modules to manage dependency versions. The master branch of
 every Cosmos repository should just build with `go get`, which means they should be kept up-to-date with their
 dependencies, so we can get away with telling people they can just `go get` our software.
@@ -139,7 +130,6 @@ on `go mod tidy -v`.
 
 ## <span id="protobuf">Protobuf</span>
 
----
 We use [Protocol Buffers](https://developers.google.com/protocol-buffers) along
 with [gogoproto](https://github.com/gogo/protobuf) to generate code for use in Cosmos-SDK.
 
@@ -173,12 +163,10 @@ For example, in vscode your `.vscode/settings.json` should look like:
 
 ## <span id="testing">Testing</span>
 
----
 Ethermint uses [GitHub Actions](https://github.com/features/actions) for automated testing.
 
 ## <span id="braching_model_and_release">Branching Model and Release</span>
 
----
 User-facing repos should adhere to the [trunk based development branching model](https://trunkbaseddevelopment.com/).
 
 Libraries need not follow the model strictly, but would be wise to.
@@ -187,7 +175,6 @@ Ethermint utilizes [semantic versioning](https://semver.org/).
 
 ## <span id="pr_targeting">PR Targeting</span>
 
----
 Ensure that you base and target your PR on the `development` branch.
 
 All feature additions should be targeted against `development`. Bug fixes for an outstanding release candidate should be
@@ -195,18 +182,15 @@ targeted against the release candidate branch.
 
 ## <span id="dev_procedure">Development Procedure</span>
 
----
-
 1. The latest state of development is on `development`.
 2. `development` must never
    fail `make lint, make test, make test-race, make test-rpc, make test-solidity, make test-import`
 3. No `--force` onto `development` (except when reverting a broken commit, which should seldom happen).
-4. Create your feature branch from `development` either on `github.com/cosmos/ethermint`, or your fork (using `git remote add origin`).
+4. Create your feature branch from `development` either on `github.com/cosmos/ethermint`, or your fork (
+   using `git remote add origin`).
 5. Before submitting a pull request, begin `git rebase` on top of `development`.
 
 ## <span id="pull_merge_procedure">Pull Merge Procedure</span>
-
----
 
 * Ensure pull branch is rebased on `development`.
 * Run `make test` to ensure that all tests pass.
@@ -214,19 +198,17 @@ targeted against the release candidate branch.
 
 ## <span id="release_procedure">Release Procedure</span>
 
----
-
 * Start on `development`.
-* Create the release candidate branch `rc/v*` (going forward known as `RC`) and ensure it's protected against pushing from
-  anyone except the release manager/coordinator. No PRs targeting this branch should be merged unless exceptional
+* Create the release candidate branch `rc/v*` (going forward known as `RC`) and ensure it's protected against pushing
+  from anyone except the release manager/coordinator. No PRs targeting this branch should be merged unless exceptional
   circumstances arise.
-* On the `RC` branch, prepare a new version section in the `CHANGELOG.md`. All links must be
-  link-ified:   
+* On the `RC` branch, prepare a new version section in the `CHANGELOG.md`. All links must be link-ified:   
   `$ python ./scripts/linkify_changelog.py CHANGELOG.md`.   
-  Copy the entries into a `RELEASE_CHANGELOG.md`.
-  This is needed so the bot knows which entries to add to the release page on github.
+  Copy the entries into a `RELEASE_CHANGELOG.md`. This is needed so the bot knows which entries to add to the release
+  page on github.
 * Kick off a large round of simulation testing (e.g. 400 seeds for 2k blocks).
-* If errors are found during the simulation testing, commit the fixes to `development` and create a new `RC` branch (making sure to increment the `rcN`).
+* If errors are found during the simulation testing, commit the fixes to `development` and create a new `RC` branch (
+  making sure to increment the `rcN`).
 * After simulation has successfully completed, create the release branch (`release/vX.XX.X`) from the `RC` branch.
 * Create a PR to `development` to incorporate the `CHANGELOG.md` updates.
 * Tag the release (use `git tag -a`) and create a release in Github.
