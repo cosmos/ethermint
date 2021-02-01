@@ -61,7 +61,7 @@ some [good first issues](https://github.com/cosmos/ethermint/issues?q=label%3A%2
 
 ## <span id="adr">Architecture Decision Records (ADR)</span>
 
-When proposing an architecture decision for the SDK, please create
+When proposing an architecture decision for Ethermint, please create
 an [ADR](https://github.com/cosmos/ethermint/blob/development/docs/architecture/README.md) so further discussions can be
 made. We are following this process so all involved parties are in agreement before any party begins coding the proposed
 implementation. If you would like to see some examples of how these are written refer
@@ -104,7 +104,7 @@ on `go mod tidy -v`.
 ## <span id="protobuf">Protobuf</span>
 
 We use [Protocol Buffers](https://developers.google.com/protocol-buffers) along
-with [gogoproto](https://github.com/gogo/protobuf) to generate code for use in Cosmos-SDK.
+with [gogoproto](https://github.com/gogo/protobuf) to generate code for use in Ethermint.
 
 For deterministic behavior around Protobuf tooling, everything is containerized using Docker. Make sure to have Docker
 installed on your machine, or head to [Docker's website](https://docs.docker.com/get-docker/) to install it.
