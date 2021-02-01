@@ -204,7 +204,7 @@ All PRs require two Reviews before merge. When reviewing PRs, please use the fol
    from anyone except the release manager/coordinator. No PRs targeting this branch should be merged unless exceptional
    circumstances arise.
 3. On the `RC` branch, prepare a new version section in the `CHANGELOG.md`. All links must be link-ified:   
-   `$ python ./scripts/linkify_changelog.py CHANGELOG.md`.   
+   `$ python ./scripts/linkify_changelog.py CHANGELOG.md`  
    Copy the entries into a `RELEASE_CHANGELOG.md`. This is needed so the bot knows which entries to add to the release
    page on github.
 4. Kick off a large round of simulation testing (e.g. 400 seeds for 2k blocks).
