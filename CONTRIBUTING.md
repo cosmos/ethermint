@@ -1,6 +1,25 @@
 # Ethermint Contributor Guidelines
 
 ***
+
+* [General Procedure](#general_procedure)
+* [Architecture Decision Records (ADR)](#adr)
+* [Pull Requests](#pull_requests)
+* [Process for reviewing PRs](#reviewing_prs)
+* [Updating Documentation](#updating_doc)
+* [Forking](#forking)
+* [Dependencies](#dependencies)
+* [Protobuf](#protobuf)
+* [Testing](#testing)
+* [Branching Model and Release](#braching_model_and_release)
+* [PR Targeting](#pr_targeting)
+* [Development Procedure](#dev_procedure)
+* [Pull Merge Procedure](#pull_merge_procedure)
+* [Release Procedure](#release_procedure)
+
+## <span id="general_procedure">General Procedure</span>
+
+***
 Thank you for considering making contributions to Ethermint and related repositories!
 
 Ethermint uses [Tendermint’s coding repo](https://github.com/tendermint/coding) for overall information on repository
@@ -8,10 +27,6 @@ workflow and standards.
 
 Contributing to this repo can mean many things such as participating in discussion or proposing code changes. To ensure
 a smooth workflow for all contributors, the general procedure for contributing has been established.
-
-## General Procedure
-
-***
 
 1. Either [open](https://github.com/cosmos/cosmos-sdk/issues/new/choose)
    or [find](https://github.com/cosmos/cosmos-sdk/issues) an issue you have identified and would like to contribute to
@@ -47,7 +62,7 @@ taken place in a github issue, that PR runs a high likelihood of being rejected.
 Looking for a good place to start contributing? How about checking out
 some [good first issues](https://github.com/cosmos/ethermint/issues?q=label%3A%22good+first+issue%22).
 
-## Architecture Decision Records (ADR)
+## <span id="adr">Architecture Decision Records (ADR)</span>
 
 ***
 When proposing an architecture decision for the SDK, please create
@@ -56,14 +71,14 @@ made. We are following this process so all involved parties are in agreement bef
 implementation. If you would like to see some examples of how these are written refer
 to [Tendermint ADRs](https://github.com/tendermint/tendermint/tree/master/docs/architecture).
 
-## Pull Requests
+## <span id="pull_requests">Pull Requests</span>
 
 ***
 To accommodate the review process we suggest that PRs are categorically broken up. Ideally each PR addresses only a
 single issue. Additionally, as much as possible code refactoring and cleanup should be submitted as separate PRs from
 bug fixes/feature-additions.
 
-## Process for reviewing PRs
+## <span id="reviewing_prs">Process for reviewing PRs</span>
 
 ***
 All PRs require two Reviews before merge. When reviewing PRs please use the following review explanations:
@@ -80,14 +95,14 @@ All PRs require two Reviews before merge. When reviewing PRs please use the foll
     * If you approve of the PR, you are responsible for fixing any of the issues mentioned here.
 3. If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
 
-## Updating Documentation
+## <span id="updating_doc">Updating Documentation</span>
 
 ***
 If you open a PR on the Ethermint repo, it is mandatory to update the relevant documentation in `/docs`. Please refer to
 the docs subdirectory and make changes accordingly. Prior to approval, the Code owners/approvers may request some
 updates to specific docs.
 
-## Forking
+## <span id="forking">Forking</span>
 
 ***
 Please note that Go requires code to live under absolute paths, which complicates forking. While my fork lives
@@ -112,7 +127,7 @@ To pull in updates from the origin repo, run:
 
 Please **NO DOT** make Pull Requests from `development`.
 
-## Dependencies
+## <span id="dependencies">Dependencies</span>
 
 ***
 We use [Go 1.15](https://github.com/golang/go/wiki/Modules) Modules to manage dependency versions. The master branch of
@@ -122,7 +137,7 @@ dependencies, so we can get away with telling people they can just `go get` our 
 Since some dependencies are not under our control, a third party may break our build, in which case we can fall back
 on `go mod tidy -v`.
 
-## Protobuf
+## <span id="protobuf">Protobuf</span>
 
 ***
 We use [Protocol Buffers](https://developers.google.com/protocol-buffers) along
@@ -156,12 +171,12 @@ For example, in vscode your `.vscode/settings.json` should look like:
 }
 ```
 
-## Testing
+## <span id="testing">Testing</span>
 
 ***
 Ethermint uses [GitHub Actions](https://github.com/features/actions) for automated testing.
 
-## Branching Model and Release
+## <span id="braching_model_and_release">Branching Model and Release</span>
 
 ***
 User-facing repos should adhere to the trunk based development branching
@@ -171,7 +186,7 @@ Libraries need not follow the model strictly, but would be wise to.
 
 Ethermint utilizes [semantic versioning](https://semver.org/).
 
-## PR Targeting
+## <span id="pr_targeting">PR Targeting</span>
 
 ***
 Ensure that you base and target your PR on the `development` branch.
@@ -179,7 +194,7 @@ Ensure that you base and target your PR on the `development` branch.
 All feature additions should be targeted against `development`. Bug fixes for an outstanding release candidate should be
 targeted against the release candidate branch.
 
-## Development Procedure
+## <span id="dev_procedure">Development Procedure</span>
 
 ***
 
@@ -191,7 +206,7 @@ targeted against the release candidate branch.
    using `git remote add origin`).
 5. Before submitting a pull request, begin `git rebase` on top of `development`.
 
-## Pull Merge Procedure
+## <span id="pull_merge_procedure">Pull Merge Procedure</span>
 
 ***
 
@@ -199,7 +214,7 @@ targeted against the release candidate branch.
 * Run `make test` to ensure that all tests pass.
 * Squash merge pull request.
 
-## Release Procedure
+## <span id="release_procedure">Release Procedure</span>
 
 ***
 
