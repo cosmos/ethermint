@@ -23,7 +23,7 @@ Ethermint uses [Tendermint’s coding repo](https://github.com/tendermint/coding
 workflow and standards.
 
 Contributing to this repo can mean many things such as participating in discussion or proposing code changes. To ensure
-a smooth workflow for all contributors, the general procedure for contributing has been established.
+a smooth workflow for all contributors, the following general procedure for contributing has been established:
 
 1. Either [open](https://github.com/cosmos/cosmos-sdk/issues/new/choose)
    or [find](https://github.com/cosmos/cosmos-sdk/issues) an issue you have identified and would like to contribute to
