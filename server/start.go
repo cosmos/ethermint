@@ -4,21 +4,13 @@ package server
 
 import (
 	"fmt"
+	"github.com/tendermint/tendermint/rpc/client/local"
 	"os"
 	"runtime/pprof"
 	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
-
-	"github.com/tendermint/tendermint/abci/server"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	"github.com/tendermint/tendermint/node"
-	"github.com/tendermint/tendermint/p2p"
-	pvm "github.com/tendermint/tendermint/privval"
-	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/rpc/client/local"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -28,6 +20,13 @@ import (
 	servergrpc "github.com/cosmos/cosmos-sdk/server/grpc"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/tendermint/tendermint/abci/server"
+	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
+	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/p2p"
+	pvm "github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/proxy"
 
 	"github.com/cosmos/ethermint/rpc"
 	"github.com/cosmos/ethermint/server/config"
@@ -237,17 +236,18 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 	var apiSrv *api.Server
 
 	config := config.GetConfig(ctx.Viper)
+
+	genDoc, err := genDocProvider()
+	if err != nil {
+		return err
+	}
+
+	clientCtx = clientCtx. // TODO: binary_fix: info needs to be added instead of replaced in clientCtx
+		WithHomeDir(home).
+		WithChainID(genDoc.ChainID). // TODO: binary_fix: this will fix invalid ChainID issue
+		WithClient(local.New(tmNode))
+
 	if config.API.Enable {
-		genDoc, err := genDocProvider()
-		if err != nil {
-			return err
-		}
-
-		clientCtx := clientCtx.
-			WithHomeDir(home).
-			WithChainID(genDoc.ChainID).
-			WithClient(local.New(tmNode))
-
 		apiSrv = api.New(clientCtx, ctx.Logger.With("module", "api-server"))
 		app.RegisterAPIRoutes(apiSrv, config.API)
 		errCh := make(chan error)

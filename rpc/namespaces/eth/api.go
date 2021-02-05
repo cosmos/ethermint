@@ -93,7 +93,8 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 
 	keybase, err := keyring.New(
 		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
+		//viper.GetString(flags.FlagKeyringBackend), // TODO: binary_fix: viper.GetString(flags.FlagKeyringBackend) returns ""
+		"os",
 		viper.GetString(flags.FlagHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Option(),
