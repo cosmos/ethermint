@@ -403,11 +403,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	newAccount := ethermint.ProtoAccount().(*ethermint.EthAccount)
 	jsonAccount, err := so.account.MarshalJSON()
 	if err != nil {
-		return nil
+		panic(err)
 	}
 	err = newAccount.UnmarshalJSON(jsonAccount)
 	if err != nil {
-		return nil
+		panic(err)
 	}
 	newStateObj := newStateObject(db, newAccount)
 
