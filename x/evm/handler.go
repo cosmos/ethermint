@@ -124,7 +124,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	// update block bloom filter
 	if !st.Simulate {
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
 	}
 
 	// log successful execution

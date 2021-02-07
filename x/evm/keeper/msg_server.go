@@ -70,12 +70,6 @@ func (k Keeper) EthereumTx(ctx sdk.Context, msg types.MsgEthereumTx) (*sdk.Resul
 	if !st.Simulate {
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
-		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-		if err != nil {
-			panic(err)
-		}
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
