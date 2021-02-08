@@ -65,11 +65,11 @@ make build-ethermint
 arr=()
 
 init_func() {
-    "$PWD"/build/ethermintd keys add $KEY"$i" --home "$DATA_DIR$i" --no-backup
+    "$PWD"/build/ethermintd keys add $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --no-backup
     "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd add-genesis-account \
     "$("$PWD"/build/ethermintd keys show "$KEY$i" -a --home "$DATA_DIR$i")" 1000000000000000000aphoton,1000000000000000000stake \
-    --home "$DATA_DIR$i"
+    --keyring-backend test --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd gentx "$KEY$i" 1000000000000000000stake --chain-id $CHAINID --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd collect-gentxs --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd validate-genesis --home "$DATA_DIR$i"
@@ -91,7 +91,7 @@ start_func() {
     echo "starting ethermint node $i in background ..."
     "$PWD"/build/ethermintd start --pruning=nothing --rpc.unsafe \
     --p2p.laddr tcp://$IP_ADDR:$NODE_P2P_PORT"$i" --address tcp://$IP_ADDR:$NODE_PORT"$i" --rpc.laddr tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
-    --home "$DATA_DIR$i" \
+    --keyring-backend test --home "$DATA_DIR$i" \
     >"$DATA_DIR"/node"$i".log 2>&1 & disown
     
     ETHERMINT_PID=$!
