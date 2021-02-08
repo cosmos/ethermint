@@ -112,7 +112,7 @@ start_func() {
     --p2p.laddr tcp://$IP_ADDR:$NODE_P2P_PORT"$i" --address tcp://$IP_ADDR:$NODE_PORT"$i" --rpc.laddr tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --home "$DATA_DIR$i" \
     >"$DATA_DIR"/node"$i".log 2>&1 & disown
-    
+
     ETHERMINT_PID=$!
     echo "started ethermint node, pid=$ETHERMINT_PID"
     # add PID to array
@@ -125,7 +125,7 @@ start_cli_func() {
     --laddr "tcp://localhost:$RPC_PORT$i" --node tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --home "$DATA_CLI_DIR$i" --read-timeout 30 --write-timeout 30 \
     >"$DATA_CLI_DIR"/cli"$i".log 2>&1 & disown
-    
+
     ETHERMINT_CLI_PID=$!
     echo "started ethermintd node, pid=$ETHERMINT_CLI_PID"
     # add PID to array
@@ -151,21 +151,21 @@ echo "done sleeping"
 set +e
 
 if [[ -z $TEST || $TEST == "rpc" ]]; then
-    
+
     for i in $(seq 1 "$TEST_QTD"); do
         HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"
         echo "going to test ethermint node $HOST_RPC ..."
         MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
-        
+
         RPC_FAIL=$?
     done
-    
+
 fi
 
 stop_func() {
     ETHERMINT_PID=$i
     echo "shutting down node, pid=$ETHERMINT_PID ..."
-    
+
     # Shutdown ethermint node
     kill -9 "$ETHERMINT_PID"
     wait "$ETHERMINT_PID"
@@ -226,7 +226,7 @@ start_func() {
     --p2p.laddr tcp://$IP_ADDR:$NODE_P2P_PORT"$i" --address tcp://$IP_ADDR:$NODE_PORT"$i" --rpc.laddr tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --home "$DATA_DIR$i" \
     >"$DATA_DIR"/node"$i".log 2>&1 & disown
-    
+
     ETHERMINT_PID=$!
     echo "started ethermint node, pid=$ETHERMINT_PID"
     # add PID to array
@@ -239,7 +239,7 @@ start_cli_func() {
     --laddr "tcp://localhost:$RPC_PORT$i" --node tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --home "$DATA_CLI_DIR$i" --read-timeout 30 --write-timeout 30 \
     >"$DATA_CLI_DIR"/cli"$i".log 2>&1 & disown
-    
+
     ETHERMINT_CLI_PID=$!
     echo "started ethermintd node, pid=$ETHERMINT_CLI_PID"
     # add PID to array
@@ -275,16 +275,16 @@ if [[ -z $TEST || $TEST == "rpc" || $TEST == "pending" ]]; then
         else
             MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
         fi
-        
+
         RPC_FAIL=$?
     done
-    
+
 fi
 
 stop_func() {
     ETHERMINT_PID=$i
     echo "shutting down node, pid=$ETHERMINT_PID ..."
-    
+
     # Shutdown ethermint node
     kill -9 "$ETHERMINT_PID"
     wait "$ETHERMINT_PID"
