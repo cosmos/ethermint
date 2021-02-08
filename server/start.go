@@ -4,10 +4,11 @@ package server
 
 import (
 	"fmt"
-	"github.com/tendermint/tendermint/rpc/client/local"
 	"os"
 	"runtime/pprof"
 	"time"
+
+	"github.com/tendermint/tendermint/rpc/client/local"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
