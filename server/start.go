@@ -242,9 +242,9 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		return err
 	}
 
-	clientCtx = clientCtx. // TODO: binary_fix: info needs to be added instead of replaced in clientCtx
+	clientCtx = clientCtx.
 		WithHomeDir(home).
-		WithChainID(genDoc.ChainID). // TODO: binary_fix: this will fix invalid ChainID issue
+		WithChainID(genDoc.ChainID).
 		WithClient(local.New(tmNode))
 
 	if config.API.Enable {
