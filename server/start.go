@@ -122,6 +122,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Uint64(sdkserver.FlagStateSyncSnapshotInterval, 0, "State sync snapshot interval")
 	cmd.Flags().Uint32(sdkserver.FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
 
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
+
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
 	return cmd
