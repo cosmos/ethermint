@@ -29,10 +29,6 @@ func (Service) Name() string {
 
 // Start runs the websocket server
 func (s Service) Start(cfg config.Config) error {
-	if !cfg.EthereumWebsocket.Enable {
-		return nil
-	}
-
 	s.websocketServer.Address = cfg.JSONRPC.Address
 
 	ws := mux.NewRouter()

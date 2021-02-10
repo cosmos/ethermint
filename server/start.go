@@ -297,8 +297,11 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 	websocketSrv := websocket.NewService(clientCtx)
 
 	// Start service if enabled
-	if err := websocketSrv.Start(config); err != nil {
-		return err
+	if config.EthereumWebsocket.Enable {
+		err = websocketSrv.Start(config)
+		if err != nil {
+			return err
+		}
 	}
 
 	defer func() {
