@@ -281,23 +281,19 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 	}
 
 	jsonRPCSrv := jsonrpc.NewService(rpc.GetAPIs(clientCtx))
-
-	if err := jsonRPCSrv.RegisterRoutes(); err != nil {
-		return err
-	}
-
-	// Start service if enabled
 	if config.JSONRPC.Enable {
+		if err := jsonRPCSrv.RegisterRoutes(); err != nil {
+			return err
+		}
+
 		err = jsonRPCSrv.Start(config)
 		if err != nil {
 			return err
 		}
 	}
 
-	websocketSrv := websocket.NewService(clientCtx)
-
-	// Start service if enabled
 	if config.EthereumWebsocket.Enable {
+		websocketSrv := websocket.NewService(clientCtx)
 		err = websocketSrv.Start(config)
 		if err != nil {
 			return err
