@@ -117,6 +117,7 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Bool(flagJSONRPCEnable, true, "Define if the Ethereum JSON-RPC server should be enabled")
 	cmd.Flags().String(flagJSONRPCAddress, config.DefaultJSONRPCAddress, "the JSON-RPC server address to listen on")
+
 	cmd.Flags().Bool(flagEthereumWebsocketEnable, true, "Define if the Ethereum Websocket server should be enabled")
 	cmd.Flags().String(flagEthereumWebsocketAddress, config.DefaultEthereumWebsocketAddress, "the Ethereum websocket server address to listen on")
 
@@ -172,6 +173,9 @@ func startStandAlone(ctx *sdkserver.Context, appCreator servertypes.AppCreator) 
 
 // legacyAminoCdc is used for the legacy REST API
 func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator servertypes.AppCreator) error {
+
+	// TODO: integration_fix: json rpc and ethereum ws not enabled by default, because of app.toml? or config.toml?
+
 	cfg := ctx.Config
 	home := cfg.RootDir
 	var cpuProfileCleanup func()
@@ -283,8 +287,11 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 	}
 
 	// Start service if enabled
-	if err := jsonRPCSrv.Start(config); err != nil {
-		return err
+	if config.JSONRPC.Enable {
+		err = jsonRPCSrv.Start(config)
+		if err != nil {
+			return err
+		}
 	}
 
 	websocketSrv := websocket.NewService(clientCtx)

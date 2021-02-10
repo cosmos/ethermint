@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -42,11 +43,12 @@ func (s *Service) RegisterRoutes() error {
 
 // Start starts the JSON-RPC server on the address defined on the configuration.
 func (s *Service) Start(cfg config.Config) error {
-	if !cfg.JSONRPC.Enable {
-		return nil
+	u, err := url.Parse(cfg.JSONRPC.Address)
+	if err != nil {
+		return err
 	}
 
-	listener, err := net.Listen("tcp", cfg.JSONRPC.Address)
+	listener, err := net.Listen("tcp", ":"+u.Port()) // TODO: integration_fix parse url to get port (done)
 	if err != nil {
 		return err
 	}
