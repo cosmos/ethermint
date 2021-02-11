@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -31,12 +32,17 @@ func (Service) Name() string {
 func (s Service) Start(cfg config.Config) error {
 	s.websocketServer.Address = cfg.JSONRPC.Address
 
+	u, err := url.Parse(cfg.EthereumWebsocket.Address)
+	if err != nil {
+		return err
+	}
+
 	ws := mux.NewRouter()
 	ws.Handle("/", s.websocketServer)
 
 	errCh := make(chan error)
 	go func() {
-		err := http.ListenAndServe(cfg.EthereumWebsocket.Address, ws)
+		err := http.ListenAndServe(":"+u.Port(), ws)
 		if err != nil {
 			errCh <- err
 		}
