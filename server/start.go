@@ -173,9 +173,6 @@ func startStandAlone(ctx *sdkserver.Context, appCreator servertypes.AppCreator) 
 
 // legacyAminoCdc is used for the legacy REST API
 func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator servertypes.AppCreator) error {
-
-	// TODO: integration_fix: json rpc and ethereum ws not enabled by default, because of app.toml? or config.toml?
-
 	cfg := ctx.Config
 	home := cfg.RootDir
 	var cpuProfileCleanup func()
