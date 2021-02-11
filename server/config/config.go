@@ -47,7 +47,7 @@ func DefaultConfig() *Config {
 			Address: DefaultJSONRPCAddress,
 		},
 		EthereumWebsocket: WebsocketConfig{
-			Enable:  false,
+			Enable:  true,
 			Address: DefaultEthereumWebsocketAddress,
 		},
 	}
