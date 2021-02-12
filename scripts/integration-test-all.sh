@@ -93,6 +93,7 @@ start_func() {
     echo "starting ethermint node $i in background ..."
     "$PWD"/build/ethermintd start --pruning=nothing --rpc.unsafe \
     --p2p.laddr tcp://$IP_ADDR:$NODE_P2P_PORT"$i" --address tcp://$IP_ADDR:$NODE_PORT"$i" --rpc.laddr tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
+    --json-rpc.address http://$IP_ADDR:$RPC_PORT"$i" \
     --keyring-backend test --home "$DATA_DIR$i" \
     >"$DATA_DIR"/node"$i".log 2>&1 & disown
 
@@ -122,7 +123,7 @@ set +e
 if [[ -z $TEST || $TEST == "rpc" ]]; then
 
     for i in $(seq 1 "$TEST_QTD"); do
-        HOST_RPC=http://$IP_ADDR:$$NODE_RPC_PORT"$i"
+        HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"
         echo "going to test ethermint node $HOST_RPC ..."
         MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
 
