@@ -516,12 +516,12 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	return (hexutil.Bytes)(data.Ret), nil
@@ -637,7 +637,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	api.logger.Debug("eth_estimateGas", "args", args)
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return 0, err
+		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
@@ -650,7 +650,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-	return api.backend.GetBlockByHash(hash, fullTx)
+	block, err := api.backend.GetBlockByHash(hash, fullTx)
+	if err != nil {
+		return nil, TransformDataError(err, RpcEthGetBlockByHash)
+	}
+	return block, nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -748,7 +752,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	var out evmtypes.QueryResBlockNumber
@@ -756,7 +760,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 
 	resBlock, err := api.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)

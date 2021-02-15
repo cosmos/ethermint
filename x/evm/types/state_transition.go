@@ -1,9 +1,13 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -193,7 +197,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
-		return nil, err
+		return nil, newRevertError(ret, err)
 	}
 
 	// Resets nonce to value pre state transition
@@ -285,4 +289,27 @@ func HashFromContext(ctx sdk.Context) common.Hash {
 	}
 
 	return common.BytesToHash(tmBlockHash.Bytes())
+}
+
+func newRevertError(data []byte, e error) error {
+	var resultError []string
+	if data == nil || e.Error() != vm.ErrExecutionReverted.Error() {
+		return e
+	}
+	resultError = append(resultError, e.Error())
+	reason, errUnpack := abi.UnpackRevert(data)
+	if errUnpack == nil {
+		resultError = append(resultError, vm.ErrExecutionReverted.Error()+":"+reason)
+	} else {
+		resultError = append(resultError, hexutil.Encode(data))
+	}
+	resultError = append(resultError, ErrorHexData)
+	resultError = append(resultError, hexutil.Encode(data))
+	ret, error := json.Marshal(resultError)
+
+	//failed to marshal, return original data in error
+	if error != nil {
+		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
+	}
+	return errors.New(string(ret))
 }

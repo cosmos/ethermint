@@ -118,7 +118,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 	}
 
 	// update block bloom filter
