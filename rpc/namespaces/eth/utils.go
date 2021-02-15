@@ -32,21 +32,6 @@ func (c cosmosError) Error() string {
 	return c.Log
 }
 
-func newCosmosError(code int, log, codeSpace string) cosmosError {
-	return cosmosError{
-		Code:      code,
-		Log:       log,
-		Codespace: codeSpace,
-	}
-}
-
-func newWrappedCosmosError(code int, log, codeSpace string) cosmosError {
-	e := newCosmosError(code, log, codeSpace)
-	b, _ := json.Marshal(e)
-	e.Log = string(b)
-	return e
-}
-
 type wrappedEthError struct {
 	Wrap ethDataError `json:"0x00000000000000000000000000000000"`
 }
@@ -59,9 +44,9 @@ type ethDataError struct {
 }
 
 type DataError struct {
-	code int         `json:"code"`
+	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
-	data interface{} `json:"data,omitempty"`
+	Data interface{} `json:"data,omitempty"`
 }
 
 func (d DataError) Error() string {
@@ -69,11 +54,11 @@ func (d DataError) Error() string {
 }
 
 func (d DataError) ErrorData() interface{} {
-	return d.data
+	return d.Data
 }
 
 func (d DataError) ErrorCode() int {
-	return d.code
+	return d.Code
 }
 
 func newDataError(revert string, data string) *wrappedEthError {
@@ -94,41 +79,41 @@ func TransformDataError(err error, method string) DataError {
 		e := json.Unmarshal([]byte(msg), &realErr)
 		if e != nil {
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: RPCNullData,
+				Data: RPCNullData,
 			}
 		}
 		if method == RPCEthGetBlockByHash {
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  realErr.Error(),
-				data: RPCNullData,
+				Data: RPCNullData,
 			}
 		}
 		lastSeg := strings.LastIndexAny(realErr.Log, "]")
 		if lastSeg < 0 {
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: RPCNullData,
+				Data: RPCNullData,
 			}
 		}
 		marshaler := realErr.Log[0 : lastSeg+1]
 		e = json.Unmarshal([]byte(marshaler), &logs)
 		if e != nil {
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: RPCNullData,
+				Data: RPCNullData,
 			}
 		}
 		m := genericStringMap(logs)
 		if m == nil {
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: "null",
+				Data: "null",
 			}
 		}
 		//if there have multi error type of EVM, this need a reactor mode to process error
@@ -143,29 +128,29 @@ func TransformDataError(err error, method string) DataError {
 		switch method {
 		case RPCEthEstimateGas:
 			return DataError{
-				code: VMExecuteExceptionInEstimate,
+				Code: VMExecuteExceptionInEstimate,
 				Msg:  revert,
-				data: data,
+				Data: data,
 			}
 		case RPCEthCall:
 			return DataError{
-				code: VMExecuteException,
+				Code: VMExecuteException,
 				Msg:  revert,
-				data: newDataError(revert, data),
+				Data: newDataError(revert, data),
 			}
 		default:
 			return DataError{
-				code: DefaultEVMErrorCode,
+				Code: DefaultEVMErrorCode,
 				Msg:  revert,
-				data: newDataError(revert, data),
+				Data: newDataError(revert, data),
 			}
 		}
 
 	}
 	return DataError{
-		code: DefaultEVMErrorCode,
+		Code: DefaultEVMErrorCode,
 		Msg:  err.Error(),
-		data: RPCNullData,
+		Data: RPCNullData,
 	}
 }
 

@@ -1,12 +1,28 @@
 package eth
 
 import (
+	"encoding/json"
 	"testing"
 
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	"github.com/stretchr/testify/require"
 )
+
+func newCosmosError(code int, log, codeSpace string) cosmosError {
+	return cosmosError{
+		Code:      code,
+		Log:       log,
+		Codespace: codeSpace,
+	}
+}
+
+func newWrappedCosmosError(code int, log, codeSpace string) cosmosError {
+	e := newCosmosError(code, log, codeSpace)
+	b, _ := json.Marshal(e)
+	e.Log = string(b)
+	return e
+}
 
 func Test_TransformDataError(t *testing.T) {
 
