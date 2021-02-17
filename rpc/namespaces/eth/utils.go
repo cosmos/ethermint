@@ -90,7 +90,7 @@ func TransformDataError(err error, method string) error {
 				Data: RPCNullData,
 			}
 		}
-		retErr, m := preProcessError(realErr, err)
+		retErr, m := preProcessError(realErr, err.Error())
 		if retErr != nil {
 			return realErr
 		}
@@ -135,13 +135,13 @@ func TransformDataError(err error, method string) error {
 //Preprocess error string, the string of realErr.Log is most like:
 //`["execution reverted","message","HexData","0x00000000000"];some failed information`
 //we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
-func preProcessError(realErr cosmosError, origError error) (error, map[string]string) {
+func preProcessError(realErr cosmosError, origErrorMsg string) (error, map[string]string) {
 	var logs []string
 	lastSeg := strings.LastIndexAny(realErr.Log, "]")
 	if lastSeg < 0 {
 		return DataError{
 			Code: DefaultEVMErrorCode,
-			Msg:  origError.Error(),
+			Msg:  origErrorMsg,
 			Data: RPCNullData,
 		}, nil
 	}
@@ -150,7 +150,7 @@ func preProcessError(realErr cosmosError, origError error) (error, map[string]st
 	if e != nil {
 		return DataError{
 			Code: DefaultEVMErrorCode,
-			Msg:  origError.Error(),
+			Msg:  origErrorMsg,
 			Data: RPCNullData,
 		}, nil
 	}
@@ -158,7 +158,7 @@ func preProcessError(realErr cosmosError, origError error) (error, map[string]st
 	if m == nil {
 		return DataError{
 			Code: DefaultEVMErrorCode,
-			Msg:  origError.Error(),
+			Msg:  origErrorMsg,
 			Data: RPCNullData,
 		}, nil
 	}
