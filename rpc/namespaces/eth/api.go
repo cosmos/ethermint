@@ -47,7 +47,7 @@ type PublicEthereumAPI struct {
 	chainIDEpoch *big.Int
 	logger       log.Logger
 	backend      backend.Backend
-	keys          []ethsecp256k1.PrivKey // unlocked keys
+	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
 }
