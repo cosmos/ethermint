@@ -18,8 +18,8 @@ const (
 	RPCEthEstimateGas    = "eth_estimateGas"
 	RPCEthGetBlockByHash = "eth_getBlockByHash"
 
-	RPCUnknowErr = "unknow"
-	RPCNullData  = "null"
+	RECUnknownErr = "unknown"
+	RPCNullData   = "null"
 )
 
 type cosmosError struct {
@@ -97,7 +97,7 @@ func TransformDataError(err error, method string) error {
 		//if there have multi error type of EVM, this need a reactor mode to process error
 		revert, f := m[vm.ErrExecutionReverted.Error()]
 		if !f {
-			revert = RPCUnknowErr
+			revert = RECUnknownErr
 		}
 		data, f := m[types.ErrorHexData]
 		if !f {
