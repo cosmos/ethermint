@@ -305,10 +305,10 @@ func newRevertError(data []byte, e error) error {
 	}
 	resultError = append(resultError, ErrorHexData)
 	resultError = append(resultError, hexutil.Encode(data))
-	ret, error := json.Marshal(resultError)
+	ret, err := json.Marshal(resultError)
 
 	//failed to marshal, return original data in error
-	if error != nil {
+	if err != nil {
 		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
 	}
 	return errors.New(string(ret))
