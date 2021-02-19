@@ -77,7 +77,8 @@ init_func() {
     "$PWD"/build/ethermintd validate-genesis --home "$DATA_DIR$i"
 
     if [[ $MODE == "pending" ]]; then
-        ls $DATA_DIR$i
+      ls $DATA_DIR$i
+      if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "2s"/g' $DATA_DIR$i/config/config.toml
@@ -86,6 +87,16 @@ init_func() {
         sed -i '' 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "2s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $DATA_DIR$i/config/config.toml
+      else
+        sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "2s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_prevote = "1s"/timeout_prevote = "120s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "2s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "2s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $DATA_DIR$i/config/config.toml
+      fi
     fi
 }
 
