@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	DefaultEVMErrorCode          = -32000
-	VMExecuteException           = -32015
+	//DefaultEVMErrorCode = -32000 is a default error code that pulled from ethereum
+	DefaultEVMErrorCode = -32000
+	//VMExecuteException = -32015 was pulled from truffle
+	VMExecuteException = -32015
+	//VMExecuteExceptionInEstimate = 3 was pulled from remix during debugging a contract
 	VMExecuteExceptionInEstimate = 3
 
 	RPCEthCall           = "eth_call"
