@@ -11,8 +11,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
-	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/go-bip39"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -130,25 +128,25 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	api.logger.Debug("personal_newAccount")
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339)
-	// _, mnemonic, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
+	info, _, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	// entropy, err := bip39.NewEntropy(256)
 	// if err != nil {
 	// 	return common.Address{}, err
 	// }
 
-	entropy, err := bip39.NewEntropy(256)
-	if err != nil {
-		return common.Address{}, err
-	}
+	// mnemonic, err := bip39.NewMnemonic(entropy)
+	// if err != nil {
+	// 	return common.Address{}, err
+	// }
 
-	mnemonic, err := bip39.NewMnemonic(entropy)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	info, err := api.ethAPI.ClientCtx().Keybase.CreateAccount(name, mnemonic, password, password, types.GetConfig().GetFullFundraiserPath(), hd.EthSecp256k1)
-	if err != nil {
-		return common.Address{}, err
-	}
+	// info, err := api.ethAPI.ClientCtx().Keybase.CreateAccount(name, mnemonic, password, types.GetConfig().GetFullFundraiserPath(), hd.EthSecp256k1)
+	// if err != nil {
+	// 	return common.Address{}, err
+	// }
 
 	api.keyInfos = append(api.keyInfos, info)
 
