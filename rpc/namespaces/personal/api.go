@@ -116,7 +116,7 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 		copy(tmp[i:], keys[i+1:])
 		api.ethAPI.SetKeys(tmp)
 
-		api.logger.Debug("account unlocked", "address", address.String())
+		api.logger.Debug("account locked", "address", address.String())
 		return true
 	}
 
@@ -178,6 +178,9 @@ func (api *PrivateAccountAPI) UnlockAccount(_ context.Context, addr common.Addre
 	if keyInfo == nil {
 		return false, fmt.Errorf("cannot find key with given address %s", addr.String())
 	}
+
+	fmt.Println("keyInfo.GetName(): ", keyInfo.GetName())
+	fmt.Println("password: ", password)
 
 	privKey, err := api.ethAPI.ClientCtx().Keybase.ExportPrivateKeyObject(keyInfo.GetName(), password)
 	if err != nil {
