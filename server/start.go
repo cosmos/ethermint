@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/tendermint/tendermint/rpc/client/local"
@@ -124,6 +125,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Uint32(sdkserver.FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
 
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
+
+	cmd.Flags().String(flagRPCAPI, "", fmt.Sprintf("Comma separated list of RPC API modules to enable: %s, %s, %s, %s", rpc.Web3Namespace, rpc.EthNamespace, rpc.PersonalNamespace, rpc.NetNamespace))
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
@@ -276,7 +279,11 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 		}
 	}
 
-	jsonRPCSrv := jsonrpc.NewService(rpc.GetAPIs(clientCtx))
+	rpcapi := ctx.Viper.GetString(flagRPCAPI)
+	rpcapi = strings.ReplaceAll(rpcapi, " ", "")
+	rpcapiArr := strings.Split(rpcapi, ",")
+
+	jsonRPCSrv := jsonrpc.NewService(rpc.GetAPIs(clientCtx, rpcapiArr))
 
 	if err := jsonRPCSrv.RegisterRoutes(); err != nil {
 		return err

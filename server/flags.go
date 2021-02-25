@@ -15,6 +15,11 @@ const (
 	flagGRPCAddress = "grpc.address"
 )
 
+// RPCAPI-related flags.
+const (
+	flagRPCAPI = "rpc-api"
+)
+
 // Ethereum-related flags.
 const (
 	flagJSONRPCEnable            = "json-rpc.enable"
