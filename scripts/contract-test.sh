@@ -49,7 +49,7 @@ $PWD/build/ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:inf
 sleep 1
 
 # Start the rest server with unlocked key in background and log to file
-$PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace > ethermintcli.log &
+$PWD/build/ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id $CHAINID --trace --rpc-api="web3,eth,net,personal" > ethermintcli.log &
 
 solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PWD/tests-solidity/suites/basic/counter
 mv $PWD/tests-solidity/suites/basic/counter/*.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi 2> /dev/null
