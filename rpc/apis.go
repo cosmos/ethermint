@@ -24,6 +24,7 @@ const (
 	NetNamespace      = "net"
 
 	apiVersion = "1.0"
+	flagRPCAPI = "rpc-api"
 )
 
 // GetAPIs returns the list of all APIs from the Ethereum namespaces

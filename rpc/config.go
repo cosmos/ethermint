@@ -1,7 +1,10 @@
 package rpc
 
 import (
+	"strings"
+
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
 
@@ -14,7 +17,11 @@ func RegisterEthereum(clientCtx client.Context, r *mux.Router) {
 	server := rpc.NewServer()
 	r.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
-	apis := GetAPIs(clientCtx)
+	rpcapi := viper.GetString(flagRPCAPI)
+	rpcapi = strings.ReplaceAll(rpcapi, " ", "")
+	rpcapiArr := strings.Split(rpcapi, ",")
+
+	apis := GetAPIs(clientCtx, rpcapiArr)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
