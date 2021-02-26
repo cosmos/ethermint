@@ -93,7 +93,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ## [v0.3.1] - 2021-02-25
 
 ### Improvements
-* (api) [\#821](https://github.com/cosmos/ethermint/pull/821) Individually enable the api modules. Will be implemented in the latest
+* (api) [\#821](https://github.com/cosmos/ethermint/pull/821) Individually enable the api modules. Will be implemented in the latest version of ethermint with the upcoming stargate upgrade.
 
 ## [v0.3.1] - 2020-11-24
 
