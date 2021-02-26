@@ -55,7 +55,7 @@ solcjs --abi $PWD/tests-solidity/suites/basic/contracts/Counter.sol --bin -o $PW
 mv $PWD/tests-solidity/suites/basic/counter/*.abi $PWD/tests-solidity/suites/basic/counter/counter_sol.abi 2> /dev/null
 mv $PWD/tests-solidity/suites/basic/counter/*.bin $PWD/tests-solidity/suites/basic/counter/counter_sol.bin 2> /dev/null
 
-ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' 2>&1)
+ACCT=$(curl --fail --silent -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545 | grep -o '\0x[^"]*' | head -1 2>&1)
 
 echo $ACCT
 
@@ -66,4 +66,4 @@ PRIVKEY="$("$PWD"/build/ethermintcli keys unsafe-export-eth-key $KEY)"
 echo $PRIVKEY
 
 ## need to get the private key from the account in order to check this functionality.
-cd tests-solidity/suites/basic/ && go get && go run main.go $ACCT
+cd tests-solidity/suites/basic/ && go get && sleep 5 && go run main.go $ACCT
