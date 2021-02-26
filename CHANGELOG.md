@@ -90,6 +90,11 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (app) [\#617](https://github.com/cosmos/ethermint/issues/617) Fix genesis export functionality.
 * (rpc) [\#574](https://github.com/cosmos/ethermint/issues/574) Fix outdated version from `eth_protocolVersion`.
 
+## [v0.3.1] - 2021-02-25
+
+### Improvements
+* (api) [\#821](https://github.com/cosmos/ethermint/pull/821) Individually enable the api modules. Will be implemented in the latest
+
 ## [v0.3.1] - 2020-11-24
 
 ### Improvements
