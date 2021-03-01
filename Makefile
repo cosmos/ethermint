@@ -35,7 +35,7 @@ ifeq ($(OS),Windows_NT)
   DETECTED_OS := windows
 else
   UNAME_S = $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
+  ifeq ($(UNAME_S),Darwin)
 	DETECTED_OS := mac
   else
 	DETECTED_OS := linux
@@ -212,9 +212,16 @@ else
 	@echo "protoc-gen-go already installed; skipping..."
 endif
 
+ifeq (, $(shell which protoc))
+	@echo "Please istalling protobuf according to your OS"
+	@echo "macOS: brew install protobuf"
+	@echo "linux: apt-get install -f -y protobuf-compiler"
+else
+	@echo "protoc already installed; skipping..."
+endif
+
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
-	@apt-get install -f -y protobuf-compiler
 	@npm install -g solc@0.5.11
 else
 	@echo "solcjs already installed; skipping..."

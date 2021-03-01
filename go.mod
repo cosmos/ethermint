@@ -11,6 +11,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.41.3
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.9.25
+	github.com/fjl/gencodec v0.0.0-20191126094850-e283372f291f // indirect
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/protobuf v1.4.3
@@ -18,6 +19,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/kevinburke/go-bindata v3.22.0+incompatible // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/pkg/errors v0.9.1
