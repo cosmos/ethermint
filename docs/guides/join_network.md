@@ -40,7 +40,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
     ```bash
     ethermintd validate-genesis
 
-    ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace --rpc-api "web3,eth,net,personal"
+    ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace
     ```
 
     (we recommend running the command in the background for convenience)
@@ -48,7 +48,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
 6. Start the RPC server
 
     ```bash
-    ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-777 --trace
+    ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-777 --trace --rpc-api "web3,eth,net,personal"
     ```
 
     where `$KEY` is the key name that was used in step 2.
