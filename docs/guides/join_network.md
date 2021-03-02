@@ -13,7 +13,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
     ```bash
     git clone https://github.com/cosmos/ethermint
     cd ethermint
-    git checkout v0.4.1
+    git checkout v0.3.1
     make install
     ```
 
@@ -32,7 +32,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
     Edit the file located in ~/.ethermintd/config/config.toml and edit line 350 (persistent_peers) to the following
 
     ```toml
-    "05aa6587f07a0c6a9a8213f0138c4a76d476418a@18.204.206.179:26656,13d4a1c16d1f427988b7c499b6d150726aaf3aa0@3.86.104.251:26656,a00db749fa51e485c8376276d29d599258052f3e@54.210.246.165:26656"
+    "7678d52de4a724e468e503a7743664d12a78b5b0@18.204.206.179:26656,c62fadc76b7fa1ab25669b64fdc00c8d8d422bd0@3.86.104.251:26656,5fa7d4550b57298b059d1dd8af01829482e7d097@54.210.246.165:26656"
     ```
 
 5. Validate genesis and start the Ethermint network
@@ -40,7 +40,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
     ```bash
     ethermintd validate-genesis
 
-    ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace --rpc-api "web3,eth,net,personal"
+    ethermintd start --pruning=nothing --rpc.unsafe --log_level "main:info,state:info,mempool:info" --trace
     ```
 
     (we recommend running the command in the background for convenience)
