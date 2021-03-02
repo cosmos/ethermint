@@ -48,7 +48,7 @@ This document outlines the steps to join the public testnet hosted by [Chainsafe
 6. Start the RPC server
 
     ```bash
-    ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-777 --trace --rpc-api "web3,eth,net,personal"
+    ethermintcli rest-server --laddr "tcp://localhost:8545" --unlock-key $KEY --chain-id etherminttestnet-777 --trace --rpc-api "web3,eth,net"
     ```
 
     where `$KEY` is the key name that was used in step 2.
