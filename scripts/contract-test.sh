@@ -20,7 +20,7 @@ $PWD/build/ethermintd config indent true
 $PWD/build/ethermintd config trust-node true
 
 # if $KEY exists it should be deleted
-$PWD/build/ethermintd keys add $KEY
+$PWD/build/ethermintd keys add $KEY --algo "eth_secp256k1"
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 $PWD/build/ethermintd init $MONIKER --chain-id $CHAINID
