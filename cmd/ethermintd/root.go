@@ -16,7 +16,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdkserver "github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -34,6 +33,7 @@ import (
 
 	"github.com/cosmos/ethermint/app"
 	ethermintclient "github.com/cosmos/ethermint/client"
+	ethermintclientKey "github.com/cosmos/ethermint/client/keys"
 	"github.com/cosmos/ethermint/server"
 )
 
@@ -93,7 +93,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		rpc.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		keys.Commands(app.DefaultNodeHome),
+		ethermintclientKey.Commands(app.DefaultNodeHome),
 	)
 }
 
