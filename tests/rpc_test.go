@@ -1,9 +1,8 @@
 // This is a test utility for Ethermint's Web3 JSON-RPC services.
 //
 // To run these tests please first ensure you have the ethermintd running
-// and have started the RPC service with `ethermintd rest-server`.
 //
-// You can configure the desired HOST and MODE as well
+// You can configure the desired HOST and MODE as well in integration-test-all.sh
 package tests
 
 import (
@@ -83,7 +82,7 @@ func TestEth_GetLogs_NoLogs(t *testing.T) {
 	var logs []*ethtypes.Log
 	err := json.Unmarshal(rpcRes.Result, &logs)
 	require.NoError(t, err)
-	require.NotEmpty(t, logs)
+	require.Empty(t, logs) // begin, end are -1, crit.Addresses, crit.Topics are empty array, so no log should be returned
 }
 
 func TestEth_GetLogs_Topics_AB(t *testing.T) {
@@ -205,7 +204,8 @@ func TestEth_GetBalance(t *testing.T) {
 
 func TestEth_GetStorageAt(t *testing.T) {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	rpcRes := Call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(addrAStoreKey), zeroString})
+	testKey := 1 // using 0 as key here will create an ethereum empty hash which is considered as invalid hash
+	rpcRes := Call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(testKey), "0x3"})
 
 	var storage hexutil.Bytes
 	err := storage.UnmarshalJSON(rpcRes.Result)
@@ -220,7 +220,8 @@ func TestEth_GetProof(t *testing.T) {
 	params := make([]interface{}, 3)
 	params[0] = addrA
 	params[1] = []string{fmt.Sprint(addrAStoreKey)}
-	params[2] = "latest"
+	params[2] = "0x3" // queries at height <= 2 are not supported
+
 	rpcRes := Call(t, "eth_getProof", params)
 	require.NotNil(t, rpcRes)
 
@@ -255,6 +256,8 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x55ae82600"
 
+	_ = Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
+
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
 	var hash hexutil.Bytes
@@ -271,6 +274,8 @@ func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+
+	_ = Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
 
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
@@ -369,6 +374,8 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 }
 
 func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
+	_ = Call(t, "personal_unlockAccount", []interface{}{hexutil.Bytes(from), ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
+
 	hash, _ := DeployTestContract(t, from)
 
 	time.Sleep(time.Second * 5)
@@ -531,6 +538,8 @@ func TestEth_EstimateGas(t *testing.T) {
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["to"] = "0x1122334455667788990011223344556677889900"
 	param[0]["value"] = "0x1"
+
+	// TODO: rpc_test_fix: because the init account key type is secp256k1, and it's not in the api.keys array, so this test failed
 	rpcRes := Call(t, "eth_estimateGas", param)
 	require.NotNil(t, rpcRes)
 	require.NotEmpty(t, rpcRes.Result)
@@ -550,6 +559,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["data"] = bytecode
 
+	// TODO: rpc_test_fix: because the init account key type is secp256k1, and it's not in the api.keys array, so this test failed
 	rpcRes := Call(t, "eth_estimateGas", param)
 	require.NotNil(t, rpcRes)
 	require.NotEmpty(t, rpcRes.Result)
@@ -563,7 +573,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 
 func TestEth_GetBlockByNumber(t *testing.T) {
 	param := []interface{}{"0x1", false}
-	rpcRes := Call(t, "eth_getBlockByNumber", param)
+	rpcRes := Call(t, "eth_getBlockByNumber", param) // TODO: rpc_test_fix: bloom filter not found
 
 	block := make(map[string]interface{})
 	err := json.Unmarshal(rpcRes.Result, &block)

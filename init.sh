@@ -24,15 +24,26 @@ cat $HOME/.ethermint/config/genesis.json | jq '.app_state["mint"]["params"]["min
 cat $HOME/.ethermint/config/genesis.json | jq '.consensus_params["block"]["time_iota_ms"]="30000"' > $HOME/.ethermint/config/tmp_genesis.json && mv $HOME/.ethermint/config/tmp_genesis.json $HOME/.ethermint/config/genesis.json
 
 if [[ $1 == "pending" ]]; then
-    echo "pending mode on; block times will be set to 30s."
-    # sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' $HOME/.ethermintd/config/config.toml
-    sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $HOME/.ethermintd/config/config.toml
+  echo "pending mode on; block times will be set to 30s. OS:" "$OSTYPE"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i '' 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $HOME/.ethermint/config/config.toml
+  else
+      sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' $HOME/.ethermint/config/config.toml
+      sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $HOME/.ethermint/config/config.toml
+  fi
 fi
 
 # Allocate genesis accounts (cosmos formatted addresses)

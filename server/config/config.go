@@ -43,11 +43,11 @@ func DefaultConfig() *Config {
 	return &Config{
 		Config: config.DefaultConfig(),
 		JSONRPC: JSONRPCConfig{
-			Enable:  false,
+			Enable:  true,
 			Address: DefaultJSONRPCAddress,
 		},
 		EthereumWebsocket: WebsocketConfig{
-			Enable:  false,
+			Enable:  true,
 			Address: DefaultEthereumWebsocketAddress,
 		},
 	}

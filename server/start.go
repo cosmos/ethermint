@@ -117,6 +117,7 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Bool(flagJSONRPCEnable, true, "Define if the Ethereum JSON-RPC server should be enabled")
 	cmd.Flags().String(flagJSONRPCAddress, config.DefaultJSONRPCAddress, "the JSON-RPC server address to listen on")
+
 	cmd.Flags().Bool(flagEthereumWebsocketEnable, true, "Define if the Ethereum Websocket server should be enabled")
 	cmd.Flags().String(flagEthereumWebsocketAddress, config.DefaultEthereumWebsocketAddress, "the Ethereum websocket server address to listen on")
 
@@ -270,28 +271,30 @@ func startInProcess(ctx *sdkserver.Context, clientCtx client.Context, appCreator
 
 	var grpcSrv *grpc.Server
 	if config.GRPC.Enable {
-		grpcSrv, err = servergrpc.StartGRPCServer(app, config.GRPC.Address)
+		grpcSrv, err = servergrpc.StartGRPCServer(clientCtx, app, config.GRPC.Address)
 		if err != nil {
 			return err
 		}
 	}
 
 	jsonRPCSrv := jsonrpc.NewService(rpc.GetAPIs(clientCtx))
+	if config.JSONRPC.Enable {
+		if err := jsonRPCSrv.RegisterRoutes(); err != nil {
+			return err
+		}
 
-	if err := jsonRPCSrv.RegisterRoutes(); err != nil {
-		return err
+		err = jsonRPCSrv.Start(config)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Start service if enabled
-	if err := jsonRPCSrv.Start(config); err != nil {
-		return err
-	}
-
-	websocketSrv := websocket.NewService(clientCtx)
-
-	// Start service if enabled
-	if err := websocketSrv.Start(config); err != nil {
-		return err
+	if config.EthereumWebsocket.Enable {
+		websocketSrv := websocket.NewService(clientCtx)
+		err = websocketSrv.Start(config)
+		if err != nil {
+			return err
+		}
 	}
 
 	defer func() {

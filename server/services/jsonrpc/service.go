@@ -1,26 +1,33 @@
 package jsonrpc
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"time"
 
-	"github.com/ethereum/go-ethereum/rpc"
-
 	"github.com/cosmos/ethermint/server/config"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type Service struct {
 	rpcServer *rpc.Server
 	apis      []rpc.API
+	http      *http.Server
 }
 
-// NewService creates a new gRPC server instance with a defined listener address.
+// NewService creates a new JSON-RPC server instance over http with public Ethereum APIs
 func NewService(apis []rpc.API) *Service {
-	return &Service{
+	s := &Service{
 		rpcServer: rpc.NewServer(),
 		apis:      apis,
+		http:      &http.Server{},
 	}
+	s.http.Handler = s.rpcServer
+
+	return s
 }
 
 // Name returns the JSON-RPC service name
@@ -42,18 +49,19 @@ func (s *Service) RegisterRoutes() error {
 
 // Start starts the JSON-RPC server on the address defined on the configuration.
 func (s *Service) Start(cfg config.Config) error {
-	if !cfg.JSONRPC.Enable {
-		return nil
+	u, err := url.Parse(cfg.JSONRPC.Address)
+	if err != nil {
+		return err
 	}
 
-	listener, err := net.Listen("tcp", cfg.JSONRPC.Address)
+	listener, err := net.Listen("tcp", u.Host)
 	if err != nil {
 		return err
 	}
 
 	errCh := make(chan error)
 	go func() {
-		err = s.rpcServer.ServeListener(listener)
+		err = s.http.Serve(listener)
 		if err != nil {
 			errCh <- fmt.Errorf("failed to serve: %w", err)
 		}
@@ -71,6 +79,12 @@ func (s *Service) Start(cfg config.Config) error {
 // stopPendingRequestTimeout to allow pending requests to finish, then closes all codecs which will
 // cancel pending requests and subscriptions.
 func (s *Service) Stop() error {
-	s.rpcServer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := s.http.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }

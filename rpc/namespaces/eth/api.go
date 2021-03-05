@@ -87,14 +87,13 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	api.keyringLock.Lock()
 	defer api.keyringLock.Unlock()
 
-	if api.clientCtx.Keyring != nil {
-		return nil
-	}
-
+	/*api.clientCtx.keyring won't be nil because we init node with ethermintd keys add CLI
+	we need to create a new keyring here with initialized account info merged by using the same api.clientCtx.KeyringDir
+	we also need to add eth_secp256k1 key type here*/
 	keybase, err := keyring.New(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
+		api.clientCtx.KeyringDir,
 		api.clientCtx.Input,
 		hd.EthSecp256k1Option(),
 	)
@@ -238,7 +237,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 		return nil, err
 	}
 
-	var balance *big.Int
+	balance := big.NewInt(0)
 	err = balance.UnmarshalText([]byte(res.Balance))
 	if err != nil {
 		return nil, err
@@ -676,7 +675,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 
 	if blockNum != rpctypes.PendingBlockNumber {
-		return api.backend.GetBlockByNumber(blockNum, fullTx)
+		return api.backend.GetBlockByNumber(blockNum, fullTx) // TODO: rpc_test_fix: block bloom not found from tendermint (func: EthBlockFromTendermint)
 	}
 
 	// fetch latest block
@@ -974,7 +973,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		accProofStr = proof.String()
 	}
 
-	var balance *big.Int
+	balance := big.NewInt(0)
 	err = balance.UnmarshalText([]byte(res.Balance))
 	if err != nil {
 		return nil, err

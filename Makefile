@@ -21,6 +21,7 @@ DOCKER_TAG = unstable
 DOCKER_IMAGE = cosmos/ethermint
 DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuild/buf
 ETHERMINT_BINARY = ethermintd
+ETHERMINT_DIR = ethermint
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
@@ -34,7 +35,7 @@ ifeq ($(OS),Windows_NT)
   DETECTED_OS := windows
 else
   UNAME_S = $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
+  ifeq ($(UNAME_S),Darwin)
 	DETECTED_OS := mac
   else
 	DETECTED_OS := linux
@@ -180,7 +181,7 @@ RUNSIM         = $(TOOLS_DESTDIR)/runsim
 runsim: $(RUNSIM)
 $(RUNSIM):
 	@echo "Installing runsim..."
-	@(cd /tmp && ${GO_MOD} go get github.com/cosmos/tools/cmd/runsim@v1.0.0)
+	@(cd /tmp && ${GO_MOD} go get github.com/cosmos/tools/cmd/runsim@master)
 
 contract-tools:
 ifeq (, $(shell which stringer))
@@ -211,9 +212,16 @@ else
 	@echo "protoc-gen-go already installed; skipping..."
 endif
 
+ifeq (, $(shell which protoc))
+	@echo "Please istalling protobuf according to your OS"
+	@echo "macOS: brew install protobuf"
+	@echo "linux: apt-get install -f -y protobuf-compiler"
+else
+	@echo "protoc already installed; skipping..."
+endif
+
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
-	@apt-get install -f -y protobuf-compiler
 	@npm install -g solc@0.5.11
 else
 	@echo "solcjs already installed; skipping..."
@@ -264,10 +272,10 @@ test-import:
 	rm -rf importer/tmp
 
 test-rpc:
-	./scripts/integration-test-all.sh -t "rpc" -q 1 -z 1 -s 2 -m "rpc"
+	./scripts/integration-test-all.sh -t "rpc" -q 1 -z 1 -s 2 -m "rpc" -r "true"
 
 test-rpc-pending:
-	./scripts/integration-test-all.sh -t "pending" -q 1 -z 1 -s 2 -m "pending"
+	./scripts/integration-test-all.sh -t "pending" -q 1 -z 1 -s 2 -m "pending" -r "true"
 
 test-contract:
 	@type "npm" 2> /dev/null || (echo 'Npm does not exist. Please install node.js and npm."' && exit 1)
@@ -282,22 +290,22 @@ test-sim-nondeterminism:
 
 test-sim-custom-genesis-fast:
 	@echo "Running custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
-	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json \
+	@echo "By default, ${HOME}/.$(ETHERMINT_DIR)/config/genesis.json will be used."
+	@go test -mod=readonly $(SIMAPP) -run TestFullAppSimulation -Genesis=${HOME}/.$(ETHERMINT_DIR)/config/genesis.json \
 		-Enabled=true -NumBlocks=100 -BlockSize=200 -Commit=true -Seed=99 -Period=5 -v -timeout 24h
 
 test-sim-import-export: runsim
 	@echo "Running application import/export simulation. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppImportExport
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DIR)/config/genesis.json 50 5 TestAppImportExport
 
 test-sim-after-import: runsim
 	@echo "Running application simulation-after-import. This may take several minutes..."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 5 TestAppSimulationAfterImport
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -Genesis=${HOME}/.$(ETHERMINT_DIR)/config/genesis.json -ExitOnFail 50 5 TestAppSimulationAfterImport
 
 test-sim-custom-genesis-multi-seed: runsim
 	@echo "Running multi-seed custom genesis simulation..."
-	@echo "By default, ${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json will be used."
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_BINARY)/config/genesis.json 400 5 TestFullAppSimulation
+	@echo "By default, ${HOME}/.$(ETHERMINT_DIR)/config/genesis.json will be used."
+	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail -Genesis=${HOME}/.$(ETHERMINT_DIR)/config/genesis.json 400 5 TestFullAppSimulation
 
 test-sim-multi-seed-long: runsim
 	@echo "Running multi-seed application simulation. This may take awhile!"

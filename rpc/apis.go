@@ -1,16 +1,16 @@
 package rpc
 
 import (
+	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
+	"github.com/cosmos/ethermint/rpc/namespaces/net"
+	"github.com/cosmos/ethermint/rpc/namespaces/personal"
+	"github.com/cosmos/ethermint/rpc/namespaces/web3"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 
 	"github.com/cosmos/ethermint/rpc/backend"
 	"github.com/cosmos/ethermint/rpc/namespaces/eth"
-	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
-	"github.com/cosmos/ethermint/rpc/namespaces/net"
-	"github.com/cosmos/ethermint/rpc/namespaces/personal"
-	"github.com/cosmos/ethermint/rpc/namespaces/web3"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 
 	"github.com/cosmos/cosmos-sdk/client"

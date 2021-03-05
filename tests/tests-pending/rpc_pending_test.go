@@ -1,9 +1,8 @@
 // This is a test utility for Ethermint's Web3 JSON-RPC services.
 //
 // To run these tests please first ensure you have the ethermintd running
-// and have started the RPC service with `ethermintcli rest-server`.
 //
-// You can configure the desired HOST and MODE as well
+// You can configure the desired HOST and MODE as well in integration-test-all.sh
 package pending
 
 import (
@@ -92,6 +91,9 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
+	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+
 	rpcRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, rpcRes.Error)
 
@@ -126,6 +128,8 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 	param[0]["value"] = "0xA"
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
+
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
 
 	txRes := util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
@@ -162,6 +166,9 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
+	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+
 	txRes := util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
@@ -182,6 +189,7 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 }
 
 func TestEth_Pending_GetBlockByNumber(t *testing.T) {
+	// TODO: rpc_test_fix: bloom filter not found from tendermint
 	rpcRes := util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
 	var preTxLatestBlock map[string]interface{}
 	err := json.Unmarshal(rpcRes.Result, &preTxLatestBlock)
@@ -239,6 +247,9 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 	param[0]["data"] = data
 
+	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+
 	txRes := util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
@@ -272,6 +283,9 @@ func TestEth_Pending_GetTransactionByHash(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 	param[0]["data"] = data
 
+	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+
 	txRes := util.Call(t, "eth_sendTransaction", param)
 	var txHash common.Hash
 	err := txHash.UnmarshalJSON(txRes.Result)
@@ -298,6 +312,9 @@ func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
 	param[0]["value"] = "0xA"
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
+
+	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
 
 	// first transaction
 	txRes1 := util.Call(t, "eth_sendTransaction", param)

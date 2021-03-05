@@ -311,8 +311,16 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 }
 
 // GetParams returns the total set of evm parameters.
+// It will check if every param exists in the Subspace's KVStore before querying by the key,
+// the default value of that param will be returned if not exist.
 func (csdb *CommitStateDB) GetParams() (params Params) {
-	csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+	ps := &params
+	for _, pair := range ps.ParamSetPairs() {
+		if csdb.paramSpace.Has(csdb.ctx, pair.Key) {
+			csdb.paramSpace.Get(csdb.ctx, pair.Key, pair.Value)
+		}
+	}
+
 	return params
 }
 
