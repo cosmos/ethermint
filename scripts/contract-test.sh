@@ -53,6 +53,9 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params"
 
 PRIVKEY="$("$PWD"/build/ethermintd keys export $KEY)"
 
+## need to get the private key from the account in order to check this functionality.
+cd tests-solidity/suites/basic/ && go get && go run main.go $ACCT
+
 # After tests
 # kill test ethermintd
 echo "going to shutdown ethermintd in 3 seconds..."

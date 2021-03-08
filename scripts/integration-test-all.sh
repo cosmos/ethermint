@@ -70,9 +70,9 @@ init_func() {
     "$PWD"/build/ethermintd keys add $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --no-backup
     "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd add-genesis-account \
-    "$("$PWD"/build/ethermintd keys show "$KEY$i" -a --home "$DATA_DIR$i")" 1000000000000000000aphoton,1000000000000000000stake \
+    "$("$PWD"/build/ethermintd keys show "$KEY$i" --keyring-backend test -a --home "$DATA_DIR$i")" 1000000000000000000aphoton,1000000000000000000stake \
     --keyring-backend test --home "$DATA_DIR$i"
-    "$PWD"/build/ethermintd gentx "$KEY$i" 1000000000000000000stake --amount=1000000000000000000aphoton --chain-id $CHAINID --home "$DATA_DIR$i"
+    "$PWD"/build/ethermintd gentx "$KEY$i" 1000000000000000000stake --amount=1000000000000000000aphoton --chain-id $CHAINID --keyring-backend test --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd collect-gentxs --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd validate-genesis --home "$DATA_DIR$i"
 
