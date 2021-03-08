@@ -34,6 +34,8 @@ func TestPersonal_NewAccount(t *testing.T) {
 }
 
 func TestPersonal_Sign(t *testing.T) {
+	_ = Call(t, "personal_unlockAccount", []interface{}{hexutil.Bytes(from), ""})
+
 	rpcRes := Call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
 
 	var res hexutil.Bytes

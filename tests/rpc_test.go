@@ -54,6 +54,20 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestEth_GetLogs_NoLogs(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	rpcRes := Call(t, "eth_getLogs", param)
+	require.NotNil(t, rpcRes)
+	require.Nil(t, rpcRes.Error)
+
+	var logs []*ethtypes.Log
+	err := json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+	require.Empty(t, logs) // begin, end are -1, crit.Addresses, crit.Topics are empty array, so no log should be returned(run this test before anyone else so that log will be empty)
+}
+
 func TestBlockBloom(t *testing.T) {
 	hash := DeployTestContractWithFunction(t, from)
 	receipt := WaitForReceipt(t, hash)
@@ -69,20 +83,6 @@ func TestBlockBloom(t *testing.T) {
 	lb := HexToBigInt(t, block["logsBloom"].(string))
 	require.NotEqual(t, big.NewInt(0), lb)
 	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
-}
-
-func TestEth_GetLogs_NoLogs(t *testing.T) {
-	param := make([]map[string][]string, 1)
-	param[0] = make(map[string][]string)
-	param[0]["topics"] = []string{}
-	rpcRes := Call(t, "eth_getLogs", param)
-	require.NotNil(t, rpcRes)
-	require.Nil(t, rpcRes.Error)
-
-	var logs []*ethtypes.Log
-	err := json.Unmarshal(rpcRes.Result, &logs)
-	require.NoError(t, err)
-	require.Empty(t, logs) // begin, end are -1, crit.Addresses, crit.Topics are empty array, so no log should be returned
 }
 
 func TestEth_GetLogs_Topics_AB(t *testing.T) {
