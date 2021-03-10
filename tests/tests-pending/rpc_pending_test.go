@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -91,8 +92,8 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
 
 	rpcRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, rpcRes.Error)
@@ -120,6 +121,7 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 
 	currentNonce := util.GetNonce(t, "latest")
 	t.Logf("Current nonce is %d", currentNonce)
+	require.Equal(t, prePendingNonce, currentNonce)
 
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -129,19 +131,20 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
-
-	txRes := util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
+	txRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
 	pendingNonce := util.GetNonce(t, "pending")
 	latestNonce := util.GetNonce(t, "latest")
-	t.Logf("Latest nonce is %d", latestNonce)
-	require.Equal(t, currentNonce, latestNonce)
-	t.Logf("Pending nonce is %d", pendingNonce)
-	require.NotEqual(t, latestNonce, pendingNonce)
 
-	require.Greater(t, uint64(pendingNonce), uint64(latestNonce))
+	t.Logf("Latest nonce is %d", latestNonce)
+	require.Equal(t, currentNonce+1, latestNonce)
+
+	t.Logf("Pending nonce is %d", pendingNonce)
+	require.Equal(t, latestNonce, pendingNonce)
+
 	require.Equal(t, uint64(prePendingNonce)+uint64(1), uint64(pendingNonce))
 }
 
@@ -158,6 +161,8 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Pre tx latest nonce is %d", preTxLatestTxCount)
 
+	require.Equal(t, preTxPendingTxCount, preTxLatestTxCount)
+
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
@@ -166,10 +171,10 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
 
-	txRes := util.Call(t, "eth_sendTransaction", param)
+	txRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
 	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
@@ -184,12 +189,13 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Post tx latest nonce is %d", postTxLatestTxCount)
 
+	require.Equal(t, postTxPendingTxCount, postTxLatestTxCount)
+
 	require.Equal(t, uint64(preTxPendingTxCount)+uint64(1), uint64(postTxPendingTxCount))
-	require.NotEqual(t, uint64(postTxPendingTxCount)-uint64(preTxPendingTxCount), uint64(postTxLatestTxCount)-uint64(preTxLatestTxCount))
+	require.Equal(t, uint64(postTxPendingTxCount)-uint64(preTxPendingTxCount), uint64(postTxLatestTxCount)-uint64(preTxLatestTxCount))
 }
 
 func TestEth_Pending_GetBlockByNumber(t *testing.T) {
-	// TODO: rpc_test_fix: bloom filter not found from tendermint
 	rpcRes := util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
 	var preTxLatestBlock map[string]interface{}
 	err := json.Unmarshal(rpcRes.Result, &preTxLatestBlock)
@@ -247,11 +253,12 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 	param[0]["data"] = data
 
-	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
-
-	txRes := util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
 	require.Nil(t, txRes.Error)
+	txRes = util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
+
+	time.Sleep(20 * time.Second)
 
 	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
 	var pendingBlockTx map[string]interface{}
@@ -283,10 +290,10 @@ func TestEth_Pending_GetTransactionByHash(t *testing.T) {
 	param[0]["gasPrice"] = "0x1"
 	param[0]["data"] = data
 
-	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
 
-	txRes := util.Call(t, "eth_sendTransaction", param)
+	txRes = util.Call(t, "eth_sendTransaction", param)
 	var txHash common.Hash
 	err := txHash.UnmarshalJSON(txRes.Result)
 	require.NoError(t, err)
@@ -313,8 +320,8 @@ func TestEth_Pending_SendTransaction_PendingNonce(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	// TODO: rpc_test_fix: unable to unlock a secp256k1 account
-	_ = util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
 
 	// first transaction
 	txRes1 := util.Call(t, "eth_sendTransaction", param)

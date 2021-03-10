@@ -67,7 +67,7 @@ make build-ethermint
 arr=()
 
 init_func() {
-    "$PWD"/build/ethermintd keys add $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --no-backup
+    "$PWD"/build/ethermintd keys add $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --no-backup --algo "eth_secp256k1"
     "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
     "$PWD"/build/ethermintd add-genesis-account \
     "$("$PWD"/build/ethermintd keys show "$KEY$i" --keyring-backend test -a --home "$DATA_DIR$i")" 1000000000000000000aphoton,1000000000000000000stake \
@@ -131,7 +131,7 @@ echo "done sleeping"
 
 set +e
 
-if [[ -z $TEST || $TEST == "rpc" ]]; then
+if [[ -z $TEST || $TEST == "rpc" ||  $TEST == "pending" ]]; then
 
     for i in $(seq 1 "$TEST_QTD"); do
         HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"

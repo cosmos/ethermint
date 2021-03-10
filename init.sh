@@ -9,7 +9,7 @@ rm -rf ~/.ethermint*
 make install
 
 # if $KEY exists it should be deleted
-ethermintd keys add $KEY --keyring-backend test
+ethermintd keys add $KEY --keyring-backend test --algo "eth_secp256k1"
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 ethermintd init $MONIKER --chain-id $CHAINID 

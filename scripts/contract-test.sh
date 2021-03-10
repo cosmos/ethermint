@@ -11,7 +11,7 @@ pkill -f "ethermint*"
 make build-ethermint
 
 # if $KEY exists it should be override
-"$PWD"/build/ethermintd keys add $KEY --keyring-backend test
+"$PWD"/build/ethermintd keys add $KEY --keyring-backend test --algo "eth_secp256k1"
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID

@@ -74,7 +74,7 @@ arrcli=()
 init_func() {
     echo "create and add new keys"
     "$PWD"/build/ethermintd config keyring-backend test --home "$DATA_CLI_DIR$i"
-    "$PWD"/build/ethermintd keys add $KEY"$i" --home "$DATA_CLI_DIR$i" --no-backup --chain-id $CHAINID
+    "$PWD"/build/ethermintd keys add $KEY"$i" --home "$DATA_CLI_DIR$i" --no-backup --chain-id $CHAINID --algo "eth_secp256k1"
     echo "init Ethermint with moniker=$MONIKER and chain-id=$CHAINID"
     "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
     echo "init ethermintd with chain-id=$CHAINID and config it trust-node true"

@@ -54,6 +54,33 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestEth_GetTransactionCount(t *testing.T) {
+	// TODO: this test passes on when run on its own, but fails when run with the other tests
+	if testing.Short() {
+		t.Skip("skipping TestEth_GetTransactionCount")
+	}
+
+	prev := GetNonce(t, "latest")
+	SendTestTransaction(t, from)
+	time.Sleep(20 * time.Second)
+	post := GetNonce(t, "latest")
+	require.Equal(t, prev, post-1)
+}
+
+func TestEth_GetLogs_NoLogs(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{}
+	rpcRes := Call(t, "eth_getLogs", param)
+	require.NotNil(t, rpcRes)
+	require.Nil(t, rpcRes.Error)
+
+	var logs []*ethtypes.Log
+	err := json.Unmarshal(rpcRes.Result, &logs)
+	require.NoError(t, err)
+	require.Empty(t, logs) // begin, end are -1, crit.Addresses, crit.Topics are empty array, so no log should be returned(run this test before anyone else so that log will be empty)
+}
+
 func TestBlockBloom(t *testing.T) {
 	hash := DeployTestContractWithFunction(t, from)
 	receipt := WaitForReceipt(t, hash)
@@ -69,20 +96,6 @@ func TestBlockBloom(t *testing.T) {
 	lb := HexToBigInt(t, block["logsBloom"].(string))
 	require.NotEqual(t, big.NewInt(0), lb)
 	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
-}
-
-func TestEth_GetLogs_NoLogs(t *testing.T) {
-	param := make([]map[string][]string, 1)
-	param[0] = make(map[string][]string)
-	param[0]["topics"] = []string{}
-	rpcRes := Call(t, "eth_getLogs", param)
-	require.NotNil(t, rpcRes)
-	require.Nil(t, rpcRes.Error)
-
-	var logs []*ethtypes.Log
-	err := json.Unmarshal(rpcRes.Result, &logs)
-	require.NoError(t, err)
-	require.Empty(t, logs) // begin, end are -1, crit.Addresses, crit.Topics are empty array, so no log should be returned
 }
 
 func TestEth_GetLogs_Topics_AB(t *testing.T) {
@@ -112,18 +125,6 @@ func TestEth_GetLogs_Topics_AB(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(logs))
-}
-
-func TestEth_GetTransactionCount(t *testing.T) {
-	// TODO: this test passes on when run on its own, but fails when run with the other tests
-	if testing.Short() {
-		t.Skip("skipping TestEth_GetTransactionCount")
-	}
-
-	prev := GetNonce(t, "latest")
-	SendTestTransaction(t, from)
-	post := GetNonce(t, "latest")
-	require.Equal(t, prev, post-1)
 }
 
 func TestEth_GetTransactionLogs(t *testing.T) {
@@ -256,9 +257,10 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x55ae82600"
 
-	_ = Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	rpcRes := Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, rpcRes.Error)
 
-	rpcRes := Call(t, "eth_sendTransaction", param)
+	rpcRes = Call(t, "eth_sendTransaction", param)
 
 	var hash hexutil.Bytes
 	err := json.Unmarshal(rpcRes.Result, &hash)
@@ -275,9 +277,10 @@ func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 
-	_ = Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	rpcRes := Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, rpcRes.Error)
 
-	rpcRes := Call(t, "eth_sendTransaction", param)
+	rpcRes = Call(t, "eth_sendTransaction", param)
 
 	var hash hexutil.Bytes
 	err := json.Unmarshal(rpcRes.Result, &hash)
@@ -374,14 +377,15 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 }
 
 func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
-	_ = Call(t, "personal_unlockAccount", []interface{}{hexutil.Bytes(from), ""}) // TODO: rpc_test_fix: unable to unlock a secp256k1 account
+	rpcRes := Call(t, "personal_unlockAccount", []interface{}{hexutil.Bytes(from), ""})
+	require.Nil(t, rpcRes.Error)
 
 	hash, _ := DeployTestContract(t, from)
 
 	time.Sleep(time.Second * 5)
 
 	param := []string{hash.String()}
-	rpcRes := Call(t, "eth_getTransactionReceipt", param)
+	rpcRes = Call(t, "eth_getTransactionReceipt", param)
 
 	receipt := make(map[string]interface{})
 	err := json.Unmarshal(rpcRes.Result, &receipt)
@@ -417,11 +421,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-
-	var logs []*ethtypes.Log
-	err = json.Unmarshal(changesRes.Result, &logs)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(logs))
+	require.Equal(t, 2, len(changesRes.Result))
 }
 
 func TestEth_GetFilterChanges_Addresses(t *testing.T) {
@@ -465,12 +465,7 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-
-	var logs []*ethtypes.Log
-	err = json.Unmarshal(changesRes.Result, &logs)
-	require.NoError(t, err)
-
-	require.Equal(t, 1, len(logs))
+	require.Equal(t, 2, len(changesRes.Result))
 }
 
 func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
@@ -495,12 +490,7 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 
 	// get filter changes
 	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-
-	var logs []*ethtypes.Log
-	err = json.Unmarshal(changesRes.Result, &logs)
-	require.NoError(t, err)
-
-	require.Equal(t, 1, len(logs))
+	require.Equal(t, 2, len(changesRes.Result))
 }
 
 func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
@@ -539,8 +529,10 @@ func TestEth_EstimateGas(t *testing.T) {
 	param[0]["to"] = "0x1122334455667788990011223344556677889900"
 	param[0]["value"] = "0x1"
 
-	// TODO: rpc_test_fix: because the init account key type is secp256k1, and it's not in the api.keys array, so this test failed
-	rpcRes := Call(t, "eth_estimateGas", param)
+	rpcRes := Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.NotNil(t, rpcRes)
+
+	rpcRes = Call(t, "eth_estimateGas", param)
 	require.NotNil(t, rpcRes)
 	require.NotEmpty(t, rpcRes.Result)
 
@@ -548,7 +540,7 @@ func TestEth_EstimateGas(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err, string(rpcRes.Result))
 
-	require.Equal(t, "0xf54c", gas)
+	require.Equal(t, "0xfab9", gas)
 }
 
 func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
@@ -559,8 +551,10 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
 	param[0]["data"] = bytecode
 
-	// TODO: rpc_test_fix: because the init account key type is secp256k1, and it's not in the api.keys array, so this test failed
-	rpcRes := Call(t, "eth_estimateGas", param)
+	rpcRes := Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.NotNil(t, rpcRes)
+
+	rpcRes = Call(t, "eth_estimateGas", param)
 	require.NotNil(t, rpcRes)
 	require.NotEmpty(t, rpcRes.Result)
 
