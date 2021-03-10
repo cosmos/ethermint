@@ -621,7 +621,24 @@ func (api *PublicEthereumAPI) doCall(
 	// create the fee coins with the amount equal to the sum of all msg fees
 	fees := sdk.NewCoins(sdk.NewCoin(paramsRes.Params.EvmDenom, sdk.NewIntFromBigInt(feeAmount)))
 
-	txBytes, err := rpctypes.BuildEthereumTx(api.clientCtx, msgs, accNum, seq, gas, fees, privKey)
+	var finalMsgs []sdk.Msg
+	for _, msg := range msgs {
+		m, ok := msg.(*types.MsgEthereumTx)
+		if !ok {
+			return nil, fmt.Errorf("invalid message type assertion")
+		}
+		err = m.Sign(api.chainIDEpoch, privKey.ToECDSA())
+		if err != nil {
+			return nil, fmt.Errorf("sign msg err: %s", err.Error())
+		}
+		_, err = m.VerifySig(api.chainIDEpoch)
+		if err != nil {
+			return nil, fmt.Errorf("verify msg signature err %s", err.Error())
+		}
+		finalMsgs = append(finalMsgs, m)
+	}
+
+	txBytes, err := rpctypes.BuildEthereumTx(api.clientCtx, finalMsgs, accNum, seq, gas, fees, privKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1022,7 +1039,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
-	var input []byte
+	var input hexutil.Bytes
 	if args.Input != nil {
 		input = *args.Input
 	} else if args.Data != nil {
@@ -1041,7 +1058,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 			Gas:      args.Gas,
 			GasPrice: args.GasPrice,
 			Value:    args.Value,
-			Data:     args.Data,
+			Data:     &input,
 		}
 		gl, err := api.EstimateGas(callArgs)
 		if err != nil {
