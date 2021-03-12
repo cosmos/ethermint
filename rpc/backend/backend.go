@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -80,6 +81,10 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 	resBlock, err := b.clientCtx.Client.Block(b.ctx, height)
 	if err != nil {
 		return nil, err
+	}
+
+	if resBlock.BlockID.IsZero() {
+		return nil, errors.New("failed to query block by number: nil block returned")
 	}
 
 	return rpctypes.EthBlockFromTendermint(b.clientCtx, b.queryClient, resBlock.Block)

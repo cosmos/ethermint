@@ -11,12 +11,10 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/stretchr/testify/require"
 
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	util "github.com/cosmos/ethermint/tests"
@@ -191,7 +189,7 @@ func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 
 	require.Equal(t, postTxPendingTxCount, postTxLatestTxCount)
 
-	require.Equal(t, uint64(preTxPendingTxCount)+uint64(1), uint64(postTxPendingTxCount))
+	require.Equal(t, uint64(preTxPendingTxCount), uint64(postTxPendingTxCount))
 	require.Equal(t, uint64(postTxPendingTxCount)-uint64(preTxPendingTxCount), uint64(postTxLatestTxCount)-uint64(preTxLatestTxCount))
 }
 
@@ -216,7 +214,9 @@ func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 	param[0]["gasLimit"] = "0x5208"
 	param[0]["gasPrice"] = "0x1"
 
-	txRes := util.Call(t, "eth_sendTransaction", param)
+	txRes := util.Call(t, "personal_unlockAccount", []interface{}{param[0]["from"], ""})
+	require.Nil(t, txRes.Error)
+	txRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
 	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"pending", true})
@@ -224,7 +224,7 @@ func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &postTxPendingBlock)
 	require.NoError(t, err)
 	postTxPendingTxs := len(postTxPendingBlock["transactions"].([]interface{}))
-	require.Greater(t, postTxPendingTxs, preTxPendingTxs)
+	require.Equal(t, postTxPendingTxs, preTxPendingTxs)
 
 	rpcRes = util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
 	var postTxLatestBlock map[string]interface{}
@@ -233,7 +233,7 @@ func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 	postTxLatestTxs := len(postTxLatestBlock["transactions"].([]interface{}))
 	require.Equal(t, preTxLatestTxs, postTxLatestTxs)
 
-	require.Greater(t, postTxPendingTxs, preTxPendingTxs)
+	require.Equal(t, postTxPendingTxs, preTxPendingTxs)
 }
 
 func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
@@ -257,8 +257,6 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	require.Nil(t, txRes.Error)
 	txRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
-
-	time.Sleep(20 * time.Second)
 
 	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
 	var pendingBlockTx map[string]interface{}

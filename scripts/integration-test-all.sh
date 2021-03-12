@@ -87,6 +87,7 @@ init_func() {
         sed -i '' 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "2s"/g' $DATA_DIR$i/config/config.toml
         sed -i '' 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $DATA_DIR$i/config/config.toml
+        sed -i '' 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' $DATA_DIR$i/config/config.toml
       else
         sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $DATA_DIR$i/config/config.toml
         sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' $DATA_DIR$i/config/config.toml
@@ -96,6 +97,7 @@ init_func() {
         sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' $DATA_DIR$i/config/config.toml
         sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "2s"/g' $DATA_DIR$i/config/config.toml
         sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' $DATA_DIR$i/config/config.toml
+        sed -i 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' $DATA_DIR$i/config/config.toml
       fi
     fi
 }
@@ -112,6 +114,11 @@ start_func() {
     echo "started ethermint node, pid=$ETHERMINT_PID"
     # add PID to array
     arr+=("$ETHERMINT_PID")
+
+    echo "waiting for the first block..."
+    if [[ $MODE == "pending" ]]; then
+      sleep 5000
+    fi
 }
 
 # Run node with static blockchain database

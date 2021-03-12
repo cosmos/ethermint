@@ -338,18 +338,31 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		if err != nil {
 			return nil
 		}
+
+		var resBlockTxLength = 0
+		if !resBlock.BlockID.IsZero() {
+			resBlockTxLength = len(resBlock.Block.Txs)
+		}
+
 		// get the pending transaction count
 		pendingTxs, err := api.backend.PendingTransactions()
 		if err != nil {
 			return nil
 		}
-		txs = len(resBlock.Block.Txs) + len(pendingTxs)
+
+		txs = resBlockTxLength + len(pendingTxs)
 	case rpctypes.LatestBlockNumber:
 		resBlock, err := api.clientCtx.Client.Block(api.ctx, nil)
 		if err != nil {
 			return nil
 		}
-		txs = len(resBlock.Block.Txs)
+
+		var resBlockTxLength = 0
+		if !resBlock.BlockID.IsZero() {
+			resBlockTxLength = len(resBlock.Block.Txs)
+		}
+
+		txs = resBlockTxLength
 	default:
 		height = blockNum.Int64()
 		resBlock, err := api.clientCtx.Client.Block(api.ctx, &height)
@@ -692,7 +705,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 
 	if blockNum != rpctypes.PendingBlockNumber {
-		return api.backend.GetBlockByNumber(blockNum, fullTx) // TODO: rpc_test_fix: block bloom not found from tendermint (func: EthBlockFromTendermint)
+		return api.backend.GetBlockByNumber(blockNum, fullTx)
 	}
 
 	// fetch latest block
