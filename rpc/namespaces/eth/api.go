@@ -219,6 +219,7 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 
@@ -270,6 +271,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
 
@@ -387,6 +389,7 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 }
 
 // GetCode returns the contract code at the given address and block number.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
 
@@ -626,7 +629,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// NOTE: we query the EVM denomination to allow other chains to use their custom denomination as
 	// the fee token
-	paramsRes, err := api.queryClient.Params(api.ctx, &types.QueryParamsRequest{})
+	paramsRes, err := api.queryClient.Params(api.ctx, &evmtypes.QueryParamsRequest{})
 	if err != nil {
 		return nil, err
 	}
