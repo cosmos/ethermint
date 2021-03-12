@@ -18,7 +18,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkserver "github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/server/types"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -155,7 +154,7 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 // AddCommands adds the server commands
 func AddCommands(
 	rootCmd *cobra.Command, defaultNodeHome string,
-	appCreator servertypes.AppCreator, appExport types.AppExporter, addStartFlags types.ModuleInitFlags,
+	appCreator servertypes.AppCreator, appExport servertypes.AppExporter, addStartFlags servertypes.ModuleInitFlags,
 ) {
 	tendermintCmd := &cobra.Command{
 		Use:   "tendermint",
