@@ -219,8 +219,9 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
-	api.logger.Debug("eth_getBalance", "address", address.String(), "block number", blockNum)
+	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 
 	req := &evmtypes.QueryBalanceRequest{
 		Address: address.String(),
@@ -270,8 +271,9 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getStorageAt", "address", address.String(), "key", key, "block number", blockNum)
+	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
 
 	req := &evmtypes.QueryStorageRequest{
 		Address: address.String(),
@@ -374,8 +376,9 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 }
 
 // GetCode returns the contract code at the given address and block number.
+//nolint:interfacer
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getCode", "address", address.String(), "block number", blockNumber)
+	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
 
 	req := &evmtypes.QueryCodeRequest{
 		Address: address.String(),
