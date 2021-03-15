@@ -258,23 +258,29 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	txRes = util.Call(t, "eth_sendTransaction", param)
 	require.Nil(t, txRes.Error)
 
-	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
-	var pendingBlockTx map[string]interface{}
-	err = json.Unmarshal(rpcRes.Result, &pendingBlockTx)
+	// test will be blocked here until tx gets confirmed
+	var txHash common.Hash
+	err = json.Unmarshal(txRes.Result, &txHash)
+	require.NoError(t, err)
+
+	rpcRes := util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"latest", "0x" + fmt.Sprintf("%X", pendingTxCount)})
+	var latestBlockTx map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &latestBlockTx)
 	require.NoError(t, err)
 
 	// verify the pending tx has all the correct fields from the tx sent.
-	require.NotEmpty(t, pendingBlockTx["hash"])
-	require.Equal(t, pendingBlockTx["value"], "0xa")
-	require.Equal(t, data, pendingBlockTx["input"])
+	require.NotEmpty(t, latestBlockTx["hash"])
+	require.Equal(t, latestBlockTx["value"], "0xa")
+	require.Equal(t, data, latestBlockTx["input"])
 
-	rpcRes = util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"latest", "0x" + fmt.Sprintf("%X", pendingTxCount)})
-	var latestBlock map[string]interface{}
-	err = json.Unmarshal(rpcRes.Result, &latestBlock)
+	rpcRes = util.Call(t, "eth_getTransactionByBlockNumberAndIndex", []interface{}{"pending", "0x" + fmt.Sprintf("%X", pendingTxCount)})
+	var pendingBlock map[string]interface{}
+	err = json.Unmarshal(rpcRes.Result, &pendingBlock)
 	require.NoError(t, err)
 
-	// verify the pending trasnaction does not exist in the latest block info.
-	require.Empty(t, latestBlock)
+
+	// verify the transaction does not exist in the pending block info.
+	require.Empty(t, pendingBlock)
 }
 
 func TestEth_Pending_GetTransactionByHash(t *testing.T) {

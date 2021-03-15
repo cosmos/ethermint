@@ -6,9 +6,9 @@ go build -o ./build/ethermintd ./cmd/ethermintd
 mkdir $GOPATH/bin
 cp ./build/ethermintd $GOPATH/bin
 
-localKeyAddr=0x71c767afdadad36f1e6706b9c5d412ad52a9499c
-user1Addr=0x872622f88c502a7c3c534659b5ebdc79ec2c581b
-user2Addr=0xac78c8e82ce54b9630995b4a04aa68d7ca991a50
+localKeyAddr=0x7cb61d4117ae31a12e393a1cfa3bac666481d02e
+user1Addr=0xc6fe5d33615a1c52c08018c47e8bc53646a0e101
+user2Addr=0x963ebdf2e1f8db8707d05fc75bfeffba1b5bac17
 
 CHAINID="ethermint-1337"
 
@@ -33,12 +33,15 @@ nohup ./init-test-node.sh > ethermintd.log 2>&1 &
 echo "sleeping ..."
 sleep 10
 
+# show existing accounts
+echo "account list: "
+curl -X POST --data '{"jsonrpc":"2.0","method":"personal_listAccounts","params":[],"id":1}' -H "Content-Type: application/json" http://localhost:8545
+
 # unlock localKey address
 curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$localKeyAddr'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
 # tests start
 cd suites/initializable
-yarn contract-compile
 yarn contract-migrate
 yarn test-ethermint
 

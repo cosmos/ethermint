@@ -116,9 +116,9 @@ start_func() {
     # add PID to array
     arr+=("$ETHERMINT_PID")
 
-    echo "waiting for the first block..."
     if [[ $MODE == "pending" ]]; then
-      sleep 5000
+      echo "waiting for the first block..."
+      sleep 300
     fi
 }
 
@@ -141,10 +141,15 @@ set +e
 
 if [[ -z $TEST || $TEST == "rpc" ||  $TEST == "pending" ]]; then
 
+    time_out=300s
+    if [[ $TEST == "pending" ]]; then
+      time_out=60m0s
+    fi
+
     for i in $(seq 1 "$TEST_QTD"); do
         HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"
         echo "going to test ethermint node $HOST_RPC ..."
-        MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=300s -v -short
+        MODE=$MODE HOST=$HOST_RPC go test ./tests/... -timeout=$time_out -v -short
 
         RPC_FAIL=$?
     done

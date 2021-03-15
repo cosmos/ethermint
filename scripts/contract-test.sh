@@ -51,7 +51,7 @@ echo "$ACCT"
 # Start testcases
 curl -X POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'$ACCT'", ""],"id":1}' -H "Content-Type: application/json" http://localhost:8545
 
-PRIVKEY="$("$PWD"/build/ethermintd keys export $KEY)"
+#PRIVKEY="$("$PWD"/build/ethermintd keys export $KEY)"
 
 ## need to get the private key from the account in order to check this functionality.
 cd tests-solidity/suites/basic/ && go get && go run main.go $ACCT
