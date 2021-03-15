@@ -64,4 +64,4 @@ if [[ $1 == "pending" ]]; then
 fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-ethermintd start --pruning=nothing --rpc.unsafe --keyring-backend test --trace
+ethermintd start --pruning=nothing --rpc.unsafe --rpc-api "web3, eth, personal, net" --keyring-backend test --trace

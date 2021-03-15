@@ -108,6 +108,7 @@ start_func() {
     --p2p.laddr tcp://$IP_ADDR:$NODE_P2P_PORT"$i" --address tcp://$IP_ADDR:$NODE_PORT"$i" --rpc.laddr tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --json-rpc.address http://$IP_ADDR:$RPC_PORT"$i" \
     --keyring-backend test --home "$DATA_DIR$i" \
+    --rpc-api "web3, eth, personal, net" \
     >"$DATA_DIR"/node"$i".log 2>&1 & disown
 
     ETHERMINT_PID=$!

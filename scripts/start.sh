@@ -112,6 +112,7 @@ start_cli_func() {
     "$PWD"/build/ethermintd rest-server --unlock-key $KEY"$i" --chain-id $CHAINID --trace \
     --laddr "tcp://localhost:$RPC_PORT$i" --node tcp://$IP_ADDR:$NODE_RPC_PORT"$i" \
     --home "$DATA_CLI_DIR$i" --read-timeout 30 --write-timeout 30 \
+    --rpc-api "web3, eth, personal, net" \
     >"$DATA_CLI_DIR"/cli"$i".log 2>&1 & disown
     
     ETHERMINT_CLI_PID=$!
