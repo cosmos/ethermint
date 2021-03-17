@@ -23,11 +23,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash
-	lastHash := req.Header.LastBlockId.GetHash()
-	height := req.Header.GetHeight() - 1
+	height := req.Header.GetHeight()
 
-	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
-	k.SetBlockHash(ctx, lastHash, height)
+	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(currentHash))
+	k.SetBlockHash(ctx, currentHash, height)
 	k.CommitStateDB.SetBlockHash(common.BytesToHash(currentHash))
 
 	// reset counters that are used on CommitStateDB.Prepare
