@@ -55,8 +55,8 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	return func(height uint64) common.Hash {
 		switch {
 		case ctx.BlockHeight() == int64(height):
-			// Case 1: The requested height matches the one from the context so we can retrieve the header
-			// hash directly from the context.
+			// Case 1: The requested height matches the one from the CommitStateDB so we can retrieve the block
+			// hash directly from the CommitStateDB.
 			return csdb.bhash
 
 		case ctx.BlockHeight() > int64(height):
