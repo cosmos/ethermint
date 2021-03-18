@@ -186,28 +186,28 @@ $(RUNSIM):
 contract-tools:
 ifeq (, $(shell which stringer))
 	@echo "Installing stringer..."
-	@go install golang.org/x/tools/cmd/stringer
+	@go get golang.org/x/tools/cmd/stringer
 else
 	@echo "stringer already installed; skipping..."
 endif
 
 ifeq (, $(shell which go-bindata))
 	@echo "Installing go-bindata..."
-	@go install github.com/kevinburke/go-bindata/go-bindata
+	@go get github.com/kevinburke/go-bindata/go-bindata
 else
 	@echo "go-bindata already installed; skipping..."
 endif
 
 ifeq (, $(shell which gencodec))
 	@echo "Installing gencodec..."
-	@go install github.com/fjl/gencodec
+	@go get github.com/fjl/gencodec
 else
 	@echo "gencodec already installed; skipping..."
 endif
 
 ifeq (, $(shell which protoc-gen-go))
 	@echo "Installing protoc-gen-go..."
-	@go install github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/fjl/gencodec github.com/golang/protobuf/protoc-gen-go
 else
 	@echo "protoc-gen-go already installed; skipping..."
 endif
