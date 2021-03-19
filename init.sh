@@ -23,8 +23,12 @@ cat $HOME/.ethermint/config/genesis.json | jq '.app_state["mint"]["params"]["min
 # increase block time (?)
 cat $HOME/.ethermint/config/genesis.json | jq '.consensus_params["block"]["time_iota_ms"]="30000"' > $HOME/.ethermint/config/tmp_genesis.json && mv $HOME/.ethermint/config/tmp_genesis.json $HOME/.ethermint/config/genesis.json
 
-# not produce empty block
-sed -i '' 's/create_empty_blocks = true/create_empty_blocks = false/g' $HOME/.ethermint/config/config.toml
+# disable produce empty block
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' 's/create_empty_blocks = true/create_empty_blocks = false/g' $HOME/.ethermint/config/config.toml
+  else
+    sed -i 's/create_empty_blocks = true/create_empty_blocks = false/g' $HOME/.ethermint/config/config.toml
+fi
 
 if [[ $1 == "pending" ]]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
