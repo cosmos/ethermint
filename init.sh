@@ -23,6 +23,9 @@ cat $HOME/.ethermint/config/genesis.json | jq '.app_state["mint"]["params"]["min
 # increase block time (?)
 cat $HOME/.ethermint/config/genesis.json | jq '.consensus_params["block"]["time_iota_ms"]="30000"' > $HOME/.ethermint/config/tmp_genesis.json && mv $HOME/.ethermint/config/tmp_genesis.json $HOME/.ethermint/config/genesis.json
 
+# not produce empty block
+sed -i '' 's/create_empty_blocks = true/create_empty_blocks = false/g' $HOME/.ethermint/config/config.toml
+
 if [[ $1 == "pending" ]]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
       sed -i '' 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' $HOME/.ethermint/config/config.toml
@@ -64,4 +67,4 @@ if [[ $1 == "pending" ]]; then
 fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-ethermintd start --pruning=nothing --rpc.unsafe --rpc-api "web3, eth, personal, net" --keyring-backend test --trace
+ethermintd start --pruning=nothing --rpc.unsafe --rpc-api "web3, eth, personal, net" --keyring-backend test --trace --log_level info

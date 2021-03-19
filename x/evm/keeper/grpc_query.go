@@ -22,7 +22,7 @@ func (q Keeper) Account(c context.Context, req *types.QueryAccountRequest) (*typ
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if types.IsZeroAddress(req.Address) {
+	if len(req.Address) == 0 {
 		return nil, status.Error(
 			codes.InvalidArgument,
 			types.ErrZeroAddress.Error(),
@@ -49,7 +49,7 @@ func (q Keeper) Balance(c context.Context, req *types.QueryBalanceRequest) (*typ
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if types.IsZeroAddress(req.Address) {
+	if len(req.Address) == 0 {
 		return nil, status.Error(
 			codes.InvalidArgument,
 			types.ErrZeroAddress.Error(),
@@ -78,14 +78,14 @@ func (q Keeper) Storage(c context.Context, req *types.QueryStorageRequest) (*typ
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if types.IsZeroAddress(req.Address) {
+	if len(req.Address) == 0 {
 		return nil, status.Error(
 			codes.InvalidArgument,
 			types.ErrZeroAddress.Error(),
 		)
 	}
 
-	if types.IsEmptyHash(req.Key) {
+	if len(req.Key) == 0 {
 		return nil, status.Error(
 			codes.InvalidArgument,
 			types.ErrEmptyHash.Error(),
@@ -110,7 +110,7 @@ func (q Keeper) Code(c context.Context, req *types.QueryCodeRequest) (*types.Que
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	if types.IsZeroAddress(req.Address) {
+	if len(req.Address) == 0 {
 		return nil, status.Error(
 			codes.InvalidArgument,
 			types.ErrZeroAddress.Error(),
