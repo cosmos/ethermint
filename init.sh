@@ -55,10 +55,10 @@ if [[ $1 == "pending" ]]; then
 fi
 
 # Allocate genesis accounts (cosmos formatted addresses)
-ethermintd add-genesis-account $KEY 10000000000000000000aphoton,1000000000000000000stake --keyring-backend test
+ethermintd add-genesis-account $KEY 1000000000000000000000aphoton,1000000000000000000stake --keyring-backend test
 
 # Sign genesis transaction
-ethermintd gentx $KEY 1000000000000000000stake --amount=10000000000000000000aphoton --keyring-backend test --chain-id $CHAINID
+ethermintd gentx $KEY 1000000000000000000stake --amount=1000000000000000000000aphoton --keyring-backend test --chain-id $CHAINID
 
 # Collect genesis tx
 ethermintd collect-gentxs
