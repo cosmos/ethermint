@@ -62,7 +62,8 @@ func (suite *AnteTestSuite) TestValidEthTx() {
 	requireValidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
-func (suite *AnteTestSuite) TestValidTx() {
+// the legacytx.NewStdTx has been deprecated and It only works with Amino now
+func (suite *AnteTestSuite) TestInValidTx() {
 	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
@@ -89,7 +90,7 @@ func (suite *AnteTestSuite) TestValidTx() {
 
 	tx := newTestSDKTx(suite.ctx, msgs, privKeys, accNums, accSeqs, fee)
 
-	requireValidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
+	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
 
 func (suite *AnteTestSuite) TestSDKInvalidSigs() {

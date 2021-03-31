@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
@@ -170,7 +171,7 @@ func TestImportBlocks(t *testing.T) {
 		require.NoError(t, err, "failed to start CPU profile")
 	}
 
-	db, err := dbm.NewDB("state", dbm.GoLevelDBBackend, flagDataDir)
+	db, err := dbm.NewDB("state_test"+uuid.New().String(), dbm.GoLevelDBBackend, flagDataDir)
 	require.NoError(t, err)
 
 	defer cleanup()

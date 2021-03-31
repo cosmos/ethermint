@@ -2,7 +2,6 @@ package keeper_test
 
 import (
 	"fmt"
-
 	"google.golang.org/grpc/metadata"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -30,11 +29,17 @@ func (suite *KeeperTestSuite) TestQueryAccount() {
 	}{
 		{"zero address",
 			func() {
+				suite.app.BankKeeper.SetBalance(suite.ctx, suite.address.Bytes(), ethermint.NewPhotonCoinInt64(0))
+				expAccount = &types.QueryAccountResponse{
+					Balance:  "0",
+					CodeHash: ethcrypto.Keccak256(nil),
+					Nonce:    0,
+				}
 				req = &types.QueryAccountRequest{
 					Address: ethcmn.Address{}.String(),
 				}
 			},
-			false,
+			true,
 		},
 		{
 			"success",
@@ -86,11 +91,13 @@ func (suite *KeeperTestSuite) TestQueryBalance() {
 	}{
 		{"zero address",
 			func() {
+				suite.app.BankKeeper.SetBalance(suite.ctx, suite.address.Bytes(), ethermint.NewPhotonCoinInt64(0))
+				expBalance = "0"
 				req = &types.QueryBalanceRequest{
 					Address: ethcmn.Address{}.String(),
 				}
 			},
-			false,
+			true,
 		},
 		{
 			"success",
@@ -150,8 +157,10 @@ func (suite *KeeperTestSuite) TestQueryStorage() {
 					Address: suite.address.String(),
 					Key:     ethcmn.Hash{}.String(),
 				}
+				exp := &types.QueryStorageResponse{Value: "0x0000000000000000000000000000000000000000000000000000000000000000"}
+				expValue = exp.Value
 			},
-			false,
+			true,
 		},
 		{
 			"success",
@@ -205,8 +214,10 @@ func (suite *KeeperTestSuite) TestQueryCode() {
 				req = &types.QueryCodeRequest{
 					Address: ethcmn.Address{}.String(),
 				}
+				exp := &types.QueryCodeResponse{}
+				expCode = exp.Code
 			},
-			false,
+			true,
 		},
 		{
 			"success",
@@ -447,6 +458,7 @@ func (suite *KeeperTestSuite) TestQueryBlockBloom() {
 		{
 			"success",
 			func() {
+				req = &types.QueryBlockBloomRequest{}
 				bloom := ethtypes.BytesToBloom([]byte("bloom"))
 				expBloom = bloom.Bytes()
 				suite.ctx = suite.ctx.WithBlockHeight(1)

@@ -78,7 +78,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"passed",
 			func() {
 				suite.app.EvmKeeper.SetBalance(suite.ctx, suite.from, big.NewInt(100))
-				tx = types.NewMsgEthereumTx(0, &suite.from, big.NewInt(100), 0, big.NewInt(10000), nil)
+				tx = types.NewMsgEthereumTx(0, &suite.from, big.NewInt(0), 0, big.NewInt(10000), nil)
 
 				// parse context chain ID to big.Int
 				chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
@@ -195,7 +195,34 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
-	suite.Require().Equal(logs, txResponse.TxLogs.Logs)
+	suite.Require().Equal(len(logs), len(txResponse.TxLogs.Logs))
+
+	for i, logI := range logs {
+		for j, logJ := range txResponse.TxLogs.Logs {
+			if i != j {
+				continue
+			}
+			suite.Require().Equal(uint64(logI.Index), logJ.Index)
+			suite.Require().Equal(logI.Data, logJ.Data)
+			suite.Require().Equal(logI.Address.String(), logJ.Address)
+			suite.Require().Equal(logI.BlockHash.String(), logJ.BlockHash)
+			suite.Require().Equal(logI.BlockNumber, logJ.BlockNumber)
+			suite.Require().Equal(logI.Removed, logJ.Removed)
+			suite.Require().Equal(logI.TxHash.String(), logJ.TxHash)
+			suite.Require().Equal(uint64(logI.TxIndex), logJ.TxIndex)
+
+			suite.Require().Equal(len(logI.Topics), len(logJ.Topics))
+
+			for i2, topicI := range logI.Topics {
+				for j2, topicJ := range logJ.Topics {
+					if i2 != j2 {
+						continue
+					}
+					suite.Require().Equal(topicI.String(), topicJ)
+				}
+			}
+		}
+	}
 }
 
 func (suite *EvmTestSuite) TestQueryTxLogs() {
