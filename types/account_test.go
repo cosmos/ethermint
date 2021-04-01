@@ -38,7 +38,7 @@ func (suite *AccountTestSuite) SetupTest() {
 	baseAcc := authtypes.NewBaseAccount(addr, pubKey, 10, 50)
 	suite.account = &types.EthAccount{
 		BaseAccount: baseAcc,
-		CodeHash:    []byte{1, 2},
+		CodeHash:    []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2},
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
@@ -59,7 +59,7 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	suite.Require().Equal(string(bz1), string(bz))
 
 	var a types.EthAccount
-	suite.Require().NoError(a.UnmarshalJSON(bz))
+	suite.Require().NoError(a.UnmarshalJSON(bz1))
 	suite.Require().Equal(suite.account.String(), a.String())
 	suite.Require().Equal(suite.account.GetPubKey(), a.GetPubKey())
 }
@@ -77,7 +77,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   public_key: %s
   account_number: 10
   sequence: 50
-  code_hash: "0102"
+  code_hash: "0000000000000000000000000000000000000000000000000000000000000102"
 `, suite.account.Address, suite.account.EthAddress().String(), bech32pubkey)
 
 	suite.Require().Equal(accountStr, suite.account.String())
