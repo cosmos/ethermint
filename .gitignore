@@ -31,13 +31,13 @@ docs-tools-stamp
 proto-tools-stamp
 golangci-lint
 keyring_test_cosmos
-yarn.lock
 
 # Testing
 coverage.txt
 *.out
 sim_log_file
 importer/tmp
+yarn.lock
 
 # Vagrant
 .vagrant/
