@@ -51,7 +51,7 @@ func TestAccountTestSuite(t *testing.T) {
 }
 
 func (suite *AccountTestSuite) TestEthermintAccountJSON() {
-	bz, err := suite.cdc.MarshalJSON(suite.account)
+	bz, err := json.Marshal(suite.account)
 	suite.Require().NoError(err)
 
 	bz1, err := suite.account.MarshalJSON()
