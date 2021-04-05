@@ -567,7 +567,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 
 func TestEth_GetBlockByNumber(t *testing.T) {
 	param := []interface{}{"0x1", false}
-	rpcRes := Call(t, "eth_getBlockByNumber", param) // TODO: rpc_test_fix: bloom filter not found
+	rpcRes := Call(t, "eth_getBlockByNumber", param)
 
 	block := make(map[string]interface{})
 	err := json.Unmarshal(rpcRes.Result, &block)

@@ -84,7 +84,8 @@ func EthBlockFromTendermint(clientCtx client.Context, queryClient *QueryClient, 
 
 	req := &evmtypes.QueryBlockBloomRequest{}
 
-	res, err := queryClient.BlockBloom(ContextWithHeight(block.Height), req)
+	// use height 0 for querying the latest block height
+	res, err := queryClient.BlockBloom(ContextWithHeight(0), req)
 	if err != nil {
 		return nil, err
 	}
