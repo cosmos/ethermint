@@ -157,7 +157,7 @@ var (
 )
 
 var (
-	_ simapp.App              = (*EthermintApp)(nil)
+	//_ simapp.App              = (*EthermintApp)(nil)
 	_ servertypes.Application = (*EthermintApp)(nil)
 )
 
@@ -204,7 +204,8 @@ type EthermintApp struct {
 	mm *module.Manager
 
 	// simulation manager
-	sm *module.SimulationManager
+	// disable for now, enable it once SDK side fix the simulator issue for custom keys
+	//sm *module.SimulationManager
 }
 
 // NewEthermintApp returns a reference to a new initialized Ethermint application.
@@ -421,22 +422,22 @@ func NewEthermintApp(
 	//
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
-	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		params.NewAppModule(app.ParamsKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
-		ibc.NewAppModule(app.IBCKeeper),
-		transferModule,
-	)
+	//app.sm = module.NewSimulationManager(
+	//	auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
+	//	bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
+	//	capability.NewAppModule(appCodec, *app.CapabilityKeeper),
+	//	gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+	//	mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
+	//	staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+	//	distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+	//	slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+	//	params.NewAppModule(app.ParamsKeeper),
+	//	evidence.NewAppModule(app.EvidenceKeeper),
+	//	ibc.NewAppModule(app.IBCKeeper),
+	//	transferModule,
+	//)
 
-	app.sm.RegisterStoreDecoders()
+	//app.sm.RegisterStoreDecoders()
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -577,9 +578,9 @@ func (app *EthermintApp) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 // SimulationManager implements the SimulationApp interface
-func (app *EthermintApp) SimulationManager() *module.SimulationManager {
-	return app.sm
-}
+//func (app *EthermintApp) SimulationManager() *module.SimulationManager {
+//	return app.sm
+//}
 
 // RegisterAPIRoutes registers all application module routes with the provided
 // API server.
