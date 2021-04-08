@@ -53,6 +53,7 @@ func printKeyInfo(w io.Writer, keyInfo cryptokeyring.Info, bechKeyOut bechKeyOut
 	}
 }
 
+//nolint
 func printInfos(w io.Writer, infos []cryptokeyring.Info, output string) {
 	kos, err := cryptokeyring.Bech32KeysOutput(infos)
 	if err != nil {
@@ -81,6 +82,7 @@ func printTextInfos(w io.Writer, kos []cryptokeyring.KeyOutput) {
 	fmt.Fprintln(w, string(out))
 }
 
+//nolint
 func printKeyAddress(w io.Writer, info cryptokeyring.Info, bechKeyOut bechKeyOutFn) {
 	ko, err := bechKeyOut(info)
 	if err != nil {
@@ -90,6 +92,7 @@ func printKeyAddress(w io.Writer, info cryptokeyring.Info, bechKeyOut bechKeyOut
 	fmt.Fprintln(w, ko.Address)
 }
 
+//nolint
 func printPubKey(w io.Writer, info cryptokeyring.Info, bechKeyOut bechKeyOutFn) {
 	ko, err := bechKeyOut(info)
 	if err != nil {

@@ -157,7 +157,7 @@ var (
 )
 
 var (
-	//_ simapp.App              = (*EthermintApp)(nil)
+	// _ simapp.App              = (*EthermintApp)(nil)
 	_ servertypes.Application = (*EthermintApp)(nil)
 )
 
@@ -205,7 +205,7 @@ type EthermintApp struct {
 
 	// simulation manager
 	// disable for now, enable it once SDK side fix the simulator issue for custom keys
-	//sm *module.SimulationManager
+	// sm *module.SimulationManager
 }
 
 // NewEthermintApp returns a reference to a new initialized Ethermint application.
@@ -422,7 +422,7 @@ func NewEthermintApp(
 	//
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
-	//app.sm = module.NewSimulationManager(
+	// app.sm = module.NewSimulationManager(
 	//	auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
 	//	bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 	//	capability.NewAppModule(appCodec, *app.CapabilityKeeper),
@@ -437,7 +437,7 @@ func NewEthermintApp(
 	//	transferModule,
 	//)
 
-	//app.sm.RegisterStoreDecoders()
+	// app.sm.RegisterStoreDecoders()
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -578,7 +578,7 @@ func (app *EthermintApp) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 // SimulationManager implements the SimulationApp interface
-//func (app *EthermintApp) SimulationManager() *module.SimulationManager {
+// func (app *EthermintApp) SimulationManager() *module.SimulationManager {
 //	return app.sm
 //}
 

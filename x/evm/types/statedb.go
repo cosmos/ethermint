@@ -135,49 +135,38 @@ func (csdb *CommitStateDB) SetParams(params Params) {
 // SetBalance sets the balance of an account.
 func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.SetBalance(amount)
-	}
+	so.SetBalance(amount)
+
 }
 
 // AddBalance adds amount to the account associated with addr.
 func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.AddBalance(amount)
-	}
+	so.AddBalance(amount)
 }
 
 // SubBalance subtracts amount from the account associated with addr.
 func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.SubBalance(amount)
-	}
+	so.SubBalance(amount)
 }
 
 // SetNonce sets the nonce (sequence number) of an account.
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.SetNonce(nonce)
-	}
+	so.SetNonce(nonce)
 }
 
 // SetState sets the storage state with a key, value pair for an account.
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.SetState(nil, key, value)
-	}
+	so.SetState(nil, key, value)
 }
 
 // SetCode sets the code for a given account.
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so := csdb.GetOrNewStateObject(addr)
-	if so != nil {
-		so.SetCode(ethcrypto.Keccak256Hash(code), code)
-	}
+	so.SetCode(ethcrypto.Keccak256Hash(code), code)
 }
 
 // ----------------------------------------------------------------------------
@@ -866,8 +855,7 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	return nil
 }
 
-// GetOrNewStateObject retrieves a state object or create a new state object if
-// nil.
+// GetOrNewStateObject retrieves a state object or create a new state object if nil.
 func (csdb *CommitStateDB) GetOrNewStateObject(addr ethcmn.Address) StateObject {
 	so := csdb.getStateObject(addr)
 	if so == nil || so.deleted {

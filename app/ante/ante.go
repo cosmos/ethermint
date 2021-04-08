@@ -87,7 +87,7 @@ func NewAnteHandler(
 	}
 }
 
-var _ authante.SignatureVerificationGasConsumer = DefaultSigVerificationGasConsumer
+var _ = DefaultSigVerificationGasConsumer
 
 // DefaultSigVerificationGasConsumer is the default implementation of SignatureVerificationGasConsumer. It consumes gas
 // for signature verification based upon the public key type. The cost is fetched from the given params and is matched

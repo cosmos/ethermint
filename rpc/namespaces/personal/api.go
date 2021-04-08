@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/cosmos/ethermint/crypto/hd"
 	ethermint "github.com/cosmos/ethermint/types"
 	"github.com/tendermint/tendermint/libs/log"
-	"os"
-	"time"
 
 	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -81,7 +82,7 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 	}
 
 	// append key and info to be able to lock and list the account
-	//api.ethAPI.keys = append(api.ethAPI.keys, privKey)
+	// api.ethAPI.keys = append(api.ethAPI.keys, privKey)
 	api.keyInfos = append(api.keyInfos, info)
 	api.logger.Info("key successfully imported", "name", privKeyName, "address", addr.String())
 
@@ -137,6 +138,7 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	// the new account encrypted with default empty string in cosmos-SDK,
 	// if we create mnemonic then create new account, we basically generated two accounts
 
+	// nolint
 	//name = "key_" + time.Now().UTC().Format(time.RFC3339)
 	//info, err := api.ethAPI.ClientCtx().Keyring.NewAccount(name, mnemonic, password, ethermint.BIP44HDPath, hd.EthSecp256k1)
 	//if err != nil {

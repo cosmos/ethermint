@@ -19,7 +19,6 @@ import (
 	"github.com/cosmos/ethermint/rpc/backend"
 	rpctypes "github.com/cosmos/ethermint/rpc/types"
 	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/types"
 	evmtypes "github.com/cosmos/ethermint/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -637,9 +636,9 @@ func (api *PublicEthereumAPI) doCall(
 	// create the fee coins with the amount equal to the sum of all msg fees
 	fees := sdk.NewCoins(sdk.NewCoin(paramsRes.Params.EvmDenom, sdk.NewIntFromBigInt(feeAmount)))
 
-	var finalMsgs []sdk.Msg
+	finalMsgs := make([]sdk.Msg, 0, len(msgs))
 	for _, msg := range msgs {
-		m, ok := msg.(*types.MsgEthereumTx)
+		m, ok := msg.(*evmtypes.MsgEthereumTx)
 		if !ok {
 			return nil, fmt.Errorf("invalid message type assertion")
 		}

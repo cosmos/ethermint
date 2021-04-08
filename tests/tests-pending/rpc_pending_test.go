@@ -278,7 +278,6 @@ func TestEth_Pending_GetTransactionByBlockNumberAndIndex(t *testing.T) {
 	err = json.Unmarshal(rpcRes.Result, &pendingBlock)
 	require.NoError(t, err)
 
-
 	// verify the transaction does not exist in the pending block info.
 	require.Empty(t, pendingBlock)
 }
