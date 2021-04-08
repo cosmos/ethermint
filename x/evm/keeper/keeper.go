@@ -108,19 +108,20 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 
 // GetAllTxLogs return all the transaction logs from the store.
 func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
-	defer iterator.Close()
+	// store := ctx.KVStore(k.storeKey)
+	// iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
+	// defer iterator.Close()
 
-	txsLogs := []types.TransactionLogs{}
-	for ; iterator.Valid(); iterator.Next() {
-		var txLog types.TransactionLogs
-		k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &txLog)
+	// txsLogs := []types.TransactionLogs{}
+	// for ; iterator.Valid(); iterator.Next() {
+	// 	var txLog types.TransactionLogs
+	// 	k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &txLog)
 
-		// add a new entry
-		txsLogs = append(txsLogs, txLog)
-	}
-	return txsLogs
+	// 	// add a new entry
+	// 	txsLogs = append(txsLogs, txLog)
+	// }
+	// return txsLogs
+	return []types.TransactionLogs{}
 }
 
 // GetAccountStorage return state storage associated with an account

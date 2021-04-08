@@ -135,7 +135,7 @@ message State {
 // with a given hash. It it used for import/export data as transactions are not
 // persisted on blockchain state after an upgrade.
 message TransactionLogs {
-  string hash = 1;
+  bytes hash = 1;
   repeated Log logs = 2;
 }
 
@@ -158,11 +158,11 @@ message Log {
   // block in which the transaction was included
   uint64 block_number = 4 [ (gogoproto.jsontag) = "blockNumber" ];
   // hash of the transaction
-  string tx_hash = 5 [ (gogoproto.jsontag) = "transactionHash" ];
+  bytes tx_hash = 5 [ (gogoproto.jsontag) = "transactionHash" ];
   // index of the transaction in the block
   uint64 tx_index = 6 [ (gogoproto.jsontag) = "transactionIndex" ];
   // hash of the block in which the transaction was included
-  string block_hash = 7 [ (gogoproto.jsontag) = "blockHash" ];
+  bytes block_hash = 7 [ (gogoproto.jsontag) = "blockHash" ];
   // index of the log in the block
   uint64 index = 8 [ (gogoproto.jsontag) = "logIndex" ];
 

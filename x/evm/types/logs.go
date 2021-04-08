@@ -12,7 +12,7 @@ import (
 // NewTransactionLogs creates a new NewTransactionLogs instance.
 func NewTransactionLogs(hash ethcmn.Hash, logs []*Log) TransactionLogs { // nolint: interfacer
 	return TransactionLogs{
-		Hash: hash.String(),
+		Hash: hash[:],
 		Logs: logs,
 	}
 }
@@ -25,14 +25,15 @@ func NewTransactionLogsFromEth(hash ethcmn.Hash, ethlogs []*ethtypes.Log) Transa
 	}
 
 	return TransactionLogs{
-		Hash: hash.String(),
+		Hash: hash[:],
 		Logs: logs,
 	}
+	//return logs
 }
 
 // Validate performs a basic validation of a GenesisAccount fields.
 func (tx TransactionLogs) Validate() error {
-	if ethermint.IsEmptyHash(tx.Hash) {
+	if ethermint.IsEmptyHash(string(tx.Hash)) {
 		return fmt.Errorf("hash cannot be the empty %s", tx.Hash)
 	}
 
@@ -43,7 +44,7 @@ func (tx TransactionLogs) Validate() error {
 		if err := log.Validate(); err != nil {
 			return fmt.Errorf("invalid log %d: %w", i, err)
 		}
-		if log.TxHash != tx.Hash {
+		if string(log.TxHash) != string(tx.Hash) {
 			return fmt.Errorf("log tx hash mismatch (%s ≠ %s)", log.TxHash, tx.Hash)
 		}
 	}
@@ -57,16 +58,16 @@ func (tx TransactionLogs) EthLogs() []*ethtypes.Log {
 
 // Validate performs a basic validation of an ethereum Log fields.
 func (log *Log) Validate() error {
-	if ethermint.IsZeroAddress(log.Address) {
-		return fmt.Errorf("log address cannot be empty %s", log.Address)
-	}
-	if IsEmptyHash(log.BlockHash) {
+	//if ethermint.IsZeroAddress(log.Address) {
+	// 	return fmt.Errorf("log address cannot be empty %s", log.Address)
+	//}
+	if IsEmptyHash(string(log.BlockHash)) {
 		return fmt.Errorf("block hash cannot be the empty %s", log.BlockHash)
 	}
 	if log.BlockNumber == 0 {
 		return errors.New("block number cannot be zero")
 	}
-	if ethermint.IsEmptyHash(log.TxHash) {
+	if ethermint.IsEmptyHash(string(log.TxHash)) {
 		return fmt.Errorf("tx hash cannot be the empty %s", log.TxHash)
 	}
 	return nil
@@ -84,15 +85,24 @@ func (log *Log) ToEthereum() *ethtypes.Log {
 		Topics:      topics,
 		Data:        log.Data,
 		BlockNumber: log.BlockNumber,
-		TxHash:      ethcmn.HexToHash(log.TxHash),
+		TxHash:      ethcmn.BytesToHash(log.TxHash),
 		TxIndex:     uint(log.TxIndex),
-		BlockHash:   ethcmn.HexToHash(log.BlockHash),
+		BlockHash:   ethcmn.BytesToHash(log.BlockHash),
 		Removed:     log.Removed,
 	}
 }
 
 // LogsToEthereum casts the Ethermint Logs to a slice of Ethereum Logs.
 func LogsToEthereum(logs []*Log) []*ethtypes.Log {
+	ethLogs := make([]*ethtypes.Log, len(logs))
+	for i := range logs {
+		ethLogs[i] = logs[i].ToEthereum()
+	}
+	return ethLogs
+}
+
+// LogsPtrToEthereum casts the Ethermint Logs to a slice of Ethereum Logs.
+func LogsPtrToEthereum(logs []*Log) []*ethtypes.Log {
 	ethLogs := make([]*ethtypes.Log, len(logs))
 	for i := range logs {
 		ethLogs[i] = logs[i].ToEthereum()
@@ -112,9 +122,9 @@ func NewLogFromEth(log *ethtypes.Log) *Log {
 		Topics:      topics,
 		Data:        log.Data,
 		BlockNumber: log.BlockNumber,
-		TxHash:      log.TxHash.String(),
+		TxHash:      log.TxHash[:],
 		TxIndex:     uint64(log.TxIndex),
-		BlockHash:   log.BlockHash.String(),
+		BlockHash:   log.BlockHash[:],
 		Removed:     log.Removed,
 	}
 }

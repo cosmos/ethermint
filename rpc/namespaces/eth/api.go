@@ -863,12 +863,14 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 	tx, err := api.clientCtx.Client.Tx(api.ctx, hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found
+		api.logger.Debug("eth_getTransactionReceipt", "error", "transaction not found")
 		return nil, nil
 	}
 
 	// Query block for consensus hash
 	block, err := api.clientCtx.Client.Block(api.ctx, &tx.Height)
 	if err != nil {
+		api.logger.Debug("eth_getTransactionReceipt", "error", err)
 		return nil, err
 	}
 
@@ -877,11 +879,13 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 	// Convert tx bytes to eth transaction
 	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
 	if err != nil {
+		api.logger.Debug("eth_getTransactionReceipt", "error", err)
 		return nil, err
 	}
 
 	from, err := ethTx.VerifySig(ethTx.ChainID())
 	if err != nil {
+		api.logger.Debug("eth_getTransactionReceipt", "error", err)
 		return nil, err
 	}
 
@@ -904,6 +908,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 	if err != nil {
 		status = 0 // transaction failed
 	}
+
+	fmt.Println("data.Bloom", data.Bloom)
+	fmt.Println("data.TxLogs", data.TxLogs)
+	fmt.Println("data.Ret", data.Ret)
+	fmt.Println("data.ContractAddress", data.ContractAddress)
 
 	if len(data.TxLogs.Logs) == 0 {
 		data.TxLogs.Logs = []*evmtypes.Log{}
@@ -933,6 +942,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		"to":   ethTx.To(),
 	}
 
+	api.logger.Debug("eth_getTransactionReceipt", "receipt", receipt, "ret", data.Ret, "addr", data.ContractAddress)
 	return receipt, nil
 }
 

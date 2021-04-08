@@ -1,7 +1,7 @@
 package types
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
+//ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 func (suite *GenesisTestSuite) TestTransactionLogsValidate() {
@@ -13,16 +13,16 @@ func (suite *GenesisTestSuite) TestTransactionLogsValidate() {
 		{
 			"valid log",
 			TransactionLogs{
-				Hash: suite.hash.String(),
+				Hash: suite.hash[:],
 				Logs: []*Log{
 					{
 						Address:     suite.address,
-						Topics:      []string{suite.hash.String()},
+						Topics:      []string{string(suite.hash[:])},
 						Data:        []byte("data"),
 						BlockNumber: 1,
-						TxHash:      suite.hash.String(),
+						TxHash:      suite.hash[:],
 						TxIndex:     1,
-						BlockHash:   suite.hash.String(),
+						BlockHash:   suite.hash[:],
 						Index:       1,
 						Removed:     false,
 					},
@@ -33,14 +33,14 @@ func (suite *GenesisTestSuite) TestTransactionLogsValidate() {
 		{
 			"empty hash",
 			TransactionLogs{
-				Hash: ethcmn.Hash{}.String(),
+				Hash: []byte{},
 			},
 			false,
 		},
 		{
 			"invalid log",
 			TransactionLogs{
-				Hash: suite.hash.String(),
+				Hash: suite.hash[:],
 				Logs: []*Log{nil},
 			},
 			false,
@@ -48,16 +48,16 @@ func (suite *GenesisTestSuite) TestTransactionLogsValidate() {
 		{
 			"hash mismatch log",
 			TransactionLogs{
-				Hash: suite.hash.String(),
+				Hash: suite.hash[:],
 				Logs: []*Log{
 					{
 						Address:     suite.address,
-						Topics:      []string{suite.hash.String()},
+						Topics:      []string{string(suite.hash[:])},
 						Data:        []byte("data"),
 						BlockNumber: 1,
-						TxHash:      ethcmn.BytesToHash([]byte("other_hash")).String(),
+						TxHash:      []byte("other_hash"),
 						TxIndex:     1,
-						BlockHash:   suite.hash.String(),
+						BlockHash:   suite.hash[:],
 						Index:       1,
 						Removed:     false,
 					},
@@ -88,12 +88,12 @@ func (suite *GenesisTestSuite) TestValidateLog() {
 			"valid log",
 			&Log{
 				Address:     suite.address,
-				Topics:      []string{suite.hash.String()},
+				Topics:      []string{string(suite.hash[:])},
 				Data:        []byte("data"),
 				BlockNumber: 1,
-				TxHash:      suite.hash.String(),
+				TxHash:      suite.hash[:],
 				TxIndex:     1,
-				BlockHash:   suite.hash.String(),
+				BlockHash:   suite.hash[:],
 				Index:       1,
 				Removed:     false,
 			},
@@ -105,7 +105,7 @@ func (suite *GenesisTestSuite) TestValidateLog() {
 		{
 			"zero address",
 			&Log{
-				Address: ethcmn.Address{}.String(),
+				Address: "",
 			},
 			false,
 		},
@@ -113,7 +113,7 @@ func (suite *GenesisTestSuite) TestValidateLog() {
 			"empty block hash",
 			&Log{
 				Address:   suite.address,
-				BlockHash: ethcmn.Hash{}.String(),
+				BlockHash: []byte{},
 			},
 			false,
 		},
@@ -121,7 +121,7 @@ func (suite *GenesisTestSuite) TestValidateLog() {
 			"zero block number",
 			&Log{
 				Address:     suite.address,
-				BlockHash:   suite.hash.String(),
+				BlockHash:   suite.hash[:],
 				BlockNumber: 0,
 			},
 			false,
@@ -130,9 +130,9 @@ func (suite *GenesisTestSuite) TestValidateLog() {
 			"empty tx hash",
 			&Log{
 				Address:     suite.address,
-				BlockHash:   suite.hash.String(),
+				BlockHash:   suite.hash[:],
 				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{}.String(),
+				TxHash:      []byte{},
 			},
 			false,
 		},

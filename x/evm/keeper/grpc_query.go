@@ -140,19 +140,19 @@ func (q Keeper) TxLogs(c context.Context, req *types.QueryTxLogsRequest) (*types
 		)
 	}
 
-	ctx := sdk.UnwrapSDKContext(c)
+	//ctx := sdk.UnwrapSDKContext(c)
 
-	hash := ethcmn.HexToHash(req.Hash)
-	logs, err := q.GetLogs(ctx, hash)
-	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
-	}
+	//hash := ethcmn.HexToHash(req.Hash)
+	//logs, err := q.GetLogs(ctx, hash)
+	// if err != nil {
+	// 	return nil, status.Error(
+	// 		codes.Internal,
+	// 		err.Error(),
+	// 	)
+	// }
 
 	return &types.QueryTxLogsResponse{
-		Logs: types.NewTransactionLogsFromEth(hash, logs).Logs,
+		//Logs: types.NewTransactionLogsFromEth(hash, logs),
 	}, nil
 }
 

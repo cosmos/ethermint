@@ -102,16 +102,16 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				},
 				TxsLogs: []TransactionLogs{
 					{
-						Hash: suite.hash.String(),
+						Hash: suite.hash[:],
 						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []string{suite.hash.String()},
+								Topics:      []string{string(suite.hash[:])},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash.String(),
+								TxHash:      suite.hash[:],
 								TxIndex:     1,
-								BlockHash:   suite.hash.String(),
+								BlockHash:   suite.hash[:],
 								Index:       1,
 								Removed:     false,
 							},
@@ -175,32 +175,32 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				},
 				TxsLogs: []TransactionLogs{
 					{
-						Hash: suite.hash.String(),
+						Hash: suite.hash[:],
 						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []string{suite.hash.String()},
+								Topics:      []string{string(suite.hash[:])},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash.String(),
+								TxHash:      suite.hash[:],
 								TxIndex:     1,
-								BlockHash:   suite.hash.String(),
+								BlockHash:   suite.hash[:],
 								Index:       1,
 								Removed:     false,
 							},
 						},
 					},
 					{
-						Hash: suite.hash.String(),
+						Hash: suite.hash[:],
 						Logs: []*Log{
 							{
 								Address:     suite.address,
-								Topics:      []string{suite.hash.String()},
+								Topics:      []string{string(suite.hash[:])},
 								Data:        []byte("data"),
 								BlockNumber: 1,
-								TxHash:      suite.hash.String(),
+								TxHash:      suite.hash[:],
 								TxIndex:     1,
-								BlockHash:   suite.hash.String(),
+								BlockHash:   suite.hash[:],
 								Index:       1,
 								Removed:     false,
 							},

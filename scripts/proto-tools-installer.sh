@@ -6,7 +6,7 @@ DESTDIR=${DESTDIR:-}
 PREFIX=${PREFIX:-/usr/local}
 UNAME_S="$(uname -s 2>/dev/null)"
 UNAME_M="$(uname -m 2>/dev/null)"
-BUF_VERSION=0.11.0
+BUF_VERSION=0.41.0
 PROTOC_VERSION=3.13.0
 PROTOC_GRPC_GATEWAY_VERSION=1.14.7
 

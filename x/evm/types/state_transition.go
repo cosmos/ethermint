@@ -223,14 +223,16 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		}
 	}
 
+	txLogs := NewTransactionLogsFromEth(*st.TxHash, logs)
+
 	res := &MsgEthereumTxResponse{
 		Bloom:  bloomFilter.Bytes(),
-		TxLogs: NewTransactionLogsFromEth(*st.TxHash, logs),
+		TxLogs: txLogs,
 		Ret:    ret,
 	}
 
 	if contractCreation {
-		res.ContractAddress = contractAddress.String()
+		res.ContractAddress = contractAddress[:]
 	}
 
 	executionResult := &ExecutionResult{

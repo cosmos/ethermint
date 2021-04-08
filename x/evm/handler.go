@@ -66,7 +66,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 			// log state transition result
 			var recipientLog string
-			if res.ContractAddress != "" {
+			if string(res.ContractAddress) != "" {
 				recipientLog = fmt.Sprintf("contract address %s", res.ContractAddress)
 			} else {
 				recipientLog = fmt.Sprintf("recipient address %s", msg.Data.Recipient)

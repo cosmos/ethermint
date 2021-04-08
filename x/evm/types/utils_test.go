@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
+	//ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -15,10 +15,10 @@ func TestEvmDataEncoding(t *testing.T) {
 	ret := []byte{0x5, 0x8}
 
 	data := &MsgEthereumTxResponse{
-		ContractAddress: addr,
+		ContractAddress: []byte(addr),
 		Bloom:           bloom.Bytes(),
 		TxLogs: TransactionLogs{
-			Hash: ethcmn.BytesToHash([]byte{1, 2, 3, 4}).String(),
+			Hash: []byte{1, 2, 3, 4},
 			Logs: []*Log{{
 				Data:        []byte{1, 2, 3, 4},
 				BlockNumber: 17,

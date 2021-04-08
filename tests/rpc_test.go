@@ -359,7 +359,7 @@ func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 	require.NotNil(t, "invalid filter ID", rpcRes.Error.Message)
 }
 
-func TestEth_GetTransactionReceipt(t *testing.T) {
+func TestEth_GetTransactionReceipt_Transfer(t *testing.T) {
 	hash := SendTestTransaction(t, from)
 
 	time.Sleep(time.Second * 5)
@@ -371,6 +371,8 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	receipt := make(map[string]interface{})
 	err := json.Unmarshal(rpcRes.Result, &receipt)
 	require.NoError(t, err)
+	t.Log(receipt)
+	t.Log(receipt["contractAddress"])
 	require.NotEmpty(t, receipt)
 	require.Equal(t, "0x1", receipt["status"].(string))
 	require.Equal(t, []interface{}{}, receipt["logs"].([]interface{}))
@@ -394,7 +396,6 @@ func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 
 	require.NotEqual(t, ethcmn.Address{}.String(), receipt["contractAddress"].(string))
 	require.NotNil(t, receipt["logs"])
-
 }
 
 func TestEth_GetFilterChanges_NoTopics(t *testing.T) {

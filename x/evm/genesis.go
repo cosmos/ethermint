@@ -55,12 +55,12 @@ func InitGenesis(
 	}
 
 	var err error
-	for _, txLog := range data.TxsLogs {
-		err = k.SetLogs(ctx, ethcmn.HexToHash(txLog.Hash), txLog.EthLogs())
-		if err != nil {
-			panic(err)
-		}
-	}
+	//for _, txLog := range data.TxsLogs {
+	// err = k.SetLogs(ctx, ethcmn.BytesToHash(txLog.TxHash), txLog.ToEthereum())
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 

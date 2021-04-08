@@ -189,16 +189,16 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
+	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
 
-	txLogs := NewTransactionLogsFromEth(hash, logs)
-	bz, err := ModuleCdc.MarshalBinaryBare(&txLogs)
-	if err != nil {
-		return err
-	}
+	// txLogs := NewTransactionLogsFromEth(hash, logs)
+	// bz, err := ModuleCdc.MarshalBinaryBare(&txLogs)
+	// if err != nil {
+	// 	return err
+	// }
 
-	store.Set(hash.Bytes(), bz)
-	csdb.logSize = uint(len(logs))
+	// store.Set(hash.Bytes(), bz)
+	// csdb.logSize = uint(len(logs))
 	return nil
 }
 
@@ -412,33 +412,34 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		// return nil error if logs are not found
-		return []*ethtypes.Log{}, nil
-	}
+	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
+	// bz := store.Get(hash.Bytes())
+	// if len(bz) == 0 {
+	// 	// return nil error if logs are not found
+	// 	return []*ethtypes.Log{}, nil
+	// }
 
-	var txLogs TransactionLogs
-	if err := ModuleCdc.UnmarshalBinaryBare(bz, &txLogs); err != nil {
-		return []*ethtypes.Log{}, err
-	}
+	// var txLogs TransactionLogs
+	// if err := ModuleCdc.UnmarshalBinaryBare(bz, &txLogs); err != nil {
+	//return []*ethtypes.Log{}, err
+	//}
 
-	return txLogs.EthLogs(), nil
+	//return txLogs.EthLogs(), nil
+	return []*ethtypes.Log{}, nil
 }
 
 // AllLogs returns all the current logs in the state.
 func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixLogs)
-	defer iterator.Close()
+	// store := csdb.ctx.KVStore(csdb.storeKey)
+	// iterator := sdk.KVStorePrefixIterator(store, KeyPrefixLogs)
+	// defer iterator.Close()
 
 	allLogs := []*ethtypes.Log{}
-	for ; iterator.Valid(); iterator.Next() {
-		var txLogs TransactionLogs
-		ModuleCdc.MustUnmarshalBinaryBare(iterator.Value(), &txLogs)
-		allLogs = append(allLogs, txLogs.EthLogs()...)
-	}
+	// for ; iterator.Valid(); iterator.Next() {
+	// 	var txLogs TransactionLogs
+	// 	ModuleCdc.MustUnmarshalBinaryBare(iterator.Value(), &txLogs)
+	// 	allLogs = append(allLogs, txLogs.EthLogs()...)
+	// }
 
 	return allLogs
 }
