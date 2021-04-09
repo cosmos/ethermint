@@ -3,20 +3,19 @@ module github.com/cosmos/ethermint
 go 1.15
 
 require (
-	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.39.3
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/ethereum/go-ethereum v1.9.25
-	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
-	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/ethereum/go-ethereum v1.10.2
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/tsdb v0.9.1 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.1.1
