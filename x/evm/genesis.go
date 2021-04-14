@@ -1,61 +1,119 @@
 package evm
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
-	emint "github.com/cosmos/ethermint/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
+	ethermint "github.com/cosmos/ethermint/types"
+	"github.com/cosmos/ethermint/x/evm/keeper"
 	"github.com/cosmos/ethermint/x/evm/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorUpdate {
+func InitGenesis(
+	ctx sdk.Context,
+	k keeper.Keeper,
+	accountKeeper types.AccountKeeper, // nolint: interfacer
+	data GenesisState,
+) []abci.ValidatorUpdate {
+
+	k.SetParams(ctx, data.Params)
+	evmDenom := data.Params.EvmDenom
+
 	for _, account := range data.Accounts {
-		csdb := k.CommitStateDB.WithContext(ctx)
-		csdb.SetBalance(account.Address, account.Balance)
-		csdb.SetCode(account.Address, account.Code)
+		address := ethcmn.HexToAddress(account.Address)
+		accAddress := sdk.AccAddress(address.Bytes())
+		// check that the EVM balance the matches the account balance
+		acc := accountKeeper.GetAccount(ctx, accAddress)
+		if acc == nil {
+			panic(fmt.Errorf("account not found for address %s", account.Address))
+		}
+
+		_, ok := acc.(*ethermint.EthAccount)
+		if !ok {
+			panic(
+				fmt.Errorf("account %s must be an %T type, got %T",
+					account.Address, &ethermint.EthAccount{}, acc,
+				),
+			)
+		}
+
+		evmBalance := acc.GetCoins().AmountOf(evmDenom)
+
+		k.SetNonce(ctx, address, acc.GetSequence())
+		k.SetBalance(ctx, address, evmBalance.BigInt())
+		k.SetCode(ctx, address, ethcmn.Hex2Bytes(account.Code))
+
 		for _, storage := range account.Storage {
-			csdb.SetState(account.Address, storage.Key, storage.Value)
+			k.SetState(ctx, address, ethcmn.HexToHash(storage.Key), ethcmn.HexToHash(storage.Value))
 		}
 	}
+
+	var err error
+	for _, txLog := range data.TxsLogs {
+		if err = k.SetLogs(ctx, ethcmn.HexToHash(txLog.Hash), txLog.Logs); err != nil {
+			panic(err)
+		}
+	}
+
+	k.SetChainConfig(ctx, data.ChainConfig)
+
+	// set state objects and code to store
+	_, err = k.Commit(ctx, false)
+	if err != nil {
+		panic(err)
+	}
+
+	// set storage to store
+	// NOTE: don't delete empty object to prevent import-export simulation failure
+	err = k.Finalise(ctx, false)
+	if err != nil {
+		panic(err)
+	}
+
 	return []abci.ValidatorUpdate{}
 }
 
-// ExportGenesis exports genesis state
-func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+// ExportGenesis exports genesis state of the EVM module
+func ExportGenesis(ctx sdk.Context, k keeper.Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
-	var ethGenAccounts []GenesisAccount
-	accounts := ak.GetAllAccounts(ctx)
-
-	var err error
-	for _, account := range accounts {
-		ethAccount, ok := account.(emint.EthAccount)
+	var ethGenAccounts []types.GenesisAccount
+	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
+		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
-			continue
+			// ignore non EthAccounts
+			return false
 		}
 
-		addr := common.BytesToAddress(ethAccount.GetAddress().Bytes())
+		addr := ethAccount.EthAddress()
 
-		var storage []GenesisStorage
-		err = k.CommitStateDB.ForEachStorage(addr, func(key, value common.Hash) bool {
-			storage = append(storage, NewGenesisStorage(key, value))
-			return false
-		})
+		storage, err := k.GetAccountStorage(ctx, addr)
 		if err != nil {
 			panic(err)
 		}
 
-		genAccount := GenesisAccount{
-			Address: addr,
-			Balance: k.GetBalance(ctx, addr),
-			Code:    k.GetCode(ctx, addr),
+		genAccount := types.GenesisAccount{
+			Address: addr.String(),
+			Code:    ethcmn.Bytes2Hex(k.GetCode(ctx, addr)),
 			Storage: storage,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
-	}
+		return false
+	})
 
-	return GenesisState{Accounts: ethGenAccounts}
+	config, _ := k.GetChainConfig(ctx)
+
+	return GenesisState{
+		Accounts:    ethGenAccounts,
+		TxsLogs:     k.GetAllTxLogs(ctx),
+		ChainConfig: config,
+		Params:      k.GetParams(ctx),
+	}
 }

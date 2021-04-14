@@ -1,4 +1,5 @@
-# run:
+run:
+  tests: false
 #   # timeout for analysis, e.g. 30s, 5m, default is 1m
 #   timeout: 5m
 
@@ -31,8 +32,11 @@ linters:
     - typecheck
     - unconvert
     - unused
+    - unparam
     - misspell
-    - varcheck
+    # TODO: address these lint issues
+    # - wsl
+    # - nolintlint
 
 issues:
   exclude-rules:
@@ -53,12 +57,17 @@ issues:
     - text: "ST1016:"
       linters:
         - stylecheck
-    - linters:
-        - golint
-      text: "don't use ALL_CAPS in Go names;"
+  max-issues-per-linter: 10000
+  max-same-issues: 10000
+
 linters-settings:
   dogsled:
     max-blank-identifiers: 3
   maligned:
     # print struct with more effective memory layout or not, false by default
     suggest-new: true
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: true
+    require-explanation: false
+    require-specific: false

@@ -1,16 +1,83 @@
 package types
 
 import (
-	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
-func TestValidateGenesis(t *testing.T) {
+type GenesisTestSuite struct {
+	suite.Suite
 
+	address ethcmn.Address
+	hash    ethcmn.Hash
+	code    string
+}
+
+func (suite *GenesisTestSuite) SetupTest() {
+	priv, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	suite.address = ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	suite.hash = ethcmn.BytesToHash([]byte("hash"))
+	suite.code = ethcmn.Bytes2Hex([]byte{1, 2, 3})
+}
+
+func TestGenesisTestSuite(t *testing.T) {
+	suite.Run(t, new(GenesisTestSuite))
+}
+
+func (suite *GenesisTestSuite) TestValidateGenesisAccount() {
+	testCases := []struct {
+		name           string
+		genesisAccount GenesisAccount
+		expPass        bool
+	}{
+		{
+			"valid genesis account",
+			GenesisAccount{
+				Address: suite.address.String(),
+				Code:    suite.code,
+				Storage: Storage{
+					NewState(suite.hash, suite.hash),
+				},
+			},
+			true,
+		},
+		{
+			"empty account address bytes",
+			GenesisAccount{
+				Address: ethcmn.Address{}.String(),
+			},
+			false,
+		},
+		{
+			"empty code bytes",
+			GenesisAccount{
+				Address: suite.address.String(),
+				Code:    "",
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		err := tc.genesisAccount.Validate()
+		if tc.expPass {
+			suite.Require().NoError(err, tc.name)
+		} else {
+			suite.Require().Error(err, tc.name)
+		}
+	}
+}
+
+func (suite *GenesisTestSuite) TestValidateGenesis() {
 	testCases := []struct {
 		name     string
 		genState GenesisState
@@ -22,26 +89,156 @@ func TestValidateGenesis(t *testing.T) {
 			expPass:  true,
 		},
 		{
-			name: "empty account address bytes",
+			name: "valid genesis",
 			genState: GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: ethcmn.Address{},
-						Balance: big.NewInt(1),
+						Address: suite.address.String(),
+						Code:    suite.code,
+						Storage: Storage{
+							{Key: suite.hash.String()},
+						},
+					},
+				},
+				TxsLogs: []TransactionLogs{
+					{
+						Hash: suite.hash.String(),
+						Logs: []*ethtypes.Log{
+							{
+								Address:     suite.address,
+								Topics:      []ethcmn.Hash{suite.hash},
+								Data:        []byte("data"),
+								BlockNumber: 1,
+								TxHash:      suite.hash,
+								TxIndex:     1,
+								BlockHash:   suite.hash,
+								Index:       1,
+								Removed:     false,
+							},
+						},
+					},
+				},
+				ChainConfig: DefaultChainConfig(),
+				Params:      DefaultParams(),
+			},
+			expPass: true,
+		},
+		{
+			name:     "empty genesis",
+			genState: GenesisState{},
+			expPass:  false,
+		},
+		{
+			name: "invalid genesis",
+			genState: GenesisState{
+				Accounts: []GenesisAccount{
+					{
+						Address: ethcmn.Address{}.String(),
 					},
 				},
 			},
 			expPass: false,
 		},
 		{
-			name: "nil account balance",
+			name: "duplicated genesis account",
 			genState: GenesisState{
 				Accounts: []GenesisAccount{
 					{
-						Address: ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5}),
-						Balance: nil,
+						Address: suite.address.String(),
+						Code:    suite.code,
+						Storage: Storage{
+							NewState(suite.hash, suite.hash),
+						},
+					},
+					{
+						Address: suite.address.String(),
+						Code:    suite.code,
+						Storage: Storage{
+							NewState(suite.hash, suite.hash),
+						},
 					},
 				},
+			},
+			expPass: false,
+		},
+		{
+			name: "duplicated tx log",
+			genState: GenesisState{
+				Accounts: []GenesisAccount{
+					{
+						Address: suite.address.String(),
+						Code:    suite.code,
+						Storage: Storage{
+							{Key: suite.hash.String()},
+						},
+					},
+				},
+				TxsLogs: []TransactionLogs{
+					{
+						Hash: suite.hash.String(),
+						Logs: []*ethtypes.Log{
+							{
+								Address:     suite.address,
+								Topics:      []ethcmn.Hash{suite.hash},
+								Data:        []byte("data"),
+								BlockNumber: 1,
+								TxHash:      suite.hash,
+								TxIndex:     1,
+								BlockHash:   suite.hash,
+								Index:       1,
+								Removed:     false,
+							},
+						},
+					},
+					{
+						Hash: suite.hash.String(),
+						Logs: []*ethtypes.Log{
+							{
+								Address:     suite.address,
+								Topics:      []ethcmn.Hash{suite.hash},
+								Data:        []byte("data"),
+								BlockNumber: 1,
+								TxHash:      suite.hash,
+								TxIndex:     1,
+								BlockHash:   suite.hash,
+								Index:       1,
+								Removed:     false,
+							},
+						},
+					},
+				},
+			},
+			expPass: false,
+		},
+		{
+			name: "invalid tx log",
+			genState: GenesisState{
+				Accounts: []GenesisAccount{
+					{
+						Address: suite.address.String(),
+						Code:    suite.code,
+						Storage: Storage{
+							{Key: suite.hash.String()},
+						},
+					},
+				},
+				TxsLogs: []TransactionLogs{NewTransactionLogs(ethcmn.Hash{}, nil)},
+			},
+			expPass: false,
+		},
+		{
+			name: "invalid params",
+			genState: GenesisState{
+				ChainConfig: DefaultChainConfig(),
+				Params:      Params{},
+			},
+			expPass: false,
+		},
+		{
+			name: "invalid chain config",
+			genState: GenesisState{
+				ChainConfig: ChainConfig{},
+				Params:      DefaultParams(),
 			},
 			expPass: false,
 		},
@@ -51,9 +248,9 @@ func TestValidateGenesis(t *testing.T) {
 		tc := tc
 		err := tc.genState.Validate()
 		if tc.expPass {
-			require.NoError(t, err, tc.name)
+			suite.Require().NoError(err, tc.name)
 		} else {
-			require.Error(t, err, tc.name)
+			suite.Require().Error(err, tc.name)
 		}
 	}
 }

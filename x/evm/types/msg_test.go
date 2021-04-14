@@ -10,8 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/cosmos/ethermint/crypto"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -47,6 +46,7 @@ func TestMsgEthermintValidation(t *testing.T) {
 		{amount: sdk.NewInt(0), gasPrice: sdk.NewInt(100000), expectPass: true},
 		{amount: sdk.NewInt(-1), gasPrice: sdk.NewInt(100000), expectPass: false},
 		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(-1), expectPass: false},
+		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(0), expectPass: false},
 	}
 
 	for i, tc := range testCases {
@@ -92,7 +92,8 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Equal(t, *msg.Data.Recipient, addr)
+	require.NotNil(t, msg.Data.Recipient)
+	require.Equal(t, msg.Data.Recipient.Address, addr.String())
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthereumTx)
 	require.NotNil(t, msg.To())
@@ -102,7 +103,7 @@ func TestMsgEthereumTx(t *testing.T) {
 
 	msg = NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
-	require.Nil(t, msg.Data.Recipient)
+	require.Empty(t, msg.Data.Recipient)
 	require.Nil(t, msg.To())
 }
 
@@ -116,6 +117,7 @@ func TestMsgEthereumTxValidation(t *testing.T) {
 		{msg: "pass", amount: big.NewInt(100), gasPrice: big.NewInt(100000), expectPass: true},
 		{msg: "invalid amount", amount: big.NewInt(-1), gasPrice: big.NewInt(100000), expectPass: false},
 		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(-1), expectPass: false},
+		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(0), expectPass: false},
 	}
 
 	for i, tc := range testCases {
@@ -162,8 +164,8 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 func TestMsgEthereumTxSig(t *testing.T) {
 	chainID := big.NewInt(3)
 
-	priv1, _ := crypto.GenerateKey()
-	priv2, _ := crypto.GenerateKey()
+	priv1, _ := ethsecp256k1.GenerateKey()
+	priv2, _ := ethsecp256k1.GenerateKey()
 	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
 	addr2 := ethcmn.BytesToAddress(priv2.PubKey().Address().Bytes())
 

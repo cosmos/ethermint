@@ -35,14 +35,14 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 }
 
 // DefaultGenesis is json default structure
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
-	return cdc.MustMarshalJSON(types.DefaultGenesisState())
+func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis is the validation check of the Genesis
-func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, bz json.RawMessage) error {
+func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 	var genesisState types.GenesisState
-	err := cdc.UnmarshalJSON(bz, &genesisState)
+	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,6 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, bz json.RawMessag
 
 // RegisterRESTRoutes Registers rest routes
 func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	//rpc.RegisterRoutes(ctx, rtr, StoreKey)
 }
 
 // GetQueryCmd Gets the root query command of this module
@@ -62,7 +61,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetTxCmd Gets the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(types.ModuleName, cdc)
+	return nil
 }
 
 //____________________________________________________________________________
@@ -70,12 +69,12 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule implements an application module for the evm module.
 type AppModule struct {
 	AppModuleBasic
-	keeper Keeper
+	keeper *Keeper
 	ak     types.AccountKeeper
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k Keeper, ak types.AccountKeeper) AppModule {
+func NewAppModule(k *Keeper, ak types.AccountKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
@@ -89,7 +88,9 @@ func (AppModule) Name() string {
 }
 
 // RegisterInvariants interface for registering invariants
-func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
+func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
+	keeper.RegisterInvariants(ir, *am.keeper)
+}
 
 // Route specifies path for transactions
 func (am AppModule) Route() string {
@@ -108,28 +109,28 @@ func (am AppModule) QuerierRoute() string {
 
 // NewQuerierHandler sets up new querier handler for module
 func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return keeper.NewQuerier(am.keeper)
+	return keeper.NewQuerier(*am.keeper)
 }
 
 // BeginBlock function for module at start of each block
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlock(am.keeper, ctx, req)
+	am.keeper.BeginBlock(ctx, req)
 }
 
 // EndBlock function for module at end of block
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return EndBlock(am.keeper, ctx, req)
+	return am.keeper.EndBlock(ctx, req)
 }
 
 // InitGenesis instantiates the genesis state
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
-	cdc.MustUnmarshalJSON(data, &genesisState)
-	return InitGenesis(ctx, am.keeper, genesisState)
+	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
+	return InitGenesis(ctx, *am.keeper, am.ak, genesisState)
 }
 
 // ExportGenesis exports the genesis state to be used by daemon
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
-	gs := ExportGenesis(ctx, am.keeper, am.ak)
-	return cdc.MustMarshalJSON(gs)
+func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	gs := ExportGenesis(ctx, *am.keeper, am.ak)
+	return types.ModuleCdc.MustMarshalJSON(gs)
 }

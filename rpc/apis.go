@@ -1,52 +1,87 @@
-// Package rpc contains RPC handler methods and utilities to start
-// Ethermint's Web3-compatibly JSON-RPC server.
 package rpc
 
 import (
-	"github.com/cosmos/cosmos-sdk/client/context"
-	emintcrypto "github.com/cosmos/ethermint/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
+	"github.com/cosmos/ethermint/rpc/backend"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth"
+	"github.com/cosmos/ethermint/rpc/namespaces/eth/filters"
+	"github.com/cosmos/ethermint/rpc/namespaces/net"
+	"github.com/cosmos/ethermint/rpc/namespaces/personal"
+	"github.com/cosmos/ethermint/rpc/namespaces/web3"
+	rpctypes "github.com/cosmos/ethermint/rpc/types"
 )
 
-const Web3Namespace = "web3"
-const EthNamespace = "eth"
-const PersonalNamespace = "personal"
-const NetNamespace = "net"
+// RPC namespaces and API version
+const (
+	Web3Namespace     = "web3"
+	EthNamespace      = "eth"
+	PersonalNamespace = "personal"
+	NetNamespace      = "net"
+	flagRPCAPI        = "rpc-api"
 
-// GetRPCAPIs returns the list of all APIs
-func GetRPCAPIs(cliCtx context.CLIContext, key emintcrypto.PrivKeySecp256k1) []rpc.API {
-	nonceLock := new(AddrLocker)
-	backend := NewEthermintBackend(cliCtx)
-	return []rpc.API{
-		{
-			Namespace: Web3Namespace,
-			Version:   "1.0",
-			Service:   NewPublicWeb3API(),
-			Public:    true,
-		},
-		{
+	apiVersion = "1.0"
+)
+
+// GetAPIs returns the list of all APIs from the Ethereum namespaces
+func GetAPIs(clientCtx context.CLIContext, selectedApis []string, keys ...ethsecp256k1.PrivKey) []rpc.API {
+	nonceLock := new(rpctypes.AddrLocker)
+	backend := backend.New(clientCtx)
+	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
+
+	var apis []rpc.API
+
+	apis = append(apis,
+		rpc.API{
 			Namespace: EthNamespace,
-			Version:   "1.0",
-			Service:   NewPublicEthAPI(cliCtx, backend, nonceLock, key),
+			Version:   apiVersion,
+			Service:   ethAPI,
 			Public:    true,
 		},
-		{
-			Namespace: PersonalNamespace,
-			Version:   "1.0",
-			Service:   NewPersonalEthAPI(cliCtx, nonceLock),
-			Public:    false,
-		},
-		{
+	)
+	apis = append(apis,
+		rpc.API{
 			Namespace: EthNamespace,
-			Version:   "1.0",
-			Service:   NewPublicFilterAPI(cliCtx, backend),
+			Version:   apiVersion,
+			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
 		},
-		{
-			Namespace: NetNamespace,
-			Version:   "1.0",
-			Service:   NewPublicNetAPI(cliCtx),
-			Public:    true,
-		},
+	)
+
+	for _, api := range selectedApis {
+		switch api {
+		case Web3Namespace:
+			apis = append(apis,
+				rpc.API{
+					Namespace: Web3Namespace,
+					Version:   apiVersion,
+					Service:   web3.NewAPI(),
+					Public:    true,
+				},
+			)
+		case PersonalNamespace:
+			apis = append(apis,
+				rpc.API{
+					Namespace: PersonalNamespace,
+					Version:   apiVersion,
+					Service:   personal.NewAPI(ethAPI),
+					Public:    false,
+				},
+			)
+		case NetNamespace:
+			apis = append(apis,
+				rpc.API{
+					Namespace: NetNamespace,
+					Version:   apiVersion,
+					Service:   net.NewAPI(clientCtx),
+					Public:    true,
+				},
+			)
+		}
 	}
+
+	return apis
 }

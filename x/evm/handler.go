@@ -1,116 +1,86 @@
 package evm
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+
+	ethermint "github.com/cosmos/ethermint/types"
+	"github.com/cosmos/ethermint/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	emint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/types"
 
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
-func NewHandler(k Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+func NewHandler(k *Keeper) sdk.Handler {
+	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
+		snapshotStateDB := k.CommitStateDB.Copy()
+
+		// The "recover" code here is used to solve the problem of dirty data
+		// in CommitStateDB due to insufficient gas.
+
+		// The following is a detailed description:
+		// If the gas is insufficient during the execution of the "handler",
+		// panic will be thrown from the function "ConsumeGas" and finally
+		// caught by the function "runTx" from Cosmos. The function "runTx"
+		// will think that the execution of Msg has failed and the modified
+		// data in the Store will not take effect.
+
+		// Stacktrace：runTx->runMsgs->handler->...->gaskv.Store.Set->ConsumeGas
+
+		// The problem is that when the modified data in the Store does not take
+		// effect, the data in the modified CommitStateDB is not rolled back,
+		// they take effect, and dirty data is generated.
+		// Therefore, the code here specifically deals with this situation.
+		// See https://github.com/cosmos/ethermint/issues/668 for more information.
+		defer func() {
+			if r := recover(); r != nil {
+				// We first used "k.CommitStateDB = snapshotStateDB" to roll back
+				// CommitStateDB, but this can only change the CommitStateDB in the
+				// current Keeper object, but the Keeper object will be destroyed
+				// soon, it is not a global variable, so the content pointed to by
+				// the CommitStateDB pointer can be modified to take effect.
+				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				panic(r)
+			}
+		}()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			return handleMsgEthereumTx(ctx, k, msg)
+			result, err = handleMsgEthereumTx(ctx, k, msg)
 		case types.MsgEthermint:
-			return handleMsgEthermint(ctx, k, msg)
+			result, err = handleMsgEthermint(ctx, k, msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
+		if err != nil {
+			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+		}
+		return result, err
 	}
 }
 
 // handleMsgEthereumTx handles an Ethereum specific tx
-func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
-	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
-	}
-
-	// Verify signature and retrieve sender address
-	sender, err := msg.VerifySig(intChainID)
+func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+	// execute state transition
+	res, err := k.EthereumTx(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
+	// log state transition result
+	k.Logger(ctx).Info(res.Log)
 
-	st := types.StateTransition{
-		AccountNonce: msg.Data.AccountNonce,
-		Price:        msg.Data.Price,
-		GasLimit:     msg.Data.GasLimit,
-		Recipient:    msg.Data.Recipient,
-		Amount:       msg.Data.Amount,
-		Payload:      msg.Data.Payload,
-		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
-		TxHash:       &ethHash,
-		Sender:       sender,
-		Simulate:     ctx.IsCheckTx(),
-	}
-
-	// Prepare db for logs
-	// TODO: block hash
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
-
-	// TODO: move to keeper
-	executionResult, err := st.TransitionDb(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
-	// update transaction logs in KVStore
-	k.SetTransactionLogs(ctx, txHash, executionResult.Logs)
-
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
-
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeEthereumTx,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Data.Amount.String()),
-		),
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
-		),
-	})
-
-	if msg.Data.Recipient != nil {
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeEthereumTx,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
-			),
-		)
-	}
-
-	// set the events to the result
-	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
-	return executionResult.Result, nil
+	return res, nil
 }
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
-func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(ctx.ChainID(), 10)
-	if !ok {
-		return nil, sdkerrors.Wrap(emint.ErrInvalidChainID, ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil, err
 	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -123,7 +93,7 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
 		Csdb:         k.CommitStateDB.WithContext(ctx),
-		ChainID:      intChainID,
+		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
@@ -134,20 +104,32 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 		st.Recipient = &to
 	}
 
-	// Prepare db for logs
-	k.CommitStateDB.Prepare(ethHash, common.Hash{}, k.TxCount)
-	k.TxCount++
+	if !st.Simulate {
+		// Prepare db for logs
+		k.CommitStateDB.Prepare(ethHash, k.TxCount)
+		k.TxCount++
+	}
 
-	executionResult, err := st.TransitionDb(ctx)
+	config, found := k.GetChainConfig(ctx)
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
+
+	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
 	// update block bloom filter
-	k.Bloom.Or(k.Bloom, executionResult.Bloom)
+	if !st.Simulate {
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
-	// update transaction logs in KVStore
-	k.SetTransactionLogs(ctx, txHash, executionResult.Logs)
+		// update transaction logs in KVStore
+		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
@@ -174,6 +156,6 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	}
 
 	// set the events to the result
-	executionResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
+	executionResult.Result.Events = ctx.EventManager().Events()
 	return executionResult.Result, nil
 }

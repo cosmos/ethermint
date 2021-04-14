@@ -8,7 +8,6 @@ import (
 
 // Supported endpoints
 const (
-	QueryProtocolVersion = "protocolVersion"
 	QueryBalance         = "balance"
 	QueryBlockNumber     = "blockNumber"
 	QueryStorage         = "storage"
@@ -16,19 +15,10 @@ const (
 	QueryNonce           = "nonce"
 	QueryHashToHeight    = "hashToHeight"
 	QueryTransactionLogs = "transactionLogs"
-	QueryLogsBloom       = "logsBloom"
+	QueryBloom           = "bloom"
 	QueryLogs            = "logs"
 	QueryAccount         = "account"
 )
-
-// QueryResProtocolVersion is response type for protocol version query
-type QueryResProtocolVersion struct {
-	Version string `json:"version"`
-}
-
-func (q QueryResProtocolVersion) String() string {
-	return q.Version
-}
 
 // QueryResBalance is response type for balance query
 type QueryResBalance struct {
@@ -45,7 +35,7 @@ type QueryResBlockNumber struct {
 }
 
 func (q QueryResBlockNumber) String() string {
-	return string(q.Number)
+	return fmt.Sprint(q.Number)
 }
 
 // QueryResStorage is response type for storage query
@@ -72,7 +62,7 @@ type QueryResNonce struct {
 }
 
 func (q QueryResNonce) String() string {
-	return string(q.Nonce)
+	return fmt.Sprint(q.Nonce)
 }
 
 // QueryETHLogs is response type for tx logs query
@@ -81,7 +71,13 @@ type QueryETHLogs struct {
 }
 
 func (q QueryETHLogs) String() string {
-	return fmt.Sprintf("%+v", q.Logs)
+	var logsStr string
+	logsLen := len(q.Logs)
+	for i := 0; i < logsLen; i++ {
+		logsStr = fmt.Sprintf("%s%v\n", logsStr, *q.Logs[i])
+	}
+
+	return logsStr
 }
 
 // QueryBloomFilter is response type for tx logs query
@@ -99,3 +95,5 @@ type QueryResAccount struct {
 	CodeHash []byte `json:"codeHash"`
 	Nonce    uint64 `json:"nonce"`
 }
+
+type QueryResExportAccount = GenesisAccount

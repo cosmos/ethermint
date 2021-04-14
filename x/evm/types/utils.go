@@ -5,22 +5,24 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ethermint/crypto"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
+	"github.com/cosmos/ethermint/crypto/ethsecp256k1"
 )
 
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	if err != nil {
 		panic(err)
 	}
@@ -45,9 +47,8 @@ func ValidateSigner(signBytes, sig []byte, signer ethcmn.Address) error {
 
 func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
-	//nolint:gosec,errcheck
-	rlp.Encode(hasher, x)
-	hasher.Sum(hash[:0])
+	_ = rlp.Encode(hasher, x)
+	_ = hasher.Sum(hash[:0])
 
 	return hash
 }
@@ -63,13 +64,19 @@ type ResultData struct {
 
 // String implements fmt.Stringer interface.
 func (rd ResultData) String() string {
+	var logsStr string
+	logsLen := len(rd.Logs)
+	for i := 0; i < logsLen; i++ {
+		logsStr = fmt.Sprintf("%s\t\t%v\n ", logsStr, *rd.Logs[i])
+	}
+
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %s
-	Logs: %v
 	Ret: %v
-	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
+	TxHash: %s	
+	Logs: 
+%s`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Ret, rd.TxHash.String(), logsStr))
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution
@@ -88,21 +95,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
-// EncodeLogs encodes an array of logs using amino
-func EncodeLogs(logs []*ethtypes.Log) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(logs)
-}
-
-// DecodeLogs decodes an amino-encoded byte array into an array of logs
-func DecodeLogs(in []byte) ([]*ethtypes.Log, error) {
-	logs := []*ethtypes.Log{}
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &logs)
-	if err != nil {
-		return nil, err
-	}
-	return logs, nil
-}
-
 // ----------------------------------------------------------------------------
 // Auxiliary
 
@@ -118,7 +110,8 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 
 		// sdk.Tx is an interface. The concrete message types
 		// are registered by MakeTxCodec
-		err := cdc.UnmarshalBinaryBare(txBytes, &tx)
+		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}

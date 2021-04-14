@@ -19,8 +19,8 @@ import (
 
 // NewDefaultGenesisState generates the default state for the application.
 func NewDefaultGenesisState() simapp.GenesisState {
-	cdc := ethcdc.MakeCodec(ModuleBasics)
-	return ModuleBasics.DefaultGenesis(cdc)
+	_ = ethcdc.MakeCodec(ModuleBasics)
+	return ModuleBasics.DefaultGenesis()
 }
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
@@ -28,7 +28,6 @@ func NewDefaultGenesisState() simapp.GenesisState {
 func (app *EthermintApp) ExportAppStateAndValidators(
 	forZeroHeight bool, jailWhiteList []string,
 ) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
-
 	// Creates context with current height and checks txs for ctx to be usable by start of next block
 	ctx := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
 
@@ -37,7 +36,7 @@ func (app *EthermintApp) ExportAppStateAndValidators(
 	}
 
 	// Export genesis to be used by SDK modules
-	genState := app.mm.ExportGenesis(ctx, app.cdc)
+	genState := app.mm.ExportGenesis(ctx)
 	appState, err = codec.MarshalJSONIndent(app.cdc, genState)
 	if err != nil {
 		return nil, nil, err

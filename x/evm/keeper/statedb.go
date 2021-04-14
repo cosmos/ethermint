@@ -3,8 +3,9 @@ package keeper
 import (
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ethermint/x/evm/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -44,6 +45,16 @@ func (k *Keeper) SetState(ctx sdk.Context, addr ethcmn.Address, key, value ethcm
 // SetCode calls CommitStateDB.SetCode using the passed in context
 func (k *Keeper) SetCode(ctx sdk.Context, addr ethcmn.Address, code []byte) {
 	k.CommitStateDB.WithContext(ctx).SetCode(addr, code)
+}
+
+// SetLogs calls CommitStateDB.SetLogs using the passed in context
+func (k *Keeper) SetLogs(ctx sdk.Context, hash ethcmn.Hash, logs []*ethtypes.Log) error {
+	return k.CommitStateDB.WithContext(ctx).SetLogs(hash, logs)
+}
+
+// DeleteLogs calls CommitStateDB.DeleteLogs using the passed in context
+func (k *Keeper) DeleteLogs(ctx sdk.Context, hash ethcmn.Hash) {
+	k.CommitStateDB.WithContext(ctx).DeleteLogs(hash)
 }
 
 // AddLog calls CommitStateDB.AddLog using the passed in context
@@ -149,7 +160,7 @@ func (k *Keeper) StorageTrie(ctx sdk.Context, addr ethcmn.Address) ethstate.Trie
 // Persistence
 // ----------------------------------------------------------------------------
 
-// Commit calls CommitStateDB.Commit using the passed { in context
+// Commit calls CommitStateDB.Commit using the passed in context
 func (k *Keeper) Commit(ctx sdk.Context, deleteEmptyObjects bool) (root ethcmn.Hash, err error) {
 	return k.CommitStateDB.WithContext(ctx).Commit(deleteEmptyObjects)
 }
@@ -214,13 +225,23 @@ func (k *Keeper) Reset(ctx sdk.Context, root ethcmn.Hash) error {
 }
 
 // Prepare calls CommitStateDB.Prepare using the passed in context
-func (k *Keeper) Prepare(ctx sdk.Context, thash, bhash ethcmn.Hash, txi int) {
-	k.CommitStateDB.WithContext(ctx).Prepare(thash, bhash, txi)
+func (k *Keeper) Prepare(ctx sdk.Context, thash ethcmn.Hash, txi int) {
+	k.CommitStateDB.WithContext(ctx).Prepare(thash, txi)
 }
 
 // CreateAccount calls CommitStateDB.CreateAccount using the passed in context
 func (k *Keeper) CreateAccount(ctx sdk.Context, addr ethcmn.Address) {
 	k.CommitStateDB.WithContext(ctx).CreateAccount(addr)
+}
+
+// UpdateAccounts calls CommitStateDB.UpdateAccounts using the passed in context
+func (k *Keeper) UpdateAccounts(ctx sdk.Context) {
+	k.CommitStateDB.WithContext(ctx).UpdateAccounts()
+}
+
+// ClearStateObjects calls CommitStateDB.ClearStateObjects using the passed in context
+func (k *Keeper) ClearStateObjects(ctx sdk.Context) {
+	k.CommitStateDB.WithContext(ctx).ClearStateObjects()
 }
 
 // Copy calls CommitStateDB.Copy using the passed in context

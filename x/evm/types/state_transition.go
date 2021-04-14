@@ -12,7 +12,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	emint "github.com/cosmos/ethermint/types"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -48,21 +47,66 @@ type ExecutionResult struct {
 	GasInfo GasInfo
 }
 
-func (st StateTransition) newEVM(ctx sdk.Context, csdb *CommitStateDB, gasLimit uint64, gasPrice *big.Int) *vm.EVM {
-	// Create context for evm
-	context := vm.Context{
+// GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
+//  1. The requested height matches the current height (and thus same epoch number)
+//  2. The requested height is from an previous height from the same chain epoch
+//  3. The requested height is from a height greater than the latest one
+func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
+	return func(height uint64) common.Hash {
+		switch {
+		case ctx.BlockHeight() == int64(height):
+			// Case 1: The requested height matches the one from the CommitStateDB so we can retrieve the block
+			// hash directly from the CommitStateDB.
+			return csdb.bhash
+
+		case ctx.BlockHeight() > int64(height):
+			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
+			// current chain epoch. This only applies if the current height is greater than the requested height.
+			return csdb.WithContext(ctx).GetHeightHash(height)
+
+		default:
+			// Case 3: heights greater than the current one returns an empty hash.
+			return common.Hash{}
+		}
+	}
+}
+
+func (st StateTransition) newEVM(
+	ctx sdk.Context,
+	csdb *CommitStateDB,
+	gasLimit uint64,
+	gasPrice *big.Int,
+	config ChainConfig,
+	extraEIPs []int64,
+) *vm.EVM {
+	// Create contexts for evm
+
+	blockCtx := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
-		Origin:      st.Sender,
-		Coinbase:    common.Address{}, // there's no benefitiary since we're not mining
+		GetHash:     GetHashFn(ctx, csdb),
+		Coinbase:    common.Address{}, // there's no beneficiary since we're not mining
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
-		GasPrice:    gasPrice,
 	}
 
-	return vm.NewEVM(context, csdb, GenerateChainConfig(st.ChainID), vm.Config{})
+	txCtx := vm.TxContext{
+		Origin:   st.Sender,
+		GasPrice: gasPrice,
+	}
+
+	eips := make([]int, len(extraEIPs))
+	for i, eip := range extraEIPs {
+		eips[i] = int(eip)
+	}
+
+	vmConfig := vm.Config{
+		ExtraEips: eips,
+	}
+
+	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
 func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) {
@@ -88,10 +132,10 @@ func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) {
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*ExecutionResult, error) {
 	contractCreation := st.Recipient == nil
 
-	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true, false)
+	cost, err := core.IntrinsicGas(st.Payload, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
@@ -122,12 +166,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	// Clear cache of accounts to handle changes outside of the EVM
 	csdb.UpdateAccounts()
 
-	gasPrice := ctx.MinGasPrices().AmountOf(emint.DenomDefault)
+	params := csdb.GetParams()
+
+	gasPrice := ctx.MinGasPrices().AmountOf(params.EvmDenom)
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.BigInt())
+	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config, params.ExtraEIPs)
 
 	var (
 		ret             []byte
@@ -138,16 +184,24 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	)
 
 	// Get nonce of account outside of the EVM
-	currentNonce := st.Csdb.GetNonce(st.Sender)
+	currentNonce := csdb.GetNonce(st.Sender)
 	// Set nonce of sender account before evm state transition for usage in generating Create address
-	st.Csdb.SetNonce(st.Sender, st.AccountNonce)
+	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	// create contract or execute call
 	switch contractCreation {
 	case true:
+		if !params.EnableCreate {
+			return nil, ErrCreateDisabled
+		}
+
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
+		if !params.EnableCall {
+			return nil, ErrCallDisabled
+		}
+
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
@@ -163,7 +217,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 	}
 
 	// Resets nonce to value pre state transition
-	st.Csdb.SetNonce(st.Sender, currentNonce)
+	csdb.SetNonce(st.Sender, currentNonce)
 
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
@@ -179,14 +233,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context) (*ExecutionResult, error
 			return nil, err
 		}
 
-		bloomInt = ethtypes.LogsBloom(logs)
+		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
-		if err := st.Csdb.Finalise(true); err != nil {
+		if err := csdb.Finalise(true); err != nil {
 			return nil, err
 		}
 	}
