@@ -92,7 +92,7 @@ func EthBlockFromTendermint(clientCtx client.Context, queryClient *QueryClient, 
 
 	bloom := ethtypes.BytesToBloom(res.Bloom)
 
-	return FormatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
+	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, transactions, bloom), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -155,7 +155,7 @@ func BlockMaxGasFromConsensusParams(ctx context.Context, clientCtx client.Contex
 // FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted
 // transactions.
 func FormatBlock(
-	header tmtypes.Header, size int, gasLimit int64,
+	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	if len(header.DataHash) == 0 {
@@ -164,7 +164,7 @@ func FormatBlock(
 
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
-		"hash":             hexutil.Bytes(header.Hash()),
+		"hash":             hexutil.Bytes(curBlockHash),
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
 		"nonce":            hexutil.Uint64(0), // PoW specific
 		"sha3Uncles":       common.Hash{},     // No uncles in Tendermint
