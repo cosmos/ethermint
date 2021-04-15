@@ -81,7 +81,7 @@ func getEthTransactionByHash(clientCtx client.Context, hashHex string) ([]byte, 
 		return nil, err
 	}
 
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 
 	ethTx, err := rpctypes.RawTxToEthTx(clientCtx, tx.Tx)
 	if err != nil {
