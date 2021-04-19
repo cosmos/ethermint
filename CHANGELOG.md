@@ -141,6 +141,7 @@ corresponding Ethereum API namespace:
 
 ### API Breaking
 
+* (eth) [\#845](https://github.com/cosmos/ethermint/pull/845) The `eth` namespace must be included in the list of API's as default to run the rpc server without error.
 * (types) [\#503](https://github.com/cosmos/ethermint/pull/503) The `types.DenomDefault` constant for `"aphoton"` has been renamed to `types.AttoPhoton`.
 
 ### Improvements
