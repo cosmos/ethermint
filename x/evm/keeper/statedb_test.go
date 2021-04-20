@@ -361,6 +361,7 @@ func (suite *KeeperTestSuite) TestSuiteDB_Prepare() {
 	txi := 1
 
 	suite.app.EvmKeeper.Prepare(suite.ctx, thash, txi)
+	suite.app.EvmKeeper.CommitStateDB.SetBlockHash(bhash)
 
 	suite.Require().Equal(txi, suite.app.EvmKeeper.TxIndex(suite.ctx))
 	suite.Require().Equal(bhash, suite.app.EvmKeeper.BlockHash(suite.ctx))
