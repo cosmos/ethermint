@@ -169,6 +169,11 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so.SetCode(ethcrypto.Keccak256Hash(code), code)
 }
 
+// SetBlockHash sets the block hash
+func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
+	csdb.bhash = hash
+}
+
 // ----------------------------------------------------------------------------
 // Transaction logs
 // Required for upgrade logic or ease of querying.
@@ -731,11 +736,10 @@ func (csdb *CommitStateDB) clearJournalAndRefund() {
 	csdb.refund = 0
 }
 
-// Prepare sets the current transaction hash and index and block hash which is
+// Prepare sets the current transaction hash and index which is
 // used when the EVM emits new state logs.
-func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
+func (csdb *CommitStateDB) Prepare(thash ethcmn.Hash, txi int) {
 	csdb.thash = thash
-	csdb.bhash = bhash
 	csdb.txIndex = txi
 }
 
