@@ -41,6 +41,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (faucet) [\#678](https://github.com/cosmos/ethermint/pull/678) Faucet module has been removed in favor of client libraries such as [`@cosmjs/faucet`](https://github.com/cosmos/cosmjs/tree/master/packages/faucet).
 * (evm) [\#670](https://github.com/cosmos/ethermint/pull/670) Migrate types to the ones defined by the protobuf messages, which are required for the stargate release.
+* (eth) [\#845](https://github.com/cosmos/ethermint/pull/845) The `eth` namespace must be included in the list of API's as default to run the rpc server without error.
 
 ### Bug Fixes
 
@@ -48,6 +49,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (api) [\#687](https://github.com/cosmos/ethermint/issues/687) Returns error for a transaction with an incorrect nonce. 
 * (evm) [\#674](https://github.com/cosmos/ethermint/issues/674) Reset all cache after account data has been committed in `EndBlock` to make sure every node state consistent.
 * (evm) [\#672](https://github.com/cosmos/ethermint/issues/672) Fix panic of `wrong Block.Header.AppHash` when restart a node with snapshot.
+* (evm) [\#775](https://github.com/cosmos/ethermint/issues/775) MisUse of headHash as blockHash when create EVM context.
+* (evm) [\#799](https://github.com/cosmos/ethermint/issues/799) Fix wrong precision in calculation of gas fee.
+* (evm) [\#767](https://github.com/cosmos/ethermint/issues/767) Fix error of timeout when using Truffle to deploy contract.
+* (evm) [\#751](https://github.com/cosmos/ethermint/issues/751) Fix misused method to calculate block hash in evm related function.
+* (evm) [\#721](https://github.com/cosmos/ethermint/issues/721) Fix mismatch block hash in rpc response when use eth.getBlock.
+* (evm) [\#730](https://github.com/cosmos/ethermint/issues/730) Fix 'EIP2028' not open when Istanbul version has been enabled.
+* (app) [\#749](https://github.com/cosmos/ethermint/issues/749) Fix panic in `AnteHandler` when gas price larger than 100000
 
 ### Features
 * (api) [\#825](https://github.com/cosmos/ethermint/pull/825) Individually enable the api modules. Will be implemented in the latest version of ethermint with the upcoming stargate upgrade.
@@ -141,7 +149,6 @@ corresponding Ethereum API namespace:
 
 ### API Breaking
 
-* (eth) [\#845](https://github.com/cosmos/ethermint/pull/845) The `eth` namespace must be included in the list of API's as default to run the rpc server without error.
 * (types) [\#503](https://github.com/cosmos/ethermint/pull/503) The `types.DenomDefault` constant for `"aphoton"` has been renamed to `types.AttoPhoton`.
 
 ### Improvements
@@ -209,12 +216,6 @@ corresponding Ethereum API namespace:
 
 ### Bug Fixes
 
-* (evm) [\#799](https://github.com/cosmos/ethermint/issues/799) Fix wrong precision in calculation of gas fee.
-* (evm) [\#767](https://github.com/cosmos/ethermint/issues/767) Fix error of timeout when using Truffle to deploy contract.
-* (evm) [\#751](https://github.com/cosmos/ethermint/issues/751) Fix misused method to calculate block hash in evm related function.
-* (evm) [\#721](https://github.com/cosmos/ethermint/issues/721) Fix mismatch block hash in rpc response when use eth.getBlock.
-* (evm) [\#730](https://github.com/cosmos/ethermint/issues/730) Fix 'EIP2028' not open when Istanbul version has been enabled.
-* (app) [\#749](https://github.com/cosmos/ethermint/issues/749) Fix panic in `AnteHandler` when gas price larger than 100000
 * (rpc) [\#305](https://github.com/cosmos/ethermint/issues/305) Update `eth_getTransactionCount` to check for account existence before getting sequence and return 0 as the nonce if it doesn't exist.
 * (`x/evm`) [\#319](https://github.com/cosmos/ethermint/pull/319) Fix `SetBlockHash` that was setting the incorrect height during `BeginBlock`.
 * (`x/evm`) [\#176](https://github.com/cosmos/ethermint/issues/176) Updated Web3 transaction hash from using RLP hash. Now all transaction hashes exposed are amino hashes:
