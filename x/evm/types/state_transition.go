@@ -112,21 +112,23 @@ func (st StateTransition) newEVM(
 func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) {
 	// Apply refund counter, capped to half of the used gas.
 	refund := gasInfo.GasConsumed / 2
-	if refund > st.Csdb.GetRefund() {
-		refund = st.Csdb.GetRefund()
+	if refund > gasInfo.GasRefunded {
+		refund = gasInfo.GasRefunded
 	}
 
-	// st.gas += refund
-
-	fmt.Println(refund)
-
 	// Return ETH for remaining gas, exchanged at the original rate.
-	remaining := new(big.Int).Mul(new(big.Int).SetUint64(refund), st.Price)
-	st.Csdb.AddBalance(st.Sender, remaining)
+	gasRefund := new(big.Int).Mul(new(big.Int).SetUint64(refund), st.Price)
+
+	// add refund back to counter.
+	// add gas information into state db
+	st.Csdb.AddRefund(gasRefund.Uint64())
+	st.Csdb.AddBalance(st.Sender, gasRefund)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
 	// st.gp.AddGas(st.gas)
+	// do we have a block gas counter?
+	// will we need to track gas using gasmeter for the blocks?
 }
 
 // TransitionDb will transition the state by applying the current transaction and
