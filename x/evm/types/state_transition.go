@@ -109,7 +109,7 @@ func (st StateTransition) newEVM(
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
-func (st StateTransition) refundGas(ctx sdk.Context, gasInfo GasInfo) {
+func (st StateTransition) refundGas(gasInfo GasInfo) {
 	// Apply refund counter, capped to half of the used gas.
 	refund := gasInfo.GasConsumed / 2
 	if refund > gasInfo.GasRefunded {
@@ -279,7 +279,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	// refund gas to sender
-	st.refundGas(ctx, gasInfo)
+	st.refundGas(gasInfo)
 
 	executionResult := &ExecutionResult{
 		Logs:  logs,
