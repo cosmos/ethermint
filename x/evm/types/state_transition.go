@@ -121,7 +121,7 @@ func (st StateTransition) refundGas(gasInfo GasInfo) {
 
 	// add refund back to counter.
 	// add gas information into state db
-	st.Csdb.AddRefund(gasRefund.Uint64())
+	st.Csdb.AddRefund(refund)
 	st.Csdb.AddBalance(st.Sender, gasRefund)
 
 	// Also return remaining gas to the block gas counter so it is
