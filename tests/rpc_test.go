@@ -38,10 +38,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	//if MODE != "rpc" {
-	//	_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")
-	//	return
-	//}
+	if MODE != "rpc" {
+		_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")
+		return
+	}
 
 	var err error
 	from, err = GetAddress()
