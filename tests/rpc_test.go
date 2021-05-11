@@ -38,10 +38,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	if MODE != "rpc" {
-		_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")
-		return
-	}
+	//if MODE != "rpc" {
+	//	_, _ = fmt.Fprintln(os.Stdout, "Skipping RPC test")
+	//	return
+	//}
 
 	var err error
 	from, err = GetAddress()
@@ -578,4 +578,37 @@ func TestEth_GetBlockByNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "0x0", block["extraData"].(string))
 	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
+}
+
+func TestEth_EstimateGas_vs_ConsumptionGas(t *testing.T) {
+	// value transfer tx
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x0000000000000000000000000000000012341234"
+	param[0]["value"] = "0x16345785d8a0000"
+	param[0]["gasLimit"] = "0x5208"
+	param[0]["gasPrice"] = "0x55ae82600"
+
+	// estimated gas
+	rpcRes1 := Call(t, "eth_estimateGas", param)
+	require.NotNil(t, rpcRes1)
+	require.NotEmpty(t, rpcRes1.Result)
+
+	var estimatedGas hexutil.Uint64
+	err := json.Unmarshal(rpcRes1.Result, &estimatedGas)
+	require.NoError(t, err, string(rpcRes1.Result))
+
+	rpcRes2 := Call(t, "eth_sendTransaction", param)
+	var hash hexutil.Bytes
+	err = json.Unmarshal(rpcRes2.Result, &hash)
+	require.NoError(t, err)
+
+	// consumed gas
+	rpcRes3 := Call(t, "eth_getTransactionByHash", []interface{}{hash})
+	var tx map[string]interface{}
+	err = json.Unmarshal(rpcRes3.Result, &tx)
+	require.NoError(t, err)
+
+	require.Equal(t, estimatedGas.String(), tx["gas"])
 }
