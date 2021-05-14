@@ -25,7 +25,7 @@ type StateTransition struct {
 	Payload      []byte
 
 	ChainID  *big.Int
-	Csdb     *CommitStateDB
+	Csdb     *CommitStateDB // state
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
@@ -48,16 +48,16 @@ type ExecutionResult struct {
 }
 
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
-//  1. The requested height matches the current height from context (and thus same epoch number)
+//  1. The requested height matches the current height (and thus same epoch number)
 //  2. The requested height is from an previous height from the same chain epoch
 //  3. The requested height is from a height greater than the latest one
 func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	return func(height uint64) common.Hash {
 		switch {
 		case ctx.BlockHeight() == int64(height):
-			// Case 1: The requested height matches the one from the context so we can retrieve the header
-			// hash directly from the context.
-			return HashFromContext(ctx)
+			// Case 1: The requested height matches the one from the CommitStateDB so we can retrieve the block
+			// hash directly from the CommitStateDB.
+			return csdb.bhash
 
 		case ctx.BlockHeight() > int64(height):
 			// Case 2: if the chain is not the current height we need to retrieve the hash from the store for the
@@ -107,6 +107,28 @@ func (st StateTransition) newEVM(
 	}
 
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
+}
+
+func (st StateTransition) refundGas(gasInfo GasInfo) {
+	// Apply refund counter, capped to half of the used gas.
+	refund := gasInfo.GasConsumed / 2
+	if refund > gasInfo.GasRefunded {
+		refund = gasInfo.GasRefunded
+	}
+
+	// Return ETH for remaining gas, exchanged at the original rate.
+	gasRefund := new(big.Int).Mul(new(big.Int).SetUint64(refund), st.Price)
+
+	// add refund back to counter.
+	// add gas information into state db
+	st.Csdb.AddRefund(refund)
+	st.Csdb.AddBalance(st.Sender, gasRefund)
+
+	// Also return remaining gas to the block gas counter so it is
+	// available for the next transaction.
+	// st.gp.AddGas(st.gas)
+	// do we have a block gas counter?
+	// will we need to track gas using gasmeter for the blocks?
 }
 
 // TransitionDb will transition the state by applying the current transaction and
@@ -246,6 +268,19 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
+	// Consume gas from evm execution
+	// Out of gas check does not need to be done here since it is done within the EVM execution
+	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+
+	gasInfo := GasInfo{
+		GasConsumed: gasConsumed,
+		GasLimit:    gasLimit,
+		GasRefunded: leftOverGas,
+	}
+
+	// refund gas to sender
+	st.refundGas(gasInfo)
+
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -253,36 +288,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			Data: resBz,
 			Log:  resultLog,
 		},
-		GasInfo: GasInfo{
-			GasConsumed: gasConsumed,
-			GasLimit:    gasLimit,
-			GasRefunded: leftOverGas,
-		},
+		GasInfo: gasInfo,
 	}
-
-	// TODO: Refund unused gas here, if intended in future
-
-	// Consume gas from evm execution
-	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
-}
-
-// HashFromContext returns the Ethereum Header hash from the context's Tendermint
-// block header.
-func HashFromContext(ctx sdk.Context) common.Hash {
-	// cast the ABCI header to tendermint Header type
-	tmHeader := AbciHeaderToTendermint(ctx.BlockHeader())
-
-	// get the Tendermint block hash from the current header
-	tmBlockHash := tmHeader.Hash()
-
-	// NOTE: if the validator set hash is missing the hash will be returned as nil,
-	// so we need to check for this case to prevent a panic when calling Bytes()
-	if tmBlockHash == nil {
-		return common.Hash{}
-	}
-
-	return common.BytesToHash(tmBlockHash.Bytes())
 }
