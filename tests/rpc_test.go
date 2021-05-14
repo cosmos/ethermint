@@ -540,7 +540,7 @@ func TestEth_EstimateGas(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err, string(rpcRes.Result))
 
-	require.Equal(t, "0xf560", gas)
+	require.Equal(t, "0x10b13", gas)
 }
 
 func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
@@ -566,7 +566,7 @@ func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	require.NoError(t, err, string(rpcRes.Result))
 
-	require.Equal(t, "0x1a738", gas.String())
+	require.Equal(t, "0x1ccca", gas.String())
 }
 
 func TestEth_GetBlockByNumber(t *testing.T) {
