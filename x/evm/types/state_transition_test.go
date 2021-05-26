@@ -275,8 +275,13 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			suite.Require().NoError(err, tc.name)
 			fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
 			toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
-			suite.Require().Equal(fromBalance, big.NewInt(4950), tc.name)
-			suite.Require().Equal(toBalance, big.NewInt(50), tc.name)
+			if tc.name == "contract creation" || tc.name == "state transition simulation" {
+				// accounts for refunded amount
+				suite.Require().Equal(big.NewInt(4960), fromBalance, tc.name)
+			} else {
+				suite.Require().Equal(big.NewInt(4950), fromBalance, tc.name)
+			}
+			suite.Require().Equal(big.NewInt(50), toBalance, tc.name)
 		} else {
 			suite.Require().Error(err, tc.name)
 		}
