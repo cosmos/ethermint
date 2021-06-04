@@ -1,29 +1,39 @@
-name: Build
-on:
-  pull_request:
-    branches:
-      - "development"
+
+# This is a basic workflow that is manually triggered
+
+name: baby
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on: [push, pull_request]
+
+# This workflow makes x86_64 binaries for mac, windows, and linux.
 
 jobs:
-  cleanup-runs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-    if: "!startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/development'"
-
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        targetos: [windows, darwin, linux]
+    name: baby ${{ matrix.arch }} for ${{ matrix.targetos }}
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v4
-        id: git_diff
+      - name: Setup go
+        uses: actions/setup-go@v1
         with:
-          SUFFIX_FILTER: |
-            .go
-            .mod
-            .sum
-      - run: |
+          go-version: 1.16
+        env:
+          GOOS: ${{ matrix.targetos }}
+          GOARCH: ${{ matrix.arch }}
+
+      - name: Compile
+        run: |
+          go mod tidy
+          go mod download
           make build
-        if: "env.GIT_DIFF != ''"
+          
+#   - uses: actions/upload-artifact@v2
+#       with:
+#         name: babyd ${{ matrix.targetos }} ${{ matrix.arch }}
+#         path: cmd/babyd/babyd
