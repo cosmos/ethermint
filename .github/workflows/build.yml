@@ -1,7 +1,7 @@
 
 # This is a basic workflow that is manually triggered
 
-name: baby
+name: ethermint multiplatform
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
@@ -29,7 +29,6 @@ jobs:
 
       - name: Compile
         run: |
-          go mod tidy
           go mod download
           make build
           
