@@ -31,7 +31,7 @@ jobs:
       - name: Compile
         run: |
           go mod download
-          make build
+          make
           
       - uses: actions/upload-artifact@v2
         with:
