@@ -73,21 +73,15 @@ arrcli=()
 
 init_func() {
     echo "create and add new keys"
-    "$PWD"/build/ethermintd config keyring-backend test --home "$DATA_CLI_DIR$i"
-    "$PWD"/build/ethermintd keys add $KEY"$i" --home "$DATA_CLI_DIR$i" --no-backup --chain-id $CHAINID
+    "$PWD"/build/ethermintd keys add $KEY"$i" --home "$DATA_DIR$i" --keyring-backend test --no-backup 
     echo "init Ethermint with moniker=$MONIKER and chain-id=$CHAINID"
     "$PWD"/build/ethermintd init $MONIKER --chain-id $CHAINID --home "$DATA_DIR$i"
-    echo "init ethermintd with chain-id=$CHAINID and config it trust-node true"
-    "$PWD"/build/ethermintd config chain-id $CHAINID --home "$DATA_CLI_DIR$i"
-    "$PWD"/build/ethermintd config output json --home "$DATA_CLI_DIR$i"
-    "$PWD"/build/ethermintd config indent true --home "$DATA_CLI_DIR$i"
-    "$PWD"/build/ethermintd config trust-node true --home "$DATA_CLI_DIR$i"
     echo "prepare genesis: Allocate genesis accounts"
     "$PWD"/build/ethermintd add-genesis-account \
-    "$("$PWD"/build/ethermintd keys show "$KEY$i" -a --home "$DATA_CLI_DIR$i" )" 1000000000000000000aphoton,1000000000000000000stake \
-    --home "$DATA_DIR$i" --home-client "$DATA_CLI_DIR$i"
+    "$("$PWD"/build/ethermintd keys show "$KEY$i" -a --home "$DATA_DIR$i" )" 1000000000000000000aphoton,1000000000000000000stake \
+    --home "$DATA_DIR$i" 
     echo "prepare genesis: Sign genesis transaction"
-    "$PWD"/build/ethermintd gentx --name $KEY"$i" --keyring-backend test --home "$DATA_DIR$i" --home-client "$DATA_CLI_DIR$i"
+    "$PWD"/build/ethermintd gentx --name $KEY"$i" --keyring-backend test --home "$DATA_DIR$i"
     echo "prepare genesis: Collect genesis tx"
     "$PWD"/build/ethermintd collect-gentxs --home "$DATA_DIR$i"
     echo "prepare genesis: Run validate-genesis to ensure everything worked and that the genesis file is setup correctly"

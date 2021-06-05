@@ -33,9 +33,10 @@ require (
 	github.com/tendermint/tm-db v0.6.4
 	github.com/tyler-smith/go-bip39 v1.1.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f
+	google.golang.org/genproto v0.0.0-20210426193834-eac7f76ac494
 	google.golang.org/grpc v1.38.0
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.33.2

@@ -92,9 +92,6 @@ ifeq ($(LEDGER_ENABLED),true)
   endif
 endif
 
-ifeq ($(WITH_CLEVELDB),yes)
-  build_tags += gcc
-endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -110,16 +107,11 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=ethermint \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
-
-ifeq ($(WITH_CLEVELDB),yes)
-  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
-endif
-ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 
-all: tools verify install
+all: tools install
 
 ###############################################################################
 ###                                  Build                                  ###
@@ -214,7 +206,7 @@ endif
 ifeq (, $(shell which solcjs))
 	@echo "Installing solcjs..."
 	@apt-get install -f -y protobuf-compiler
-	@npm install -g solc@0.5.11
+	@npm install -g solc
 else
 	@echo "solcjs already installed; skipping..."
 endif
