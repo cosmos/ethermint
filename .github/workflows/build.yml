@@ -7,15 +7,16 @@ name: ethermint multiplatform
 # or API.
 on: [push, pull_request]
 
-# This workflow makes x86_64 binaries for mac, windows, and linux.
+# This workflow makes x86_64 binaries for mac, windows, and linux, and it makes them from each of these OSes.
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [amd64, arm64]
         targetos: [windows, darwin, linux]
+        host: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.host }}
     name: baby ${{ matrix.arch }} for ${{ matrix.targetos }}
     steps:
       - uses: actions/checkout@v2
@@ -32,7 +33,7 @@ jobs:
           go mod download
           make build
           
-#   - uses: actions/upload-artifact@v2
-#       with:
-#         name: babyd ${{ matrix.targetos }} ${{ matrix.arch }}
-#         path: cmd/babyd/babyd
+      - uses: actions/upload-artifact@v2
+        with:
+         name: ethermintd ${{ matrix.targetos }} ${{ matrix.arch }} built on ${{ matrix.host }}
+         path: build/ethermintd
