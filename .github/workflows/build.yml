@@ -1,22 +1,24 @@
 
 # This is a basic workflow that is manually triggered
 
-name: baby
+name: ethermint multiplatform
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
 on: [push, pull_request]
 
-# This workflow makes x86_64 binaries for mac, windows, and linux.
+# This workflow makes x86_64 binaries for mac, windows, and linux, and it makes them from each of these OSes.
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         arch: [amd64, arm64]
         targetos: [windows, darwin, linux]
-    name: baby ${{ matrix.arch }} for ${{ matrix.targetos }}
+        host: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.host }}
+    name: ${{ matrix.targetos }}-${{ matrix.arch }} built on ${{ matrix.host }}
     steps:
       - uses: actions/checkout@v2
       - name: Setup go
@@ -27,13 +29,12 @@ jobs:
           GOOS: ${{ matrix.targetos }}
           GOARCH: ${{ matrix.arch }}
 
-      - name: Compile
+      - name: Make
         run: |
-          go mod tidy
           go mod download
-          make build
+          make
           
-#   - uses: actions/upload-artifact@v2
-#       with:
-#         name: babyd ${{ matrix.targetos }} ${{ matrix.arch }}
-#         path: cmd/babyd/babyd
+      - uses: actions/upload-artifact@v2
+        with:
+         name: ethermintd ${{ matrix.targetos }} ${{ matrix.arch }} built on ${{ matrix.host }}
+         path: build/ethermintd
