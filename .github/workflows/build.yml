@@ -28,6 +28,9 @@ jobs:
         env:
           GOOS: ${{ matrix.targetos }}
           GOARCH: ${{ matrix.arch }}
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
 
       - name: Make
         run: |
