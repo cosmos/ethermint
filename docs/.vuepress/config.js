@@ -146,7 +146,7 @@ module.exports = {
           title: 'Community',
           children: [{
               title: 'Cosmos Community',
-              url: 'https://discord.gg/W8trcGV'
+              url: 'https://discord.gg/cosmosnetwork'
             },
             {
               title: 'Ethermint Forum',
